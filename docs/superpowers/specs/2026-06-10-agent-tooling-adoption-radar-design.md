@@ -48,6 +48,42 @@ The product should reuse ideas from existing tools without competing directly wi
 
 Differentiation is enterprise/on-prem adoption judgment for agent/tooling systems.
 
+### Horizon Review Findings
+
+Direct inspection of `Thysrael/Horizon` at commit `7e0ffbb` showed a mature architecture worth learning from:
+
+- `src/scrapers/` uses one scraper per source behind a shared async `fetch(since)` interface.
+- `src/models.py` uses Pydantic models for config and content, which catches bad config before runtime.
+- `src/orchestrator.py` has a clear pipeline: fetch, URL dedupe, AI score, semantic dedupe, balanced filtering, enrichment, summary, delivery.
+- `data/config.example.json` separates source configuration, AI settings, filtering, and delivery.
+- `.env` and `${VAR}` expansion keep secrets and private endpoints out of committed config.
+- `docs/scoring.md` documents the scoring scale, thresholding, enrichment, and filtering behavior.
+- `src/mcp/` exposes staged tools that reuse the same pipeline logic instead of reimplementing it.
+- `src/mcp/run_store.py` persists stage artifacts per run: raw, scored, filtered, enriched, and summary.
+- Tests cover config loading, env expansion, scrapers, scoring, summaries, storage, and MCP adapter behavior.
+
+The main lesson: Horizon is strongest where it keeps source fetching, scoring, enrichment, storage, and delivery separate. V1 should copy that separation, but not Horizon's breadth.
+
+### What V1 Should Borrow
+
+- Config-first design with Pydantic validation.
+- Shared async collector interface.
+- Soft-fail source collection: one broken source should not fail the whole scan.
+- Environment-variable expansion in config strings.
+- Stage artifacts for inspectability and future MCP integration.
+- Source/category balancing so one noisy source cannot dominate a report.
+- Rich CLI progress output.
+- Fixture-driven tests for collectors and reports.
+
+### What V1 Should Avoid Copying
+
+- Broad social/news collection across Hacker News, Reddit, Telegram, Twitter, finance, and RSS.
+- Heavy AI enrichment as the default path.
+- Email subscription management.
+- Bilingual publishing.
+- GitHub Pages automation in the first slice.
+- MCP server implementation in V1, even though the stage design should prepare for it.
+
 ## 4. V1 Scope
 
 ### In Scope
@@ -64,9 +100,11 @@ Differentiation is enterprise/on-prem adoption judgment for agent/tooling system
   - Security/news links as manually configured sources.
   - Existing radars as optional upstream sources, not hard dependencies.
 - Decision cards persisted locally.
-- CLI commands for scan, report, and serve.
+- CLI commands for init, scan, report, and serve.
 - Local web dashboard for browsing cards.
 - Markdown and JSON export for public sharing.
+- File-based run artifacts for raw, scored, filtered, and card stages.
+- A small setup helper that writes a starter config from the seed watchlist.
 
 ### Out of Scope for V1
 
@@ -78,8 +116,26 @@ Differentiation is enterprise/on-prem adoption judgment for agent/tooling system
 - Enterprise SSO/RBAC.
 - Kubernetes deployment.
 - MCP server output. This is a likely V2.
+- Social media scraping. V1 should prefer official APIs, RSS, and manually configured links.
 
 ## 5. User Workflows
+
+### First Run
+
+The user runs:
+
+```bash
+radar init
+```
+
+The system creates:
+
+- `.env.example`
+- `data/config.yaml`
+- `data/runs/`
+- starter source entries for the agent/tooling watchlist
+
+The init flow should not require an LLM key. Optional keys such as `GITHUB_TOKEN` or `OPENAI_API_KEY` are documented but not mandatory.
 
 ### Daily Scan
 
@@ -90,6 +146,18 @@ radar scan --days 2
 ```
 
 The system fetches updates, dedupes known items, refreshes scores, and stores evidence.
+
+Each scan writes stage artifacts under:
+
+```txt
+data/runs/<run_id>/
+  meta.json
+  raw_signals.json
+  scored_signals.json
+  filtered_signals.json
+  decision_cards.json
+  report.md
+```
 
 ### Weekly Decision
 
@@ -106,6 +174,8 @@ The report highlights:
 - "Security watch"
 - "Important but wait"
 - "Dropped or avoided"
+
+The weekly report should be deterministic without an LLM. If an LLM is configured, it can add prose rationale, but it must not be required for the core score and ring assignment.
 
 ### Local Review
 
@@ -155,6 +225,8 @@ The dashboard shows cards by quadrant, ring, tag, project, and recommendation.
 
 ## 7. Data Model
 
+V1 should model `Signal` and `DecisionCard` separately. This is a change inspired by Horizon's `ContentItem` plus stage artifacts, but adapted to decision support.
+
 ### Source
 
 ```yaml
@@ -165,6 +237,8 @@ enabled: true
 poll_interval_hours: 24
 tags: [general-agent, open-source, workflow-automation]
 ```
+
+Source config supports `${ENV_VAR}` expansion in string values, matching Horizon's convention. Unset variables should remain visible as `${VAR}` rather than silently becoming empty strings.
 
 ### Signal
 
@@ -177,6 +251,25 @@ published_at: "2026-06-10T00:00:00Z"
 raw_summary: "Release notes or scraped excerpt"
 project: "OpenClaw"
 signal_type: "release"
+```
+
+### Scored Signal
+
+```yaml
+signal_id: signal-uuid
+scores:
+  workflow_impact: 4
+  laptop_runnability: 5
+  open_source_maturity: 5
+  on_prem_relevance: 4
+  security_posture: 2
+  demo_value: 4
+  setup_friction: 3
+reason_codes:
+  - local_agent_with_file_access
+  - strong_github_activity
+  - needs_sandbox_review
+recommended_ring: "pilot"
 ```
 
 ### Decision Card
@@ -211,7 +304,7 @@ last_reviewed_at: "2026-06-10T00:00:00Z"
 
 ## 8. Scoring
 
-Scores are explicit and explainable. V1 can start with deterministic scoring plus optional LLM-assisted rationale later.
+Scores are explicit and explainable. Unlike Horizon's default AI scoring, V1 starts with deterministic scoring plus optional LLM-assisted rationale later. The deterministic path is important because the tool itself is meant to help evaluate agent safety; it should not require an agent to decide whether an agent is safe.
 
 | Dimension | Scale | Meaning |
 |---|---:|---|
@@ -230,6 +323,22 @@ Suggested ring mapping:
 - **Watch:** relevant but immature, unclear, or not worth current setup cost.
 - **Avoid:** poor fit, high unmanaged risk, abandoned, or duplicative.
 
+### Balanced Report Selection
+
+Borrowing Horizon's balanced digest idea, weekly reports should cap each category so one active ecosystem does not dominate the output.
+
+Default V1 category quotas:
+
+| Category | Weekly limit |
+|---|---:|
+| Coding Agents | 4 |
+| General Agents | 3 |
+| MCP & Tooling | 4 |
+| Sandbox & Governance | 4 |
+| Agent Frameworks | 3 |
+
+The report may still include all cards in JSON/export form. The quotas only affect the human-readable "what to read or try this week" section.
+
 ## 9. Architecture
 
 ```mermaid
@@ -245,13 +354,15 @@ flowchart LR
         COL["Collectors"]
         NOR["Normalizer"]
         DED["Deduper"]
-        SCO["Scorer"]
-        ANA["Analyst"]
+        SCO["Deterministic Scorer"]
+        FIL["Balanced Filter"]
+        ANA["Decision Analyst"]
     end
 
     subgraph Storage
         DB["SQLite"]
         CFG["YAML config"]
+        RUN["Run artifacts"]
     end
 
     subgraph Outputs
@@ -266,7 +377,11 @@ flowchart LR
     SEC --> COL
     RAD --> COL
     CFG --> COL
-    COL --> NOR --> DED --> SCO --> ANA --> DB
+    COL --> NOR --> DED --> SCO --> FIL --> ANA --> DB
+    NOR --> RUN
+    SCO --> RUN
+    FIL --> RUN
+    ANA --> RUN
     DB --> CLI
     DB --> MD
     DB --> JSON
@@ -279,10 +394,53 @@ flowchart LR
 - **Normalizer:** converts raw signals into the common signal schema.
 - **Deduper:** detects repeated links, repeated release notes, and same-project duplicates.
 - **Scorer:** applies deterministic scoring rules from `config/scoring.yaml`.
-- **Analyst:** generates decision-card fields from scores and evidence.
+- **Balanced Filter:** limits noisy categories in human-readable reports.
+- **Decision Analyst:** generates decision-card fields from scores and evidence.
 - **Storage:** SQLite database for local state and reproducible exports.
+- **Run Artifacts:** JSON/Markdown files per run for debugging, reproducibility, and future MCP tools.
 - **Reports:** Markdown and JSON output.
 - **Web:** local dashboard for browsing and filtering.
+
+### Proposed Repository Structure
+
+```txt
+onprem-ai-adoption-radar/
+  pyproject.toml
+  README.md
+  .env.example
+  config/
+    seed-sources.yaml
+    scoring.yaml
+    category-quotas.yaml
+  data/
+    config.yaml
+    radar.db
+    runs/
+  src/radar/
+    cli.py
+    models.py
+    orchestrator.py
+    collectors/
+      base.py
+      github.py
+      rss.py
+      manual.py
+    scoring/
+      deterministic.py
+      rings.py
+    storage/
+      manager.py
+      run_store.py
+    reports/
+      markdown.py
+      json_export.py
+    web/
+      app.py
+  tests/
+    fixtures/
+```
+
+The structure intentionally mirrors the useful parts of Horizon while dropping broad source support and delivery systems.
 
 ## 10. Error Handling
 
@@ -293,6 +451,8 @@ flowchart LR
 - Invalid YAML config fails fast with a readable error.
 - Duplicate signals are merged, not discarded silently.
 - LLM-assisted analysis, if added later, must be optional. The deterministic path must remain usable offline except for source fetching.
+- Stage artifacts are written incrementally. If the run fails after scoring, the raw and scored artifacts should remain inspectable.
+- Optional dependencies must fail soft. If a future connector needs a heavy package, the scan should warn and skip it when the package is missing.
 
 ## 11. Security Principles
 
@@ -304,16 +464,22 @@ V1 observes and analyzes tools; it does not execute them.
 - Optional API keys must live in `.env`, not committed config.
 - Source content is treated as untrusted input.
 - Generated recommendations should highlight risks when a tool can write files, run commands, access browsers, use credentials, or persist memory.
+- The web dashboard must render fetched content as text/escaped markdown, not trusted HTML.
+- Future MCP tools should expose read-only run artifacts first. Any mutating tool should require an explicit design review.
 
 ## 12. Testing Strategy
 
 ### Unit Tests
 
 - YAML config parsing.
+- Environment-variable expansion in config strings.
 - GitHub collector response parsing with fixture data.
+- RSS/manual collector parsing with fixture data.
 - Normalization into `Signal`.
 - Deduplication rules.
 - Score-to-ring mapping.
+- Balanced category quotas.
+- Run artifact persistence and safe run ID validation.
 - Markdown report rendering.
 
 ### Integration Tests
@@ -322,6 +488,7 @@ V1 observes and analyzes tools; it does not execute them.
 - Persist signals and cards into SQLite.
 - Generate weekly report from fixture database.
 - Serve dashboard against fixture database.
+- Restart from run artifacts and regenerate a report.
 
 ### Manual Acceptance
 
@@ -331,19 +498,22 @@ Given fixture data for OpenClaw, Hermes Agent, NemoClaw, MCP, Cline, Aider, Goos
 - Each card includes evidence links.
 - The weekly output contains a small "try this week" list.
 - Security-sensitive tools are not recommended without risk notes.
+- A broken configured source produces a warning but does not abort the scan.
 
 ## 13. V1 Success Criteria
 
 - The project is public and laptop-runnable.
-- A user can run `radar scan`, `radar report`, and `radar serve`.
+- A user can run `radar init`, `radar scan`, `radar report`, and `radar serve`.
 - The initial watchlist covers at least 10 agent/tooling projects.
 - Reports are more decision-oriented than news-oriented.
 - No third-party agent is executed by the radar.
 - The README clearly explains why this is different from Horizon, agents-radar, and generic technology radar tools.
+- Each scan leaves inspectable run artifacts.
+- The deterministic scoring path works without an LLM API key.
 
 ## 14. Future Work
 
-- MCP server output so Claude/Codex/OpenClaw can query the radar.
+- MCP server output so Claude/Codex/OpenClaw can query the radar. It should wrap the same stages and run artifacts rather than reimplementing scan logic.
 - GitHub Actions publishing to GitHub Pages.
 - LLM-assisted analyst mode with local Ollama/OpenAI-compatible providers.
 - Comparison matrices for "Codex vs Claude Code vs Cline vs Goose vs Aider".
