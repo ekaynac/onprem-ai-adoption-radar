@@ -64,3 +64,58 @@ def test_load_config_reports_validation_error(tmp_path: Path):
         load_config(config_path)
 
     assert "Configuration validation failed" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "config_text",
+    [
+        """
+version: "1.0"
+unexpected: true
+sources:
+  - id: github-openclaw
+    type: github_repo
+    project: OpenClaw
+    category: general_agents
+    url: https://github.com/openclaw/openclaw
+""",
+        """
+version: "1.0"
+sources:
+  - id: github-openclaw
+    type: github_repo
+    project: OpenClaw
+    category: general_agents
+    url: https://github.com/openclaw/openclaw
+    poll_interval_hour: 12
+""",
+        """
+version: "1.0"
+sources:
+  - id: github-openclaw
+    type: github_repo
+    project: OpenClaw
+    category: general_agents
+    url: https://github.com/openclaw/openclaw
+scoring:
+  default_rign: watch
+""",
+    ],
+)
+def test_load_config_rejects_unknown_config_fields(
+    tmp_path: Path, config_text: str
+):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(config_text, encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(config_path)
+
+    assert "Configuration validation failed" in str(exc.value)
+
+
+def test_load_config_wraps_read_errors(tmp_path: Path):
+    with pytest.raises(ConfigError) as exc:
+        load_config(tmp_path)
+
+    assert "Configuration file could not be read" in str(exc.value)

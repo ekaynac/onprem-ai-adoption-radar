@@ -36,11 +36,16 @@ def expand_env_vars(value: Any) -> Any:
 def load_config(path: Path) -> Config:
     """Load and validate a YAML config file."""
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except yaml.YAMLError as exc:
-        raise ConfigError(f"Invalid YAML in {path}: {exc}") from exc
+        contents = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
         raise ConfigError(f"Configuration file not found: {path}") from exc
+    except OSError as exc:
+        raise ConfigError(f"Configuration file could not be read: {path}") from exc
+
+    try:
+        raw = yaml.safe_load(contents)
+    except yaml.YAMLError as exc:
+        raise ConfigError(f"Invalid YAML in {path}: {exc}") from exc
 
     if raw is None:
         raw = {}

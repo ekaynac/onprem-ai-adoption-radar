@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 
 class SourceType(str, Enum):
@@ -39,6 +39,8 @@ class Ring(str, Enum):
 class SourceConfig(BaseModel):
     """A configured information source."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: str
     type: SourceType
     enabled: bool = True
@@ -51,6 +53,8 @@ class SourceConfig(BaseModel):
 
 class ScoringConfig(BaseModel):
     """Scoring configuration."""
+
+    model_config = ConfigDict(extra="forbid")
 
     default_ring: Ring = Ring.WATCH
     security_penalty_tags: list[str] = Field(
@@ -65,6 +69,8 @@ class ScoringConfig(BaseModel):
 
 class Config(BaseModel):
     """Application configuration."""
+
+    model_config = ConfigDict(extra="forbid")
 
     version: str = "1.0"
     sources: list[SourceConfig] = Field(min_length=1)
