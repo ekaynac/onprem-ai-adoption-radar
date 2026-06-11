@@ -1,0 +1,11 @@
+[
+  {
+    "id": 101,
+    "tag_name": "v1.2.3",
+    "html_url": "https://github.com/openclaw/openclaw/releases/tag/v1.2.3",
+    "body": "CLI onboarding and plugin list improvements.",
+    "published_at": "2026-06-10T08:00:00Z",
+    "prerelease": false,
+    "author": {"login": "maintainer"}
+  }
+]
