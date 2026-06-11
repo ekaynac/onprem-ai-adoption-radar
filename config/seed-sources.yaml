@@ -1,0 +1,85 @@
+version: "1.0"
+sources:
+  - id: github-openclaw
+    type: github_repo
+    enabled: true
+    project: OpenClaw
+    category: general_agents
+    url: https://github.com/openclaw/openclaw
+    tags: [general-agent, open-source, persistent-agent, workflow-automation, file-write-access]
+  - id: github-nvidia-nemoclaw
+    type: github_repo
+    enabled: true
+    project: NVIDIA NemoClaw
+    category: sandbox_governance
+    url: https://github.com/NVIDIA/NemoClaw
+    tags: [sandbox, governance, open-source, on-prem-relevant]
+  - id: github-hermes-agent
+    type: github_repo
+    enabled: true
+    project: Hermes Agent
+    category: general_agents
+    url: https://github.com/NousResearch/hermes-agent
+    tags: [general-agent, persistent-agent, memory, open-source]
+  - id: github-cline
+    type: github_repo
+    enabled: true
+    project: Cline
+    category: coding_agents
+    url: https://github.com/cline/cline
+    tags: [coding-agent, mcp, file-write-access, terminal-access]
+  - id: github-openhands
+    type: github_repo
+    enabled: true
+    project: OpenHands
+    category: coding_agents
+    url: https://github.com/OpenHands/OpenHands
+    tags: [coding-agent, software-agent-sdk, open-source]
+  - id: github-aider
+    type: github_repo
+    enabled: true
+    project: Aider
+    category: coding_agents
+    url: https://github.com/Aider-AI/aider
+    tags: [coding-agent, terminal, open-source]
+  - id: github-goose
+    type: github_repo
+    enabled: true
+    project: Goose
+    category: general_agents
+    url: https://github.com/aaif-goose/goose
+    tags: [general-agent, mcp, desktop, cli]
+  - id: github-langgraph
+    type: github_repo
+    enabled: true
+    project: LangGraph
+    category: agent_frameworks
+    url: https://github.com/langchain-ai/langgraph
+    tags: [agent-framework, orchestration, open-source]
+  - id: github-autogen
+    type: github_repo
+    enabled: true
+    project: AutoGen
+    category: agent_frameworks
+    url: https://github.com/microsoft/autogen
+    tags: [agent-framework, multi-agent, open-source]
+  - id: mcp-docs
+    type: manual
+    enabled: true
+    project: Model Context Protocol
+    category: mcp_tooling
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+    tags: [mcp, protocol, tooling]
+quotas:
+  coding_agents: 4
+  general_agents: 3
+  mcp_tooling: 4
+  sandbox_governance: 4
+  agent_frameworks: 3
+scoring:
+  default_ring: watch
+  security_penalty_tags:
+    - terminal-access
+    - file-write-access
+    - persistent-agent
+    - browser-access
