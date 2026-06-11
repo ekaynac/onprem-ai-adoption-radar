@@ -20,3 +20,12 @@ def test_app_has_help_text():
 
     assert result.exit_code == 0
     assert "Agent/tooling adoption radar" in result.stdout
+
+
+def test_init_command_writes_config(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert (tmp_path / "data" / "config.yaml").exists()
