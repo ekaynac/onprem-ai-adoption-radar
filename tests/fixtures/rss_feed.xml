@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title>Agent Tooling Blog</title>
+    <item>
+      <title>MCP server approval patterns</title>
+      <link>https://example.com/mcp-approval</link>
+      <description>New guidance for human approval flows in tool-using agents.</description>
+      <pubDate>Wed, 10 Jun 2026 10:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
