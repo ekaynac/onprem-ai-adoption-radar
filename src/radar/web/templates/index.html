@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agent/Tooling Adoption Radar</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+        color: #1f2937;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.75rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f9fafb;
+      }
+      .ring {
+        font-family: ui-monospace, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Agent/Tooling Adoption Radar</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Project</th>
+          <th>Category</th>
+          <th>Ring</th>
+          <th>Risk</th>
+          <th>Summary</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for card in cards %}
+        <tr>
+          <td>{{ card.project }}</td>
+          <td>{{ card.category.value }}</td>
+          <td class="ring">{{ card.ring.value }}</td>
+          <td>{{ card.risk_level }}</td>
+          <td>{{ card.summary }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">No cards yet. Run radar scan first.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
