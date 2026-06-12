@@ -145,7 +145,30 @@ def test_seed_sources_yaml_new_category_sources_parseable():
         assert src.id
         assert src.project
         assert src.url
-        assert src.type in {SourceType.GITHUB_REPO, SourceType.MANUAL}
+        assert src.type in {SourceType.GITHUB_REPO, SourceType.MANUAL, SourceType.RSS}
+
+
+def test_seed_sources_yaml_includes_rss_feeds():
+    """The radar must pull from non-GitHub sources (vendor/engineering blogs) via RSS."""
+    config = load_config(_REPO_ROOT / "config" / "seed-sources.yaml")
+
+    rss_sources = [s for s in config.sources if s.type == SourceType.RSS]
+    # At least NVIDIA + HuggingFace + one more on-prem/infra vendor feed.
+    assert len(rss_sources) >= 3
+    for src in rss_sources:
+        assert src.id and src.project and src.url
+        assert src.category in set(Category)
+
+
+def test_seed_rss_feeds_build_into_rss_collector():
+    """Configured RSS feeds must actually produce an RSSCollector in the pipeline."""
+    from radar.collectors.registry import build_collectors
+    from radar.collectors.rss import RSSCollector
+
+    config = load_config(_REPO_ROOT / "config" / "seed-sources.yaml")
+    collectors = build_collectors(config, client=object())
+
+    assert any(isinstance(c, RSSCollector) for c in collectors)
 
 
 def test_category_quotas_yaml_includes_new_categories(tmp_path: Path):

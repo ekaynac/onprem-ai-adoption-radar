@@ -318,6 +318,39 @@ sources:
     url: https://github.com/tenstorrent/tt-metal
     tags: [hardware, on-prem-relevant, open-source, data-center]
 
+  # ── RSS / Atom signal streams (non-GitHub vendor & engineering blogs) ────────
+  # These broaden coverage beyond GitHub. Scoped vendor feeds are enabled;
+  # high-volume "firehose" feeds (e.g. HuggingFace) are kept disabled until an
+  # entry->project classification layer lands, to avoid flooding the radar.
+  - id: rss-nvidia-dev-blog
+    type: rss
+    enabled: true
+    project: NVIDIA Developer Blog
+    category: ai_infrastructure
+    url: https://developer.nvidia.com/blog/feed/
+    tags: [vendor-blog, on-prem-relevant, gpu, inference]
+  - id: rss-ollama-blog
+    type: rss
+    enabled: true
+    project: Ollama Blog
+    category: model_serving
+    url: https://ollama.com/blog/rss.xml
+    tags: [vendor-blog, local-model, on-prem-relevant, inference]
+  - id: rss-redhat-ai-blog
+    type: rss
+    enabled: true
+    project: Red Hat AI Blog
+    category: ai_infrastructure
+    url: https://www.redhat.com/en/rss/blog/channel/red-hat-ai
+    tags: [vendor-blog, enterprise, on-prem-relevant, inference]
+  - id: rss-huggingface-blog
+    type: rss
+    enabled: false  # firehose (~800 entries) — enable after entry-level filtering
+    project: HuggingFace Blog
+    category: model_serving
+    url: https://huggingface.co/blog/feed.xml
+    tags: [vendor-blog, model-hub, firehose]
+
 quotas:
   coding_agents: 10
   general_agents: 10
