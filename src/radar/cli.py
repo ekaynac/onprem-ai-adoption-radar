@@ -120,6 +120,16 @@ def history(
 
 
 @app.command()
+def mcp(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Run the MCP server (stdio) so agents can query the radar."""
+    from radar.mcp_server.server import run as run_mcp
+
+    run_mcp(root)
+
+
+@app.command()
 def serve(
     root: Path = typer.Option(Path("."), help="Project root."),
     host: str = typer.Option("127.0.0.1", help="Bind host."),
