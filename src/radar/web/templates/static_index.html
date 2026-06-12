@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>On-Prem AI Adoption Radar</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem auto;
+        max-width: 1000px;
+        color: #1f2937;
+        padding: 0 1rem;
+      }
+      h1 { margin-bottom: 0.25rem; }
+      .generated { color: #6b7280; font-size: 0.85rem; margin-top: 0; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
+      th, td {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.6rem 0.75rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      th { background: #f9fafb; }
+      .ring { font-family: ui-monospace, monospace; }
+      .adopt { color: #047857; font-weight: 600; }
+      .pilot { color: #2563eb; font-weight: 600; }
+      .watch { color: #b45309; }
+      .avoid { color: #b91c1c; }
+    </style>
+  </head>
+  <body>
+    <h1>On-Prem AI Adoption Radar</h1>
+    <p class="generated">Generated {{ generated_at }}</p>
+
+    <h2>Try This Week</h2>
+    <table>
+      <thead>
+        <tr><th>Project</th><th>Category</th><th>Ring</th><th>Risk</th><th>Summary</th></tr>
+      </thead>
+      <tbody>
+        {% for card in try_this_week %}
+        <tr>
+          <td>{{ card.project }}</td>
+          <td>{{ card.category.value }}</td>
+          <td class="ring {{ card.ring.value }}">{{ card.ring.value }}</td>
+          <td>{{ card.risk_level }}</td>
+          <td>{{ card.summary }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No adopt/pilot picks in the latest scan.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>All Tracked Projects</h2>
+    <table>
+      <thead>
+        <tr><th>Project</th><th>Category</th><th>Ring</th><th>Risk</th><th>On-prem fit</th></tr>
+      </thead>
+      <tbody>
+        {% for card in cards %}
+        <tr>
+          <td>{{ card.project }}</td>
+          <td>{{ card.category.value }}</td>
+          <td class="ring {{ card.ring.value }}">{{ card.ring.value }}</td>
+          <td>{{ card.risk_level }}</td>
+          <td>{{ card.on_prem_fit }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No cards yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

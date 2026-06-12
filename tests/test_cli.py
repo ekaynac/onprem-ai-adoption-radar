@@ -57,6 +57,37 @@ def test_seed_add_appends_source_to_config(tmp_path):
     assert any(s.id == "rss-cli-feed" for s in config.sources)
 
 
+def test_export_writes_static_site(tmp_path):
+    from radar.models import Category, Ring
+    from radar.storage.database import RadarDatabase
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    from radar.models import DecisionCard
+
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="fast inference", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+
+    out = tmp_path / "_site"
+    runner = CliRunner()
+    result = runner.invoke(
+        app, ["export", "--root", str(tmp_path), "--out", str(out)]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    index = out / "index.html"
+    assert index.exists()
+    html = index.read_text(encoding="utf-8")
+    assert "vLLM" in html
+    assert "adopt" in html
+
+
 def test_history_command_shows_recorded_timeline(tmp_path):
     runner = CliRunner()
     runner.invoke(app, ["init", "--root", str(tmp_path)])
