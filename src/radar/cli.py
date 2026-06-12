@@ -13,6 +13,7 @@ from radar.constants import APP_NAME
 from radar.init_project import initialize_project
 from radar.orchestrator import RadarOrchestrator
 from radar.reports.markdown import render_markdown_report
+from radar.storage.seed_store import SeedError, add_seed
 from radar.web.app import create_app
 
 
@@ -20,6 +21,8 @@ app = typer.Typer(
     help="Agent/tooling adoption radar for on-prem AI workflows.",
     no_args_is_help=True,
 )
+seed_app = typer.Typer(help="Manage signal sources (seeds).", no_args_is_help=True)
+app.add_typer(seed_app, name="seed")
 console = Console()
 
 
@@ -62,6 +65,39 @@ def report(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
     """Print a report from persisted cards."""
     cards = RadarOrchestrator(root).latest_cards()
     console.print(render_markdown_report(cards, "Agent/Tooling Adoption Radar"))
+
+
+@seed_app.command("add")
+def seed_add(
+    id: str = typer.Option(..., help="Unique source id, e.g. rss-nvidia-dev-blog."),
+    type: str = typer.Option(..., help="Source type: github_repo, rss, or manual."),
+    project: str = typer.Option(..., help="Display name for the project/stream."),
+    category: str = typer.Option(..., help="Radar category, e.g. model_serving."),
+    url: str = typer.Option(..., help="Source URL (repo, feed, or page)."),
+    tags: str = typer.Option("", help="Comma-separated tags."),
+    enabled: bool = typer.Option(True, help="Whether the source is active."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Add a new signal source to the project config."""
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    config_path = root / "data" / "config.yaml"
+    try:
+        source = add_seed(
+            config_path,
+            {
+                "id": id,
+                "type": type,
+                "project": project,
+                "category": category,
+                "url": url,
+                "tags": tag_list,
+                "enabled": enabled,
+            },
+        )
+    except SeedError as exc:
+        console.print(f"[red]Could not add source:[/red] {exc}")
+        raise typer.Exit(code=1)
+    console.print(f"Added source: {source.id} ({source.type.value} -> {source.category.value})")
 
 
 @app.command()
