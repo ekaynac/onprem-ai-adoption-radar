@@ -77,6 +77,24 @@ class ScoringConfig(BaseModel):
     )
 
 
+class LLMConfig(BaseModel):
+    """Optional LLM analyst configuration (firehose tail only).
+
+    Disabled by default — the whole pipeline runs offline and deterministic
+    unless this is explicitly turned on. Defaults target a local, OpenAI-
+    compatible endpoint (e.g. Ollama) to keep on-prem. The API key, if any, is
+    read from the environment, never stored here.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    base_url: str = "http://localhost:11434/v1"
+    model: str = "qwen2.5:3b"
+    api_key_env: str = "RADAR_LLM_API_KEY"
+    timeout_seconds: int = Field(default=20, ge=1)
+
+
 class Config(BaseModel):
     """Application configuration."""
 
@@ -86,6 +104,7 @@ class Config(BaseModel):
     sources: list[SourceConfig] = Field(min_length=1)
     quotas: dict[Category, int] = Field(default_factory=dict)
     scoring: ScoringConfig = Field(default_factory=ScoringConfig)
+    llm: LLMConfig = Field(default_factory=LLMConfig)
 
 
 class Signal(BaseModel):

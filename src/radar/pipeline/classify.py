@@ -17,9 +17,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Callable
 from urllib.parse import urlparse
 
 from radar.models import Category, Signal, SourceConfig
+
+# An analyst resolves an ambiguous entry to a tracked project name (or None).
+# It is only ever offered the deterministic tail, and only candidate names.
+Analyst = Callable[[str, list[str]], "str | None"]
 
 
 @dataclass(frozen=True)
@@ -51,6 +56,8 @@ class FirehoseResult:
 
     kept: list[Signal]
     dropped_titles: list[str]
+    # How many entries the optional LLM analyst recovered from the dropped tail.
+    llm_recovered: int = 0
 
 
 _MIN_MATCH_LEN = 3
@@ -140,26 +147,59 @@ def _is_firehose(signal: Signal) -> bool:
     return bool(signal.metadata.get("firehose"))
 
 
-def reclassify_firehose(signals: list[Signal], index: ProjectIndex) -> FirehoseResult:
+def reclassify_firehose(
+    signals: list[Signal],
+    index: ProjectIndex,
+    analyst: Analyst | None = None,
+) -> FirehoseResult:
     """Re-attribute firehose signals to tracked projects; drop non-matches.
 
-    Non-firehose signals pass through unchanged. Inputs are never mutated —
-    matched firehose signals are returned as new copies with the resolved
-    project/category.
+    Deterministic matching runs first. When an ``analyst`` is supplied, entries
+    the deterministic pass could not place get one second-chance lookup against
+    the tracked project names; a valid resolution is attributed and kept. The
+    analyst is never consulted for already-matched entries. Non-firehose signals
+    pass through unchanged and inputs are never mutated.
     """
+    categories = {c.project: c.category for c in index.candidates}
+    candidate_names = list(categories)
+
     kept: list[Signal] = []
     dropped_titles: list[str] = []
+    recovered = 0
     for signal in signals:
         if not _is_firehose(signal):
             kept.append(signal)
             continue
-        match = classify_text(f"{signal.title}\n{signal.raw_summary}", index)
-        if match is None:
-            dropped_titles.append(signal.title)
+        text = f"{signal.title}\n{signal.raw_summary}"
+        match = classify_text(text, index)
+        if match is not None:
+            kept.append(_attribute(signal, match.project, match.category))
             continue
-        kept.append(
-            signal.model_copy(
-                update={"project": match.project, "category": match.category}
-            )
-        )
-    return FirehoseResult(kept=kept, dropped_titles=dropped_titles)
+        resolved = _consult_analyst(analyst, text, candidate_names, categories)
+        if resolved is not None:
+            kept.append(_attribute(signal, resolved[0], resolved[1]))
+            recovered += 1
+            continue
+        dropped_titles.append(signal.title)
+    return FirehoseResult(
+        kept=kept, dropped_titles=dropped_titles, llm_recovered=recovered
+    )
+
+
+def _attribute(signal: Signal, project: str, category: Category) -> Signal:
+    return signal.model_copy(update={"project": project, "category": category})
+
+
+def _consult_analyst(
+    analyst: Analyst | None,
+    text: str,
+    candidate_names: list[str],
+    categories: dict[str, Category],
+) -> tuple[str, Category] | None:
+    """Ask the analyst to place an ambiguous entry; validate its answer."""
+    if analyst is None:
+        return None
+    answer = analyst(text, candidate_names)
+    if answer is None or answer not in categories:
+        return None
+    return answer, categories[answer]

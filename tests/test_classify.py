@@ -149,3 +149,56 @@ def test_reclassify_does_not_mutate_input():
     sig = _signal("vLLM speed", firehose=True)
     reclassify_firehose([sig], _index())
     assert sig.project == "HuggingFace Blog"  # original untouched
+
+
+# ── optional LLM analyst (second pass on the dropped tail) ─────────────────────
+
+
+def test_analyst_recovers_a_deterministically_dropped_entry():
+    # Text never names the project literally, so deterministic match drops it.
+    seen = {}
+
+    def fake_analyst(text, candidates):
+        seen["candidates"] = candidates
+        return "vLLM"  # the analyst resolves the ambiguous entry
+
+    result = reclassify_firehose(
+        [_signal("A new way to serve models fast", firehose=True)],
+        _index(),
+        analyst=fake_analyst,
+    )
+
+    assert len(result.kept) == 1
+    assert result.kept[0].project == "vLLM"
+    assert result.kept[0].category == Category.MODEL_SERVING
+    assert result.dropped_titles == []
+    assert result.llm_recovered == 1
+    # The analyst is only offered tracked project names as candidates.
+    assert "vLLM" in seen["candidates"]
+
+
+def test_analyst_returning_non_candidate_is_ignored():
+    def bad_analyst(text, candidates):
+        return "Totally Made Up Project"
+
+    result = reclassify_firehose(
+        [_signal("ramblings", firehose=True)], _index(), analyst=bad_analyst
+    )
+
+    assert result.kept == []
+    assert result.dropped_titles == ["ramblings"]
+    assert result.llm_recovered == 0
+
+
+def test_analyst_not_called_for_deterministically_matched_entries():
+    calls = []
+
+    def spy_analyst(text, candidates):
+        calls.append(text)
+        return None
+
+    reclassify_firehose(
+        [_signal("vLLM 0.7 is out", firehose=True)], _index(), analyst=spy_analyst
+    )
+
+    assert calls == []  # deterministic match short-circuits; no LLM call
