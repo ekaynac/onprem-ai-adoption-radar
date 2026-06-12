@@ -57,6 +57,11 @@ def build_mcp_server(root: Path) -> FastMCP:
         """
         return service.compare(projects=projects, category=category)
 
+    @mcp.tool()
+    def sandbox_plan(project: str) -> dict[str, Any] | None:
+        """Get a safe, disposable trial recipe (steps, teardown, cautions)."""
+        return service.sandbox_plan(project)
+
     return mcp
 
 

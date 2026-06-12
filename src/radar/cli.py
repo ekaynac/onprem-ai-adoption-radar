@@ -120,6 +120,22 @@ def history(
 
 
 @app.command()
+def sandbox(
+    project: str = typer.Option(..., help="Project to generate a trial plan for."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Print a safe, disposable sandbox trial plan for a project."""
+    from radar.reports.sandbox import build_sandbox_plan, render_sandbox_markdown
+
+    cards = RadarOrchestrator(root).latest_cards()
+    card = next((c for c in cards if c.project == project), None)
+    if card is None:
+        console.print(f"[red]Unknown project:[/red] {project}")
+        raise typer.Exit(code=1)
+    console.print(render_sandbox_markdown(card, build_sandbox_plan(card)))
+
+
+@app.command()
 def export(
     out: Path = typer.Option(Path("_site"), help="Output directory for static HTML."),
     root: Path = typer.Option(Path("."), help="Project root."),
