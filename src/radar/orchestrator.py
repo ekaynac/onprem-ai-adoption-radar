@@ -15,7 +15,7 @@ from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
 from radar.pipeline.dedupe import dedupe_signals
 from radar.pipeline.llm_classify import build_analyst
-from radar.pipeline.delta import CardDelta, compute_deltas
+from radar.pipeline.delta import CardDelta, ChangeType, compute_deltas
 from radar.pipeline.quotas import apply_category_quotas
 from radar.reports.history import render_history_report
 from radar.reports.markdown import render_markdown_report
@@ -23,7 +23,8 @@ from radar.reports.try_this_week import render_try_this_week_report
 from radar.scoring.deterministic import score_signal
 from radar.storage.config import load_config
 from radar.storage.database import RadarDatabase
-from radar.storage.history_store import HistoryStore
+from radar.storage.history_log import append_events, load_events
+from radar.storage.history_store import HistoryStore, deltas_to_events
 from radar.storage.run_store import RunStore
 
 
@@ -49,6 +50,8 @@ class RadarOrchestrator:
         self.run_store = RunStore(self.data_dir / "runs")
         self.database = RadarDatabase(self.data_dir / "radar.db")
         self.history = HistoryStore(self.data_dir / "radar.db")
+        # Durable, portable source of truth for the timeline (the DB is a cache).
+        self.history_log = self.data_dir / "history.jsonl"
 
     def scan(self, days: int) -> ScanResult:
         """Run the scan pipeline synchronously for CLI callers."""
@@ -58,6 +61,14 @@ class RadarOrchestrator:
         config = load_config(self.config_path)
         self.database.initialize()
         self.history.initialize()
+        # Reconcile the durable log (source of truth) with the DB projection:
+        # rebuild the DB from the log if present, or backfill the log from a
+        # legacy DB that predates the log. Either way the log ends up complete.
+        log_events = load_events(self.history_log)
+        if log_events:
+            self.history.import_events(log_events)
+        elif self.history.has_events():
+            append_events(self.history_log, self.history.all_events())
         run_id = self.run_store.create_run()
         since = datetime.now(timezone.utc) - timedelta(days=days)
 
@@ -125,11 +136,21 @@ class RadarOrchestrator:
         deltas = compute_deltas(previous=previous_cards, current=filtered_cards)
 
         self.database.upsert_cards(filtered_cards)
-        # Append this scan's changes to the durable per-project timeline, then
-        # render the cumulative history report from the full accumulated record.
-        self.history.record_deltas(
-            deltas, run_id=run_id, observed_at=datetime.now(timezone.utc)
+        # Persist this scan's changes to BOTH the durable JSONL log (source of
+        # truth) and the DB projection. Drop "new" events for projects already
+        # in the timeline: after a DB/snapshot wipe every project would look new
+        # again, which would pollute the durable record on a re-scan.
+        seen = self.history.seen_projects()
+        persistable = [
+            d
+            for d in deltas
+            if not (d.change_type == ChangeType.NEW and d.project in seen)
+        ]
+        events = deltas_to_events(
+            persistable, run_id=run_id, observed_at=datetime.now(timezone.utc)
         )
+        self.history.add_events(events)
+        append_events(self.history_log, events)
 
         report = render_markdown_report(filtered_cards, "Agent/Tooling Adoption Radar")
         report_path = self.run_store.save_report(run_id, report)

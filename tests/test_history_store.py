@@ -109,3 +109,67 @@ def test_empty_deltas_record_nothing(tmp_path: Path):
 
     assert store.history_for("Ollama") == []
     assert store.summaries() == []
+
+
+def test_has_events_reflects_state(tmp_path: Path):
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    assert store.has_events() is False
+
+    store.record_deltas(
+        [_delta("Ollama", ChangeType.NEW, Ring.WATCH, None)], "run-1", _at(10)
+    )
+    assert store.has_events() is True
+
+
+def test_import_events_rebuilds_db_from_events(tmp_path: Path):
+    # Simulate a wiped DB rehydrated from the durable log.
+    source = HistoryStore(tmp_path / "a.db")
+    source.initialize()
+    source.record_deltas(
+        [_delta("Ollama", ChangeType.NEW, Ring.WATCH, None)], "run-1", _at(10)
+    )
+    source.record_deltas(
+        [_delta("Ollama", ChangeType.PROMOTED, Ring.PILOT, Ring.WATCH)], "run-2", _at(11)
+    )
+    events = source.history_for("Ollama")
+
+    fresh = HistoryStore(tmp_path / "b.db")
+    fresh.initialize()
+    inserted = fresh.import_events(events)
+
+    assert inserted == 2
+    assert [e.change_type for e in fresh.history_for("Ollama")] == [
+        ChangeType.NEW,
+        ChangeType.PROMOTED,
+    ]
+
+
+def test_import_events_is_idempotent(tmp_path: Path):
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.record_deltas(
+        [_delta("Ollama", ChangeType.NEW, Ring.WATCH, None)], "run-1", _at(10)
+    )
+    events = store.history_for("Ollama")
+
+    # Re-importing the same events must not duplicate rows.
+    again = store.import_events(events)
+
+    assert again == 0
+    assert len(store.history_for("Ollama")) == 1
+
+
+def test_seen_projects(tmp_path: Path):
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.record_deltas(
+        [
+            _delta("Ollama", ChangeType.NEW, Ring.WATCH, None),
+            _delta("vLLM", ChangeType.NEW, Ring.PILOT, None),
+        ],
+        "run-1",
+        _at(10),
+    )
+
+    assert store.seen_projects() == {"Ollama", "vLLM"}

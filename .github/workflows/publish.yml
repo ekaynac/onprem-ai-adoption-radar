@@ -36,14 +36,16 @@ jobs:
       - name: Install package
         run: uv venv && uv pip install -e .
 
-      # Persist the SQLite DB across runs so project history accumulates.
-      - name: Restore radar history
+      # Persist the durable JSONL history log across runs so the timeline
+      # accumulates. The SQLite DB is just a cache rebuilt from this log, so we
+      # only need to carry the log forward.
+      - name: Restore radar history log
         uses: actions/cache/restore@v4
         with:
-          path: data/radar.db
-          key: radar-db-${{ github.run_id }}
+          path: data/history.jsonl
+          key: radar-history-${{ github.run_id }}
           restore-keys: |
-            radar-db-
+            radar-history-
 
       - name: Scan and export
         env:
@@ -53,12 +55,18 @@ jobs:
           uv run radar scan --root . --days 7
           uv run radar export --root . --out _site
 
-      - name: Save radar history
+      - name: Save radar history log
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: data/radar.db
-          key: radar-db-${{ github.run_id }}
+          path: data/history.jsonl
+          key: radar-history-${{ github.run_id }}
+
+      # Also publish the durable log as a Pages artifact so the full timeline is
+      # downloadable and not dependent on the (evictable) Actions cache.
+      - name: Include history log in site
+        if: always()
+        run: cp -f data/history.jsonl _site/history.jsonl || true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
