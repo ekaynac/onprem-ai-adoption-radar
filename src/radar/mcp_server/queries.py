@@ -102,6 +102,22 @@ class RadarQueryService:
             ],
         }
 
+    def sandbox_plan(self, project: str) -> dict[str, Any] | None:
+        """Return a disposable trial plan for a project, or None if unknown."""
+        from radar.reports.sandbox import build_sandbox_plan
+
+        card = next((c for c in self._cards() if c.project == project), None)
+        if card is None:
+            return None
+        plan = build_sandbox_plan(card)
+        return {
+            "project": plan.project,
+            "strategy": plan.strategy,
+            "steps": plan.steps,
+            "teardown": plan.teardown,
+            "cautions": plan.cautions,
+        }
+
     @staticmethod
     def _card_dict(card: DecisionCard) -> dict[str, Any]:
         return {
