@@ -3,7 +3,8 @@
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-153%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-168%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
 
@@ -63,11 +64,12 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | --- | --- |
 | `radar init` | Create `data/config.yaml` (from the seed list) and data directories. |
 | `radar scan --days N` | Collect → classify → score → calibrate → cards. Writes report, Try This Week, and history artifacts. |
-| `radar report` | Print the decision report from the latest scan. |
+| `radar report [--json]` | Print the decision report from the latest scan (`--json` for scripting). |
 | `radar history [--project X]` | Print the cumulative per-project timeline. |
 | `radar compare --category X` / `--projects "A,B"` | Side-by-side comparison matrix. |
 | `radar sandbox --project X` | Disposable trial plan (steps, teardown, cautions). |
 | `radar seed add --id … --type … --project … --category … --url …` | Add a new source. |
+| `radar seed list` | List the configured sources with type, category, and flags. |
 | `radar export --out _site` | Render a self-contained static HTML snapshot. |
 | `radar serve [--port 8765]` | Run the local dashboard. |
 | `radar mcp` | Run the MCP server over stdio. |
@@ -178,10 +180,12 @@ docs/           persistence.md, sandbox-playbook.md, seed-research.md
 ## Development
 
 ```bash
-uv run pytest          # 153 tests
+uv run pytest --cov    # 168 tests, coverage floor 80% (currently ~92%)
+uv run ruff check src tests
+uv run mypy
 ```
 
-Conventions: deterministic core (no LLM in the default path), immutable data flow, many small focused modules, test-driven. Each feature lands via TDD with the timeline/decisions verified against real scans. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Conventions: deterministic core (no LLM in the default path), immutable data flow, many small focused modules, test-driven. Each feature lands via TDD with the timeline/decisions verified against real scans. CI runs lint (ruff), type checks (mypy), and the test suite with coverage on Python 3.12 and 3.13. See [docs/architecture.md](docs/architecture.md), [CONTRIBUTING.md](CONTRIBUTING.md), and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
