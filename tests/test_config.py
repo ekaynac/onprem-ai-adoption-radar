@@ -148,6 +148,16 @@ def test_seed_sources_yaml_new_category_sources_parseable():
         assert src.type in {SourceType.GITHUB_REPO, SourceType.MANUAL, SourceType.RSS}
 
 
+def test_seed_sources_yaml_includes_fun_experimental_projects():
+    """Playful/creative local-AI projects are tracked in their own lane."""
+    config = load_config(_REPO_ROOT / "config" / "seed-sources.yaml")
+
+    fun = [s for s in config.sources if s.category == Category.FUN_EXPERIMENTAL]
+    assert len(fun) >= 4
+    for src in fun:
+        assert src.id and src.project and src.url
+
+
 def test_seed_sources_yaml_includes_rss_feeds():
     """The radar must pull from non-GitHub sources (vendor/engineering blogs) via RSS."""
     config = load_config(_REPO_ROOT / "config" / "seed-sources.yaml")

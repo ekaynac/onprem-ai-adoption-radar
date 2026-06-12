@@ -320,6 +320,50 @@ sources:
     url: https://github.com/tenstorrent/tt-metal
     tags: [hardware, on-prem-relevant, open-source, data-center]
 
+  # ── Fun / Experimental (playful, creative local AI) ─────────────────────────
+  - id: github-comfyui
+    type: github_repo
+    enabled: true
+    project: ComfyUI
+    category: fun_experimental
+    url: https://github.com/Comfy-Org/ComfyUI
+    tags: [image-gen, local-model, self-hosted, open-source, gpu-required, fun]
+  - id: github-sd-webui
+    type: github_repo
+    enabled: true
+    project: Stable Diffusion WebUI
+    category: fun_experimental
+    url: https://github.com/AUTOMATIC1111/stable-diffusion-webui
+    tags: [image-gen, local-model, self-hosted, open-source, gpu-required, fun]
+  - id: github-sillytavern
+    type: github_repo
+    enabled: true
+    project: SillyTavern
+    category: fun_experimental
+    url: https://github.com/SillyTavern/SillyTavern
+    tags: [llm-frontend, roleplay, local-model, self-hosted, open-source, fun]
+  - id: github-piper
+    type: github_repo
+    enabled: true
+    project: Piper
+    category: fun_experimental
+    url: https://github.com/rhasspy/piper
+    tags: [tts, voice, local-model, self-hosted, open-source, fun]
+  - id: github-openvoice
+    type: github_repo
+    enabled: true
+    project: OpenVoice
+    category: fun_experimental
+    url: https://github.com/myshell-ai/OpenVoice
+    tags: [voice-clone, tts, local-model, self-hosted, open-source, fun]
+  - id: github-textgen-webui
+    type: github_repo
+    enabled: true
+    project: Text Generation WebUI
+    category: fun_experimental
+    url: https://github.com/oobabooga/textgen
+    tags: [llm-frontend, playground, local-model, self-hosted, open-source, fun]
+
   # ── RSS / Atom signal streams (non-GitHub vendor & engineering blogs) ────────
   # These broaden coverage beyond GitHub. Scoped vendor feeds are enabled;
   # high-volume "firehose" feeds (e.g. HuggingFace) are kept disabled until an
@@ -366,6 +410,7 @@ quotas:
   model_serving: 10
   ai_infrastructure: 10
   physical_ai_infrastructure: 10
+  fun_experimental: 10
 scoring:
   default_ring: watch
   security_penalty_tags:

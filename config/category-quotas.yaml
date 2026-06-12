@@ -6,3 +6,4 @@ agent_frameworks: 10
 model_serving: 10
 ai_infrastructure: 10
 physical_ai_infrastructure: 10
+fun_experimental: 10

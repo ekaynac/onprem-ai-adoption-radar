@@ -28,6 +28,9 @@ class Category(str, Enum):
     MODEL_SERVING = "model_serving"
     AI_INFRASTRUCTURE = "ai_infrastructure"
     PHYSICAL_AI_INFRASTRUCTURE = "physical_ai_infrastructure"
+    # Playful / creative local-AI projects (image gen, voice, LLM toys) —
+    # tracked through the same pipeline but kept in their own lane.
+    FUN_EXPERIMENTAL = "fun_experimental"
 
 
 class Ring(str, Enum):
