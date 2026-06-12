@@ -345,7 +345,8 @@ sources:
     tags: [vendor-blog, enterprise, on-prem-relevant, inference]
   - id: rss-huggingface-blog
     type: rss
-    enabled: false  # firehose (~800 entries) — enable after entry-level filtering
+    enabled: true
+    firehose: true  # entries are reclassified to tracked projects (classify layer)
     project: HuggingFace Blog
     category: model_serving
     url: https://huggingface.co/blog/feed.xml

@@ -61,7 +61,7 @@ class RSSCollector(BaseCollector):
                     raw_summary=summary,
                     signal_type="rss_entry",
                     tags=source.tags,
-                    metadata={"feed": source.id},
+                    metadata={"feed": source.id, "firehose": source.firehose},
                 )
             )
         return signals
