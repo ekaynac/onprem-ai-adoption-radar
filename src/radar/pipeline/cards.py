@@ -26,7 +26,14 @@ def build_decision_cards(scored_signals: list[ScoredSignal]) -> list[DecisionCar
         for project, items in grouped.items()
     }
     calibrated = calibrate_rings(
-        [(bests[p].scores.average, bests[p].scores.security_posture) for p in projects]
+        [
+            (
+                bests[p].scores.average,
+                bests[p].scores.security_posture,
+                bests[p].scores.on_prem_relevance,  # tiebreak within score ties
+            )
+            for p in projects
+        ]
     )
     rings = dict(zip(projects, calibrated))
 

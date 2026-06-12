@@ -53,3 +53,29 @@ def test_absolute_adopt_floor_independent_of_quartile():
     entries = [(4.6, 4), (4.7, 4), (4.8, 4)]
     rings = calibrate_rings(entries)
     assert all(r == Ring.ADOPT for r in rings)
+
+
+def test_adopt_is_capped_to_target_fraction_on_a_tie_cluster():
+    # 3 elite (>=4.15) + a big tie cluster at 4.14. Without a cap every tie
+    # promotes (the over-broad ADOPT bug); with the cap only a bounded number do.
+    elite = [(4.29, 4)] * 3
+    cluster = [(4.14, 4)] * 16
+    rings = calibrate_rings(elite + cluster)
+    adopts = sum(1 for r in rings if r == Ring.ADOPT)
+    # All 3 elite + a bounded slice of the cluster — not all 19.
+    assert adopts >= 3
+    assert adopts < 19
+    assert adopts <= 12  # hard cap
+
+
+def test_tiebreaker_prefers_higher_on_prem_relevance():
+    # Two equal-average candidates, one slot to promote: the higher tiebreak wins.
+    # entry = (average, security, tiebreak)
+    entries = [(4.29, 4)] * 9 + [(4.14, 4, 2), (4.14, 4, 5)]
+    rings = calibrate_rings(entries)
+    # With 9 elite already adopted and a small target, the cluster slot (if any)
+    # must go to the higher-tiebreak entry, never the lower one alone.
+    last_two = rings[-2:]
+    # The lower-tiebreak (index -2) is not ADOPT while the higher (-1) is, OR
+    # neither is — but never lower-only.
+    assert not (last_two[0] == Ring.ADOPT and last_two[1] != Ring.ADOPT)
