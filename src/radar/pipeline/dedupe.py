@@ -8,10 +8,15 @@ from radar.models import Signal
 
 
 def dedupe_signals(signals: list[Signal]) -> list[Signal]:
-    """Deduplicate signals by normalized URL, keeping the richest summary."""
-    groups: dict[str, Signal] = {}
+    """Deduplicate signals by (normalized URL, project), keeping the richest summary.
+
+    The project is part of the key because firehose re-attribution can assign
+    entries that share a URL to different projects; URL-only dedupe would drop
+    one project's signal entirely.
+    """
+    groups: dict[tuple[str, str], Signal] = {}
     for signal in signals:
-        key = _normalize_url(str(signal.url))
+        key = (_normalize_url(str(signal.url)), signal.project)
         current = groups.get(key)
         if current is None or len(signal.raw_summary) > len(current.raw_summary):
             groups[key] = signal

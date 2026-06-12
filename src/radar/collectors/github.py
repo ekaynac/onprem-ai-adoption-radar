@@ -128,22 +128,29 @@ class GitHubCollector(BaseCollector):
 
         signals: list[Signal] = []
         for release in releases:
-            published_at = datetime.fromisoformat(
-                release["published_at"].replace("Z", "+00:00")
-            )
-            if published_at < since:
+            # Draft releases have a null published_at; the API can also return
+            # partial objects. Skip anything malformed instead of aborting the
+            # whole collector run.
+            published_at = _parse_github_datetime(release.get("published_at"))
+            if published_at is None or published_at < since:
                 continue
-            tag = release["tag_name"]
+            tag = release.get("tag_name")
+            release_id = release.get("id")
+            if not tag or release_id is None:
+                logger.warning(
+                    "Skipping malformed release payload for source %s", source.id
+                )
+                continue
             body = release.get("body") or ""
             highlights = self.extract_release_highlights(body)
             signals.append(
                 Signal(
-                    id=f"github:{source.id}:release:{release['id']}",
+                    id=f"github:{source.id}:release:{release_id}",
                     source_id=source.id,
                     project=source.project,
                     category=source.category,
                     title=f"{source.project} released {tag}",
-                    url=release["html_url"],
+                    url=release.get("html_url") or str(source.url),
                     published_at=published_at,
                     raw_summary="\n".join(highlights) if highlights else self._compact_text(body),
                     signal_type="github_release",
@@ -214,4 +221,7 @@ class GitHubCollector(BaseCollector):
 def _parse_github_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None

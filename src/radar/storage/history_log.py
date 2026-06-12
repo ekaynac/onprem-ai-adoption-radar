@@ -11,9 +11,13 @@ One JSON object per line, append-only — events are never rewritten or removed.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from radar.storage.history_store import ProjectHistoryEvent
+
+
+logger = logging.getLogger(__name__)
 
 
 def append_events(path: Path, events: list[ProjectHistoryEvent]) -> None:
@@ -27,14 +31,24 @@ def append_events(path: Path, events: list[ProjectHistoryEvent]) -> None:
 
 
 def load_events(path: Path) -> list[ProjectHistoryEvent]:
-    """Read all events from the log, oldest-first. Missing file → empty list."""
+    """Read all events from the log, oldest-first. Missing file → empty list.
+
+    Corrupt lines (a truncated tail after a crash mid-append, a bad hand edit)
+    are skipped with a warning — one broken line must never make the whole
+    timeline, and with it every future scan, unloadable.
+    """
     if not path.exists():
         return []
     events: list[ProjectHistoryEvent] = []
     with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
+        for line_no, raw_line in enumerate(handle, start=1):
+            line = raw_line.strip()
             if not line:
                 continue
-            events.append(ProjectHistoryEvent.model_validate_json(line))
+            try:
+                events.append(ProjectHistoryEvent.model_validate_json(line))
+            except ValueError as exc:
+                logger.warning(
+                    "Skipping corrupt history line %d in %s: %s", line_no, path, exc
+                )
     return events

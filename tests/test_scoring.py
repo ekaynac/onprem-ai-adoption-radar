@@ -157,3 +157,25 @@ def test_new_categories_produce_valid_scored_signal(category: Category):
     assert scored.scores.average >= 1.0
     assert scored.recommended_ring in {Ring.ADOPT, Ring.PILOT, Ring.WATCH, Ring.AVOID}
     assert scored.on_prem_rubric  # rubric must be non-empty
+
+
+def test_keyword_scoring_is_deterministic_and_rewards_strong_positives():
+    from radar.scoring.deterministic import _score_keywords
+
+    # A strong (non-{mcp, api}) positive match must always earn the +2 bonus,
+    # regardless of set iteration order.
+    for _ in range(50):
+        score = _score_keywords(
+            tags={"self-hosted", "mcp"},
+            text="",
+            positives={"mcp", "self-hosted"},
+            negatives=set(),
+            base=3,
+        )
+        assert score == 5
+
+    # Only weak positives ({mcp, api}) match: +1, never the strong bonus.
+    assert (
+        _score_keywords(tags={"mcp"}, text="", positives={"mcp", "self-hosted"}, negatives=set(), base=3)
+        == 4
+    )

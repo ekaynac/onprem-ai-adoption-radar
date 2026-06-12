@@ -63,3 +63,47 @@ def test_registry_builds_enabled_collectors():
 
     assert len(collectors) == 1
     assert collectors[0].__class__.__name__ == "RSSCollector"
+
+
+@pytest.mark.asyncio
+async def test_unparseable_entry_date_falls_back_instead_of_crashing():
+    feed = """<?xml version="1.0"?>
+<rss version="2.0"><channel><title>Blog</title>
+<item><title>Good post</title><link>https://example.com/good</link>
+<pubDate>liberation day</pubDate></item>
+</channel></rss>"""
+    source = SourceConfig(
+        id="rss-agent-blog",
+        type=SourceType.RSS,
+        enabled=True,
+        project="Agent Blog",
+        category=Category.MCP_TOOLING,
+        url="https://example.com/feed.xml",
+    )
+    collector = RSSCollector([source], client=FakeClient(feed))
+
+    signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=timezone.utc))
+
+    # Entry with an unparseable date falls back to "now" and is kept.
+    assert [s.title for s in signals] == ["Good post"]
+
+
+@pytest.mark.asyncio
+async def test_broken_feed_logs_warning_instead_of_silence(caplog):
+    source = SourceConfig(
+        id="rss-agent-blog",
+        type=SourceType.RSS,
+        enabled=True,
+        project="Agent Blog",
+        category=Category.MCP_TOOLING,
+        url="https://example.com/feed.xml",
+    )
+    collector = RSSCollector([source], client=FakeClient("<html>502 Bad Gateway</html>"))
+
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="radar.collectors.rss"):
+        signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=timezone.utc))
+
+    assert signals == []
+    assert any("rss-agent-blog" in record.getMessage() for record in caplog.records)
