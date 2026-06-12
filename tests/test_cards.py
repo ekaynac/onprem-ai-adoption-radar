@@ -39,3 +39,11 @@ def test_build_decision_cards_groups_by_project():
     assert cards[0].ring == Ring.PILOT
     assert cards[0].risk_level == "high"
     assert "https://github.com/cline/cline/releases/tag/v1" in cards[0].evidence
+
+
+def test_clean_text_unescapes_entities_and_strips_html_tags():
+    from radar.pipeline.cards import _clean_text
+
+    text = "It&amp;#39;s a <strong>big</strong> release<br/> with &lt;tags&gt; <!-- noise -->"
+
+    assert _clean_text(text) == "It's a big release with <tags>"

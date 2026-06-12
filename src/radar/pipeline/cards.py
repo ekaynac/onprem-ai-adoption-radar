@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import re
 from collections import defaultdict
 
@@ -195,6 +196,12 @@ def _label(name: str) -> str:
 
 
 def _clean_text(text: str, max_chars: int = 240) -> str:
+    # RSS summaries arrive as HTML, often with double-escaped entities
+    # (&amp;#39;). Strip comments and tags first, then unescape twice so the
+    # report shows plain prose instead of markup soup.
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html.unescape(html.unescape(text))
     text = re.sub(r"^#+\s*", "", text.strip())
     text = re.sub(r"^[>*`_\-+\s]+", "", text)
     text = re.sub(r"\s+", " ", text).strip()

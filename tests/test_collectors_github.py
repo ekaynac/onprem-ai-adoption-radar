@@ -197,3 +197,31 @@ async def test_malformed_pushed_at_does_not_crash_snapshot():
 
     snapshot = next(s for s in signals if s.signal_type == "github_repo_snapshot")
     assert snapshot.project == "OpenClaw"
+
+
+def test_release_highlights_drop_html_comments():
+    body = """<!-- Release notes generated using configuration in .github/release.yml at v2-main -->
+
+## What's Changed
+* Real improvement to the local runtime.
+"""
+
+    highlights = GitHubCollector.extract_release_highlights(body)
+
+    assert highlights == ["Real improvement to the local runtime."]
+
+
+def test_release_highlights_keep_markdown_link_text():
+    body = "* For details see the [release notes](https://example.com/notes) and the [Upgrade Guide](https://example.com/upgrade)."
+
+    highlights = GitHubCollector.extract_release_highlights(body)
+
+    assert highlights == ["For details see the release notes and the Upgrade Guide."]
+
+
+def test_release_highlights_drop_pr_attribution_trailers():
+    body = "* fix: include JSON instructions in followup prompt by @SomeUser in https://github.com/org/repo/pull/123"
+
+    highlights = GitHubCollector.extract_release_highlights(body)
+
+    assert highlights == ["fix: include JSON instructions in followup prompt"]
