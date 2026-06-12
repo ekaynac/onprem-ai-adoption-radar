@@ -6,18 +6,40 @@ import re
 from collections import defaultdict
 
 from radar.models import DecisionCard, OnPremAssessment, Ring, ScoredSignal
+from radar.scoring.calibrate import calibrate_rings
 
 
 def build_decision_cards(scored_signals: list[ScoredSignal]) -> list[DecisionCard]:
-    """Build one decision card per project."""
+    """Build one decision card per project.
+
+    Rings are calibrated across the whole batch (hybrid absolute + quartile)
+    so they discriminate instead of collapsing into one band; the calibrated
+    ring overrides each project's per-signal recommendation everywhere.
+    """
     grouped: dict[str, list[ScoredSignal]] = defaultdict(list)
     for scored in scored_signals:
         grouped[scored.signal.project].append(scored)
 
+    projects = list(grouped)
+    bests = {
+        project: sorted(items, key=lambda i: i.scores.average, reverse=True)[0]
+        for project, items in grouped.items()
+    }
+    calibrated = calibrate_rings(
+        [(bests[p].scores.average, bests[p].scores.security_posture) for p in projects]
+    )
+    rings = dict(zip(projects, calibrated))
+
     cards: list[DecisionCard] = []
-    for project, items in grouped.items():
-        items = sorted(items, key=lambda item: item.signal.published_at, reverse=True)
-        best = sorted(items, key=lambda item: item.scores.average, reverse=True)[0]
+    for project in projects:
+        items = sorted(
+            grouped[project], key=lambda item: item.signal.published_at, reverse=True
+        )
+        # Override the per-signal ring with the batch-calibrated ring so every
+        # derived field (try steps, why-it-matters, demo suitability) agrees.
+        best = bests[project].model_copy(
+            update={"recommended_ring": rings[project]}
+        )
         risk_level = _risk_level(best)
         risk_reasons = _risk_reasons(best)
         rubric = _merge_rubric(items)
@@ -26,6 +48,7 @@ def build_decision_cards(scored_signals: list[ScoredSignal]) -> list[DecisionCar
                 project=project,
                 category=best.signal.category,
                 ring=best.recommended_ring,
+                score=best.scores.average,
                 summary=_summary(best, rubric),
                 workflow_fit={
                     "personal_dev": (

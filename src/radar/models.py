@@ -172,6 +172,7 @@ class DecisionCard(BaseModel):
     project: str
     category: Category
     ring: Ring
+    score: float = 0.0  # representative average score (for transparency/sorting)
     summary: str
     workflow_fit: dict[str, str]
     risk_level: str
