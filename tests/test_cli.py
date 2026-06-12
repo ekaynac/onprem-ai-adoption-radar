@@ -29,3 +29,45 @@ def test_init_command_writes_config(tmp_path):
 
     assert result.exit_code == 0
     assert (tmp_path / "data" / "config.yaml").exists()
+
+
+def test_seed_add_appends_source_to_config(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "seed", "add",
+            "--root", str(tmp_path),
+            "--id", "rss-cli-feed",
+            "--type", "rss",
+            "--project", "CLI Feed",
+            "--category", "model_serving",
+            "--url", "https://example.com/feed.xml",
+            "--tags", "vendor-blog,inference",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert "rss-cli-feed" in result.stdout
+
+    from radar.storage.config import load_config
+    config = load_config(tmp_path / "data" / "config.yaml")
+    assert any(s.id == "rss-cli-feed" for s in config.sources)
+
+
+def test_seed_add_reports_error_on_duplicate(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    args = [
+        "seed", "add", "--root", str(tmp_path),
+        "--id", "rss-dup", "--type", "rss", "--project", "Dup",
+        "--category", "model_serving", "--url", "https://example.com/feed.xml",
+    ]
+    runner.invoke(app, args)
+
+    result = runner.invoke(app, args)
+
+    assert result.exit_code != 0
+    assert "already exists" in result.stdout
