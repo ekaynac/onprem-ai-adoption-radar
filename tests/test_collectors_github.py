@@ -225,3 +225,11 @@ def test_release_highlights_drop_pr_attribution_trailers():
     highlights = GitHubCollector.extract_release_highlights(body)
 
     assert highlights == ["fix: include JSON instructions in followup prompt"]
+
+
+def test_release_highlights_drop_bot_attribution_trailers():
+    body = "* chore: refresh npm lockfile after v0.5.5 by @github-actions[bot] in https://github.com/org/repo/pull/9"
+
+    highlights = GitHubCollector.extract_release_highlights(body)
+
+    assert highlights == ["chore: refresh npm lockfile after v0.5.5"]

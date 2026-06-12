@@ -192,8 +192,9 @@ class GitHubCollector(BaseCollector):
             # which would otherwise leave dangling "[text](" fragments.
             line = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", line)
             line = re.sub(r"https?://\S+", "", line)
-            # Stripping the PR URL leaves "by @user in" hanging at the end.
-            line = re.sub(r"\s+by @[\w-]+\s+in\s*$", "", line)
+            # Stripping the PR URL leaves "by @user in" hanging at the end
+            # (including app accounts like @github-actions[bot]).
+            line = re.sub(r"\s+by @[\w\[\]-]+\s+in\s*$", "", line)
             line = re.sub(r"\s+", " ", line).strip()
             line = line.strip("` -")
             if not line or line.lower().startswith(("compare:", "what's changed")):
