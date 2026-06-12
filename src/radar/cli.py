@@ -53,6 +53,8 @@ def scan(
     console.print(f"Run: {result.run_id}")
     console.print(f"Cards: {len(result.cards)}")
     console.print(f"Report: {result.report_path}")
+    console.print(f"Changed since last scan: {len(result.deltas)}")
+    console.print(f"Try This Week: {result.delta_report_path}")
 
 
 @app.command()

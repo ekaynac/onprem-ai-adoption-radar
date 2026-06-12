@@ -66,10 +66,17 @@ class RunStore:
         return json.loads(path.read_text(encoding="utf-8"))
 
     def save_report(self, run_id: str, markdown: str) -> Path:
-        """Save a Markdown report artifact."""
+        """Save the full cumulative Markdown report artifact."""
         path = self._run_dir(run_id) / "report.md"
         path.write_text(markdown, encoding="utf-8")
         self.update_meta(run_id, {"report": "report.md"})
+        return path
+
+    def save_try_this_week(self, run_id: str, markdown: str) -> Path:
+        """Save the separate Try This Week delta report artifact."""
+        path = self._run_dir(run_id) / "try-this-week.md"
+        path.write_text(markdown, encoding="utf-8")
+        self.update_meta(run_id, {"try_this_week": "try-this-week.md"})
         return path
 
     def update_meta(self, run_id: str, updates: dict[str, Any]) -> dict[str, Any]:
