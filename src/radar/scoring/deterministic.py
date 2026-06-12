@@ -193,17 +193,15 @@ def _score_keywords(
     negatives: set[str],
     base: int,
 ) -> int:
+    # Membership checks, never set-iteration with break: iteration order over a
+    # set is arbitrary, which would make scores depend on the hash seed.
     score = base
     haystack = set(tags)
-    for keyword in positives:
-        if keyword in haystack or keyword in text:
-            score += 1
-            break
-    for keyword in positives:
-        if keyword in haystack or keyword in text:
-            if keyword not in {"mcp", "api"}:
-                score += 1
-                break
+    matched = {k for k in positives if k in haystack or k in text}
+    if matched:
+        score += 1
+    if matched - {"mcp", "api"}:  # a strong positive earns a second point
+        score += 1
     for keyword in negatives:
         if keyword in haystack or keyword in text:
             score -= 1

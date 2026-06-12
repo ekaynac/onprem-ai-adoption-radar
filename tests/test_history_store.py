@@ -173,3 +173,21 @@ def test_seen_projects(tmp_path: Path):
     )
 
     assert store.seen_projects() == {"Ollama", "vLLM"}
+
+
+def test_summaries_use_timestamps_not_insertion_order(tmp_path: Path):
+    """Logs merged from multiple machines may arrive out of chronological
+    order; first_seen/last_change must come from observed_at, not row order."""
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    newest = _delta("vLLM", ChangeType.PROMOTED, Ring.ADOPT, Ring.PILOT)
+    oldest = _delta("vLLM", ChangeType.NEW, Ring.PILOT, None)
+    store.record_deltas([newest], run_id="run-2", observed_at=_at(12))
+    store.record_deltas([oldest], run_id="run-1", observed_at=_at(10))
+
+    summary = store.summaries()[0]
+
+    assert summary.first_seen == _at(10)
+    assert summary.last_change_at == _at(12)
+    assert summary.current_ring == Ring.ADOPT
+    assert summary.last_change_type == ChangeType.PROMOTED

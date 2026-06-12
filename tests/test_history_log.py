@@ -66,3 +66,20 @@ def test_log_is_one_json_object_per_line(tmp_path: Path):
 
     for line in lines:
         json.loads(line)  # each line is valid standalone JSON
+
+
+def test_corrupt_line_is_skipped_not_fatal(tmp_path: Path, caplog):
+    """A truncated/hand-edited line must not brick the whole timeline."""
+    log = tmp_path / "history.jsonl"
+    append_events(log, [_event("vLLM", 10)])
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write('{"project": "truncated...\n')
+    append_events(log, [_event("Ollama", 11)])
+
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="radar.storage.history_log"):
+        loaded = load_events(log)
+
+    assert [e.project for e in loaded] == ["vLLM", "Ollama"]
+    assert any("line 2" in record.getMessage() for record in caplog.records)

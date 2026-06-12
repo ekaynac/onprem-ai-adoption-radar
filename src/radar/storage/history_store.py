@@ -215,18 +215,23 @@ class HistoryStore:
             event = self._row_to_event(row)
             events_by_project.setdefault(event.project, []).append(event)
 
-        summaries = [
-            ProjectHistorySummary(
-                project=project,
-                category=events[-1].category,
-                current_ring=events[-1].ring,
-                first_seen=events[0].observed_at,
-                last_change_at=events[-1].observed_at,
-                last_change_type=events[-1].change_type,
-                change_count=len(events),
+        # Order by observed_at, not insertion order: logs merged from several
+        # machines (or rehydrated from a concatenated JSONL file) may arrive
+        # out of chronological order. Stable sort keeps within-run order.
+        summaries = []
+        for project, unordered in events_by_project.items():
+            events = sorted(unordered, key=lambda e: e.observed_at)
+            summaries.append(
+                ProjectHistorySummary(
+                    project=project,
+                    category=events[-1].category,
+                    current_ring=events[-1].ring,
+                    first_seen=events[0].observed_at,
+                    last_change_at=events[-1].observed_at,
+                    last_change_type=events[-1].change_type,
+                    change_count=len(events),
+                )
             )
-            for project, events in events_by_project.items()
-        ]
         return sorted(summaries, key=lambda s: s.project.lower())
 
     @staticmethod

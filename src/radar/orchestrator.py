@@ -75,11 +75,18 @@ class RadarOrchestrator:
         async with httpx.AsyncClient(timeout=30.0) as client:
             collectors = build_collectors(config, client)
             raw = []
+            collector_warnings: list[str] = []
             for collector in collectors:
                 try:
                     raw.extend(await collector.fetch(since))
                 except Exception as exc:
-                    self.run_store.update_meta(run_id, {"collector_warning": str(exc)})
+                    collector_warnings.append(
+                        f"{collector.__class__.__name__}: {exc}"
+                    )
+            if collector_warnings:
+                self.run_store.update_meta(
+                    run_id, {"collector_warnings": collector_warnings}
+                )
 
         self.run_store.save_stage(
             run_id,

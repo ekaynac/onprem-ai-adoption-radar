@@ -41,6 +41,17 @@ class RSSCollector(BaseCollector):
             return []
 
         feed = feedparser.parse(response.text)
+        if feed.bozo or not feed.version:
+            # A non-feed response (HTML error page, captive portal) parses to
+            # zero entries — indistinguishable from an empty feed unless logged.
+            # feedparser sets bozo for malformed XML and leaves version empty
+            # when the payload is not a recognized feed format at all.
+            logger.warning(
+                "RSS source %s did not parse as a feed (%s); %d entries recovered",
+                source.id,
+                getattr(feed, "bozo_exception", None) or "unrecognized format",
+                len(feed.entries),
+            )
         signals: list[Signal] = []
         for entry in feed.entries:
             published_at = self._published_at(entry)
@@ -76,7 +87,10 @@ class RSSCollector(BaseCollector):
     def _published_at(entry) -> datetime:
         raw = entry.get("published") or entry.get("updated") or entry.get("created")
         if raw:
-            parsed = date_parser.parse(raw)
+            try:
+                parsed = date_parser.parse(raw)
+            except (ValueError, OverflowError):
+                return datetime.now(timezone.utc)
             if parsed.tzinfo is None:
                 return parsed.replace(tzinfo=timezone.utc)
             return parsed
