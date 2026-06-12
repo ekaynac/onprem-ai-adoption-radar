@@ -371,3 +371,14 @@ scoring:
     - file-write-access
     - persistent-agent
     - browser-access
+
+# Optional LLM analyst for the firehose tail. OFF by default — the pipeline is
+# fully deterministic and offline unless you enable this. It only runs on
+# firehose entries the deterministic matcher could not place, and only maps to
+# existing tracked projects. Defaults target a local Ollama-style endpoint.
+llm:
+  enabled: false
+  base_url: http://localhost:11434/v1
+  model: qwen2.5:3b
+  api_key_env: RADAR_LLM_API_KEY
+  timeout_seconds: 20

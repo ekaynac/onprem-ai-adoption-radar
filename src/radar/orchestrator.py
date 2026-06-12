@@ -14,6 +14,7 @@ from radar.models import DecisionCard, ScoredSignal
 from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
 from radar.pipeline.dedupe import dedupe_signals
+from radar.pipeline.llm_classify import build_analyst
 from radar.pipeline.delta import CardDelta, compute_deltas
 from radar.pipeline.quotas import apply_category_quotas
 from radar.reports.history import render_history_report
@@ -78,13 +79,18 @@ class RadarOrchestrator:
         # dedupe/scoring. Unmatched entries are dropped (not silently): their
         # count and a sample are recorded in the run meta for visibility.
         index = build_project_index(config.sources)
-        firehose = reclassify_firehose(raw, index)
-        if firehose.dropped_titles:
+        # Optional LLM analyst (off by default) takes a second pass at entries
+        # the deterministic matcher dropped. build_analyst returns None unless
+        # config.llm.enabled, so the default path stays fully offline.
+        analyst = build_analyst(config.llm)
+        firehose = reclassify_firehose(raw, index, analyst=analyst)
+        if firehose.dropped_titles or firehose.llm_recovered:
             self.run_store.update_meta(
                 run_id,
                 {
                     "firehose_dropped_count": len(firehose.dropped_titles),
                     "firehose_dropped_sample": firehose.dropped_titles[:10],
+                    "firehose_llm_recovered": firehose.llm_recovered,
                 },
             )
         deduped = dedupe_signals(firehose.kept)
