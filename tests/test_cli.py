@@ -70,7 +70,11 @@ def test_export_writes_static_site(tmp_path):
             DecisionCard(
                 project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
                 summary="fast inference", workflow_fit={}, risk_level="low",
-            )
+            ),
+            DecisionCard(
+                project="Ollama", category=Category.MODEL_SERVING, ring=Ring.PILOT,
+                summary="local models", workflow_fit={}, risk_level="low",
+            ),
         ]
     )
 
@@ -86,6 +90,16 @@ def test_export_writes_static_site(tmp_path):
     html = index.read_text(encoding="utf-8")
     assert "vLLM" in html
     assert "adopt" in html
+
+    # The published site is complete: compare + history pages with relative nav.
+    compare = out / "compare.html"
+    history = out / "history.html"
+    assert compare.exists() and history.exists()
+    assert 'href="compare.html"' in html  # relative cross-links, not "/compare"
+    assert 'href="history.html"' in html
+    # Compare page shows the two model_serving projects side by side.
+    comp_html = compare.read_text(encoding="utf-8")
+    assert "vLLM" in comp_html and "Ollama" in comp_html
 
 
 def test_history_command_shows_recorded_timeline(tmp_path):

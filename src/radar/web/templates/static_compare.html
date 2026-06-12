@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Compare · On-Prem AI Adoption Radar</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 1100px; color: #1f2937; padding: 0 1rem; }
+      h1 { margin-bottom: 0.25rem; }
+      .generated { color: #6b7280; font-size: 0.85rem; margin-top: 0; }
+      h2 { margin-top: 2rem; }
+      table { border-collapse: collapse; margin-bottom: 1rem; }
+      th, td { border: 1px solid #e5e7eb; padding: 0.45rem 0.8rem; text-align: left; }
+      th { background: #f9fafb; }
+      td.dim { font-weight: 600; background: #fcfcfd; }
+      a { color: #2563eb; }
+    </style>
+  </head>
+  <body>
+    <h1>Comparison Matrices</h1>
+    <p class="generated">Generated {{ generated_at }} · <a href="index.html">Radar</a> · <a href="history.html">History</a></p>
+
+    {% for item in comparisons %}
+    <h2>{{ item.category }}</h2>
+    <table>
+      <thead>
+        <tr><th>Dimension</th>{% for p in item.comparison.projects %}<th>{{ p }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in item.comparison.rows %}
+        <tr>
+          <td class="dim">{{ row.label }}</td>
+          {% for p in item.comparison.projects %}<td>{{ row.values.get(p, "—") }}</td>{% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No categories with two or more projects to compare yet.</p>
+    {% endfor %}
+  </body>
+</html>

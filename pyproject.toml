@@ -47,3 +47,8 @@ minversion = "8.0"
 addopts = "-q"
 testpaths = ["tests"]
 asyncio_mode = "auto"
+filterwarnings = [
+  # Cosmetic: FastAPI's TestClient triggers a Starlette/httpx deprecation we
+  # don't control. Match by message (any category) so the suite output is clean.
+  "ignore:Using .httpx. with .starlette.testclient.",
+]

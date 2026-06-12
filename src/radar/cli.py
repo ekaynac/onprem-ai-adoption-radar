@@ -143,11 +143,21 @@ def export(
     """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
     from datetime import datetime, timezone
 
+    from radar.storage.history_store import HistoryStore
     from radar.web.static_site import render_static_site
 
-    cards = RadarOrchestrator(root).latest_cards()
-    index = render_static_site(cards, out, datetime.now(timezone.utc))
-    console.print(f"Wrote {index} ({len(cards)} cards)")
+    orchestrator = RadarOrchestrator(root)
+    cards = orchestrator.latest_cards()
+
+    history = HistoryStore(root / "data" / "radar.db")
+    history.initialize()
+    timelines = [
+        {"summary": s, "events": history.history_for(s.project)}
+        for s in sorted(history.summaries(), key=lambda s: s.last_change_at, reverse=True)
+    ]
+
+    index = render_static_site(cards, out, datetime.now(timezone.utc), timelines=timelines)
+    console.print(f"Wrote {index.parent}/ (index, compare, history · {len(cards)} cards)")
 
 
 @app.command()
