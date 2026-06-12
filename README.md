@@ -181,7 +181,7 @@ docs/           persistence.md, sandbox-playbook.md, seed-research.md
 uv run pytest          # 153 tests
 ```
 
-Conventions: deterministic core (no LLM in the default path), immutable data flow, many small focused modules, test-driven. Each feature lands via TDD with the timeline/decisions verified against real scans.
+Conventions: deterministic core (no LLM in the default path), immutable data flow, many small focused modules, test-driven. Each feature lands via TDD with the timeline/decisions verified against real scans. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
