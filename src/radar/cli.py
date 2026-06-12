@@ -120,6 +120,21 @@ def history(
 
 
 @app.command()
+def export(
+    out: Path = typer.Option(Path("_site"), help="Output directory for static HTML."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
+    from datetime import datetime, timezone
+
+    from radar.web.static_site import render_static_site
+
+    cards = RadarOrchestrator(root).latest_cards()
+    index = render_static_site(cards, out, datetime.now(timezone.utc))
+    console.print(f"Wrote {index} ({len(cards)} cards)")
+
+
+@app.command()
 def compare(
     projects: str = typer.Option("", help="Comma-separated project names to compare."),
     category: str = typer.Option("", help="Compare all projects in this category."),
