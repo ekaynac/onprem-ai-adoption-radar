@@ -1,0 +1,110 @@
+"""Tests for the firehose entry->project classification layer."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from radar.models import Category, Signal, SourceConfig, SourceType
+from radar.pipeline.classify import (
+    build_project_index,
+    classify_text,
+    reclassify_firehose,
+)
+
+
+def _tracked(project: str, category: Category, aliases=None) -> SourceConfig:
+    return SourceConfig(
+        id=f"github-{project.lower()}",
+        type=SourceType.GITHUB_REPO,
+        project=project,
+        category=category,
+        url=f"https://github.com/x/{project.lower()}",
+        aliases=aliases or [],
+    )
+
+
+def _signal(title: str, *, firehose: bool, source_id: str = "rss-hf") -> Signal:
+    return Signal(
+        id=f"rss:{source_id}:{title}",
+        source_id=source_id,
+        project="HuggingFace Blog",
+        category=Category.MODEL_SERVING,
+        title=title,
+        url=f"https://example.com/{abs(hash(title))}",
+        published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        raw_summary="",
+        signal_type="rss_entry",
+        metadata={"firehose": firehose},
+    )
+
+
+def _index():
+    return build_project_index(
+        [
+            _tracked("vLLM", Category.MODEL_SERVING),
+            _tracked("TensorRT-LLM", Category.MODEL_SERVING, aliases=["tensorrt llm"]),
+        ]
+    )
+
+
+# ── classify_text ─────────────────────────────────────────────────────────────
+
+
+def test_classify_matches_project_name_word_boundary():
+    match = classify_text("New vLLM 0.6 release boosts throughput", _index())
+    assert match is not None
+    assert match.project == "vLLM"
+    assert match.category == Category.MODEL_SERVING
+
+
+def test_classify_matches_alias():
+    match = classify_text("Deploying with TensorRT LLM on Hopper", _index())
+    assert match is not None
+    assert match.project == "TensorRT-LLM"
+
+
+def test_classify_returns_none_when_no_tracked_project_mentioned():
+    assert classify_text("A general post about prompt engineering", _index()) is None
+
+
+def test_classify_avoids_substring_false_positive():
+    # "evilllm" must not match "vLLM"
+    assert classify_text("the evilllm chronicles", _index()) is None
+
+
+# ── reclassify_firehose ───────────────────────────────────────────────────────
+
+
+def test_reclassify_reattributes_firehose_signal_to_matched_project():
+    result = reclassify_firehose([_signal("vLLM hits new speed", firehose=True)], _index())
+
+    assert len(result.kept) == 1
+    assert result.kept[0].project == "vLLM"
+    assert result.kept[0].category == Category.MODEL_SERVING
+    assert result.dropped_titles == []
+
+
+def test_reclassify_drops_unmatched_firehose_and_records_title():
+    result = reclassify_firehose(
+        [_signal("Unrelated musings on UX", firehose=True)], _index()
+    )
+
+    assert result.kept == []
+    assert result.dropped_titles == ["Unrelated musings on UX"]
+
+
+def test_reclassify_passes_through_non_firehose_signals_untouched():
+    sig = _signal("NVIDIA blog post", firehose=False, source_id="rss-nvidia")
+    sig = sig.model_copy(update={"project": "NVIDIA Developer Blog"})
+
+    result = reclassify_firehose([sig], _index())
+
+    assert len(result.kept) == 1
+    assert result.kept[0].project == "NVIDIA Developer Blog"  # unchanged
+    assert result.dropped_titles == []
+
+
+def test_reclassify_does_not_mutate_input():
+    sig = _signal("vLLM speed", firehose=True)
+    reclassify_firehose([sig], _index())
+    assert sig.project == "HuggingFace Blog"  # original untouched

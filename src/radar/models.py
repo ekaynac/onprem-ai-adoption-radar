@@ -52,6 +52,13 @@ class SourceConfig(BaseModel):
     url: HttpUrl
     tags: list[str] = Field(default_factory=list)
     poll_interval_hours: int = Field(default=24, ge=1)
+    # When true, this source is a high-volume "firehose" (e.g. a broad vendor
+    # blog) whose entries are re-attributed to tracked projects by the
+    # classification layer instead of collapsing into one project card.
+    firehose: bool = False
+    # Optional extra match strings (beyond the project name) the firehose
+    # classifier uses to attribute entries to this project.
+    aliases: list[str] = Field(default_factory=list)
 
 
 class ScoringConfig(BaseModel):

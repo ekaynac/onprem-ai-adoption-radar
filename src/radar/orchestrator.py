@@ -12,6 +12,7 @@ import httpx
 from radar.collectors.registry import build_collectors
 from radar.models import DecisionCard, ScoredSignal
 from radar.pipeline.cards import build_decision_cards
+from radar.pipeline.classify import build_project_index, reclassify_firehose
 from radar.pipeline.dedupe import dedupe_signals
 from radar.pipeline.delta import CardDelta, compute_deltas
 from radar.pipeline.quotas import apply_category_quotas
@@ -73,7 +74,20 @@ class RadarOrchestrator:
             "raw_signals",
             [signal.model_dump(mode="json") for signal in raw],
         )
-        deduped = dedupe_signals(raw)
+        # Re-attribute high-volume firehose entries to tracked projects before
+        # dedupe/scoring. Unmatched entries are dropped (not silently): their
+        # count and a sample are recorded in the run meta for visibility.
+        index = build_project_index(config.sources)
+        firehose = reclassify_firehose(raw, index)
+        if firehose.dropped_titles:
+            self.run_store.update_meta(
+                run_id,
+                {
+                    "firehose_dropped_count": len(firehose.dropped_titles),
+                    "firehose_dropped_sample": firehose.dropped_titles[:10],
+                },
+            )
+        deduped = dedupe_signals(firehose.kept)
         scored: list[ScoredSignal] = [
             score_signal(signal, config.scoring) for signal in deduped
         ]

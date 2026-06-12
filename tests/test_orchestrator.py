@@ -90,6 +90,79 @@ def test_second_unchanged_scan_reports_no_changes(tmp_path: Path):
     assert second.deltas == []
 
 
+def test_firehose_entries_are_reclassified_to_tracked_projects(tmp_path: Path, monkeypatch):
+    """A firehose feed's entries must attach to tracked projects, not flood as one card."""
+    import radar.orchestrator as orch
+    from radar.models import Category, Signal
+    from datetime import datetime, timezone
+
+    initialize_project(tmp_path)
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+version: "1.0"
+sources:
+  - id: github-vllm
+    type: github_repo
+    enabled: true
+    project: vLLM
+    category: model_serving
+    url: https://github.com/vllm-project/vllm
+    tags: [inference]
+  - id: rss-hf
+    type: rss
+    enabled: true
+    firehose: true
+    project: HuggingFace Blog
+    category: model_serving
+    url: https://example.com/feed.xml
+    tags: [firehose]
+quotas:
+  model_serving: 10
+scoring:
+  default_ring: watch
+""",
+        encoding="utf-8",
+    )
+
+    def fake_build_collectors(config, client):
+        class _Stub:
+            async def fetch(self, since):
+                return [
+                    Signal(
+                        id="rss:rss-hf:a",
+                        source_id="rss-hf",
+                        project="HuggingFace Blog",
+                        category=Category.MODEL_SERVING,
+                        title="vLLM 0.7 released with faster attention",
+                        url="https://example.com/a",
+                        published_at=datetime.now(timezone.utc),
+                        signal_type="rss_entry",
+                        metadata={"feed": "rss-hf", "firehose": True},
+                    ),
+                    Signal(
+                        id="rss:rss-hf:b",
+                        source_id="rss-hf",
+                        project="HuggingFace Blog",
+                        category=Category.MODEL_SERVING,
+                        title="A poem about the weather",
+                        url="https://example.com/b",
+                        published_at=datetime.now(timezone.utc),
+                        signal_type="rss_entry",
+                        metadata={"feed": "rss-hf", "firehose": True},
+                    ),
+                ]
+
+        return [_Stub()]
+
+    monkeypatch.setattr(orch, "build_collectors", fake_build_collectors)
+
+    result = RadarOrchestrator(root=tmp_path).scan(days=2)
+
+    projects = {c.project for c in result.cards}
+    assert "vLLM" in projects  # matched entry attached to tracked project
+    assert "HuggingFace Blog" not in projects  # firehose never becomes its own card
+
+
 def test_scan_records_project_history_and_writes_report(tmp_path: Path):
     from radar.storage.history_store import HistoryStore
 
