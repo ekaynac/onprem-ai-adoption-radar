@@ -12,7 +12,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from radar.models import DecisionCard, Ring
+from radar.models import Category, DecisionCard, Ring
+from radar.reports.comparison import ComparisonError, build_comparison
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
 
@@ -70,6 +71,36 @@ class RadarQueryService:
         detail = self._card_dict(card)
         detail["history"] = [self._event_dict(e) for e in events]
         return detail
+
+    def compare(
+        self,
+        projects: list[str] | None = None,
+        category: str | None = None,
+    ) -> dict[str, Any]:
+        """Return a side-by-side comparison matrix as a plain dict.
+
+        Selection errors (unknown project, too few projects, bad selector) are
+        returned as ``{"error": ...}`` rather than raised, so an MCP caller gets
+        a clean message instead of a transport fault.
+        """
+        cat: Category | None = None
+        if category is not None:
+            try:
+                cat = Category(category)
+            except ValueError:
+                return {"error": f"Unknown category: {category}"}
+        try:
+            comparison = build_comparison(
+                self._cards(), projects=projects, category=cat
+            )
+        except ComparisonError as exc:
+            return {"error": str(exc)}
+        return {
+            "projects": comparison.projects,
+            "rows": [
+                {"label": row.label, "values": row.values} for row in comparison.rows
+            ],
+        }
 
     @staticmethod
     def _card_dict(card: DecisionCard) -> dict[str, Any]:

@@ -110,3 +110,24 @@ def test_list_tracked_projects(tmp_path: Path):
 
     names = {p["project"] for p in svc.list_projects()}
     assert names == {"vLLM", "Ollama", "SomethingElse"}
+
+
+def test_compare_returns_matrix_dict(tmp_path: Path):
+    _seed(tmp_path)
+    svc = RadarQueryService(tmp_path)
+
+    matrix = svc.compare(projects=["vLLM", "Ollama"])
+
+    assert matrix["projects"] == ["vLLM", "Ollama"]
+    labels = [row["label"] for row in matrix["rows"]]
+    assert "Ring" in labels and "Risk" in labels
+
+
+def test_compare_unknown_project_returns_error(tmp_path: Path):
+    _seed(tmp_path)
+    svc = RadarQueryService(tmp_path)
+
+    result = svc.compare(projects=["vLLM", "Ghost"])
+
+    assert "error" in result
+    assert "Ghost" in result["error"]

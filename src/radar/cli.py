@@ -120,6 +120,42 @@ def history(
 
 
 @app.command()
+def compare(
+    projects: str = typer.Option("", help="Comma-separated project names to compare."),
+    category: str = typer.Option("", help="Compare all projects in this category."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Print a side-by-side comparison matrix."""
+    from radar.models import Category
+    from radar.reports.comparison import (
+        ComparisonError,
+        build_comparison,
+        render_comparison_markdown,
+    )
+
+    cards = RadarOrchestrator(root).latest_cards()
+    project_list = [p.strip() for p in projects.split(",") if p.strip()] or None
+    cat = None
+    title = "Comparison"
+    if category:
+        try:
+            cat = Category(category)
+        except ValueError:
+            console.print(f"[red]Unknown category:[/red] {category}")
+            raise typer.Exit(code=1)
+        title = f"Comparison: {category}"
+    elif project_list:
+        title = "Comparison: " + " vs ".join(project_list)
+
+    try:
+        comparison = build_comparison(cards, projects=project_list, category=cat)
+    except ComparisonError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1)
+    console.print(render_comparison_markdown(comparison, title))
+
+
+@app.command()
 def mcp(
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:

@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from radar.models import Category, SourceType
+from radar.reports.comparison import ComparisonError, build_comparison
 from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
@@ -55,6 +56,40 @@ def create_app(root: Path) -> FastAPI:
     @app.get("/sources", response_class=HTMLResponse)
     def sources(request: Request):
         return _render_sources(request, error=None, status_code=200)
+
+    @app.get("/compare", response_class=HTMLResponse)
+    def compare_page(
+        request: Request, category: str = "", projects: str = ""
+    ):
+        db.initialize()
+        cards = db.list_cards()
+        all_categories = sorted({c.category.value for c in cards})
+        comparison = None
+        error = None
+        project_list = [p.strip() for p in projects.split(",") if p.strip()] or None
+        cat = None
+        if category:
+            try:
+                cat = Category(category)
+            except ValueError:
+                error = f"Unknown category: {category}"
+        if error is None and (cat is not None or project_list is not None):
+            try:
+                comparison = build_comparison(
+                    cards, projects=project_list, category=cat
+                )
+            except ComparisonError as exc:
+                error = str(exc)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "compare.html",
+            {
+                "comparison": comparison,
+                "categories": all_categories,
+                "selected_category": category,
+                "error": error,
+            },
+        )
 
     @app.get("/history", response_class=HTMLResponse)
     def history_page(request: Request):

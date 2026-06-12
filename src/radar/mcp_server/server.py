@@ -45,6 +45,18 @@ def build_mcp_server(root: Path) -> FastMCP:
         """List all tracked projects with their category and current ring."""
         return service.list_projects()
 
+    @mcp.tool()
+    def compare(
+        projects: list[str] | None = None,
+        category: str | None = None,
+    ) -> dict[str, Any]:
+        """Compare projects side by side (ring, risk, on-prem rubric).
+
+        Provide exactly one of: a list of project names, or a category
+        (e.g. "coding_agents"). Returns a matrix or {"error": ...}.
+        """
+        return service.compare(projects=projects, category=category)
+
     return mcp
 
 
