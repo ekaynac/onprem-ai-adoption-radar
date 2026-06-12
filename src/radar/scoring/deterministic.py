@@ -33,19 +33,27 @@ def score_signal(signal: Signal, config: ScoringConfig) -> ScoredSignal:
     reason_codes: list[str] = []
     metadata = signal.metadata or {}
 
-    workflow_impact = (
-        4
-        if signal.category in {Category.CODING_AGENTS, Category.GENERAL_AGENTS}
-        else 3
-    )
+    _HIGH_WORKFLOW_CATEGORIES = {
+        Category.CODING_AGENTS,
+        Category.GENERAL_AGENTS,
+        Category.MODEL_SERVING,
+        Category.AI_INFRASTRUCTURE,
+    }
+    workflow_impact = 4 if signal.category in _HIGH_WORKFLOW_CATEGORIES else 3
     if "mcp" in tags:
         workflow_impact += 1
         reason_codes.append("mcp_relevant")
 
     laptop_runnability = 5 if not {"kubernetes", "gpu-required"} & tags else 2
     open_source_maturity = 4 if "open-source" in tags else 3
-    on_prem_relevance = 4 if {"on-prem-relevant", "sandbox", "mcp", "self-hosted"} & tags else 3
-    demo_value = 4 if signal.category != Category.AGENT_FRAMEWORKS else 3
+    _HIGH_ONPREM_CATEGORIES = {Category.MODEL_SERVING, Category.AI_INFRASTRUCTURE, Category.PHYSICAL_AI_INFRASTRUCTURE}
+    on_prem_relevance = (
+        5
+        if signal.category in _HIGH_ONPREM_CATEGORIES
+        else (4 if {"on-prem-relevant", "sandbox", "mcp", "self-hosted"} & tags else 3)
+    )
+    _LOW_DEMO_CATEGORIES = {Category.AGENT_FRAMEWORKS, Category.AI_INFRASTRUCTURE, Category.PHYSICAL_AI_INFRASTRUCTURE}
+    demo_value = 3 if signal.category in _LOW_DEMO_CATEGORIES else 4
     setup_friction = 4 if "kubernetes" not in tags else 2
 
     risky_tags = set(config.security_penalty_tags) & tags
@@ -170,7 +178,7 @@ def build_on_prem_rubric(signal: Signal) -> dict[str, OnPremAssessment]:
                 text,
                 positives={"demo", "quickstart", "desktop", "cli", "template", "agent"},
                 negatives={"framework-only", "research", "kubernetes"},
-                base=4 if signal.category != Category.AGENT_FRAMEWORKS else 3,
+                base=3 if signal.category in {Category.AGENT_FRAMEWORKS, Category.AI_INFRASTRUCTURE, Category.PHYSICAL_AI_INFRASTRUCTURE} else 4,
             ),
             "Demo value estimates whether the project can show practical value quickly in a safe pilot.",
         ),

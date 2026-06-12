@@ -2,8 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from radar.models import Config, Ring, SourceType
+from radar.models import Category, Config, Ring, SourceType
 from radar.storage.config import ConfigError, expand_env_vars, load_config
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_expand_env_vars_replaces_set_values(monkeypatch):
@@ -119,3 +121,39 @@ def test_load_config_wraps_read_errors(tmp_path: Path):
         load_config(tmp_path)
 
     assert "Configuration file could not be read" in str(exc.value)
+
+
+def test_seed_sources_yaml_includes_new_categories():
+    """Validate that the canonical seed config registers all three new categories."""
+    config = load_config(_REPO_ROOT / "config" / "seed-sources.yaml")
+
+    categories = {src.category for src in config.sources}
+    assert Category.MODEL_SERVING in categories
+    assert Category.AI_INFRASTRUCTURE in categories
+    assert Category.PHYSICAL_AI_INFRASTRUCTURE in categories
+
+
+def test_seed_sources_yaml_new_category_sources_parseable():
+    """All new-category sources must have required fields and valid types."""
+    config = load_config(_REPO_ROOT / "config" / "seed-sources.yaml")
+
+    new_cats = {Category.MODEL_SERVING, Category.AI_INFRASTRUCTURE, Category.PHYSICAL_AI_INFRASTRUCTURE}
+    new_sources = [src for src in config.sources if src.category in new_cats]
+
+    assert len(new_sources) >= 6  # at least 4 model_serving + 2 infra
+    for src in new_sources:
+        assert src.id
+        assert src.project
+        assert src.url
+        assert src.type in {SourceType.GITHUB_REPO, SourceType.MANUAL}
+
+
+def test_category_quotas_yaml_includes_new_categories(tmp_path: Path):
+    """Validate that category-quotas.yaml enumerates all new categories."""
+    import yaml
+
+    raw = yaml.safe_load((_REPO_ROOT / "config" / "category-quotas.yaml").read_text())
+    assert "model_serving" in raw
+    assert "ai_infrastructure" in raw
+    assert "physical_ai_infrastructure" in raw
+    assert all(isinstance(v, int) and v > 0 for v in raw.values())

@@ -25,6 +25,9 @@ class Category(str, Enum):
     MCP_TOOLING = "mcp_tooling"
     SANDBOX_GOVERNANCE = "sandbox_governance"
     AGENT_FRAMEWORKS = "agent_frameworks"
+    MODEL_SERVING = "model_serving"
+    AI_INFRASTRUCTURE = "ai_infrastructure"
+    PHYSICAL_AI_INFRASTRUCTURE = "physical_ai_infrastructure"
 
 
 class Ring(str, Enum):
