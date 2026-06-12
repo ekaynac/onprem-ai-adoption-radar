@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![Tests](https://img.shields.io/badge/tests-153%20passing-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
-![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
 
 This is **not** a generic AI news digest. It collects real signals (GitHub releases, registries, vendor/engineering blogs), scores them against an on-prem adoption rubric, and produces **decision cards** with rings — plus a cumulative timeline of how each project moves over time. It runs on a laptop, needs no cloud service, and the entire scoring pipeline is **deterministic** (an LLM is optional and off by default).
 
@@ -185,4 +185,4 @@ Conventions: deterministic core (no LLM in the default path), immutable data flo
 
 ## License
 
-MIT — add a `LICENSE` file before publishing.
+Released into the **public domain** under [The Unlicense](LICENSE) — do anything you want with it, no attribution required.
