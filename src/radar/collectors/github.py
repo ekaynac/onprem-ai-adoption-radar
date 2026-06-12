@@ -170,6 +170,7 @@ class GitHubCollector(BaseCollector):
     @staticmethod
     def extract_release_highlights(body: str, limit: int = 5) -> list[str]:
         """Extract compact, report-safe highlights from GitHub release Markdown."""
+        body = re.sub(r"<!--.*?-->", "", body, flags=re.S)
         body = re.split(
             r"(?im)^\s{0,3}#{1,6}\s*(full changelog|contributors|new contributors)\b|\*\*full changelog\*\*:?",
             body,
@@ -187,7 +188,12 @@ class GitHubCollector(BaseCollector):
             line = re.sub(r"^[-*+]\s+", "", line)
             line = re.sub(r"^\d+[.)]\s+", "", line)
             line = re.sub(r"^\[(?:fixed|added|changed|removed|security)\]\s*", "", line, flags=re.I)
+            # Keep the link text, drop the URL — before stripping bare URLs,
+            # which would otherwise leave dangling "[text](" fragments.
+            line = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", line)
             line = re.sub(r"https?://\S+", "", line)
+            # Stripping the PR URL leaves "by @user in" hanging at the end.
+            line = re.sub(r"\s+by @[\w-]+\s+in\s*$", "", line)
             line = re.sub(r"\s+", " ", line).strip()
             line = line.strip("` -")
             if not line or line.lower().startswith(("compare:", "what's changed")):
@@ -202,6 +208,8 @@ class GitHubCollector(BaseCollector):
 
     @staticmethod
     def _compact_text(text: str, max_chars: int = 500) -> str:
+        text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+        text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", text)
         text = re.sub(r"https?://\S+", "", text)
         text = re.sub(r"[#>*_`]+", "", text)
         text = re.sub(r"\s+", " ", text).strip()
