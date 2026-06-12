@@ -57,6 +57,35 @@ def test_seed_add_appends_source_to_config(tmp_path):
     assert any(s.id == "rss-cli-feed" for s in config.sources)
 
 
+def test_history_command_shows_recorded_timeline(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+version: "1.0"
+sources:
+  - id: mcp-docs
+    type: manual
+    enabled: true
+    project: Model Context Protocol
+    category: mcp_tooling
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+    tags: [mcp]
+quotas:
+  mcp_tooling: 4
+scoring:
+  default_ring: watch
+""",
+        encoding="utf-8",
+    )
+    runner.invoke(app, ["scan", "--root", str(tmp_path), "--days", "2"])
+
+    result = runner.invoke(app, ["history", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Model Context Protocol" in result.stdout
+
+
 def test_seed_add_reports_error_on_duplicate(tmp_path):
     runner = CliRunner()
     runner.invoke(app, ["init", "--root", str(tmp_path)])

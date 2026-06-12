@@ -75,6 +75,48 @@ def test_post_source_adds_seed_and_persists(tmp_path: Path):
     assert any(s.id == "rss-web-feed" for s in config.sources)
 
 
+def test_history_page_renders_recorded_events(tmp_path: Path):
+    from datetime import datetime, timezone
+
+    from radar.models import Category, Ring
+    from radar.pipeline.delta import CardDelta, ChangeType
+    from radar.storage.history_store import HistoryStore
+
+    _init_project(tmp_path)
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    history.initialize()
+    card = DecisionCard(
+        project="Ollama",
+        category=Category.MODEL_SERVING,
+        ring=Ring.PILOT,
+        summary="x",
+        workflow_fit={},
+        risk_level="medium",
+    )
+    history.record_deltas(
+        [
+            CardDelta(
+                project="Ollama",
+                category=Category.MODEL_SERVING,
+                change_type=ChangeType.NEW,
+                current_ring=Ring.PILOT,
+                previous_ring=None,
+                reasons=["New on the radar."],
+                card=card,
+            )
+        ],
+        run_id="run-1",
+        observed_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+    )
+
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/history")
+
+    assert response.status_code == 200
+    assert "Ollama" in response.text
+    assert "2026-06-10" in response.text
+
+
 def test_post_source_rejects_duplicate_with_message(tmp_path: Path):
     _init_project(tmp_path)
     client = TestClient(create_app(tmp_path))

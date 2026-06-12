@@ -79,6 +79,13 @@ class RunStore:
         self.update_meta(run_id, {"try_this_week": "try-this-week.md"})
         return path
 
+    def save_history(self, run_id: str, markdown: str) -> Path:
+        """Save the cumulative project-history report artifact."""
+        path = self._run_dir(run_id) / "history.md"
+        path.write_text(markdown, encoding="utf-8")
+        self.update_meta(run_id, {"history": "history.md"})
+        return path
+
     def update_meta(self, run_id: str, updates: dict[str, Any]) -> dict[str, Any]:
         """Merge values into meta.json."""
         path = self._run_dir(run_id) / "meta.json"
