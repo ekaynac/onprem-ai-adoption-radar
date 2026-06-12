@@ -72,6 +72,47 @@ def test_classify_avoids_substring_false_positive():
     assert classify_text("the evilllm chronicles", _index()) is None
 
 
+def test_classify_normalizes_punctuation_in_project_name():
+    # Project "llama.cpp" should match text that writes it as "llama cpp".
+    index = build_project_index([_tracked("llama.cpp", Category.MODEL_SERVING)])
+    match = classify_text("Running models with llama cpp on a laptop", index)
+    assert match is not None
+    assert match.project == "llama.cpp"
+
+
+def test_classify_matches_hyphenated_name_written_with_space():
+    index = build_project_index([_tracked("TensorRT-LLM", Category.MODEL_SERVING)])
+    assert classify_text("TensorRT LLM speeds up inference", index) is not None
+
+
+def test_classify_derives_alias_from_github_repo_slug():
+    # Display name has an org prefix; the repo slug is the short name people use.
+    src = SourceConfig(
+        id="github-nemoclaw",
+        type=SourceType.GITHUB_REPO,
+        project="NVIDIA NemoClaw",
+        category=Category.SANDBOX_GOVERNANCE,
+        url="https://github.com/NVIDIA/NemoClaw",
+    )
+    index = build_project_index([src])
+    match = classify_text("NemoClaw adds new guardrails", index)
+    assert match is not None
+    assert match.project == "NVIDIA NemoClaw"
+
+
+def test_slug_alias_not_derived_for_non_github_urls():
+    # A docs URL must not contribute a junk slug like "intro".
+    src = SourceConfig(
+        id="manual-mcp",
+        type=SourceType.MANUAL,
+        project="Model Context Protocol",
+        category=Category.MCP_TOOLING,
+        url="https://modelcontextprotocol.io/docs/getting-started/intro",
+    )
+    index = build_project_index([src])
+    assert classify_text("a quick intro to gardening", index) is None
+
+
 # ── reclassify_firehose ───────────────────────────────────────────────────────
 
 
