@@ -13,8 +13,10 @@ from radar.collectors.registry import build_collectors
 from radar.models import DecisionCard, ScoredSignal
 from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.dedupe import dedupe_signals
+from radar.pipeline.delta import CardDelta, compute_deltas
 from radar.pipeline.quotas import apply_category_quotas
 from radar.reports.markdown import render_markdown_report
+from radar.reports.try_this_week import render_try_this_week_report
 from radar.scoring.deterministic import score_signal
 from radar.storage.config import load_config
 from radar.storage.database import RadarDatabase
@@ -28,6 +30,8 @@ class ScanResult:
     run_id: str
     cards: list[DecisionCard]
     report_path: Path
+    delta_report_path: Path
+    deltas: list[CardDelta]
 
 
 class RadarOrchestrator:
@@ -90,13 +94,24 @@ class RadarOrchestrator:
             "decision_cards",
             [card.model_dump(mode="json") for card in filtered_cards],
         )
+        # Capture the prior persisted state BEFORE upserting so the delta
+        # reflects what changed since the last scan.
+        previous_cards = self.database.list_cards()
+        deltas = compute_deltas(previous=previous_cards, current=filtered_cards)
+
         self.database.upsert_cards(filtered_cards)
         report = render_markdown_report(filtered_cards, "Agent/Tooling Adoption Radar")
         report_path = self.run_store.save_report(run_id, report)
+
+        delta_report = render_try_this_week_report(deltas, "Try This Week")
+        delta_report_path = self.run_store.save_try_this_week(run_id, delta_report)
+
         return ScanResult(
             run_id=run_id,
             cards=filtered_cards,
             report_path=report_path,
+            delta_report_path=delta_report_path,
+            deltas=deltas,
         )
 
     def latest_cards(self) -> list[DecisionCard]:
