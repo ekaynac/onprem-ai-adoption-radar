@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 import httpx
@@ -76,7 +76,7 @@ class GitHubCollector(BaseCollector):
             return None
 
         pushed_at_raw = payload.get("pushed_at")
-        pushed_at = _parse_github_datetime(pushed_at_raw) or datetime.now(timezone.utc)
+        pushed_at = _parse_github_datetime(pushed_at_raw) or datetime.now(UTC)
         # Snapshots describe current repo posture. Emit them each scan, but preserve pushed_at
         # so downstream scoring/reporting can reason about maintenance velocity.
         metadata = {

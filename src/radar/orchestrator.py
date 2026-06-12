@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -14,8 +14,8 @@ from radar.models import DecisionCard, ScoredSignal
 from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
 from radar.pipeline.dedupe import dedupe_signals
-from radar.pipeline.llm_classify import build_analyst
 from radar.pipeline.delta import CardDelta, ChangeType, compute_deltas
+from radar.pipeline.llm_classify import build_analyst
 from radar.pipeline.quotas import apply_category_quotas
 from radar.reports.history import render_history_report
 from radar.reports.markdown import render_markdown_report
@@ -70,7 +70,7 @@ class RadarOrchestrator:
         elif self.history.has_events():
             append_events(self.history_log, self.history.all_events())
         run_id = self.run_store.create_run()
-        since = datetime.now(timezone.utc) - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             collectors = build_collectors(config, client)
@@ -154,7 +154,7 @@ class RadarOrchestrator:
             if not (d.change_type == ChangeType.NEW and d.project in seen)
         ]
         events = deltas_to_events(
-            persistable, run_id=run_id, observed_at=datetime.now(timezone.utc)
+            persistable, run_id=run_id, observed_at=datetime.now(UTC)
         )
         self.history.add_events(events)
         append_events(self.history_log, events)

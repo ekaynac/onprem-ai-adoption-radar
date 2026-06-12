@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from radar.models import Category, Ring, ScoredSignal, ScoreBreakdown, Signal
+from radar.models import Category, Ring, ScoreBreakdown, ScoredSignal, Signal
 from radar.pipeline.cards import build_decision_cards
 
 
@@ -12,7 +12,7 @@ def test_build_decision_cards_groups_by_project():
         category=Category.CODING_AGENTS,
         title="Cline released v1",
         url="https://github.com/cline/cline/releases/tag/v1",
-        published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 10, tzinfo=UTC),
         raw_summary="MCP approval improvements",
         signal_type="github_release",
         tags=["file-write-access"],

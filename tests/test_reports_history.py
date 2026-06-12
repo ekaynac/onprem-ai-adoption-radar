@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from radar.models import Category, Ring
 from radar.pipeline.delta import ChangeType
@@ -11,7 +11,7 @@ from radar.storage.history_store import ProjectHistoryEvent, ProjectHistorySumma
 
 
 def _at(day: int) -> datetime:
-    return datetime(2026, 6, day, 12, 0, tzinfo=timezone.utc)
+    return datetime(2026, 6, day, 12, 0, tzinfo=UTC)
 
 
 def _summary(project: str, ring: Ring, count: int) -> ProjectHistorySummary:

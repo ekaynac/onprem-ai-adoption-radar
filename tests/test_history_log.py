@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from radar.models import Category, Ring
@@ -19,7 +19,7 @@ def _event(project: str, day: int, change=ChangeType.NEW, ring=Ring.PILOT) -> Pr
         ring=ring,
         previous_ring=None,
         run_id=f"run-{day}",
-        observed_at=datetime(2026, 6, day, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 6, day, tzinfo=UTC),
         reasons=["because"],
     )
 

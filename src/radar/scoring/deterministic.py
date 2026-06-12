@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from radar.models import (
     Category,
     OnPremAssessment,
-    ScoredSignal,
     ScoreBreakdown,
+    ScoredSignal,
     ScoringConfig,
     Signal,
 )
@@ -223,7 +223,7 @@ def _maintenance_assessment(stars: int, pushed_at: str) -> OnPremAssessment:
     if pushed_at:
         try:
             pushed = datetime.fromisoformat(pushed_at.replace("Z", "+00:00"))
-            age_days = (datetime.now(timezone.utc) - pushed).days
+            age_days = (datetime.now(UTC) - pushed).days
             if age_days <= 45:
                 score += 1
             elif age_days > 365:

@@ -1,3 +1,4 @@
+from datetime import UTC
 from pathlib import Path
 
 from radar.init_project import initialize_project
@@ -137,9 +138,10 @@ def test_legacy_db_history_is_backfilled_to_log(tmp_path: Path):
 
 def test_firehose_entries_are_reclassified_to_tracked_projects(tmp_path: Path, monkeypatch):
     """A firehose feed's entries must attach to tracked projects, not flood as one card."""
+    from datetime import datetime
+
     import radar.orchestrator as orch
     from radar.models import Category, Signal
-    from datetime import datetime, timezone
 
     initialize_project(tmp_path)
     (tmp_path / "data" / "config.yaml").write_text(
@@ -180,7 +182,7 @@ scoring:
                         category=Category.MODEL_SERVING,
                         title="vLLM 0.7 released with faster attention",
                         url="https://example.com/a",
-                        published_at=datetime.now(timezone.utc),
+                        published_at=datetime.now(UTC),
                         signal_type="rss_entry",
                         metadata={"feed": "rss-hf", "firehose": True},
                     ),
@@ -191,7 +193,7 @@ scoring:
                         category=Category.MODEL_SERVING,
                         title="A poem about the weather",
                         url="https://example.com/b",
-                        published_at=datetime.now(timezone.utc),
+                        published_at=datetime.now(UTC),
                         signal_type="rss_entry",
                         metadata={"feed": "rss-hf", "firehose": True},
                     ),

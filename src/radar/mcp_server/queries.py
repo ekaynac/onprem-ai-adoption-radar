@@ -17,6 +17,7 @@ from radar.reports.comparison import ComparisonError, build_comparison
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
 
+
 # Rings that answer "what should I try this week?".
 TRY_THIS_WEEK_RINGS = ("adopt", "pilot")
 

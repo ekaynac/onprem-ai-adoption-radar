@@ -16,11 +16,12 @@ pipeline wiring.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 from urllib.parse import urlparse
 
 from radar.models import Category, Signal, SourceConfig
+
 
 # An analyst resolves an ambiguous entry to a tracked project name (or None).
 # It is only ever offered the deterministic tail, and only candidate names.
