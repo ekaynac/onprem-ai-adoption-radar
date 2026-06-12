@@ -134,6 +134,7 @@ sources:
     category: physical_ai_infrastructure
     url: https://www.nvidia.com/en-us/data-center/gb200-nvl72/
     tags: [hardware, gpu-required, on-prem-relevant, nvidia, data-center]
+    aliases: [blackwell, gb200, "gb200 nvl72"]
   - id: manual-huawei-ascend
     type: manual
     enabled: true
@@ -264,6 +265,7 @@ sources:
     category: model_serving
     url: https://github.com/NVIDIA/TensorRT-LLM
     tags: [model-serving, self-hosted, open-source, gpu-required, nvidia, on-prem-relevant]
+    aliases: [tensorrt, "trt llm"]
 
   # ── AI Infrastructure ───────────────────────────────────────────────────────
   - id: github-kserve
@@ -325,6 +327,7 @@ sources:
   - id: rss-nvidia-dev-blog
     type: rss
     enabled: true
+    firehose: true  # reclassified to tracked projects (Dynamo, Blackwell, TensorRT-LLM…)
     project: NVIDIA Developer Blog
     category: ai_infrastructure
     url: https://developer.nvidia.com/blog/feed/

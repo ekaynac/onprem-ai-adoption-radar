@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 from radar.models import Category, Signal, SourceConfig
 
@@ -55,43 +56,82 @@ class FirehoseResult:
 _MIN_MATCH_LEN = 3
 
 
+def _normalize(text: str) -> str:
+    """Lowercase and collapse every non-alphanumeric run to a single space.
+
+    Normalizing both the match terms and the entry text means punctuation and
+    spacing variants converge: "llama.cpp", "llama cpp" and "TensorRT-LLM",
+    "TensorRT LLM" all match. Token boundaries are preserved, so "vllm" still
+    cannot match inside "evilllm".
+    """
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
 def _compile(term: str) -> re.Pattern:
-    # Word-boundary match so "vLLM" does not match inside "evilllm".
-    return re.compile(rf"(?<![A-Za-z0-9]){re.escape(term)}(?![A-Za-z0-9])", re.IGNORECASE)
+    # Match the normalized term on token boundaries within normalized text.
+    return re.compile(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])")
+
+
+def _github_slug(url: str) -> str | None:
+    """Return the short repo name from a github.com URL, else None.
+
+    Display names often carry an org prefix ("NVIDIA NemoClaw") while entries
+    use the bare repo name ("NemoClaw"). The slug recovers that short form.
+    Non-GitHub URLs (e.g. docs pages) are ignored to avoid junk slugs.
+    """
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").removeprefix("www.")
+    if host != "github.com":
+        return None
+    segments = [s for s in parsed.path.split("/") if s]
+    if len(segments) < 2:
+        return None
+    return segments[1]
+
+
+def _match_terms(source: SourceConfig) -> list[str]:
+    """All normalized strings that should resolve an entry to this project."""
+    raw_terms = [source.project, *source.aliases]
+    slug = _github_slug(str(source.url))
+    if slug:
+        raw_terms.append(slug)
+    normalized = {_normalize(term) for term in raw_terms}
+    return [term for term in normalized if len(term) >= _MIN_MATCH_LEN]
 
 
 def build_project_index(sources: list[SourceConfig]) -> ProjectIndex:
     """Build a match index from non-firehose (tracked) sources.
 
     Firehose sources are skipped — a firehose never attributes entries to
-    itself. Match terms are the project name plus any configured aliases.
+    itself. Match terms are the project name, configured aliases, and a
+    GitHub repo slug when available.
     """
     candidates: list[_Candidate] = []
     for source in sources:
         if source.firehose:
             continue
-        terms = [source.project, *source.aliases]
-        patterns = tuple(
-            _compile(term) for term in terms if len(term) >= _MIN_MATCH_LEN
-        )
-        if not patterns:
+        terms = _match_terms(source)
+        if not terms:
             continue
         candidates.append(
             _Candidate(
                 project=source.project,
                 category=source.category,
-                patterns=patterns,
+                patterns=tuple(_compile(term) for term in terms),
             )
         )
-    # Prefer the most specific (longest project name) on ambiguous text.
-    candidates.sort(key=lambda c: len(c.project), reverse=True)
+    # Prefer the most specific (longest matched term) on ambiguous text.
+    candidates.sort(
+        key=lambda c: max(len(p.pattern) for p in c.patterns), reverse=True
+    )
     return ProjectIndex(candidates=tuple(candidates))
 
 
 def classify_text(text: str, index: ProjectIndex) -> ProjectMatch | None:
     """Return the best tracked-project match for ``text``, or None."""
+    normalized = _normalize(text)
     for candidate in index.candidates:
-        if any(pattern.search(text) for pattern in candidate.patterns):
+        if any(pattern.search(normalized) for pattern in candidate.patterns):
             return ProjectMatch(project=candidate.project, category=candidate.category)
     return None
 
