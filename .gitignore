@@ -12,3 +12,8 @@ data/config.yaml
 # committed. To version your history (recommended for self-hosting durability),
 # `git add -f data/history.jsonl`. See docs/persistence.md.
 data/history.jsonl
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/

@@ -63,9 +63,18 @@ def scan(
 
 
 @app.command()
-def report(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+def report(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    as_json: bool = typer.Option(False, "--json", help="Emit cards as JSON for scripting."),
+) -> None:
     """Print a report from persisted cards."""
     cards = RadarOrchestrator(root).latest_cards()
+    if as_json:
+        from radar.reports.json_export import cards_to_json
+
+        # print, not console.print: rich would wrap/highlight the payload.
+        print(cards_to_json(cards))
+        return
     console.print(render_markdown_report(cards, "Agent/Tooling Adoption Radar"))
 
 
@@ -100,6 +109,37 @@ def seed_add(
         console.print(f"[red]Could not add source:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(f"Added source: {source.id} ({source.type.value} -> {source.category.value})")
+
+
+@seed_app.command("list")
+def seed_list(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """List the configured signal sources."""
+    from radar.storage.config import load_config
+
+    config_path = root / "data" / "config.yaml"
+    if not config_path.exists():
+        console.print(
+            f"[red]No config at {config_path}.[/red] Run [bold]radar init[/bold] first."
+        )
+        raise typer.Exit(code=1)
+    config = load_config(config_path)
+
+    console.print(f"{len(config.sources)} sources in {config_path}")
+    # Plain aligned text (no rich table): never truncated, grep/pipe friendly.
+    for source in config.sources:
+        flags = []
+        if not source.enabled:
+            flags.append("disabled")
+        if source.firehose:
+            flags.append("firehose")
+        suffix = f"  [{', '.join(flags)}]" if flags else ""
+        console.print(
+            f"  {source.id:<28} {source.type.value:<12} {source.category.value:<26} "
+            f"{source.project}{suffix}",
+            highlight=False,
+        )
 
 
 @app.command()

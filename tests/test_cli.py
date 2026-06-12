@@ -145,3 +145,50 @@ def test_seed_add_reports_error_on_duplicate(tmp_path):
 
     assert result.exit_code != 0
     assert "already exists" in result.stdout
+
+
+def test_seed_list_shows_configured_sources(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["seed", "list", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    # The default seed list ships github + rss sources; spot-check known ids.
+    assert "github-vllm" in result.stdout
+    assert "model_serving" in result.stdout
+
+
+def test_seed_list_without_config_explains_init(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["seed", "list", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0
+    assert "radar init" in result.stdout
+
+
+def test_report_json_outputs_machine_readable_cards(tmp_path):
+    import json
+
+    from radar.models import Category, DecisionCard, Ring
+    from radar.storage.database import RadarDatabase
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="fast inference", workflow_fit={}, risk_level="low",
+            ),
+        ]
+    )
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["report", "--root", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload[0]["project"] == "vLLM"
+    assert payload[0]["ring"] == "adopt"
