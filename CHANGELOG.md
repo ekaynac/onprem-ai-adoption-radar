@@ -7,6 +7,33 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **CLI** — `radar seed list` (plain, pipe-friendly source listing) and
+  `radar report --json` for scripting.
+- **Quality gates** — ruff (lint) and mypy (types, pydantic plugin) configured
+  and enforced in CI alongside the test suite with an 80% coverage floor;
+  CI now tests Python 3.12 and 3.13.
+- **Architecture doc** — `docs/architecture.md` with the data flow, module
+  map, and the pipeline's key invariants.
+
+### Fixed
+- **Collector robustness** — draft GitHub releases (`published_at: null`),
+  malformed timestamps, and partial release payloads are skipped instead of
+  aborting every GitHub source; RSS responses that don't parse as a feed are
+  logged instead of silently yielding nothing; unparseable RSS entry dates
+  fall back to "now"; per-collector failures accumulate in the run meta
+  (`collector_warnings`) instead of overwriting one another.
+- **History durability** — a corrupt line in `data/history.jsonl` is skipped
+  with a warning instead of making every future scan fail; history summaries
+  order events by `observed_at`, not insertion order, so merged or rehydrated
+  logs report correct first-seen/last-change times.
+- **Deterministic scoring** — keyword scoring no longer depends on set
+  iteration order (the hash seed); same input, same score, every process.
+- **Dedupe** — signals are deduplicated per (URL, project) so firehose
+  re-attribution can't collapse two projects sharing a link.
+- **Report text quality** — release-note highlights no longer leak HTML
+  comments, dangling `[text](` fragments, or trailing `by @user in`
+  attributions (bot accounts included); RSS summaries are tag-stripped and
+  entity-unescaped before they reach a card.
 - **Collection pipeline** — GitHub releases, RSS/Atom, registry, and manual
   collectors; deterministic dedupe.
 - **Scoring & decision cards** — 7-dimension deterministic scoring plus an
