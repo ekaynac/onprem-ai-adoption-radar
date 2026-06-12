@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -38,7 +38,7 @@ async def test_rss_collector_fetches_feed_items():
     feed = Path("tests/fixtures/rss_feed.xml").read_text(encoding="utf-8")
     collector = RSSCollector([source], client=FakeClient(feed))
 
-    signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=timezone.utc))
+    signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=UTC))
 
     assert len(signals) == 1
     assert signals[0].id == "rss:rss-agent-blog:https://example.com/mcp-approval"
@@ -82,7 +82,7 @@ async def test_unparseable_entry_date_falls_back_instead_of_crashing():
     )
     collector = RSSCollector([source], client=FakeClient(feed))
 
-    signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=timezone.utc))
+    signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=UTC))
 
     # Entry with an unparseable date falls back to "now" and is kept.
     assert [s.title for s in signals] == ["Good post"]
@@ -103,7 +103,7 @@ async def test_broken_feed_logs_warning_instead_of_silence(caplog):
     import logging
 
     with caplog.at_level(logging.WARNING, logger="radar.collectors.rss"):
-        signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=timezone.utc))
+        signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=UTC))
 
     assert signals == []
     assert any("rss-agent-blog" in record.getMessage() for record in caplog.records)

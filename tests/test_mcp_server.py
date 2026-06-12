@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from radar.models import Category, DecisionCard, Ring
 from radar.mcp_server.server import build_mcp_server
+from radar.models import Category, DecisionCard, Ring
 from radar.storage.database import RadarDatabase
 
 
@@ -43,5 +43,5 @@ def test_list_recommendations_tool_returns_seeded_card(tmp_path: Path):
     result = asyncio.run(server.call_tool("list_recommendations", {"rings": ["adopt"]}))
     # FastMCP returns (content, structured) — inspect the structured payload.
     structured = result[1]
-    payload = structured["result"] if "result" in structured else structured
+    payload = structured.get("result", structured)
     assert any(item["project"] == "vLLM" for item in payload)

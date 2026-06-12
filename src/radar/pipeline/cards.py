@@ -36,7 +36,7 @@ def build_decision_cards(scored_signals: list[ScoredSignal]) -> list[DecisionCar
             for p in projects
         ]
     )
-    rings = dict(zip(projects, calibrated))
+    rings = dict(zip(projects, calibrated, strict=True))
 
     cards: list[DecisionCard] = []
     for project in projects:

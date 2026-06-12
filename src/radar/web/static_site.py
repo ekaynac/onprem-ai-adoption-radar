@@ -16,6 +16,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from radar.models import Category, DecisionCard, Ring
 from radar.reports.comparison import ComparisonError, build_comparison
 
+
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _TRY_RINGS = {Ring.ADOPT, Ring.PILOT}
 

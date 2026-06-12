@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from radar.models import Category, DecisionCard, Ring
@@ -34,7 +34,7 @@ def _delta(project: str, change: ChangeType, ring: Ring, prev: Ring | None) -> C
 
 
 def _at(day: int) -> datetime:
-    return datetime(2026, 6, day, 12, 0, tzinfo=timezone.utc)
+    return datetime(2026, 6, day, 12, 0, tzinfo=UTC)
 
 
 def test_record_deltas_appends_events(tmp_path: Path):

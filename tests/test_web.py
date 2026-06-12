@@ -1,3 +1,4 @@
+from datetime import UTC
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -105,7 +106,7 @@ def test_compare_page_renders_matrix(tmp_path: Path):
 
 
 def test_history_page_renders_recorded_events(tmp_path: Path):
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from radar.models import Category, Ring
     from radar.pipeline.delta import CardDelta, ChangeType
@@ -135,7 +136,7 @@ def test_history_page_renders_recorded_events(tmp_path: Path):
             )
         ],
         run_id="run-1",
-        observed_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 6, 10, tzinfo=UTC),
     )
 
     client = TestClient(create_app(tmp_path))

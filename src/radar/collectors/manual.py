@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from radar.collectors.base import BaseCollector
 from radar.models import Signal, SourceConfig
@@ -16,7 +16,7 @@ class ManualCollector(BaseCollector):
 
     async def fetch(self, since: datetime) -> list[Signal]:
         """Return configured manual references."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return [
             Signal(
                 id=f"manual:{source.id}",

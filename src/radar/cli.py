@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
 
 import typer
@@ -97,7 +98,7 @@ def seed_add(
         )
     except SeedError as exc:
         console.print(f"[red]Could not add source:[/red] {exc}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
     console.print(f"Added source: {source.id} ({source.type.value} -> {source.category.value})")
 
 
@@ -141,7 +142,7 @@ def export(
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from radar.storage.history_store import HistoryStore
     from radar.web.static_site import render_static_site
@@ -156,7 +157,7 @@ def export(
         for s in sorted(history.summaries(), key=lambda s: s.last_change_at, reverse=True)
     ]
 
-    index = render_static_site(cards, out, datetime.now(timezone.utc), timelines=timelines)
+    index = render_static_site(cards, out, datetime.now(UTC), timelines=timelines)
     console.print(f"Wrote {index.parent}/ (index, compare, history · {len(cards)} cards)")
 
 
@@ -181,9 +182,9 @@ def compare(
     if category:
         try:
             cat = Category(category)
-        except ValueError:
+        except ValueError as exc:
             console.print(f"[red]Unknown category:[/red] {category}")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from exc
         title = f"Comparison: {category}"
     elif project_list:
         title = "Comparison: " + " vs ".join(project_list)
@@ -192,7 +193,7 @@ def compare(
         comparison = build_comparison(cards, projects=project_list, category=cat)
     except ComparisonError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
     console.print(render_comparison_markdown(comparison, title))
 
 

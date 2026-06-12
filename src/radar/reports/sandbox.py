@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 
 from radar.models import DecisionCard
 
+
 _DOCKER_TAGS = {"docker", "self-hosted", "single-binary", "model-serving"}
 _NODE_TAGS = {"npm", "node", "vscode-extension"}
 _PYTHON_CLI_TAGS = {"cli", "open-source", "coding-agent"}

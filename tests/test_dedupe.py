@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from radar.models import Category, Signal
 from radar.pipeline.dedupe import dedupe_signals
@@ -12,7 +12,7 @@ def make_signal(signal_id: str, url: str, summary: str) -> Signal:
         category=Category.CODING_AGENTS,
         title="Release",
         url=url,
-        published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 10, tzinfo=UTC),
         raw_summary=summary,
         signal_type="github_release",
     )
@@ -35,7 +35,7 @@ def make_project_signal(signal_id: str, project: str, url: str, summary: str) ->
         category=Category.CODING_AGENTS,
         title="Release",
         url=url,
-        published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 10, tzinfo=UTC),
         raw_summary=summary,
         signal_type="rss_entry",
     )

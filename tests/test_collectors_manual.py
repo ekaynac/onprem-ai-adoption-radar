@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -19,7 +19,7 @@ async def test_manual_collector_emits_one_signal():
     )
     collector = ManualCollector([source])
 
-    signals = await collector.fetch(datetime(2026, 6, 10, tzinfo=timezone.utc))
+    signals = await collector.fetch(datetime(2026, 6, 10, tzinfo=UTC))
 
     assert len(signals) == 1
     assert signals[0].id == "manual:mcp-docs"

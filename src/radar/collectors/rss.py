@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import feedparser
 import httpx
@@ -90,8 +90,8 @@ class RSSCollector(BaseCollector):
             try:
                 parsed = date_parser.parse(raw)
             except (ValueError, OverflowError):
-                return datetime.now(timezone.utc)
+                return datetime.now(UTC)
             if parsed.tzinfo is None:
-                return parsed.replace(tzinfo=timezone.utc)
+                return parsed.replace(tzinfo=UTC)
             return parsed
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)

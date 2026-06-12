@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -120,7 +120,7 @@ class Signal(BaseModel):
     title: str
     url: HttpUrl
     published_at: datetime
-    fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    fetched_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     raw_summary: str = ""
     signal_type: str
     tags: list[str] = Field(default_factory=list)
@@ -191,7 +191,7 @@ class DecisionCard(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     last_reviewed_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(UTC)
     )
 
     @field_validator("risk_level")

@@ -15,9 +15,10 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Callable
+from collections.abc import Callable
 
 from radar.models import LLMConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +48,13 @@ def _parse_answer(raw: str, candidates: list[str]) -> str | None:
     accepts a name outside the candidate list.
     """
     cleaned = raw.strip().lower()
-    if not cleaned or "none" in cleaned.splitlines()[0]:
-        # Only treat NONE as a no-match when it leads the answer.
-        if cleaned.split() and cleaned.split()[0].strip(":.") == "none":
-            return None
+    # Only treat NONE as a no-match when it leads the answer.
+    if (
+        (not cleaned or "none" in cleaned.splitlines()[0])
+        and cleaned.split()
+        and cleaned.split()[0].strip(":.") == "none"
+    ):
+        return None
     # Prefer the longest candidate name that appears as a whole token, so
     # "TensorRT-LLM" wins over a shorter incidental substring.
     best: str | None = None

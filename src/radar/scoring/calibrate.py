@@ -27,6 +27,7 @@ import math
 
 from radar.models import Ring
 
+
 # Absolute gates (hold regardless of the batch distribution).
 AVOID_AVG = 2.5
 AVOID_SECURITY = 1

@@ -75,9 +75,9 @@ def test_comparison_includes_union_of_rubric_dimensions():
     comp = build_comparison(_cards(), projects=["Cline", "Aider"])
     labels = [r.label.lower() for r in comp.rows]
     # Cline has license_commercial_risk; Aider has enterprise_integration.
-    assert any("deployment" in l for l in labels)
-    assert any("license" in l for l in labels)
-    assert any("enterprise" in l for l in labels)
+    assert any("deployment" in label for label in labels)
+    assert any("license" in label for label in labels)
+    assert any("enterprise" in label for label in labels)
 
 
 def test_missing_dimension_renders_dash():

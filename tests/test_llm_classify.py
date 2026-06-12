@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from radar.pipeline.llm_classify import LLMAnalyst, build_analyst
 from radar.models import LLMConfig
+from radar.pipeline.llm_classify import LLMAnalyst, build_analyst
 
 
 CANDIDATES = ["vLLM", "Ollama", "TensorRT-LLM"]

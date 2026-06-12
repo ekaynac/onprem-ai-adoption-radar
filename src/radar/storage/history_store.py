@@ -26,7 +26,7 @@ def deltas_to_events(
     deltas: list[CardDelta],
     run_id: str,
     observed_at: datetime,
-) -> list["ProjectHistoryEvent"]:
+) -> list[ProjectHistoryEvent]:
     """Convert a scan's deltas into durable history events."""
     return [
         ProjectHistoryEvent(

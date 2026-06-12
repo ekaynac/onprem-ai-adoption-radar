@@ -154,8 +154,5 @@ def _with_highlights(
     base: list[str], prior: DecisionCard | None, card: DecisionCard
 ) -> list[str]:
     """Append any new meaningful highlights to a base reason list."""
-    if prior is None:
-        extra = _meaningful_highlights(card)
-    else:
-        extra = _new_highlights(prior, card)
+    extra = _meaningful_highlights(card) if prior is None else _new_highlights(prior, card)
     return base + extra

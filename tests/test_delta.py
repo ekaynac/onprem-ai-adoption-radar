@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from radar.models import Category, DecisionCard, Ring
-from radar.pipeline.delta import ChangeType, CardDelta, compute_deltas
+from radar.pipeline.delta import ChangeType, compute_deltas
 
 
 def _card(

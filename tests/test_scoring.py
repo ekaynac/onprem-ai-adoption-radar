@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -23,7 +23,7 @@ def _make_signal(
         category=category,
         title=f"{project} snapshot",
         url=f"https://example.com/{id}",
-        published_at=datetime(2026, 6, 12, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 12, tzinfo=UTC),
         raw_summary="",
         signal_type="github_repo_snapshot",
         tags=tags or [],
@@ -45,7 +45,7 @@ def test_score_signal_marks_file_write_access_as_risk():
         category=Category.CODING_AGENTS,
         title="Cline released v1",
         url="https://github.com/cline/cline/releases/tag/v1",
-        published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 10, tzinfo=UTC),
         raw_summary="MCP approval improvements",
         signal_type="github_release",
         tags=["coding-agent", "file-write-access", "terminal-access", "mcp"],
@@ -67,7 +67,7 @@ def test_score_signal_builds_on_prem_rubric_from_tags_and_metadata():
         category=Category.GENERAL_AGENTS,
         title="OpenClaw repo snapshot",
         url="https://github.com/openclaw/openclaw",
-        published_at=datetime(2026, 6, 11, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 11, tzinfo=UTC),
         raw_summary="Repo snapshot",
         signal_type="github_repo_snapshot",
         tags=["open-source", "self-hosted", "local-model", "audit", "sso", "mcp"],

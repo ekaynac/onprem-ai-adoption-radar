@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
+from radar.mcp_server.queries import RadarQueryService
 from radar.models import Category, DecisionCard, Ring
 from radar.pipeline.delta import CardDelta, ChangeType
-from radar.mcp_server.queries import RadarQueryService
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
 
@@ -51,7 +51,7 @@ def _seed(tmp_path: Path) -> None:
             )
         ],
         run_id="run-1",
-        observed_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 6, 10, tzinfo=UTC),
     )
 
 

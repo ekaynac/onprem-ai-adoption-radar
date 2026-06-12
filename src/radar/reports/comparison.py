@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 from radar.models import Category, DecisionCard
 
+
 _MISSING = "—"
 _MIN_PROJECTS = 2
 
@@ -95,8 +96,7 @@ def _select(
         if missing:
             raise ComparisonError(f"Unknown project(s): {', '.join(missing)}")
         # Preserve caller order, drop duplicates.
-        seen: set[str] = set()
-        ordered = [p for p in projects if not (p in seen or seen.add(p))]
+        ordered = list(dict.fromkeys(projects))
         return [by_name[p] for p in ordered]
 
     return sorted(

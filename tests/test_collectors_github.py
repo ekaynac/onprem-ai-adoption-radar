@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -60,7 +60,7 @@ async def test_github_collector_fetches_repo_releases():
     )
     collector = GitHubCollector([source], client=client)
 
-    signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=timezone.utc))
+    signals = await collector.fetch(datetime(2026, 6, 9, tzinfo=UTC))
 
     assert len(signals) == 2
     snapshot = next(signal for signal in signals if signal.signal_type == "github_repo_snapshot")
@@ -159,7 +159,7 @@ async def test_draft_and_malformed_releases_are_skipped_not_fatal():
     )
 
     signals = await GitHubCollector([source], client=client).fetch(
-        datetime(2026, 6, 9, tzinfo=timezone.utc)
+        datetime(2026, 6, 9, tzinfo=UTC)
     )
 
     release_signals = [s for s in signals if s.signal_type == "github_release"]
@@ -192,7 +192,7 @@ async def test_malformed_pushed_at_does_not_crash_snapshot():
     )
 
     signals = await GitHubCollector([source], client=client).fetch(
-        datetime(2026, 6, 9, tzinfo=timezone.utc)
+        datetime(2026, 6, 9, tzinfo=UTC)
     )
 
     snapshot = next(s for s in signals if s.signal_type == "github_repo_snapshot")

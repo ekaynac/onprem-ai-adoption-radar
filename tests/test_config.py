@@ -5,6 +5,7 @@ import pytest
 from radar.models import Category, Config, Ring, SourceType
 from radar.storage.config import ConfigError, expand_env_vars, load_config
 
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
 

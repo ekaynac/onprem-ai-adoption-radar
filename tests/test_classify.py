@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from radar.models import Category, Signal, SourceConfig, SourceType
 from radar.pipeline.classify import (
@@ -31,7 +31,7 @@ def _signal(title: str, *, firehose: bool, source_id: str = "rss-hf") -> Signal:
         category=Category.MODEL_SERVING,
         title=title,
         url=f"https://example.com/{abs(hash(title))}",
-        published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+        published_at=datetime(2026, 6, 10, tzinfo=UTC),
         raw_summary="",
         signal_type="rss_entry",
         metadata={"firehose": firehose},
