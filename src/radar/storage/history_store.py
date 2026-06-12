@@ -22,6 +22,27 @@ from radar.models import Category, Ring
 from radar.pipeline.delta import CardDelta, ChangeType
 
 
+def deltas_to_events(
+    deltas: list[CardDelta],
+    run_id: str,
+    observed_at: datetime,
+) -> list["ProjectHistoryEvent"]:
+    """Convert a scan's deltas into durable history events."""
+    return [
+        ProjectHistoryEvent(
+            project=delta.project,
+            category=delta.category,
+            change_type=delta.change_type,
+            ring=delta.current_ring,
+            previous_ring=delta.previous_ring,
+            run_id=run_id,
+            observed_at=observed_at,
+            reasons=delta.reasons,
+        )
+        for delta in deltas
+    ]
+
+
 class ProjectHistoryEvent(BaseModel):
     """A single recorded change for a project at a point in time."""
 
@@ -84,7 +105,11 @@ class HistoryStore:
         observed_at: datetime,
     ) -> None:
         """Append one history event per delta. No-op for an empty list."""
-        if not deltas:
+        self.add_events(deltas_to_events(deltas, run_id, observed_at))
+
+    def add_events(self, events: list[ProjectHistoryEvent]) -> None:
+        """Append events to the table. No-op for an empty list."""
+        if not events:
             return
         with sqlite3.connect(self.path) as conn:
             conn.executemany(
@@ -94,20 +119,69 @@ class HistoryStore:
                     run_id, observed_at, reasons
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                [
-                    (
-                        delta.project,
-                        delta.category.value,
-                        delta.change_type.value,
-                        delta.current_ring.value,
-                        delta.previous_ring.value if delta.previous_ring else None,
-                        run_id,
-                        observed_at.isoformat(),
-                        json.dumps(delta.reasons),
-                    )
-                    for delta in deltas
-                ],
+                [self._event_row(event) for event in events],
             )
+
+    def import_events(self, events: list[ProjectHistoryEvent]) -> int:
+        """Insert events not already present (idempotent rehydration).
+
+        Used to rebuild the SQLite projection from the durable JSONL log. The
+        natural key is (project, run_id, change_type) — within a run a project
+        has at most one event of a given change type. Returns the count inserted.
+        """
+        existing = self._event_keys()
+        fresh = [e for e in events if self._event_key(e) not in existing]
+        self.add_events(fresh)
+        return len(fresh)
+
+    def has_events(self) -> bool:
+        """Whether any history has been recorded."""
+        with sqlite3.connect(self.path) as conn:
+            return conn.execute("SELECT 1 FROM project_history LIMIT 1").fetchone() is not None
+
+    def all_events(self) -> list[ProjectHistoryEvent]:
+        """Return every recorded event, oldest-first."""
+        with sqlite3.connect(self.path) as conn:
+            rows = conn.execute(
+                """
+                SELECT project, category, change_type, ring, previous_ring,
+                       run_id, observed_at, reasons
+                FROM project_history
+                ORDER BY id
+                """
+            ).fetchall()
+        return [self._row_to_event(row) for row in rows]
+
+    def seen_projects(self) -> set[str]:
+        """All projects that have ever appeared in the history."""
+        with sqlite3.connect(self.path) as conn:
+            return {row[0] for row in conn.execute("SELECT DISTINCT project FROM project_history")}
+
+    def _event_keys(self) -> set[tuple[str, str, str]]:
+        with sqlite3.connect(self.path) as conn:
+            return {
+                (row[0], row[1], row[2])
+                for row in conn.execute(
+                    "SELECT project, run_id, change_type FROM project_history"
+                )
+            }
+
+    @staticmethod
+    def _event_key(event: ProjectHistoryEvent) -> tuple[str, str, str]:
+        return (event.project, event.run_id, event.change_type.value)
+
+    @staticmethod
+    def _event_row(event: ProjectHistoryEvent) -> tuple:
+        return (
+            event.project,
+            event.category.value,
+            event.change_type.value,
+            event.ring.value,
+            event.previous_ring.value if event.previous_ring else None,
+            event.run_id,
+            event.observed_at.isoformat(),
+            json.dumps(event.reasons),
+        )
 
     def history_for(self, project: str) -> list[ProjectHistoryEvent]:
         """Return a project's events oldest-first (insertion order)."""

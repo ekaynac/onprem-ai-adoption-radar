@@ -90,6 +90,51 @@ def test_second_unchanged_scan_reports_no_changes(tmp_path: Path):
     assert second.deltas == []
 
 
+def test_history_survives_database_wipe_via_durable_log(tmp_path: Path):
+    from radar.storage.history_store import HistoryStore
+
+    initialize_project(tmp_path)
+    _write_manual_config(tmp_path)
+
+    # First scan records the project as NEW and writes the durable JSONL log.
+    RadarOrchestrator(root=tmp_path).scan(days=2)
+    log = tmp_path / "data" / "history.jsonl"
+    assert log.exists()
+    assert "Model Context Protocol" in log.read_text(encoding="utf-8")
+
+    # Simulate losing the database entirely.
+    (tmp_path / "data" / "radar.db").unlink()
+
+    # Re-scan: history is rebuilt from the log, and the project is NOT recorded
+    # as NEW again (no duplicate timeline event).
+    RadarOrchestrator(root=tmp_path).scan(days=2)
+
+    events = HistoryStore(tmp_path / "data" / "radar.db").history_for(
+        "Model Context Protocol"
+    )
+    assert len(events) == 1
+    assert events[0].change_type.value == "new"
+
+
+def test_legacy_db_history_is_backfilled_to_log(tmp_path: Path):
+    from radar.storage.history_log import load_events
+
+    initialize_project(tmp_path)
+    _write_manual_config(tmp_path)
+
+    # Simulate a legacy install: DB has history but the durable log does not.
+    RadarOrchestrator(root=tmp_path).scan(days=2)
+    log = tmp_path / "data" / "history.jsonl"
+    log.unlink()
+
+    # Next scan must backfill the log from the existing DB history.
+    RadarOrchestrator(root=tmp_path).scan(days=2)
+
+    assert log.exists()
+    projects = {e.project for e in load_events(log)}
+    assert "Model Context Protocol" in projects
+
+
 def test_firehose_entries_are_reclassified_to_tracked_projects(tmp_path: Path, monkeypatch):
     """A firehose feed's entries must attach to tracked projects, not flood as one card."""
     import radar.orchestrator as orch
