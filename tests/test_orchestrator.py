@@ -88,3 +88,41 @@ def test_second_unchanged_scan_reports_no_changes(tmp_path: Path):
     ).read_text(encoding="utf-8")
     assert "No changes since the last scan." in content
     assert second.deltas == []
+
+
+def test_scan_records_project_history_and_writes_report(tmp_path: Path):
+    from radar.storage.history_store import HistoryStore
+
+    initialize_project(tmp_path)
+    _write_manual_config(tmp_path)
+
+    result = RadarOrchestrator(root=tmp_path).scan(days=2)
+
+    # History report artifact is written for the run.
+    history_path = tmp_path / "data" / "runs" / result.run_id / "history.md"
+    assert history_path.exists()
+    assert "Model Context Protocol" in history_path.read_text(encoding="utf-8")
+
+    # The durable history records the first observation.
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    events = history.history_for("Model Context Protocol")
+    assert len(events) == 1
+    assert events[0].change_type.value == "new"
+
+
+def test_history_accumulates_across_scans(tmp_path: Path):
+    from radar.storage.history_store import HistoryStore
+
+    initialize_project(tmp_path)
+    _write_manual_config(tmp_path)
+
+    orchestrator = RadarOrchestrator(root=tmp_path)
+    orchestrator.scan(days=2)
+    orchestrator.scan(days=2)  # unchanged → no new event
+
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    events = history.history_for("Model Context Protocol")
+    # Unchanged second scan must not append a duplicate event.
+    assert len(events) == 1
+    summaries = history.summaries()
+    assert summaries[0].change_count == 1

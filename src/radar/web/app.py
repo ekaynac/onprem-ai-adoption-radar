@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from radar.models import Category, SourceType
 from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
+from radar.storage.history_store import HistoryStore
 from radar.storage.seed_store import SeedError, add_seed
 
 
@@ -21,6 +22,7 @@ def create_app(root: Path) -> FastAPI:
     """Create a local dashboard app with read views and seed management."""
     app = FastAPI(title="Agent/Tooling Adoption Radar")
     db = RadarDatabase(root / "data" / "radar.db")
+    history = HistoryStore(root / "data" / "radar.db")
     config_path = root / "data" / "config.yaml"
 
     @app.get("/", response_class=HTMLResponse)
@@ -53,6 +55,20 @@ def create_app(root: Path) -> FastAPI:
     @app.get("/sources", response_class=HTMLResponse)
     def sources(request: Request):
         return _render_sources(request, error=None, status_code=200)
+
+    @app.get("/history", response_class=HTMLResponse)
+    def history_page(request: Request):
+        history.initialize()
+        summaries = history.summaries()
+        timelines = [
+            {"summary": s, "events": history.history_for(s.project)}
+            for s in sorted(summaries, key=lambda s: s.last_change_at, reverse=True)
+        ]
+        return TEMPLATES.TemplateResponse(
+            request,
+            "history.html",
+            {"timelines": timelines},
+        )
 
     @app.post("/sources")
     def add_source_route(

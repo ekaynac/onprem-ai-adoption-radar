@@ -15,11 +15,13 @@ from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.dedupe import dedupe_signals
 from radar.pipeline.delta import CardDelta, compute_deltas
 from radar.pipeline.quotas import apply_category_quotas
+from radar.reports.history import render_history_report
 from radar.reports.markdown import render_markdown_report
 from radar.reports.try_this_week import render_try_this_week_report
 from radar.scoring.deterministic import score_signal
 from radar.storage.config import load_config
 from radar.storage.database import RadarDatabase
+from radar.storage.history_store import HistoryStore
 from radar.storage.run_store import RunStore
 
 
@@ -31,6 +33,7 @@ class ScanResult:
     cards: list[DecisionCard]
     report_path: Path
     delta_report_path: Path
+    history_report_path: Path
     deltas: list[CardDelta]
 
 
@@ -43,6 +46,7 @@ class RadarOrchestrator:
         self.config_path = self.data_dir / "config.yaml"
         self.run_store = RunStore(self.data_dir / "runs")
         self.database = RadarDatabase(self.data_dir / "radar.db")
+        self.history = HistoryStore(self.data_dir / "radar.db")
 
     def scan(self, days: int) -> ScanResult:
         """Run the scan pipeline synchronously for CLI callers."""
@@ -51,6 +55,7 @@ class RadarOrchestrator:
     async def _scan(self, days: int) -> ScanResult:
         config = load_config(self.config_path)
         self.database.initialize()
+        self.history.initialize()
         run_id = self.run_store.create_run()
         since = datetime.now(timezone.utc) - timedelta(days=days)
 
@@ -100,19 +105,40 @@ class RadarOrchestrator:
         deltas = compute_deltas(previous=previous_cards, current=filtered_cards)
 
         self.database.upsert_cards(filtered_cards)
+        # Append this scan's changes to the durable per-project timeline, then
+        # render the cumulative history report from the full accumulated record.
+        self.history.record_deltas(
+            deltas, run_id=run_id, observed_at=datetime.now(timezone.utc)
+        )
+
         report = render_markdown_report(filtered_cards, "Agent/Tooling Adoption Radar")
         report_path = self.run_store.save_report(run_id, report)
 
         delta_report = render_try_this_week_report(deltas, "Try This Week")
         delta_report_path = self.run_store.save_try_this_week(run_id, delta_report)
 
+        history_report = render_history_report(
+            summaries=self.history.summaries(),
+            events_by_project=self._history_by_project(),
+            title="Adoption History",
+        )
+        history_report_path = self.run_store.save_history(run_id, history_report)
+
         return ScanResult(
             run_id=run_id,
             cards=filtered_cards,
             report_path=report_path,
             delta_report_path=delta_report_path,
+            history_report_path=history_report_path,
             deltas=deltas,
         )
+
+    def _history_by_project(self) -> dict[str, list]:
+        """Group all recorded history events by project for report rendering."""
+        return {
+            summary.project: self.history.history_for(summary.project)
+            for summary in self.history.summaries()
+        }
 
     def latest_cards(self) -> list[DecisionCard]:
         """Return cards from SQLite."""

@@ -58,6 +58,7 @@ def scan(
     console.print(f"Report: {result.report_path}")
     console.print(f"Changed since last scan: {len(result.deltas)}")
     console.print(f"Try This Week: {result.delta_report_path}")
+    console.print(f"History: {result.history_report_path}")
 
 
 @app.command()
@@ -98,6 +99,24 @@ def seed_add(
         console.print(f"[red]Could not add source:[/red] {exc}")
         raise typer.Exit(code=1)
     console.print(f"Added source: {source.id} ({source.type.value} -> {source.category.value})")
+
+
+@app.command()
+def history(
+    project: str = typer.Option("", help="Limit to a single project (optional)."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Print the cumulative per-project observation history."""
+    from radar.reports.history import render_history_report
+    from radar.storage.history_store import HistoryStore
+
+    store = HistoryStore(root / "data" / "radar.db")
+    store.initialize()
+    summaries = store.summaries()
+    if project:
+        summaries = [s for s in summaries if s.project == project]
+    events = {s.project: store.history_for(s.project) for s in summaries}
+    console.print(render_history_report(summaries, events, "Adoption History"))
 
 
 @app.command()
