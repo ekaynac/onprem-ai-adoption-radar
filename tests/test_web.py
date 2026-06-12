@@ -75,6 +75,35 @@ def test_post_source_adds_seed_and_persists(tmp_path: Path):
     assert any(s.id == "rss-web-feed" for s in config.sources)
 
 
+def test_compare_page_renders_matrix(tmp_path: Path):
+    from radar.models import Category, Ring
+    from radar.storage.database import RadarDatabase
+
+    db_path = tmp_path / "data" / "radar.db"
+    db = RadarDatabase(db_path)
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Cline", category=Category.CODING_AGENTS, ring=Ring.PILOT,
+                summary="x", workflow_fit={}, risk_level="medium",
+            ),
+            DecisionCard(
+                project="Aider", category=Category.CODING_AGENTS, ring=Ring.ADOPT,
+                summary="x", workflow_fit={}, risk_level="low",
+            ),
+        ]
+    )
+
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/compare", params={"category": "coding_agents"})
+
+    assert response.status_code == 200
+    assert "Cline" in response.text
+    assert "Aider" in response.text
+    assert "adopt" in response.text
+
+
 def test_history_page_renders_recorded_events(tmp_path: Path):
     from datetime import datetime, timezone
 
