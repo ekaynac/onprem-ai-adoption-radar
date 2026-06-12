@@ -335,6 +335,7 @@ sources:
   - id: rss-ollama-blog
     type: rss
     enabled: true
+    firehose: true  # reclassified to tracked projects (Ollama, llama.cpp…)
     project: Ollama Blog
     category: model_serving
     url: https://ollama.com/blog/rss.xml
@@ -342,6 +343,7 @@ sources:
   - id: rss-redhat-ai-blog
     type: rss
     enabled: true
+    firehose: true  # reclassified to tracked projects (vLLM, KServe…)
     project: Red Hat AI Blog
     category: ai_infrastructure
     url: https://www.redhat.com/en/rss/blog/channel/red-hat-ai
