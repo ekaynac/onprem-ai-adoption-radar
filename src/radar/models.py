@@ -120,6 +120,13 @@ class ScoreBreakdown(BaseModel):
         return round(total / 7, 2)
 
 
+class OnPremAssessment(BaseModel):
+    """One deterministic on-prem adoption rubric assessment."""
+
+    score: int = Field(ge=1, le=5)
+    reason: str
+
+
 class ScoredSignal(BaseModel):
     """Signal with deterministic scoring results."""
 
@@ -127,6 +134,7 @@ class ScoredSignal(BaseModel):
     scores: ScoreBreakdown
     reason_codes: list[str] = Field(default_factory=list)
     recommended_ring: Ring
+    on_prem_rubric: dict[str, OnPremAssessment] = Field(default_factory=dict)
 
 
 class DecisionCard(BaseModel):
@@ -138,8 +146,14 @@ class DecisionCard(BaseModel):
     summary: str
     workflow_fit: dict[str, str]
     risk_level: str
+    what_changed: list[str] = Field(default_factory=list)
+    why_it_matters: str = ""
+    on_prem_fit: str = ""
+    on_prem_rubric: dict[str, OnPremAssessment] = Field(default_factory=dict)
     risk_reasons: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
     try_this_week: list[str] = Field(default_factory=list)
+    try_next: list[str] = Field(default_factory=list)
     company_demo: dict[str, str | bool] = Field(default_factory=dict)
     evidence: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)

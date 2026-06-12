@@ -31,3 +31,26 @@ def test_score_signal_marks_file_write_access_as_risk():
     assert scored.scores.security_posture == 2
     assert "needs_sandbox_review" in scored.reason_codes
     assert scored.recommended_ring == Ring.PILOT
+
+
+def test_score_signal_builds_on_prem_rubric_from_tags_and_metadata():
+    signal = Signal(
+        id="s2",
+        source_id="github-openclaw",
+        project="OpenClaw",
+        category=Category.GENERAL_AGENTS,
+        title="OpenClaw repo snapshot",
+        url="https://github.com/openclaw/openclaw",
+        published_at=datetime(2026, 6, 11, tzinfo=timezone.utc),
+        raw_summary="Repo snapshot",
+        signal_type="github_repo_snapshot",
+        tags=["open-source", "self-hosted", "local-model", "audit", "sso", "mcp"],
+        metadata={"license": "Apache-2.0", "stars": 1200, "pushed_at": "2026-06-11T08:00:00Z"},
+    )
+
+    scored = score_signal(signal, ScoringConfig())
+
+    assert scored.on_prem_rubric["local_offline_runnability"].score >= 4
+    assert "local/offline" in scored.on_prem_rubric["local_offline_runnability"].reason
+    assert scored.on_prem_rubric["observability_auditability"].score >= 4
+    assert "license_clear" in scored.reason_codes

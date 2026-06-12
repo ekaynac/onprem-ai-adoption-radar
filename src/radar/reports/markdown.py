@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 
 from radar.models import DecisionCard, Ring
@@ -9,7 +10,7 @@ from radar.models import DecisionCard, Ring
 
 def render_markdown_report(cards: list[DecisionCard], title: str) -> str:
     """Render decision cards as a decision-oriented Markdown report."""
-    lines = [f"# {title}", ""]
+    lines = [f"# {_clean_inline(title)}", ""]
     lines.extend(
         _section("Try This Week", [c for c in cards if c.ring in {Ring.ADOPT, Ring.PILOT}])
     )
@@ -31,21 +32,44 @@ def _section(title: str, cards: list[DecisionCard]) -> list[str]:
     for category, category_cards in grouped.items():
         lines.extend([f"### {category}", ""])
         for card in category_cards:
-            evidence = (
-                ", ".join(card.evidence) if card.evidence else "No evidence link recorded"
-            )
-            risks = (
-                " ".join(card.risk_reasons)
-                if card.risk_reasons
-                else "No risk notes recorded."
-            )
-            lines.extend(
-                [
-                    f"- **{card.project}** (`{card.ring.value}`, risk: `{card.risk_level}`)",
-                    f"  - {card.summary}",
-                    f"  - Risk: {risks}",
-                    f"  - Evidence: {evidence}",
-                ]
-            )
+            lines.extend(_card_lines(card))
         lines.append("")
     return lines
+
+
+def _card_lines(card: DecisionCard) -> list[str]:
+    lines = [
+        f"#### {_clean_inline(card.project)}",
+        "",
+        f"- **Decision:** `{card.ring.value}` (risk: `{card.risk_level}`)",
+    ]
+    lines.extend(_field("What changed", card.what_changed or [_clean_inline(card.summary)]))
+    lines.extend(_field("Why it matters", card.why_it_matters or card.summary))
+    lines.extend(_field("On-prem fit", card.on_prem_fit or card.workflow_fit.get("enterprise_onprem", "unknown")))
+    lines.extend(_field("Risks", card.risks or card.risk_reasons))
+    lines.extend(_field("Try next", card.try_next or card.try_this_week))
+    lines.extend(_field("Evidence", card.evidence or ["No evidence link recorded."]))
+    return lines
+
+
+def _field(label: str, value: str | list[str]) -> list[str]:
+    if isinstance(value, str):
+        cleaned = _clean_inline(value)
+        return [f"- **{label}:** {cleaned}" if cleaned else f"- **{label}:** Not recorded."]
+    if not value:
+        return [f"- **{label}:** Not recorded."]
+    lines = [f"- **{label}:**"]
+    for item in value[:6]:
+        lines.append(f"  - {_clean_inline(str(item))}")
+    return lines
+
+
+def _clean_inline(text: str) -> str:
+    """Keep upstream Markdown from changing report hierarchy or producing giant blobs."""
+    text = re.sub(r"^\s{0,3}#{1,6}\s*", "", text.strip(), flags=re.MULTILINE)
+    text = re.sub(r"^[>*`_\s]+", "", text)
+    text = re.sub(r"\n{2,}", "\n", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) <= 500:
+        return text
+    return text[:499].rstrip() + "…"
