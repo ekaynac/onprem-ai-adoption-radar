@@ -31,6 +31,24 @@
         color: #2563eb;
         margin-right: 1rem;
       }
+      .badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.05rem 0.4rem;
+        border-radius: 0.3rem;
+        margin-right: 0.3rem;
+        white-space: nowrap;
+      }
+      .badge-risk { background: #fee2e2; color: #b91c1c; }
+      .badge-risk-low { background: #fef3c7; color: #92400e; }
+      .badge-pinned { background: #e0e7ff; color: #3730a3; }
+      .evidence {
+        margin: 0.3rem 0 0;
+        padding-left: 1rem;
+        color: #6b7280;
+        font-size: 0.82rem;
+      }
     </style>
   </head>
   <body>
@@ -55,7 +73,16 @@
           <td class="ring">{{ card.ring.value }}</td>
           <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
           <td>{{ card.risk_level }}</td>
-          <td>{{ card.summary }}</td>
+          <td>
+            {% if card.pinned %}<span class="badge badge-pinned" title="{{ card.pinned_reason }}">📌 pinned{% if card.computed_ring %} (was {{ card.computed_ring.value }}){% endif %}</span>{% endif %}
+            {% if card.upgrade_risk == 'high' %}<span class="badge badge-risk">⚠ upgrade risk</span>{% elif card.upgrade_risk == 'low' %}<span class="badge badge-risk-low">upgrade notes</span>{% endif %}
+            {{ card.summary }}
+            {% if card.evidence_notes %}
+            <ul class="evidence">
+              {% for note in card.evidence_notes %}<li>{{ note }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+          </td>
         </tr>
         {% else %}
         <tr>

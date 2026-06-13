@@ -161,3 +161,34 @@ def test_post_source_rejects_duplicate_with_message(tmp_path: Path):
 
     assert response.status_code == 200
     assert "already exists" in response.text
+
+
+def test_dashboard_surfaces_evidence_and_flags(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM",
+                category=Category.MODEL_SERVING,
+                ring=Ring.AVOID,
+                summary="fast inference",
+                workflow_fit={},
+                risk_level="high",
+                trend="rising",
+                evidence_notes=["Recent CRITICAL security advisory GHSA-xxxx: RCE."],
+                upgrade_risk="high",
+                pinned=True,
+                pinned_reason="failed review",
+                computed_ring=Ring.WATCH,
+            )
+        ]
+    )
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/").text
+
+    assert "GHSA-xxxx" in text  # evidence note shown
+    assert "upgrade risk" in text  # upgrade-risk badge
+    assert "pinned" in text  # pin badge
+    assert "↑" in text  # rising trend arrow

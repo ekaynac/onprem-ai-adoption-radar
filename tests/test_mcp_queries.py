@@ -131,3 +131,56 @@ def test_compare_unknown_project_returns_error(tmp_path: Path):
 
     assert "error" in result
     assert "Ghost" in result["error"]
+
+
+def _rich_card() -> DecisionCard:
+    return DecisionCard(
+        project="vLLM",
+        category=Category.MODEL_SERVING,
+        ring=Ring.AVOID,
+        score=2.71,
+        summary="fast inference",
+        workflow_fit={},
+        risk_level="high",
+        evidence_notes=[
+            "Stars +1,240 (+3.1%) since last scan.",
+            "Recent CRITICAL security advisory GHSA-xxxx: RCE.",
+        ],
+        upgrade_risk="high",
+        upgrade_risk_notes=["BREAKING CHANGE: engine API moved."],
+        trend="rising",
+        pinned=True,
+        pinned_reason="failed internal review",
+        computed_ring=Ring.WATCH,
+    )
+
+
+def test_card_dict_surfaces_evidence_and_decision_context(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_rich_card()])
+    svc = RadarQueryService(tmp_path)
+
+    card = svc.recommendations()[0]
+
+    assert card["score"] == 2.71
+    assert card["trend"] == "rising"
+    assert card["upgrade_risk"] == "high"
+    assert "BREAKING CHANGE: engine API moved." in card["upgrade_risk_notes"]
+    assert any("GHSA-xxxx" in note for note in card["evidence_notes"])
+    assert card["pinned"] is True
+    assert card["pinned_reason"] == "failed internal review"
+    assert card["computed_ring"] == "watch"
+
+
+def test_card_dict_defaults_are_clean_for_plain_cards(tmp_path: Path):
+    _seed(tmp_path)
+    svc = RadarQueryService(tmp_path)
+
+    card = next(c for c in svc.recommendations() if c["project"] == "vLLM")
+
+    assert card["trend"] == "steady"
+    assert card["upgrade_risk"] == "none"
+    assert card["evidence_notes"] == []
+    assert card["pinned"] is False
+    assert card["computed_ring"] is None
