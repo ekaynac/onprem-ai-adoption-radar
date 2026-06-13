@@ -19,6 +19,7 @@ from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
+from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 
 
@@ -35,6 +36,7 @@ def render_static_site(
     site_title: str = "On-Prem AI Adoption Radar",
     self_base_url: str = "",
     metrics_by_project: dict[str, list[ProjectMetrics]] | None = None,
+    latest_scan_meta: dict[str, Any] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -62,6 +64,7 @@ def render_static_site(
             try_this_week=[c for c in cards if c.ring in _TRY_RINGS],
             generated_at=stamp,
             slug_by_project=slug_by_project,
+            scan_health=summarize_meta(latest_scan_meta or {}),
         ),
         encoding="utf-8",
     )

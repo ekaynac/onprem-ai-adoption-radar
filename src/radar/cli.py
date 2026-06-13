@@ -92,8 +92,9 @@ def scan(
         console.print(f"Report: {replay_result.report_path}")
         console.print("(Offline replay: no history, metrics, or card DB changes.)")
         return
+    orchestrator = RadarOrchestrator(root)
     try:
-        result = RadarOrchestrator(root).scan(days=days, profile=profile or None)
+        result = orchestrator.scan(days=days, profile=profile or None)
     except UnknownProfileError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
@@ -103,6 +104,11 @@ def scan(
     console.print(f"Changed since last scan: {len(result.deltas)}")
     console.print(f"Try This Week: {result.delta_report_path}")
     console.print(f"History: {result.history_report_path}")
+
+    from radar.web.scan_health import summarize_meta
+
+    health = summarize_meta(orchestrator.run_store.read_meta(result.run_id))
+    console.print(health.one_line)
 
 
 @app.command()
@@ -623,12 +629,16 @@ def export(
     metrics.initialize()
     metrics_by_project = {c.project: metrics.history_for(c.project) for c in cards}
 
+    run_ids = orchestrator.run_store.list_runs()
+    latest_scan_meta = orchestrator.run_store.read_meta(run_ids[-1]) if run_ids else {}
+
     index = render_static_site(
         cards,
         out,
         datetime.now(UTC),
         timelines=timelines,
         metrics_by_project=metrics_by_project,
+        latest_scan_meta=latest_scan_meta,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages)"

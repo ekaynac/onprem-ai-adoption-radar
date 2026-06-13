@@ -333,3 +333,38 @@ def test_index_links_to_project_page(tmp_path: Path):
     text = client.get("/").text
 
     assert "/project/vLLM" in text
+
+
+def test_index_shows_scan_health_when_runs_exist(tmp_path: Path):
+
+    from radar.storage.run_store import RunStore
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="s", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+    rs = RunStore(tmp_path / "data" / "runs")
+    run_id = rs.create_run()
+    rs.update_meta(run_id, {"collector_warnings": ["GitHubCollector: 403"]})
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/").text
+
+    assert "scan-health" in text
+    assert "collector warning" in text
+
+
+def test_index_no_scan_health_block_when_empty(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+
+    client = TestClient(create_app(tmp_path))
+    resp = client.get("/")
+
+    assert resp.status_code == 200  # renders fine with no runs

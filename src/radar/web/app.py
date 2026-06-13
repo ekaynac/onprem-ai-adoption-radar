@@ -14,7 +14,9 @@ from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
 from radar.storage.metrics_store import MetricsStore
+from radar.storage.run_store import RunStore
 from radar.storage.seed_store import SeedError, add_seed
+from radar.web.scan_health import summarize_meta
 
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -26,6 +28,7 @@ def create_app(root: Path) -> FastAPI:
     db = RadarDatabase(root / "data" / "radar.db")
     history = HistoryStore(root / "data" / "radar.db")
     metrics = MetricsStore(root / "data" / "radar.db")
+    run_store = RunStore(root / "data" / "runs")
     config_path = root / "data" / "config.yaml"
 
     # Nav targets for the project-detail partial (live = server routes).
@@ -35,10 +38,12 @@ def create_app(root: Path) -> FastAPI:
     def index(request: Request):
         db.initialize()
         cards = db.list_cards()
+        run_ids = run_store.list_runs()
+        meta = run_store.read_meta(run_ids[-1]) if run_ids else {}
         return TEMPLATES.TemplateResponse(
             request,
             "index.html",
-            {"cards": cards},
+            {"cards": cards, "scan_health": summarize_meta(meta)},
         )
 
     @app.get("/project/{name}", response_class=HTMLResponse)
