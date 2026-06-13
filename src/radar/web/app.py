@@ -13,6 +13,7 @@ from radar.reports.comparison import ComparisonError, build_comparison
 from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
+from radar.storage.metrics_store import MetricsStore
 from radar.storage.seed_store import SeedError, add_seed
 
 
@@ -24,7 +25,11 @@ def create_app(root: Path) -> FastAPI:
     app = FastAPI(title="Agent/Tooling Adoption Radar")
     db = RadarDatabase(root / "data" / "radar.db")
     history = HistoryStore(root / "data" / "radar.db")
+    metrics = MetricsStore(root / "data" / "radar.db")
     config_path = root / "data" / "config.yaml"
+
+    # Nav targets for the project-detail partial (live = server routes).
+    live_links = {"home": "/", "compare": "/compare", "history": "/history"}
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
@@ -34,6 +39,38 @@ def create_app(root: Path) -> FastAPI:
             request,
             "index.html",
             {"cards": cards},
+        )
+
+    @app.get("/project/{name}", response_class=HTMLResponse)
+    def project_detail(request: Request, name: str):
+        db.initialize()
+        # Exact match first; fall back to case-insensitive so the URL is forgiving.
+        card = db.get_card(name)
+        if card is None:
+            card = next(
+                (c for c in db.list_cards() if c.project.lower() == name.lower()),
+                None,
+            )
+        if card is None:
+            return TEMPLATES.TemplateResponse(
+                request,
+                "project.html",
+                {"card": None, "missing": name, "links": live_links},
+                status_code=404,
+            )
+        history.initialize()
+        metrics.initialize()
+        events = history.history_for(card.project)
+        metric_rows = list(reversed(metrics.history_for(card.project)))  # newest-first
+        return TEMPLATES.TemplateResponse(
+            request,
+            "project.html",
+            {
+                "card": card,
+                "events": events,
+                "metrics": metric_rows,
+                "links": live_links,
+            },
         )
 
     def _render_sources(request: Request, error: str | None, status_code: int):

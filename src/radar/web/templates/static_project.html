@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ card.project }} · Adoption Radar</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 1000px; color: #1f2937; padding: 0 1rem; }
+      h1 { margin-bottom: 0.25rem; }
+      h2 { margin-top: 1.75rem; font-size: 1.1rem; }
+      .meta { color: #4b5563; font-size: 0.9rem; margin: 0.25rem 0 1rem; }
+      .pinned-note { background: #eef2ff; border-left: 3px solid #6366f1; padding: 0.5rem 0.75rem; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 0.5rem; }
+      th, td { border-bottom: 1px solid #e5e7eb; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+      th { background: #f9fafb; }
+      .mono, .ring { font-family: ui-monospace, monospace; }
+      .adopt { color: #047857; font-weight: 600; }
+      .pilot { color: #2563eb; font-weight: 600; }
+      .watch { color: #b45309; }
+      .avoid { color: #b91c1c; }
+      .badge { display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 0.05rem 0.4rem; border-radius: 0.3rem; }
+      .badge-pinned { background: #e0e7ff; color: #3730a3; }
+      .evidence { color: #374151; }
+      nav a { color: #2563eb; margin-right: 1rem; }
+    </style>
+  </head>
+  <body>
+    <nav><a href="{{ links.home }}">← Radar</a><a href="{{ links.compare }}">Compare</a><a href="{{ links.history }}">History</a></nav>
+    {% include "_project_detail.html" %}
+  </body>
+</html>

@@ -68,7 +68,7 @@
       <tbody>
         {% for card in cards %}
         <tr>
-          <td>{{ card.project }}</td>
+          <td><a href="/project/{{ card.project | urlencode }}">{{ card.project }}</a></td>
           <td>{{ card.category.value }}</td>
           <td class="ring">{{ card.ring.value }}</td>
           <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>

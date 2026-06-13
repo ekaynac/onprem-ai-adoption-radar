@@ -434,3 +434,15 @@ def test_calibrate_report_without_scan_explains(tmp_path):
 
     assert result.exit_code != 0
     assert "radar scan" in result.stdout
+
+
+def test_export_writes_project_pages(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path), "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0, result.stdout
+    project_pages = list((tmp_path / "_site").glob("project_*.html"))
+    assert project_pages
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'href="project_' in index

@@ -575,6 +575,7 @@ def export(
     from datetime import datetime
 
     from radar.storage.history_store import HistoryStore
+    from radar.storage.metrics_store import MetricsStore
     from radar.web.static_site import render_static_site
 
     orchestrator = RadarOrchestrator(root)
@@ -587,8 +588,20 @@ def export(
         for s in sorted(history.summaries(), key=lambda s: s.last_change_at, reverse=True)
     ]
 
-    index = render_static_site(cards, out, datetime.now(UTC), timelines=timelines)
-    console.print(f"Wrote {index.parent}/ (index, compare, history · {len(cards)} cards)")
+    metrics = MetricsStore(root / "data" / "radar.db")
+    metrics.initialize()
+    metrics_by_project = {c.project: metrics.history_for(c.project) for c in cards}
+
+    index = render_static_site(
+        cards,
+        out,
+        datetime.now(UTC),
+        timelines=timelines,
+        metrics_by_project=metrics_by_project,
+    )
+    console.print(
+        f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages)"
+    )
 
 
 @app.command()

@@ -18,6 +18,8 @@ from radar.models import Category, DecisionCard, Ring
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json
 from radar.storage.history_store import ProjectHistoryEvent
+from radar.storage.metrics_store import ProjectMetrics
+from radar.web.slugs import build_slug_map
 
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -32,13 +34,15 @@ def render_static_site(
     timelines: list[dict[str, Any]] | None = None,
     site_title: str = "On-Prem AI Adoption Radar",
     self_base_url: str = "",
+    metrics_by_project: dict[str, list[ProjectMetrics]] | None = None,
 ) -> Path:
-    """Render index.html, compare.html, history.html + change feeds.
+    """Render index.html, compare.html, history.html, per-project pages + feeds.
 
     ``timelines`` is an optional list of ``{"summary", "events"}`` (as the live
     dashboard builds) for the history page; when omitted, history renders empty.
     The same events drive ``changes.xml`` (Atom) and ``changes.json`` so the
-    published site is subscribable.
+    published site is subscribable. ``metrics_by_project`` (optional) supplies
+    each project page's metrics history; omitting it renders empty metric tables.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -47,12 +51,17 @@ def render_static_site(
     )
     stamp = generated_at.strftime("%Y-%m-%d %H:%M UTC")
 
+    # One slug per project, shared by index links and per-project filenames so
+    # they can never disagree.
+    slug_by_project = build_slug_map([c.project for c in cards])
+
     index = out_dir / "index.html"
     index.write_text(
         env.get_template("static_index.html").render(
             cards=cards,
             try_this_week=[c for c in cards if c.ring in _TRY_RINGS],
             generated_at=stamp,
+            slug_by_project=slug_by_project,
         ),
         encoding="utf-8",
     )
@@ -73,8 +82,39 @@ def render_static_site(
         encoding="utf-8",
     )
 
+    _write_project_pages(
+        env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {}
+    )
     _write_feeds(out_dir, timelines or [], site_title, self_base_url)
     return index
+
+
+def _write_project_pages(
+    env: Environment,
+    out_dir: Path,
+    cards: list[DecisionCard],
+    slug_by_project: dict[str, str],
+    timelines: list[dict[str, Any]],
+    metrics_by_project: dict[str, list[ProjectMetrics]],
+) -> None:
+    """Render one self-contained project_<slug>.html per card."""
+    events_by_project: dict[str, list[ProjectHistoryEvent]] = {
+        t["summary"].project: t.get("events") or [] for t in timelines
+    }
+    template = env.get_template("static_project.html")
+    # Static pages are flat files in the same dir — all nav links are relative.
+    links = {"home": "index.html", "compare": "compare.html", "history": "history.html"}
+    for card in cards:
+        metrics = list(reversed(metrics_by_project.get(card.project, [])))  # newest-first
+        (out_dir / f"project_{slug_by_project[card.project]}.html").write_text(
+            template.render(
+                card=card,
+                events=events_by_project.get(card.project, []),
+                metrics=metrics,
+                links=links,
+            ),
+            encoding="utf-8",
+        )
 
 
 def _write_feeds(

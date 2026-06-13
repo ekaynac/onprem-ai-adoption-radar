@@ -1,0 +1,119 @@
+{# Shared project-detail body. Context: card, events (oldest-first),
+   metrics (newest-first), links {home, compare, history}. #}
+<h1>{{ card.project }}</h1>
+<p class="meta">
+  {{ card.category.value }} ·
+  <span class="ring {{ card.ring.value }}">{{ card.ring.value }}</span>
+  {% if card.pinned %}<span class="badge badge-pinned" title="{{ card.pinned_reason }}">📌 pinned{% if card.computed_ring %} (computed: {{ card.computed_ring.value }}){% endif %}</span>{% endif %}
+  · risk {{ card.risk_level }}
+  · trend {% if card.trend == 'rising' %}↑ rising{% elif card.trend == 'falling' %}↓ falling{% else %}→ steady{% endif %}
+  {% if card.score %}· score {{ card.score }}{% endif %}
+</p>
+
+{% if card.pinned and card.pinned_reason %}
+<p class="pinned-note">Pinned decision: {{ card.pinned_reason }}</p>
+{% endif %}
+
+<p>{{ card.summary }}</p>
+{% if card.why_it_matters %}<p>{{ card.why_it_matters }}</p>{% endif %}
+
+{% if card.score_breakdown %}
+<h2>Score breakdown</h2>
+<table>
+  <thead><tr><th>Dimension</th><th>Score (1–5)</th></tr></thead>
+  <tbody>
+    {% for dim, val in [
+        ("Workflow impact", card.score_breakdown.workflow_impact),
+        ("Laptop runnability", card.score_breakdown.laptop_runnability),
+        ("Open-source maturity", card.score_breakdown.open_source_maturity),
+        ("On-prem relevance", card.score_breakdown.on_prem_relevance),
+        ("Security posture", card.score_breakdown.security_posture),
+        ("Demo value", card.score_breakdown.demo_value),
+        ("Setup friction", card.score_breakdown.setup_friction)] %}
+    <tr><td>{{ dim }}</td><td class="mono">{{ val }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if card.on_prem_rubric %}
+<h2>On-prem rubric</h2>
+<p>{{ card.on_prem_fit }}</p>
+<table>
+  <thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead>
+  <tbody>
+    {% for name, item in card.on_prem_rubric.items() %}
+    <tr><td>{{ name.replace("_", " ") }}</td><td class="mono">{{ item.score }}</td><td>{{ item.reason }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if card.evidence_notes %}
+<h2>Observed evidence</h2>
+<ul class="evidence">
+  {% for note in card.evidence_notes %}<li>{{ note }}</li>{% endfor %}
+</ul>
+{% endif %}
+
+{% if card.upgrade_risk != 'none' %}
+<h2>Upgrade risk: {{ card.upgrade_risk }}</h2>
+<ul>{% for note in card.upgrade_risk_notes %}<li>{{ note }}</li>{% endfor %}</ul>
+{% endif %}
+
+{% if card.risks %}
+<h2>Risks</h2>
+<ul>{% for risk in card.risks %}<li>{{ risk }}</li>{% endfor %}</ul>
+{% endif %}
+
+{% if card.try_next %}
+<h2>Try next</h2>
+<ul>{% for step in card.try_next %}<li>{{ step }}</li>{% endfor %}</ul>
+{% endif %}
+
+<h2>Metrics history</h2>
+{% if metrics %}
+<table>
+  <thead><tr><th>Observed</th><th>Stars</th><th>Forks</th><th>Open issues</th><th>Releases</th><th>Downloads/wk</th><th>HN</th><th>Advisories</th><th>License</th></tr></thead>
+  <tbody>
+    {% for m in metrics %}
+    <tr>
+      <td>{{ m.observed_at.date().isoformat() }}</td>
+      <td class="mono">{% if m.stars is not none %}{{ "{:,}".format(m.stars) }}{% else %}—{% endif %}</td>
+      <td class="mono">{% if m.forks is not none %}{{ "{:,}".format(m.forks) }}{% else %}—{% endif %}</td>
+      <td class="mono">{% if m.open_issues is not none %}{{ m.open_issues }}{% else %}—{% endif %}</td>
+      <td class="mono">{{ m.releases_in_window }}</td>
+      <td class="mono">{% if m.downloads_weekly is not none %}{{ "{:,}".format(m.downloads_weekly) }}{% else %}—{% endif %}</td>
+      <td class="mono">{% if m.hn_mentions is not none %}{{ m.hn_mentions }}{% else %}—{% endif %}</td>
+      <td class="mono">{% if m.advisories_open %}{{ m.advisories_open }} ({{ m.advisories_max_severity }}){% else %}—{% endif %}</td>
+      <td>{{ m.license or "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No metrics recorded yet.</p>
+{% endif %}
+
+<h2>Ring timeline</h2>
+{% if events %}
+<table>
+  <thead><tr><th>Date</th><th>Change</th><th>Ring</th></tr></thead>
+  <tbody>
+    {% for e in events %}
+    <tr>
+      <td>{{ e.observed_at.date().isoformat() }}</td>
+      <td>{{ e.change_type.value }}</td>
+      <td class="mono">{% if e.previous_ring %}{{ e.previous_ring.value }} &rarr; {% endif %}{{ e.ring.value }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No ring changes recorded yet.</p>
+{% endif %}
+
+{% if card.evidence %}
+<h2>Sources</h2>
+<ul>{% for url in card.evidence %}<li><a href="{{ url }}">{{ url }}</a></li>{% endfor %}</ul>
+{% endif %}
