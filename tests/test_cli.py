@@ -414,3 +414,23 @@ def test_seed_list_flags_stale_sources(tmp_path):
         line for line in result.stdout.splitlines() if "github-vllm" in line
     )
     assert "STALE?" in stale_line
+
+
+def test_calibrate_report_runs_after_scan(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(app, ["calibrate-report", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Scoring Calibration" in result.stdout
+    assert "Ring distribution" in result.stdout
+
+
+def test_calibrate_report_without_scan_explains(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["calibrate-report", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0
+    assert "radar scan" in result.stdout
