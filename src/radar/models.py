@@ -255,6 +255,8 @@ class DecisionCard(BaseModel):
     # none | low (deprecations) | high (breaking changes, security fixes).
     upgrade_risk: str = "none"
     upgrade_risk_notes: list[str] = Field(default_factory=list)
+    # Direction of travel from accumulated history: rising | falling | steady.
+    trend: str = "steady"
     tags: list[str] = Field(default_factory=list)
     last_reviewed_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC)

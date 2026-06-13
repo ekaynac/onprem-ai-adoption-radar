@@ -42,6 +42,7 @@
           <th>Project</th>
           <th>Category</th>
           <th>Ring</th>
+          <th>Trend</th>
           <th>Risk</th>
           <th>Summary</th>
         </tr>
@@ -52,12 +53,13 @@
           <td>{{ card.project }}</td>
           <td>{{ card.category.value }}</td>
           <td class="ring">{{ card.ring.value }}</td>
+          <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
           <td>{{ card.risk_level }}</td>
           <td>{{ card.summary }}</td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="5">No cards yet. Run radar scan first.</td>
+          <td colspan="6">No cards yet. Run radar scan first.</td>
         </tr>
         {% endfor %}
       </tbody>
