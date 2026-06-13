@@ -12,6 +12,7 @@ sources:
     type: github_repo
     enabled: true
     project: OpenHands
+    package: {ecosystem: PyPI, name: openhands-ai}
     category: coding_agents
     url: https://github.com/OpenHands/OpenHands
     tags: [coding-agent, software-agent-sdk, open-source]
@@ -78,6 +79,7 @@ sources:
     type: github_repo
     enabled: true
     project: AutoGen
+    package: {ecosystem: PyPI, name: autogen-agentchat}
     category: agent_frameworks
     url: https://github.com/microsoft/autogen
     tags: [agent-framework, multi-agent, open-source]
@@ -95,6 +97,7 @@ sources:
     type: github_repo
     enabled: true
     project: SGLang
+    package: {ecosystem: PyPI, name: sglang}
     category: model_serving
     url: https://github.com/sgl-project/sglang
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
@@ -191,6 +194,7 @@ sources:
     type: github_repo
     enabled: true
     project: E2B
+    package: {ecosystem: PyPI, name: e2b}
     category: sandbox_governance
     url: https://github.com/e2b-dev/e2b
     tags: [sandbox, governance, open-source, self-hosted, on-prem-relevant]
@@ -230,6 +234,7 @@ sources:
     type: github_repo
     enabled: true
     project: Agno
+    package: {ecosystem: PyPI, name: agno}
     category: agent_frameworks
     url: https://github.com/agno-agi/agno
     tags: [agent-framework, multi-agent, open-source, self-hosted]
@@ -260,6 +265,7 @@ sources:
     type: github_repo
     enabled: true
     project: LMDeploy
+    package: {ecosystem: PyPI, name: lmdeploy}
     category: model_serving
     url: https://github.com/InternLM/lmdeploy
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
@@ -267,6 +273,7 @@ sources:
     type: github_repo
     enabled: true
     project: TensorRT-LLM
+    package: {ecosystem: PyPI, name: tensorrt-llm}
     category: model_serving
     url: https://github.com/NVIDIA/TensorRT-LLM
     tags: [model-serving, self-hosted, open-source, gpu-required, nvidia, on-prem-relevant]
@@ -277,6 +284,7 @@ sources:
     type: github_repo
     enabled: true
     project: KServe
+    package: {ecosystem: PyPI, name: kserve}
     category: ai_infrastructure
     url: https://github.com/kserve/kserve
     tags: [kubernetes, model-serving, self-hosted, open-source, on-prem-relevant, operator]
@@ -284,6 +292,7 @@ sources:
     type: github_repo
     enabled: true
     project: Ray
+    package: {ecosystem: PyPI, name: ray}
     category: ai_infrastructure
     url: https://github.com/ray-project/ray
     tags: [orchestration, self-hosted, open-source, on-prem-relevant, gpu-required]
