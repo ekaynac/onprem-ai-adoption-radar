@@ -3,7 +3,7 @@
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-269%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-307%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
@@ -25,6 +25,8 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - 📈 **Momentum & movers** — `rising` / `falling` / `steady` per project from the accumulated timeline; reports open with a **Movers** section and the dashboard shows trend arrows.
 - 📌 **Overrides & decision journal** — pin a ring with a reason (`radar override`), record trial outcomes (`radar trial`); pins win over the computed ring and **drift is surfaced**, not hidden.
 - 🎛️ **Scoring profiles** — re-rank the same data through `security-first` / `solo-dev` / `demo-hunter` lenses without a re-scan.
+- 📄 **Per-project pages** — a full view per project (score breakdown, rubric, evidence, advisories, metrics history, ring timeline) on both the dashboard and the published static site.
+- 🧮 **Backtest** — `radar backtest` re-scores history to show how a profile or a config change would have moved past decisions, so scoring is tuned with evidence, not guesswork.
 - ♻️ **Offline replay** — re-score a past run's raw signals with current config (`radar scan --replay`) to tune scoring with zero network.
 - 📡 **Firehose classification** — broad vendor blogs are re-attributed entry-by-entry to the projects they mention. Deterministic matching with an **optional, off-by-default LLM** second pass for the ambiguous tail.
 - 🩺 **Source health** — sources that go quiet for several scans are flagged as likely-dead feeds in `radar seed list`.
@@ -80,6 +82,7 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | `radar report [--json] [--profile X]` | Print the decision report from the latest scan. |
 | `radar movers` | Show each project's direction of travel (rising / falling / steady). |
 | `radar calibrate-report` | Diagnose whether the scoring discriminates (score spread, ring distribution, evidence impact, ring stability). |
+| `radar backtest [--profile X] [--runs N]` | Re-score past runs and report how rings would differ — under a profile's weights, or current config vs each run's persisted decision (read-only). |
 | `radar override --project X --ring R --reason "…"` | Pin a project's ring (`--clear` to remove); drift vs the radar is surfaced. |
 | `radar trial --project X --outcome adopted\|rejected\|inconclusive` | Record a trial outcome in the decision journal and timeline. |
 | `radar discover [--category X] [--min-stars N]` | Propose trending untracked GitHub repos to `data/proposed-seeds.yaml`. |
@@ -232,7 +235,7 @@ docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-resea
 ## Development
 
 ```bash
-uv run pytest --cov    # 269 tests, coverage floor 80% (currently ~92%)
+uv run pytest --cov    # 307 tests, coverage floor 80% (currently ~92%)
 uv run ruff check src tests
 uv run mypy
 ```
