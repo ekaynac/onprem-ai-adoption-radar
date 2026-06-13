@@ -49,11 +49,16 @@
         color: #6b7280;
         font-size: 0.82rem;
       }
+      .scan-health { margin: 0.75rem 0 1.25rem; font-size: 0.9rem; }
+      .scan-health summary { cursor: pointer; color: #b45309; }
+      .scan-health ul { margin: 0.4rem 0 0; color: #6b7280; }
+      .scan-health-ok { color: #15803d; margin: 0; }
     </style>
   </head>
   <body>
     <h1>Agent/Tooling Adoption Radar</h1>
     <nav><a href="/compare">Compare</a><a href="/history">History</a><a href="/sources">Sources</a></nav>
+    {% include "_scan_health.html" %}
     <table>
       <thead>
         <tr>

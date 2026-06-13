@@ -36,11 +36,16 @@
       .badge-risk-low { background: #fef3c7; color: #92400e; }
       .badge-pinned { background: #e0e7ff; color: #3730a3; }
       .evidence { margin: 0.3rem 0 0; padding-left: 1rem; color: #6b7280; font-size: 0.82rem; }
+      .scan-health { margin: 0.75rem 0 1.25rem; font-size: 0.9rem; }
+      .scan-health summary { cursor: pointer; color: #b45309; }
+      .scan-health ul { margin: 0.4rem 0 0; color: #6b7280; }
+      .scan-health-ok { color: #15803d; margin: 0; }
     </style>
   </head>
   <body>
     <h1>On-Prem AI Adoption Radar</h1>
     <p class="generated">Generated {{ generated_at }} · <a href="compare.html">Compare</a> · <a href="history.html">History</a> · <a href="changes.xml">Changes feed</a></p>
+    {% include "_scan_health.html" %}
 
     <h2>Try This Week</h2>
     <table>

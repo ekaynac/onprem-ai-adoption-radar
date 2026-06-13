@@ -1,0 +1,22 @@
+{# Scan-health summary. Context: scan_health (ScanHealth) | None.
+   Native <details> only — no JS, so it works on the static site too. #}
+{% if scan_health and scan_health.last_run_at %}
+<div class="scan-health">
+  {% if scan_health.has_warnings %}
+  <details>
+    <summary>⚠ {{ scan_health.one_line }}</summary>
+    <ul>
+      {% for w in scan_health.collector_warnings %}<li>collector: {{ w }}</li>{% endfor %}
+      {% for w in scan_health.enrichment_warnings %}<li>enrichment: {{ w }}</li>{% endfor %}
+      {% if scan_health.firehose_dropped_count %}
+      <li>firehose: {{ scan_health.firehose_dropped_count }} dropped
+        {%- if scan_health.firehose_llm_recovered %}, {{ scan_health.firehose_llm_recovered }} LLM-recovered{% endif %}
+        {%- if scan_health.firehose_dropped_sample %} (e.g. {{ scan_health.firehose_dropped_sample[0] }}){% endif %}</li>
+      {% endif %}
+    </ul>
+  </details>
+  {% else %}
+  <p class="scan-health-ok">✓ {{ scan_health.one_line }}</p>
+  {% endif %}
+</div>
+{% endif %}

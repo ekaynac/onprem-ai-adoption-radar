@@ -65,3 +65,29 @@ def test_render_without_metrics_still_writes_project_pages(tmp_path: Path):
 
     assert (tmp_path / "_site" / "index.html").exists()
     assert (tmp_path / "_site" / "project_ollama.html").exists()
+
+
+def test_static_index_renders_scan_health(tmp_path: Path):
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+        latest_scan_meta={
+            "created_at": "2026-06-13T10:00:00+00:00",
+            "firehose_dropped_count": 7,
+        },
+    )
+
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "scan-health" in index
+    assert "7 firehose" in index
+
+
+def test_static_index_back_compat_without_scan_meta(tmp_path: Path):
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+    )
+
+    assert (tmp_path / "_site" / "index.html").exists()

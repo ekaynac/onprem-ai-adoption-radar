@@ -537,3 +537,12 @@ def test_calibrate_check_no_cards_exits_one(tmp_path):
     result = runner.invoke(app, ["calibrate-report", "--root", str(tmp_path), "--check"])
 
     assert result.exit_code != 0
+
+
+def test_scan_prints_scan_health_line(tmp_path):
+    runner = _scan_manual(tmp_path)
+    # _scan_manual already scanned; scan again to capture stdout.
+    result = runner.invoke(app, ["scan", "--root", str(tmp_path), "--days", "2"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Scan health:" in result.stdout
