@@ -25,10 +25,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v8
 
       - name: Set up Python
         run: uv python install 3.12
@@ -40,7 +40,7 @@ jobs:
       # accumulates. The SQLite DB is just a cache rebuilt from this log, so we
       # only need to carry the log forward.
       - name: Restore radar history log
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: data/history.jsonl
           key: radar-history-${{ github.run_id }}
@@ -57,7 +57,7 @@ jobs:
 
       - name: Save radar history log
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: data/history.jsonl
           key: radar-history-${{ github.run_id }}
@@ -69,7 +69,7 @@ jobs:
         run: cp -f data/history.jsonl _site/history.jsonl || true
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
@@ -82,4 +82,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
