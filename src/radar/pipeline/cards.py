@@ -214,7 +214,7 @@ def _risks(
                 f"{evidence.license or 'unknown'}; re-review commercial terms."
             )
         for advisory in evidence.advisories:
-            risks.append(f"Open {advisory.severity} security advisory {advisory.id}.")
+            risks.append(f"Recent {advisory.severity} security advisory {advisory.id}.")
     risks.extend(_risk_reasons(best))
     for name, assessment in rubric.items():
         if assessment.score <= 2:

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from radar.models import ProjectEvidence, Signal
+from radar.models import Advisory, ProjectEvidence, Signal
 from radar.storage.metrics_store import ProjectMetrics
 
 
@@ -55,10 +55,11 @@ def build_evidence(
     current: ProjectMetrics | None,
     previous: ProjectMetrics | None,
     now: datetime,
+    advisories: list[Advisory] | None = None,
 ) -> ProjectEvidence:
     """Compare current vs previous metrics into scoring-ready evidence."""
     if current is None:
-        return ProjectEvidence()
+        return ProjectEvidence(advisories=advisories or [])
 
     star_growth: int | None = None
     star_growth_pct: float | None = None
@@ -93,6 +94,7 @@ def build_evidence(
         star_growth_pct=star_growth_pct,
         releases_in_window=current.releases_in_window,
         days_since_push=days_since_push,
+        advisories=advisories or [],
         downloads_weekly=current.downloads_weekly,
         hn_mentions=current.hn_mentions,
         license=current.license,
@@ -111,7 +113,7 @@ def evidence_notes(evidence: ProjectEvidence) -> list[str]:
         notes.append(f"{evidence.releases_in_window} release{plural} in the scan window.")
     for advisory in evidence.advisories:
         notes.append(
-            f"Open {advisory.severity} security advisory {advisory.id}"
+            f"Recent {advisory.severity} security advisory {advisory.id}"
             + (f": {advisory.summary}" if advisory.summary else ".")
         )
     if evidence.license_changed_from:
