@@ -26,18 +26,31 @@ def build_mcp_server(root: Path) -> FastMCP:
         """List current decision cards, optionally filtered by ring.
 
         Pass rings like ["adopt", "pilot"] for this week's actionable picks.
-        With no rings, returns every tracked project's current card.
+        With no rings, returns every tracked project's current card. Each card
+        includes decision context: `trend` (rising/falling/steady),
+        `evidence_notes` (observed star growth, security advisories, license
+        changes), `upgrade_risk` + notes, and `pinned`/`computed_ring` when a
+        human has overridden the ring.
         """
         return service.recommendations(rings=rings)
 
     @mcp.tool()
     def try_this_week() -> list[dict[str, Any]]:
-        """List the projects worth trying now (adopt + pilot rings)."""
+        """List the projects worth trying now (adopt + pilot rings).
+
+        Cards carry `trend`, `evidence_notes`, `upgrade_risk`, and pin context
+        so you can explain WHY a project is a pick, not just that it is one.
+        """
         return service.recommendations(rings=list(TRY_THIS_WEEK_RINGS))
 
     @mcp.tool()
     def get_project(project: str) -> dict[str, Any] | None:
-        """Get a single project's current card plus its observation history."""
+        """Get a single project's current card plus its observation history.
+
+        The card includes observed evidence (`evidence_notes`, `upgrade_risk`,
+        `trend`) and any human override (`pinned`, `pinned_reason`,
+        `computed_ring`); `history` is the chronological ring-change timeline.
+        """
         return service.get_project(project)
 
     @mcp.tool()
