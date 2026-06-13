@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from radar.models import Category, DecisionCard, Ring
+from radar.models import Category, DecisionCard, OnPremAssessment, Ring
 from radar.storage.database import RadarDatabase
 from radar.web.app import create_app
 
@@ -192,3 +192,144 @@ def test_dashboard_surfaces_evidence_and_flags(tmp_path: Path):
     assert "upgrade risk" in text  # upgrade-risk badge
     assert "pinned" in text  # pin badge
     assert "↑" in text  # rising trend arrow
+
+
+def _rich_card_for_detail():
+    return DecisionCard(
+        project="vLLM",
+        category=Category.MODEL_SERVING,
+        ring=Ring.AVOID,
+        score=2.71,
+        summary="fast inference",
+        workflow_fit={"personal_dev": "high"},
+        risk_level="high",
+        on_prem_fit="strong: strongest in local offline runnability.",
+        on_prem_rubric={
+            "local_offline_runnability": OnPremAssessment(
+                score=5, reason="runs fully offline via local models"
+            )
+        },
+        evidence=["https://github.com/vllm-project/vllm"],
+        evidence_notes=["Recent CRITICAL security advisory GHSA-xxxx: RCE."],
+        upgrade_risk="high",
+        upgrade_risk_notes=["BREAKING CHANGE: engine API moved."],
+        trend="rising",
+        pinned=True,
+        pinned_reason="failed internal review",
+        computed_ring=Ring.WATCH,
+    )
+
+
+def test_project_page_renders_full_card(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_rich_card_for_detail()])
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/project/vLLM").text
+
+    assert "vLLM" in text
+    assert "fast inference" in text
+    assert "runs fully offline via local models" in text  # rubric reason
+    assert "GHSA-xxxx" in text  # evidence note
+    assert "BREAKING CHANGE: engine API moved." in text  # upgrade-risk note
+    assert "failed internal review" in text  # pin reason
+
+
+def test_project_page_case_insensitive(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Ollama", category=Category.MODEL_SERVING, ring=Ring.PILOT,
+                summary="local models", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+
+    client = TestClient(create_app(tmp_path))
+    resp = client.get("/project/ollama")
+
+    assert resp.status_code == 200
+    assert "Ollama" in resp.text
+
+
+def test_project_page_unknown_returns_404(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+
+    client = TestClient(create_app(tmp_path))
+    resp = client.get("/project/DoesNotExist")
+
+    assert resp.status_code == 404
+
+
+def test_project_page_shows_metrics_and_history(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.pipeline.delta import CardDelta, ChangeType
+    from radar.storage.history_store import HistoryStore
+    from radar.storage.metrics_store import MetricsStore, ProjectMetrics
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="s", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+    metrics = MetricsStore(tmp_path / "data" / "radar.db")
+    metrics.initialize()
+    metrics.record(
+        [
+            ProjectMetrics(
+                project="vLLM", run_id="run-1",
+                observed_at=datetime(2026, 6, 10, tzinfo=UTC), stars=54321,
+            )
+        ]
+    )
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    history.initialize()
+    history.record_deltas(
+        [
+            CardDelta(
+                project="vLLM", category=Category.MODEL_SERVING,
+                change_type=ChangeType.NEW, current_ring=Ring.ADOPT,
+                previous_ring=None, reasons=["New on the radar."],
+                card=DecisionCard(
+                    project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                    summary="s", workflow_fit={}, risk_level="low",
+                ),
+            )
+        ],
+        run_id="run-1",
+        observed_at=datetime(2026, 6, 10, tzinfo=UTC),
+    )
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/project/vLLM").text
+
+    assert "54,321" in text or "54321" in text  # metric value
+    assert "2026-06-10" in text  # history event date
+
+
+def test_index_links_to_project_page(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="s", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/").text
+
+    assert "/project/vLLM" in text

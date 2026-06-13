@@ -60,3 +60,11 @@ class RadarDatabase:
                 "SELECT payload FROM decision_cards ORDER BY category, project"
             ).fetchall()
         return [DecisionCard.model_validate_json(row[0]) for row in rows]
+
+    def get_card(self, project: str) -> DecisionCard | None:
+        """Return a single card by exact project name, or None if absent."""
+        with sqlite3.connect(self.path) as conn:
+            row = conn.execute(
+                "SELECT payload FROM decision_cards WHERE project = ?", (project,)
+            ).fetchone()
+        return DecisionCard.model_validate_json(row[0]) if row else None

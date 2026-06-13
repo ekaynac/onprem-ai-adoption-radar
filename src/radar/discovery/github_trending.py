@@ -9,13 +9,13 @@ required. Results are only ever written to a review file (see proposals.py).
 from __future__ import annotations
 
 import logging
-import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
 from radar.discovery.proposals import SeedProposal
 from radar.models import Category, SourceConfig
+from radar.web.slugs import project_slug
 
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ def _to_proposal(
         url=url,
         stars=stars,
         description=(item.get("description") or "")[:200],
-        suggested_id=f"github-{_slug(name)}",
+        suggested_id=f"github-{project_slug(name)}",
         suggested_tags=list(item.get("topics") or [])[:5],
     )
 
@@ -115,5 +115,3 @@ def _tracked_repos(sources: list[SourceConfig]) -> set[str]:
     return tracked
 
 
-def _slug(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
