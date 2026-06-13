@@ -9,6 +9,19 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 
+# The seven deterministic score dimensions, in canonical order. Shared by
+# ScoreBreakdown, profile validation, and the weighting math.
+_SCORE_DIMENSIONS = (
+    "workflow_impact",
+    "laptop_runnability",
+    "open_source_maturity",
+    "on_prem_relevance",
+    "security_posture",
+    "demo_value",
+    "setup_friction",
+)
+
+
 class SourceType(str, Enum):
     """Supported source types for V1."""
 
@@ -138,6 +151,24 @@ class Config(BaseModel):
     scoring: ScoringConfig = Field(default_factory=ScoringConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
+    # Named per-dimension weight presets; `radar report --profile X` ranks the
+    # same scores through that lens. Keys must be valid score dimensions.
+    profiles: dict[str, dict[str, float]] = Field(default_factory=dict)
+
+    @field_validator("profiles")
+    @classmethod
+    def validate_profile_dimensions(
+        cls, value: dict[str, dict[str, float]]
+    ) -> dict[str, dict[str, float]]:
+        valid = set(_SCORE_DIMENSIONS)
+        for name, weights in value.items():
+            unknown = set(weights) - valid
+            if unknown:
+                raise ValueError(
+                    f"Profile '{name}' has unknown dimension(s): {sorted(unknown)}. "
+                    f"Valid dimensions: {sorted(valid)}."
+                )
+        return value
 
 
 class Signal(BaseModel):
@@ -235,6 +266,9 @@ class DecisionCard(BaseModel):
     category: Category
     ring: Ring
     score: float = 0.0  # representative average score (for transparency/sorting)
+    # Per-dimension breakdown of the representative signal, kept so a scoring
+    # profile can re-weight and re-rank stored cards without a re-scan.
+    score_breakdown: ScoreBreakdown | None = None
     summary: str
     workflow_fit: dict[str, str]
     risk_level: str

@@ -434,3 +434,24 @@ llm:
   model: qwen2.5:3b
   api_key_env: RADAR_LLM_API_KEY
   timeout_seconds: 20
+
+# Named scoring profiles: per-dimension weight presets. The default decision
+# uses equal weights; `radar report --profile security-first` (or
+# `radar scan --profile ...`) re-ranks the SAME observed data through one of
+# these lenses. Unspecified dimensions default to weight 1.0.
+profiles:
+  security-first:
+    security_posture: 3.0
+    on_prem_relevance: 2.0
+    setup_friction: 0.5
+    demo_value: 0.5
+  solo-dev:
+    laptop_runnability: 2.5
+    setup_friction: 2.0
+    demo_value: 1.5
+    on_prem_relevance: 0.5
+  demo-hunter:
+    demo_value: 3.0
+    workflow_impact: 2.0
+    setup_friction: 1.5
+    on_prem_relevance: 0.5
