@@ -50,9 +50,23 @@ def init(root: Path = typer.Option(Path("."), help="Project root to initialize."
 @app.command()
 def scan(
     days: int = typer.Option(2, min=1, help="Look back this many days."),
+    replay: str = typer.Option(
+        "", help="Re-score a past run's raw signals offline with CURRENT config."
+    ),
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Collect signals, score them, and write run artifacts."""
+    if replay:
+        try:
+            replay_result = RadarOrchestrator(root).replay(replay)
+        except FileNotFoundError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=1) from exc
+        console.print(f"Replay run: {replay_result.run_id} (of {replay})")
+        console.print(f"Cards: {len(replay_result.cards)}")
+        console.print(f"Report: {replay_result.report_path}")
+        console.print("(Offline replay: no history, metrics, or card DB changes.)")
+        return
     result = RadarOrchestrator(root).scan(days=days)
     console.print(f"Run: {result.run_id}")
     console.print(f"Cards: {len(result.cards)}")
