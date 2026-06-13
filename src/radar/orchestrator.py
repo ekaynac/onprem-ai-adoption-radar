@@ -9,6 +9,11 @@ from pathlib import Path
 
 import httpx
 
+from radar.analysis.backtest import (
+    BacktestReport,
+    RunBacktest,
+    build_backtest_report,
+)
 from radar.collectors.registry import build_collectors
 from radar.enrichment.runner import run_enrichment
 from radar.models import DecisionCard, ScoredSignal, Signal
@@ -336,13 +341,41 @@ class RadarOrchestrator:
         run_id = self.run_store.create_run()
         self.run_store.update_meta(run_id, {"replay_of": source_run_id})
 
+        filtered_cards = self._rescore(raw, config, source_run_id=source_run_id)
+        self.run_store.save_stage(
+            run_id,
+            "decision_cards",
+            [card.model_dump(mode="json") for card in filtered_cards],
+        )
+        report = render_markdown_report(
+            filtered_cards, f"Replay of {source_run_id} (current config)"
+        )
+        report_path = self.run_store.save_report(run_id, report)
+        return ReplayResult(run_id=run_id, cards=filtered_cards, report_path=report_path)
+
+    def _rescore(
+        self,
+        raw: list[Signal],
+        config,
+        source_run_id: str | None = None,
+        weights: dict[str, float] | None = None,
+    ) -> list[DecisionCard]:
+        """Re-score raw signals to cards with current config — no side effects.
+
+        Pure with respect to persistence: creates no run dir and writes no
+        metrics/history/DB rows (it reads ``metrics.latest`` for growth context
+        but never records). Used by ``replay`` (which adds its own persistence)
+        and ``backtest`` (which must not litter ``data/runs``).
+        """
         index = build_project_index(config.sources)
         firehose = reclassify_firehose(raw, index, analyst=None)
         deduped = dedupe_signals(firehose.kept)
 
         observed_at = datetime.now(UTC)
         self.metrics.initialize()
-        current_metrics = collect_project_metrics(deduped, run_id, observed_at)
+        current_metrics = collect_project_metrics(
+            deduped, source_run_id or "rescore", observed_at
+        )
         evidence = {
             project: build_evidence(
                 metrics,
@@ -355,23 +388,68 @@ class RadarOrchestrator:
             score_signal(signal, config.scoring, evidence.get(signal.project))
             for signal in deduped
         ]
-        self.run_store.save_stage(
-            run_id, "scored_signals", [item.model_dump(mode="json") for item in scored]
+        cards = build_decision_cards(
+            scored, evidence_by_project=evidence, weights=weights
         )
-        cards = build_decision_cards(scored, evidence_by_project=evidence)
         filtered_cards = apply_category_quotas(cards, config.quotas)
         overrides = OverridesStore(self.overrides_path).load()
-        filtered_cards = apply_overrides(filtered_cards, overrides.overrides)
-        self.run_store.save_stage(
-            run_id,
-            "decision_cards",
-            [card.model_dump(mode="json") for card in filtered_cards],
-        )
-        report = render_markdown_report(
-            filtered_cards, f"Replay of {source_run_id} (current config)"
-        )
-        report_path = self.run_store.save_report(run_id, report)
-        return ReplayResult(run_id=run_id, cards=filtered_cards, report_path=report_path)
+        return apply_overrides(filtered_cards, overrides.overrides)
+
+    def backtest(
+        self, profile: str | None = None, runs: int | None = None
+    ) -> BacktestReport:
+        """Re-score historical runs and report how rings would differ.
+
+        ``profile`` → compare current config vs that profile's weights per run.
+        No ``profile`` → compare current config vs each run's persisted cards
+        (config drift). Read-only: creates no runs, mutates no stored state.
+        """
+        config = load_config(self.config_path)
+        weights = resolve_weights(config.profiles, profile) if profile else None
+        run_ids = self.run_store.list_runs()
+        if runs is not None:
+            run_ids = run_ids[-runs:]
+        mode = f"profile:{profile}" if profile else "config-drift"
+
+        run_backtests = []
+        for run_id in run_ids:
+            try:
+                raw_payload = self.run_store.load_stage(run_id, "raw_signals")
+            except FileNotFoundError:
+                continue
+            raw = [Signal.model_validate(item) for item in raw_payload]
+            created_at = self._run_created_at(run_id)
+            if weights is not None:
+                baseline = self._rescore(raw, config, source_run_id=run_id)
+                candidate = self._rescore(
+                    raw, config, source_run_id=run_id, weights=weights
+                )
+            else:
+                candidate = self._rescore(raw, config, source_run_id=run_id)
+                baseline = self._persisted_cards(run_id)
+            run_backtests.append(
+                RunBacktest.from_card_sets(
+                    run_id=run_id,
+                    created_at=created_at,
+                    baseline=baseline,
+                    candidate=candidate,
+                )
+            )
+        return build_backtest_report(mode=mode, runs=run_backtests)
+
+    def _run_created_at(self, run_id: str) -> datetime:
+        meta = self.run_store.read_meta(run_id)
+        stamp = meta.get("created_at")
+        if stamp:
+            return datetime.fromisoformat(stamp)
+        return datetime.now(UTC)
+
+    def _persisted_cards(self, run_id: str) -> list[DecisionCard]:
+        try:
+            payload = self.run_store.load_stage(run_id, "decision_cards")
+        except FileNotFoundError:
+            return []
+        return [DecisionCard.model_validate(item) for item in payload]
 
     def _history_by_project(self) -> dict[str, list]:
         """Group all recorded history events by project for report rendering."""

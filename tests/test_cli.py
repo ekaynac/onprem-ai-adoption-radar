@@ -446,3 +446,34 @@ def test_export_writes_project_pages(tmp_path):
     assert project_pages
     index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
     assert 'href="project_' in index
+
+
+def test_backtest_command_runs_after_scan(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(app, ["backtest", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Scoring Backtest" in result.stdout
+
+
+def test_backtest_profile_unknown_exits_1(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(
+        app, ["backtest", "--root", str(tmp_path), "--profile", "does-not-exist"]
+    )
+
+    assert result.exit_code != 0
+    assert "Unknown profile" in result.stdout
+
+
+def test_backtest_creates_no_new_run_dirs(tmp_path):
+    runner = _scan_manual(tmp_path)
+    runs_dir = tmp_path / "data" / "runs"
+    before = sorted(p.name for p in runs_dir.iterdir())
+
+    runner.invoke(app, ["backtest", "--root", str(tmp_path), "--profile", "security-first"])
+
+    after = sorted(p.name for p in runs_dir.iterdir())
+    assert after == before
