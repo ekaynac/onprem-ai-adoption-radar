@@ -44,11 +44,14 @@ config/seed-sources    │ orchestrator.RadarOrchestrator._scan         │
 | Package | Responsibility |
 | --- | --- |
 | `collectors/` | Fetch raw `Signal`s. `github` (releases + repo snapshots), `rss` (feeds, incl. firehose vendor blogs), `manual` (static entries), `registry` (config → collector instances). |
-| `pipeline/` | `classify` re-attributes firehose entries to tracked projects (with `llm_classify` as an optional, off-by-default second pass); `dedupe`; `delta` computes new/promoted/demoted/updated; `quotas` caps categories; `cards` builds `DecisionCard`s. |
-| `scoring/` | `deterministic` scores 7 dimensions + the on-prem rubric from tags/metadata; `rings` maps score → ring; `calibrate` applies hybrid absolute + quartile calibration across the batch. |
-| `storage/` | `config` (YAML load/save with env expansion), `run_store` (per-run artifacts), `database` (cards cache), `history_store` (SQLite projection of the timeline), `history_log` (append-only JSONL source of truth), `seed_store` (add sources). |
-| `reports/` | Markdown renderers: full report, Try This Week (delta-only), history, comparison matrices, sandbox plans, JSON export. |
-| `web/` | FastAPI dashboard (`app`) and the self-contained static export (`static_site`) used by the Pages workflow. |
+| `enrichment/` | Best-effort observation: `osv` (security advisories), `hackernews` (mention counts), `downloads` (PyPI/npm); `runner` merges them into per-project metrics, every failure degrading to a warning. |
+| `pipeline/` | `classify` (firehose re-attribution, + optional `llm_classify`); `dedupe`; `evidence` (signals→metrics→`ProjectEvidence`); `upgrade_risk` (release-note scanning); `momentum` (rising/falling/steady); `delta`; `quotas`; `cards`. |
+| `scoring/` | `deterministic` scores 7 dimensions + on-prem rubric (evidence caps security on advisories, lifts maturity on momentum); `rings`; `calibrate` (hybrid absolute + quartile); `profiles` (per-dimension weight presets + re-rank). |
+| `storage/` | `config`, `run_store`, `database` (cards cache), `history_store`/`history_log` (timeline projection + durable JSONL truth), `metrics_store` (per-scan observed metrics), `source_health_store` (dead-feed detection), `overrides_store` (pins + trial journal), `seed_store`. |
+| `discovery/` | `github_trending` proposes untracked fast-rising repos; `proposals` writes/reads the review-only `proposed-seeds.yaml`. |
+| `notify/` | `webhook` posts a fire-and-forget notification on ring changes (generic JSON or Slack format), off by default. |
+| `reports/` | Markdown renderers: full report (+ movers, evidence, upgrade-risk, pins), Try This Week, history, comparison, sandbox, JSON export, `movers`, and `feeds` (Atom + JSON change feeds). |
+| `web/` | FastAPI dashboard (`app`) and the self-contained static export (`static_site`, with change feeds) used by the Pages workflow. |
 | `mcp_server/` | Read-only MCP tools (`queries` + stdio `server`) so agents can ask the radar questions. |
 
 ## Key invariants
@@ -66,3 +69,15 @@ config/seed-sources    │ orchestrator.RadarOrchestrator._scan         │
 - **Nothing is silently dropped.** Firehose entries that match no tracked
   project are counted and sampled into the run meta; quota cuts and ring
   calibration are bounded and documented in the README.
+- **Enrichment and notifications are best-effort.** OSV/HN/download lookups
+  and webhooks never fail a scan — failures are logged and recorded in the run
+  meta (`enrichment_warnings`). Evidence is collected *input*; the scoring math
+  over it stays deterministic.
+- **Observed evidence compares against the previous scan.** Metrics are read
+  before the current scan's rows are recorded, so star growth and license
+  changes reflect change since last time, not against themselves.
+- **The human is in the loop, visibly.** Pinned rings (`overrides.yaml`) win
+  over computed rings but never hide them — drift is shown. Discovery only ever
+  *proposes* sources; nothing is auto-added to the tracked config.
+- **Replays don't pollute state.** `scan --replay` re-scores persisted raw
+  signals with current config but writes no history, metrics, or card-DB rows.

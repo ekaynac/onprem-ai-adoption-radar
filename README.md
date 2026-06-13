@@ -3,7 +3,7 @@
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-168%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-269%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
@@ -20,7 +20,16 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 
 - 🧭 **Decision rings** — `adopt` / `pilot` / `watch` / `avoid`, from a deterministic 7-dimension score + on-prem rubric.
 - ⚖️ **Hybrid ring calibration** — absolute gates (security/excellence) plus a quartile-aware, size-capped promotion so rings actually discriminate and "Try This Week" stays a short, high-conviction list.
-- 📡 **Firehose classification** — broad vendor blogs (NVIDIA, HuggingFace, Ollama, Red Hat) are re-attributed entry-by-entry to the projects they mention, instead of flooding the radar. Deterministic matching with an **optional, off-by-default LLM** second pass for the ambiguous tail.
+- 🔬 **Evidence-based scoring** — decisions move on *observed data*, not just config tags: star growth and release cadence between scans, days-since-push, and **known security advisories (OSV.dev)** that cap a project's security score. Cards explain themselves with an "Observed" section.
+- 🚨 **License-change & upgrade-risk detection** — a tracked project flipping `Apache-2.0 → BUSL` is flagged the scan it happens; release notes are scanned for breaking changes / migrations / security fixes and surfaced as an upgrade-risk level.
+- 📈 **Momentum & movers** — `rising` / `falling` / `steady` per project from the accumulated timeline; reports open with a **Movers** section and the dashboard shows trend arrows.
+- 📌 **Overrides & decision journal** — pin a ring with a reason (`radar override`), record trial outcomes (`radar trial`); pins win over the computed ring and **drift is surfaced**, not hidden.
+- 🎛️ **Scoring profiles** — re-rank the same data through `security-first` / `solo-dev` / `demo-hunter` lenses without a re-scan.
+- ♻️ **Offline replay** — re-score a past run's raw signals with current config (`radar scan --replay`) to tune scoring with zero network.
+- 📡 **Firehose classification** — broad vendor blogs are re-attributed entry-by-entry to the projects they mention. Deterministic matching with an **optional, off-by-default LLM** second pass for the ambiguous tail.
+- 🩺 **Source health** — sources that go quiet for several scans are flagged as likely-dead feeds in `radar seed list`.
+- 🛰️ **Auto-discovery** — `radar discover` proposes fast-rising untracked GitHub repos for review (never auto-added).
+- 🔔 **Webhooks & subscribable feeds** — optional post-scan webhook (Slack/Discord/Teams or generic JSON) on ring changes; the static site publishes Atom + JSON change feeds.
 - 🆕 **Delta / "Try This Week"** — a separate report of only what changed since the last scan.
 - 🕰️ **Durable history** — an append-only timeline of every ring change, persisted in a portable JSONL log that survives a lost database. See [docs/persistence.md](docs/persistence.md).
 - 🆚 **Comparison matrices** — side-by-side "Cline vs Aider vs Goose" across rings, risk, and rubric dimensions.
@@ -28,6 +37,8 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - 🔌 **MCP server** — query the radar from Claude / Codex / any MCP client ("what should I try this week?").
 - 🖥️ **Local dashboard** + 📄 **static export** for GitHub Pages.
 - 🎨 **Fun lane** — playful local-AI projects (image gen, voice, LLM toys) tracked in their own category.
+
+Everything new degrades gracefully and stays off the critical path: enrichment (OSV/HN/downloads) and webhooks are best-effort and never fail a scan, and the default scoring path remains fully deterministic and offline.
 
 ## Categories
 
@@ -63,30 +74,39 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | Command | What it does |
 | --- | --- |
 | `radar init` | Create `data/config.yaml` (from the seed list) and data directories. |
-| `radar scan --days N` | Collect → classify → score → calibrate → cards. Writes report, Try This Week, and history artifacts. |
-| `radar report [--json]` | Print the decision report from the latest scan (`--json` for scripting). |
+| `radar scan --days N` | Collect → classify → enrich → score → calibrate → cards. Writes report, Try This Week, and history artifacts. |
+| `radar scan --replay <run-id>` | Re-score a past run's raw signals offline with current config (no network, no persistence). |
+| `radar scan --profile <name>` | Score through a named profile (re-weighted dimensions). |
+| `radar report [--json] [--profile X]` | Print the decision report from the latest scan. |
+| `radar movers` | Show each project's direction of travel (rising / falling / steady). |
+| `radar override --project X --ring R --reason "…"` | Pin a project's ring (`--clear` to remove); drift vs the radar is surfaced. |
+| `radar trial --project X --outcome adopted\|rejected\|inconclusive` | Record a trial outcome in the decision journal and timeline. |
+| `radar discover [--category X] [--min-stars N]` | Propose trending untracked GitHub repos to `data/proposed-seeds.yaml`. |
 | `radar history [--project X]` | Print the cumulative per-project timeline. |
 | `radar compare --category X` / `--projects "A,B"` | Side-by-side comparison matrix. |
 | `radar sandbox --project X` | Disposable trial plan (steps, teardown, cautions). |
 | `radar seed add --id … --type … --project … --category … --url …` | Add a new source. |
-| `radar seed list` | List the configured sources with type, category, and flags. |
-| `radar export --out _site` | Render a self-contained static HTML snapshot. |
+| `radar seed list` | List sources with type, category, flags, and dead-feed (stale) status. |
+| `radar export --out _site` | Render a self-contained static HTML snapshot (+ change feeds). |
 | `radar serve [--port 8765]` | Run the local dashboard. |
 | `radar mcp` | Run the MCP server over stdio. |
 
 ## How it works
 
 ```
-sources ──▶ collect ──▶ firehose classify ──▶ dedupe ──▶ score ──▶ build cards
-(GitHub,            (entry→project,                      (7 dims +   (+ hybrid ring
- RSS, manual)        deterministic +                      on-prem      calibration)
-                     optional LLM)                        rubric)
+sources ─▶ collect ─▶ firehose classify ─▶ dedupe ─▶ enrich ─▶ score ─▶ build cards
+(GitHub,          (entry→project,                   (OSV /     (7 dims +  (+ pins, ring
+ RSS, manual)      deterministic + optional LLM)     HN /        on-prem    calibration,
+                                                     downloads)  rubric +   movers)
+                                                                 evidence)
                                                                           │
         ┌─────────────────────────────────────────────────────────────────┤
-        ▼                    ▼                      ▼                       ▼
-   report.md           try-this-week.md       history (JSONL+DB)      dashboard / MCP
-   (snapshot)          (delta only)           (durable timeline)      / compare / export
+        ▼              ▼                ▼                  ▼               ▼
+   report.md      try-this-week.md  history (JSONL+DB)  webhook +     dashboard / MCP
+   (+ movers)     (delta only)      metrics + journal   change feeds  / compare / export
 ```
+
+See [docs/architecture.md](docs/architecture.md) for the full module map and invariants.
 
 ### Scoring & rings
 
@@ -143,6 +163,7 @@ Sources live in `config/seed-sources.yaml` (copied to `data/config.yaml` on `ini
   category: model_serving
   url: https://github.com/vllm-project/vllm
   tags: [model-serving, self-hosted, on-prem-relevant]
+  package: {ecosystem: PyPI, name: vllm}  # enables downloads + OSV advisories
   # firehose: true         # (rss) reclassify entries to tracked projects
   # aliases: [vllm]         # extra match strings for the classifier
 ```
@@ -159,6 +180,32 @@ llm:
   api_key_env: RADAR_LLM_API_KEY
 ```
 
+**Enrichment** (advisories, traction, downloads) is on by default; toggle per source class:
+
+```yaml
+enrichment:
+  osv: true          # OSV.dev security advisories (caps security score)
+  hackernews: true   # HN mention counts (community traction)
+  downloads: true    # PyPI/npm weekly downloads
+  advisory_window_days: 90
+```
+
+**Profiles** re-weight the seven dimensions for `--profile`; ships `security-first`, `solo-dev`, `demo-hunter`:
+
+```yaml
+profiles:
+  security-first: {security_posture: 3.0, on_prem_relevance: 2.0, demo_value: 0.5}
+```
+
+**Notifications** post to a webhook on ring changes (off by default; URL read from the environment):
+
+```yaml
+notify:
+  enabled: false
+  webhook_url: ${RADAR_WEBHOOK_URL}
+  format: generic    # generic | slack  (slack works for Slack/Discord/Teams)
+```
+
 ## Publishing (GitHub Pages)
 
 `.github/workflows/publish.yml` scans on a daily schedule, exports a static site, and deploys it to GitHub Pages — carrying `data/history.jsonl` across runs so the public timeline accumulates. Enable once via **Settings → Pages → Source: GitHub Actions**. `ci.yml` runs the test suite on every push/PR.
@@ -168,19 +215,23 @@ llm:
 ```
 src/radar/
   collectors/   github, rss, manual, registry
-  pipeline/     classify (firehose), dedupe, delta, quotas, cards, llm_classify
-  scoring/      deterministic, rings, calibrate
-  storage/      config, database, run_store, history_store, history_log, seed_store
-  reports/      markdown, try_this_week, history, comparison, sandbox
+  enrichment/   osv, hackernews, downloads, runner
+  pipeline/     classify, dedupe, evidence, upgrade_risk, momentum, delta, quotas, cards, llm_classify
+  scoring/      deterministic, rings, calibrate, profiles
+  storage/      config, database, run_store, history_store, history_log,
+                metrics_store, source_health_store, overrides_store, seed_store
+  discovery/    github_trending, proposals
+  notify/       webhook
+  reports/      markdown, try_this_week, history, comparison, sandbox, movers, feeds
   mcp_server/   queries, server
   web/          app, templates, static_site
-docs/           persistence.md, sandbox-playbook.md, seed-research.md
+docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-research.md
 ```
 
 ## Development
 
 ```bash
-uv run pytest --cov    # 168 tests, coverage floor 80% (currently ~92%)
+uv run pytest --cov    # 269 tests, coverage floor 80% (currently ~92%)
 uv run ruff check src tests
 uv run mypy
 ```

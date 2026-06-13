@@ -7,6 +7,35 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Evidence-based scoring** — per-scan `metrics_store` records stars, forks,
+  license, release cadence; `ProjectEvidence` compares the current scan to the
+  previous one. Observed momentum lifts open-source maturity; known OSV.dev
+  security advisories cap the security score. Cards gain an "Observed" section.
+- **License-change & upgrade-risk detection** — a tracked project's license
+  flip is flagged the scan it happens; release notes are scanned for breaking
+  changes / migrations / security fixes into an `upgrade_risk` level.
+- **Enrichment collectors** — OSV.dev advisories, Hacker News mention counts,
+  and PyPI/npm weekly downloads (all on by default, individually togglable,
+  best-effort). Sources gain an optional `package: {ecosystem, name}`.
+- **Momentum & movers** — `rising`/`falling`/`steady` per project; a Movers
+  section opens the report, trend arrows show in the dashboard/static site,
+  and a new `radar movers` command.
+- **Overrides & decision journal** — `radar override` pins a ring with a
+  reason (drift vs the computed ring is surfaced); `radar trial` records
+  outcomes. Stored in a portable `data/overrides.yaml`; both journal to the
+  timeline.
+- **Scoring profiles** — named per-dimension weight presets
+  (`security-first`/`solo-dev`/`demo-hunter`); `radar scan --profile` and
+  `radar report --profile` re-rank the same data through a lens.
+- **Offline replay** — `radar scan --replay <run-id>` re-scores a past run's
+  raw signals with current config; no network, no persistence.
+- **Source health** — dead-feed detection; `radar seed list` flags sources
+  with no signals for several consecutive scans.
+- **Auto-discovery** — `radar discover` proposes trending untracked GitHub
+  repos to `data/proposed-seeds.yaml` for review (never auto-added).
+- **Webhooks & change feeds** — optional post-scan webhook (generic JSON or
+  Slack format) on ring changes; the static export publishes `changes.xml`
+  (Atom) and `changes.json`.
 - **CLI** — `radar seed list` (plain, pipe-friendly source listing) and
   `radar report --json` for scripting.
 - **Quality gates** — ruff (lint) and mypy (types, pydantic plugin) configured
