@@ -12,6 +12,7 @@ import httpx
 from radar.collectors.registry import build_collectors
 from radar.enrichment.runner import run_enrichment
 from radar.models import DecisionCard, ScoredSignal, Signal
+from radar.notify.webhook import send_notification
 from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
 from radar.pipeline.dedupe import dedupe_signals
@@ -254,6 +255,18 @@ class RadarOrchestrator:
             title="Adoption History",
         )
         history_report_path = self.run_store.save_history(run_id, history_report)
+
+        # Fire-and-forget outbound notification (off by default). Only ring
+        # changes trigger it; failure is logged, never fatal to the scan.
+        if config.notify.enabled:
+            async with httpx.AsyncClient(
+                timeout=float(config.notify.timeout_seconds)
+            ) as notify_client:
+                sent = await send_notification(
+                    config.notify, deltas, run_id=run_id, client=notify_client
+                )
+            if sent:
+                self.run_store.update_meta(run_id, {"notified": True})
 
         return ScanResult(
             run_id=run_id,
