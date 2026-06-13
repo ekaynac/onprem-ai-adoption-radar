@@ -36,6 +36,17 @@ All notable changes to this project are documented here. The format follows
 - **Webhooks & change feeds** — optional post-scan webhook (generic JSON or
   Slack format) on ring changes; the static export publishes `changes.xml`
   (Atom) and `changes.json`.
+- **Dashboard search/filter** — the index (live + static) gains a category
+  dropdown and text search via a tiny dependency-free inline filter; the static
+  "Try This Week" highlight stays unfiltered.
+- **Scan health** — each scan's collector/enrichment/firehose warnings (already
+  in run meta) are surfaced as a compact "scan health" line on the dashboard,
+  the static site, and `radar scan` output.
+- **CI scoring gate** — `radar calibrate-report --check` exits non-zero when
+  rings stop discriminating; wired into the daily publish workflow so a scoring
+  collapse fails the run instead of shipping silently.
+- **Wider enrichment coverage** — 9 more projects mapped to PyPI packages
+  (OSV advisories + download counts now cover 14, up from 5).
 - **Per-project detail pages** — a page per tracked project (live
   `/project/{name}` and static `project_<slug>.html`) showing the full card:
   7-dimension score breakdown, on-prem rubric, evidence notes, upgrade-risk,
