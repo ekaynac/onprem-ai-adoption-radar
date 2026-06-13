@@ -47,13 +47,20 @@ jobs:
           restore-keys: |
             radar-history-
 
-      - name: Scan and export
+      - name: Scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           uv run radar init --root .
           uv run radar scan --root . --days 7
-          uv run radar export --root . --out _site
+
+      # Quality gate: fail the run if scoring collapsed (rings stopped
+      # discriminating). Runs on the persisted scan, before publishing.
+      - name: Scoring quality gate
+        run: uv run radar calibrate-report --root . --check
+
+      - name: Export static site
+        run: uv run radar export --root . --out _site
 
       - name: Save radar history log
         if: always()

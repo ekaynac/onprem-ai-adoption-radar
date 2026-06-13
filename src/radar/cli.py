@@ -456,6 +456,9 @@ def _journal_trial(root: Path, record) -> None:
 @app.command("calibrate-report")
 def calibrate_report(
     root: Path = typer.Option(Path("."), help="Project root."),
+    check: bool = typer.Option(
+        False, "--check", help="Exit non-zero if the rings do not discriminate (CI gate)."
+    ),
 ) -> None:
     """Diagnose whether the scoring discriminates and is stable over time."""
     from radar.analysis.calibration import (
@@ -495,6 +498,13 @@ def calibrate_report(
 
     report = build_calibration_report(scored, ring_by_project, history_events=events)
     console.print(render_calibration_markdown(report))
+    # Quality gate: fail only on collapse (one ring, or >80% in a single ring),
+    # which means scoring stopped discriminating — a real regression.
+    if check and not report.discriminates:
+        console.print(
+            "[red]Quality gate failed:[/red] rings do not discriminate."
+        )
+        raise typer.Exit(code=1)
 
 
 def _latest_scored_signals(root: Path):
