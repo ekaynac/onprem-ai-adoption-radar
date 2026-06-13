@@ -12,6 +12,9 @@ data/config.yaml
 # committed. To version your history (recommended for self-hosting durability),
 # `git add -f data/history.jsonl`. See docs/persistence.md.
 data/history.jsonl
+# Human decisions and discovery proposals (local runtime state).
+data/overrides.yaml
+data/proposed-seeds.yaml
 
 # Coverage artifacts
 .coverage

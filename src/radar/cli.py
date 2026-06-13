@@ -189,6 +189,77 @@ def seed_list(
 
 
 @app.command()
+def discover(
+    category: str = typer.Option("", help="Limit discovery to one category."),
+    min_stars: int = typer.Option(500, help="Minimum stars for a candidate."),
+    since_days: int = typer.Option(30, help="Only repos pushed within this many days."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Find trending GitHub repos and write proposals for review (never auto-adds)."""
+    import asyncio
+
+    import httpx
+
+    from radar.discovery.github_trending import discover_trending
+    from radar.discovery.proposals import write_proposals
+    from radar.models import Category
+    from radar.storage.config import load_config
+
+    config_path = root / "data" / "config.yaml"
+    if not config_path.exists():
+        console.print(
+            f"[red]No config at {config_path}.[/red] Run [bold]radar init[/bold] first."
+        )
+        raise typer.Exit(code=1)
+    config = load_config(config_path)
+
+    if category:
+        try:
+            categories = [Category(category)]
+        except ValueError as exc:
+            console.print(f"[red]Unknown category:[/red] {category}")
+            raise typer.Exit(code=1) from exc
+    else:
+        categories = list(Category)
+
+    def _headers() -> dict[str, str]:
+        import os
+
+        headers = {"Accept": "application/vnd.github+json", "User-Agent": APP_NAME}
+        token = os.getenv("GITHUB_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            return await discover_trending(
+                config.sources,
+                client,
+                categories=categories,
+                min_stars=min_stars,
+                since_days=since_days,
+                headers=_headers(),
+            )
+
+    proposals = asyncio.run(_run())
+    out_path = root / "data" / "proposed-seeds.yaml"
+    write_proposals(out_path, proposals)
+    console.print(f"Found {len(proposals)} candidate(s) → {out_path}")
+    for proposal in proposals[:15]:
+        console.print(
+            f"  {proposal.stars:>6}★  {proposal.project:<24} {proposal.category.value:<22} "
+            f"{proposal.url}",
+            highlight=False,
+            soft_wrap=True,
+        )
+    if proposals:
+        console.print(
+            "Review them, then add the good ones with [bold]radar seed add[/bold]."
+        )
+
+
+@app.command()
 def history(
     project: str = typer.Option("", help="Limit to a single project (optional)."),
     root: Path = typer.Option(Path("."), help="Project root."),
