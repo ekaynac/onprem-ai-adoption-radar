@@ -30,6 +30,7 @@ from radar.storage.database import RadarDatabase
 from radar.storage.history_log import append_events, load_events
 from radar.storage.history_store import HistoryStore, deltas_to_events
 from radar.storage.metrics_store import MetricsStore
+from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
 
 
@@ -58,6 +59,8 @@ class RadarOrchestrator:
         self.metrics = MetricsStore(self.data_dir / "radar.db")
         # Durable, portable source of truth for the timeline (the DB is a cache).
         self.history_log = self.data_dir / "history.jsonl"
+        # Human decisions: pinned rings + trial journal (portable YAML).
+        self.overrides_path = self.data_dir / "overrides.yaml"
 
     def scan(self, days: int) -> ScanResult:
         """Run the scan pipeline synchronously for CLI callers."""
@@ -165,6 +168,10 @@ class RadarOrchestrator:
         )
         cards = build_decision_cards(scored, evidence_by_project=evidence)
         filtered_cards = apply_category_quotas(cards, config.quotas)
+        # Human pins win over computed rings (and surface drift) BEFORE deltas,
+        # so pin changes land in the timeline like any other ring move.
+        overrides = OverridesStore(self.overrides_path).load()
+        filtered_cards = apply_overrides(filtered_cards, overrides.overrides)
         filtered_projects = {card.project for card in filtered_cards}
         self.run_store.save_stage(
             run_id,

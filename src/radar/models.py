@@ -257,6 +257,11 @@ class DecisionCard(BaseModel):
     upgrade_risk_notes: list[str] = Field(default_factory=list)
     # Direction of travel from accumulated history: rising | falling | steady.
     trend: str = "steady"
+    # Human override: when pinned, `ring` is the pinned decision and
+    # `computed_ring` preserves what the radar would have decided.
+    pinned: bool = False
+    pinned_reason: str = ""
+    computed_ring: Ring | None = None
     tags: list[str] = Field(default_factory=list)
     last_reviewed_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC)

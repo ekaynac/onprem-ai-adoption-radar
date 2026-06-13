@@ -231,3 +231,117 @@ def test_movers_without_history_explains_scan(tmp_path):
 
     assert result.exit_code != 0
     assert "radar scan" in result.stdout
+
+
+MANUAL_CONFIG = """
+version: "1.0"
+sources:
+  - id: mcp-docs
+    type: manual
+    enabled: true
+    project: Model Context Protocol
+    category: mcp_tooling
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+    tags: [mcp]
+quotas:
+  mcp_tooling: 4
+scoring:
+  default_ring: watch
+"""
+
+
+def _scan_manual(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    (tmp_path / "data" / "config.yaml").write_text(MANUAL_CONFIG, encoding="utf-8")
+    runner.invoke(app, ["scan", "--root", str(tmp_path), "--days", "2"])
+    return runner
+
+
+def test_override_pins_card_and_journals_change(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "override", "--root", str(tmp_path),
+            "--project", "Model Context Protocol",
+            "--ring", "avoid", "--reason", "failed internal review",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    report = runner.invoke(app, ["report", "--root", str(tmp_path)])
+    assert "avoid" in report.stdout
+    assert "failed internal review" in report.stdout
+    # The pin landed in the durable timeline.
+    history = (tmp_path / "data" / "history.jsonl").read_text(encoding="utf-8")
+    assert "override-" in history
+
+
+def test_override_requires_reason(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["override", "--root", str(tmp_path), "--project", "X", "--ring", "avoid"],
+    )
+
+    assert result.exit_code != 0
+    assert "reason" in result.stdout.lower()
+
+
+def test_override_clear_restores_computed_ring(tmp_path):
+    runner = _scan_manual(tmp_path)
+    runner.invoke(
+        app,
+        [
+            "override", "--root", str(tmp_path),
+            "--project", "Model Context Protocol",
+            "--ring", "avoid", "--reason", "temp",
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        ["override", "--root", str(tmp_path), "--project", "Model Context Protocol", "--clear"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    report = runner.invoke(app, ["report", "--root", str(tmp_path), "--json"])
+    import json as json_module
+
+    cards = json_module.loads(report.stdout)
+    card = next(c for c in cards if c["project"] == "Model Context Protocol")
+    assert card["pinned"] is False
+    assert card["ring"] != "avoid"
+
+
+def test_trial_records_outcome_in_journal_and_timeline(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "trial", "--root", str(tmp_path),
+            "--project", "Model Context Protocol",
+            "--outcome", "adopted", "--notes", "worked great locally",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    overrides = (tmp_path / "data" / "overrides.yaml").read_text(encoding="utf-8")
+    assert "adopted" in overrides
+    history = (tmp_path / "data" / "history.jsonl").read_text(encoding="utf-8")
+    assert "worked great locally" in history
+
+
+def test_trial_rejects_invalid_outcome(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["trial", "--root", str(tmp_path), "--project", "X", "--outcome", "meh"],
+    )
+
+    assert result.exit_code != 0
