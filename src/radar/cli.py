@@ -40,6 +40,27 @@ def version() -> None:
 
 
 @app.command()
+def backtest(
+    profile: str = typer.Option(
+        "", help="Compare this profile's weights vs the default across past runs."
+    ),
+    runs: int = typer.Option(0, help="Limit to the N most recent runs (0 = all)."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Re-score historical runs and report how rings would differ (read-only)."""
+    from radar.analysis.backtest import render_backtest_markdown
+
+    try:
+        report = RadarOrchestrator(root).backtest(
+            profile=profile or None, runs=runs or None
+        )
+    except UnknownProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+    console.print(render_backtest_markdown(report))
+
+
+@app.command()
 def init(root: Path = typer.Option(Path("."), help="Project root to initialize.")) -> None:
     """Create starter config and data directories."""
     result = initialize_project(root)

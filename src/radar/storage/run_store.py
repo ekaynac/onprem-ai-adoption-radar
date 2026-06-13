@@ -98,6 +98,39 @@ class RunStore:
         )
         return meta
 
+    def read_meta(self, run_id: str) -> dict[str, Any]:
+        """Return a run's meta.json contents (empty dict if absent/unreadable)."""
+        meta_path = self._run_dir(run_id) / "meta.json"
+        if not meta_path.exists():
+            return {}
+        try:
+            return json.loads(meta_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {}
+
+    def list_runs(self, include_replays: bool = False) -> list[str]:
+        """Return run ids oldest-first by meta ``created_at`` (dir name fallback).
+
+        Replay/backtest artifacts (meta has ``replay_of``) are skipped unless
+        ``include_replays`` is set, so backtests see only real scans.
+        """
+        entries: list[tuple[str, str]] = []
+        for child in self.root.iterdir():
+            if not child.is_dir():
+                continue
+            meta_path = child / "meta.json"
+            meta = {}
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    meta = {}
+            if not include_replays and "replay_of" in meta:
+                continue
+            entries.append((meta.get("created_at") or child.name, child.name))
+        entries.sort()
+        return [run_id for _, run_id in entries]
+
     def _run_dir(self, run_id: str, must_exist: bool = True) -> Path:
         if not RUN_ID_RE.fullmatch(run_id) or ".." in run_id:
             raise ValueError("Invalid run_id")

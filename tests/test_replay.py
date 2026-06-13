@@ -87,3 +87,50 @@ def test_replay_unknown_run_raises(tmp_path: Path):
 
     with pytest.raises(FileNotFoundError):
         orchestrator.replay("run-19990101T000000Z-deadbeef")
+
+
+def test_rescore_is_side_effect_free(tmp_path: Path):
+    orchestrator, original_run = _scanned_root(tmp_path)
+    runs_before = sorted(p.name for p in (tmp_path / "data" / "runs").iterdir())
+    history_before = (tmp_path / "data" / "history.jsonl").read_text(encoding="utf-8")
+    cards_before = [c.model_dump_json() for c in orchestrator.latest_cards()]
+
+    from radar.models import Signal
+    from radar.storage.config import load_config
+
+    config = load_config(tmp_path / "data" / "config.yaml")
+    raw = [
+        Signal.model_validate(item)
+        for item in orchestrator.run_store.load_stage(original_run, "raw_signals")
+    ]
+    cards = orchestrator._rescore(raw, config, source_run_id=original_run)
+
+    assert cards  # produced cards
+    runs_after = sorted(p.name for p in (tmp_path / "data" / "runs").iterdir())
+    assert runs_after == runs_before  # no new run dir
+    assert (tmp_path / "data" / "history.jsonl").read_text(encoding="utf-8") == history_before
+    assert [c.model_dump_json() for c in orchestrator.latest_cards()] == cards_before
+
+
+def test_rescore_applies_weights(tmp_path: Path):
+    orchestrator, original_run = _scanned_root(tmp_path)
+    from radar.models import Signal
+    from radar.storage.config import load_config
+
+    config = load_config(tmp_path / "data" / "config.yaml")
+    raw = [
+        Signal.model_validate(item)
+        for item in orchestrator.run_store.load_stage(original_run, "raw_signals")
+    ]
+
+    baseline = orchestrator._rescore(raw, config, source_run_id=original_run)
+    # Weight a dimension that differs from the mean so the score must move.
+    weighted = orchestrator._rescore(
+        raw, config, source_run_id=original_run,
+        weights={"open_source_maturity": 5.0},
+    )
+
+    # Same projects, but the weighting changes representative scores.
+    base_scores = {c.project: c.score for c in baseline}
+    weighted_scores = {c.project: c.score for c in weighted}
+    assert base_scores != weighted_scores

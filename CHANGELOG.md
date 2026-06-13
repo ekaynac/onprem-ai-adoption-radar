@@ -36,6 +36,15 @@ All notable changes to this project are documented here. The format follows
 - **Webhooks & change feeds** — optional post-scan webhook (generic JSON or
   Slack format) on ring changes; the static export publishes `changes.xml`
   (Atom) and `changes.json`.
+- **Per-project detail pages** — a page per tracked project (live
+  `/project/{name}` and static `project_<slug>.html`) showing the full card:
+  7-dimension score breakdown, on-prem rubric, evidence notes, upgrade-risk,
+  risks, the metrics history table, and the ring timeline. Index pages link to
+  them.
+- **Scoring backtest** — `radar backtest [--profile X] [--runs N]` re-scores
+  past runs and reports how rings would differ (a profile's weights vs default,
+  or current config vs each run's persisted decision). Read-only; creates no
+  run artifacts.
 - **Scoring calibration diagnostic** — `radar calibrate-report` measures
   score spread, ring distribution, evidence impact, and ring stability so you
   can tell whether the rings actually discriminate (read-only, deterministic).
