@@ -221,6 +221,10 @@ class DecisionCard(BaseModel):
     # Human-readable observed-data lines ("stars +1,240 (+3.1%) since last
     # scan"), distinct from `evidence` which holds source URLs.
     evidence_notes: list[str] = Field(default_factory=list)
+    # Whether upgrading to the releases in this window is routine:
+    # none | low (deprecations) | high (breaking changes, security fixes).
+    upgrade_risk: str = "none"
+    upgrade_risk_notes: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     last_reviewed_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC)
