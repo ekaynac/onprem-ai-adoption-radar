@@ -368,3 +368,53 @@ def test_index_no_scan_health_block_when_empty(tmp_path: Path):
     resp = client.get("/")
 
     assert resp.status_code == 200  # renders fine with no runs
+
+
+def _two_category_cards():
+    return [
+        DecisionCard(
+            project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+            summary="fast inference", workflow_fit={}, risk_level="low",
+        ),
+        DecisionCard(
+            project="Cline", category=Category.CODING_AGENTS, ring=Ring.PILOT,
+            summary="coding agent", workflow_fit={}, risk_level="low",
+        ),
+    ]
+
+
+def test_index_renders_filter_controls(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(_two_category_cards())
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+
+    assert 'id="filter-text"' in text
+    assert 'id="filter-category"' in text
+    assert "radarFilter" in text  # the inline script
+    assert 'id="radar-no-matches"' in text
+
+
+def test_index_filter_options_match_present_categories(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(_two_category_cards())
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+
+    assert '<option value="coding_agents">' in text
+    assert '<option value="model_serving">' in text
+    # A category not present must not appear as an option.
+    assert '<option value="fun_experimental">' not in text
+
+
+def test_index_rows_have_data_attributes(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(_two_category_cards())
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+
+    assert 'data-project="vLLM"' in text
+    assert 'data-category="coding_agents"' in text

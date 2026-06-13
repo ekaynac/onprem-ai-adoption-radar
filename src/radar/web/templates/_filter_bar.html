@@ -1,0 +1,13 @@
+{# Client-side filter controls for the #radar-table. Context: cards (for the
+   category options). Progressive enhancement — without JS the table shows in
+   full; the script only hides non-matching rows. #}
+<div class="filter-bar">
+  <input id="filter-text" type="text" placeholder="Search projects…"
+         oninput="radarFilter()" aria-label="Search projects">
+  <select id="filter-category" onchange="radarFilter()" aria-label="Filter by category">
+    <option value="">All categories</option>
+    {% for cat in cards | map(attribute='category.value') | unique | sort %}
+    <option value="{{ cat }}">{{ cat }}</option>
+    {% endfor %}
+  </select>
+</div>
