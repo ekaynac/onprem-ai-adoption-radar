@@ -79,6 +79,7 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | `radar scan --profile <name>` | Score through a named profile (re-weighted dimensions). |
 | `radar report [--json] [--profile X]` | Print the decision report from the latest scan. |
 | `radar movers` | Show each project's direction of travel (rising / falling / steady). |
+| `radar calibrate-report` | Diagnose whether the scoring discriminates (score spread, ring distribution, evidence impact, ring stability). |
 | `radar override --project X --ring R --reason "…"` | Pin a project's ring (`--clear` to remove); drift vs the radar is surfaced. |
 | `radar trial --project X --outcome adopted\|rejected\|inconclusive` | Record a trial outcome in the decision journal and timeline. |
 | `radar discover [--category X] [--min-stars N]` | Propose trending untracked GitHub repos to `data/proposed-seeds.yaml`. |

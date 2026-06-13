@@ -432,6 +432,86 @@ def _journal_trial(root: Path, record) -> None:
     append_events(root / "data" / "history.jsonl", [event])
 
 
+@app.command("calibrate-report")
+def calibrate_report(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Diagnose whether the scoring discriminates and is stable over time."""
+    from radar.analysis.calibration import (
+        build_calibration_report,
+        render_calibration_markdown,
+    )
+    from radar.models import ScoredSignal
+    from radar.storage.database import RadarDatabase
+    from radar.storage.history_store import HistoryStore
+
+    db = RadarDatabase(root / "data" / "radar.db")
+    db.initialize()
+    cards = db.list_cards()
+    if not cards:
+        console.print("No cards yet. Run [bold]radar scan[/bold] first.")
+        raise typer.Exit(code=1)
+    ring_by_project = {c.project: c.ring for c in cards}
+
+    # Re-score the latest run's persisted signals for the per-dimension detail
+    # (cards keep only the representative aggregate + breakdown).
+    scored = _latest_scored_signals(root)
+    if scored is None:
+        # Fall back to card breakdowns when the run artifact is unavailable.
+        scored = [
+            ScoredSignal(
+                signal=_synthetic_signal(c),
+                scores=c.score_breakdown,
+                recommended_ring=c.ring,
+            )
+            for c in cards
+            if c.score_breakdown is not None
+        ]
+
+    history = HistoryStore(root / "data" / "radar.db")
+    history.initialize()
+    events = [e for s in history.summaries() for e in history.history_for(s.project)]
+
+    report = build_calibration_report(scored, ring_by_project, history_events=events)
+    console.print(render_calibration_markdown(report))
+
+
+def _latest_scored_signals(root: Path):
+    """Load the most recent run's scored_signals, or None if unavailable."""
+    from radar.models import ScoredSignal
+
+    runs_dir = root / "data" / "runs"
+    if not runs_dir.exists():
+        return None
+    run_dirs = sorted(
+        (d for d in runs_dir.iterdir() if (d / "scored_signals.json").exists()),
+        key=lambda d: d.name,
+        reverse=True,
+    )
+    if not run_dirs:
+        return None
+    import json
+
+    payload = json.loads(
+        (run_dirs[0] / "scored_signals.json").read_text(encoding="utf-8")
+    )
+    return [ScoredSignal.model_validate(item) for item in payload]
+
+
+def _synthetic_signal(card):
+    """A minimal Signal so a card breakdown can be wrapped as a ScoredSignal."""
+    from datetime import datetime
+
+    from radar.models import Signal
+
+    return Signal(
+        id=card.project, source_id="card", project=card.project,
+        category=card.category, title=card.project,
+        url="https://example.invalid", signal_type="card",
+        published_at=datetime.now(UTC),
+    )
+
+
 @app.command()
 def movers(
     root: Path = typer.Option(Path("."), help="Project root."),

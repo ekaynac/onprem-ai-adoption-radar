@@ -36,6 +36,11 @@ All notable changes to this project are documented here. The format follows
 - **Webhooks & change feeds** — optional post-scan webhook (generic JSON or
   Slack format) on ring changes; the static export publishes `changes.xml`
   (Atom) and `changes.json`.
+- **Scoring calibration diagnostic** — `radar calibrate-report` measures
+  score spread, ring distribution, evidence impact, and ring stability so you
+  can tell whether the rings actually discriminate (read-only, deterministic).
+- **Richer read surfaces** — the MCP server and dashboard now expose the v2
+  evidence (trend, evidence notes, upgrade-risk, advisories) and human pins.
 - **CLI** — `radar seed list` (plain, pipe-friendly source listing) and
   `radar report --json` for scripting.
 - **Quality gates** — ruff (lint) and mypy (types, pydantic plugin) configured
