@@ -42,6 +42,15 @@ class Ring(str, Enum):
     AVOID = "avoid"
 
 
+class PackageRef(BaseModel):
+    """A package-registry mapping for a project (for downloads/advisories)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ecosystem: str  # "PyPI" | "npm" (OSV ecosystem names)
+    name: str
+
+
 class SourceConfig(BaseModel):
     """A configured information source."""
 
@@ -55,6 +64,9 @@ class SourceConfig(BaseModel):
     url: HttpUrl
     tags: list[str] = Field(default_factory=list)
     poll_interval_hours: int = Field(default=24, ge=1)
+    # Optional package-registry mapping; enables download counts and OSV
+    # advisory lookups for this project.
+    package: PackageRef | None = None
     # When true, this source is a high-volume "firehose" (e.g. a broad vendor
     # blog) whose entries are re-attributed to tracked projects by the
     # classification layer instead of collapsing into one project card.
@@ -98,6 +110,23 @@ class LLMConfig(BaseModel):
     timeout_seconds: int = Field(default=20, ge=1)
 
 
+class EnrichmentConfig(BaseModel):
+    """Per-project enrichment toggles (all network calls degrade gracefully).
+
+    These enrich observed evidence — they never gate the scan. OSV advisories
+    are windowed to recently-modified entries because a package-level query
+    returns the package's full vulnerability history.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    osv: bool = True
+    hackernews: bool = True
+    downloads: bool = True
+    timeout_seconds: int = Field(default=15, ge=1)
+    advisory_window_days: int = Field(default=90, ge=1)
+
+
 class Config(BaseModel):
     """Application configuration."""
 
@@ -108,6 +137,7 @@ class Config(BaseModel):
     quotas: dict[Category, int] = Field(default_factory=dict)
     scoring: ScoringConfig = Field(default_factory=ScoringConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
+    enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
 
 
 class Signal(BaseModel):

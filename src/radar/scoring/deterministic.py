@@ -77,7 +77,7 @@ def score_signal(
         cap = _advisory_security_cap(evidence)
         if cap is not None:
             security_posture = min(security_posture, cap)
-            reason_codes.append("open_security_advisories")
+            reason_codes.append("recent_security_advisories")
         if _shows_active_development(evidence):
             open_source_maturity = min(open_source_maturity + 1, 5)
             reason_codes.append("active_development")

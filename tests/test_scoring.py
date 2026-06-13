@@ -192,7 +192,7 @@ def test_open_high_advisory_caps_security_posture():
     scored = score_signal(signal, ScoringConfig(), evidence=evidence)
 
     assert scored.scores.security_posture <= 2
-    assert "open_security_advisories" in scored.reason_codes
+    assert "recent_security_advisories" in scored.reason_codes
 
 
 def test_moderate_advisory_caps_security_at_three():

@@ -10,6 +10,7 @@ from pathlib import Path
 import httpx
 
 from radar.collectors.registry import build_collectors
+from radar.enrichment.runner import run_enrichment
 from radar.models import DecisionCard, ScoredSignal
 from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
@@ -116,16 +117,37 @@ class RadarOrchestrator:
             )
         deduped = dedupe_signals(firehose.kept)
         # Observed evidence: reduce this scan's signals to per-project metrics,
+        # enrich them (advisories / HN / downloads — additive, never fatal),
         # compare against the previous scan's rows (read BEFORE recording the
         # new ones), and let scoring see the result.
         observed_at = datetime.now(UTC)
         self.metrics.initialize()
         current_metrics = collect_project_metrics(deduped, run_id, observed_at)
+        advisories: dict[str, list] = {}
+        if current_metrics:
+            async with httpx.AsyncClient(
+                timeout=float(config.enrichment.timeout_seconds)
+            ) as enrich_client:
+                enrichment = await run_enrichment(
+                    config.enrichment,
+                    sources=config.sources,
+                    metrics=current_metrics,
+                    since=since,
+                    now=observed_at,
+                    client=enrich_client,
+                )
+            current_metrics = enrichment.metrics
+            advisories = dict(enrichment.advisories)
+            if enrichment.warnings:
+                self.run_store.update_meta(
+                    run_id, {"enrichment_warnings": enrichment.warnings}
+                )
         evidence = {
             project: build_evidence(
                 metrics,
                 self.metrics.latest(project, exclude_run=run_id),
                 now=observed_at,
+                advisories=advisories.get(project),
             )
             for project, metrics in current_metrics.items()
         }

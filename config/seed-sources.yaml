@@ -19,6 +19,7 @@ sources:
     type: github_repo
     enabled: true
     project: Aider
+    package: {ecosystem: PyPI, name: aider-chat}
     category: coding_agents
     url: https://github.com/Aider-AI/aider
     tags: [coding-agent, terminal, open-source]
@@ -69,6 +70,7 @@ sources:
     type: github_repo
     enabled: true
     project: LangGraph
+    package: {ecosystem: PyPI, name: langgraph}
     category: agent_frameworks
     url: https://github.com/langchain-ai/langgraph
     tags: [agent-framework, orchestration, open-source]
@@ -85,6 +87,7 @@ sources:
     type: github_repo
     enabled: true
     project: vLLM
+    package: {ecosystem: PyPI, name: vllm}
     category: model_serving
     url: https://github.com/vllm-project/vllm
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
@@ -211,6 +214,7 @@ sources:
     type: github_repo
     enabled: true
     project: CrewAI
+    package: {ecosystem: PyPI, name: crewai}
     category: agent_frameworks
     url: https://github.com/crewAIInc/crewAI
     tags: [agent-framework, multi-agent, orchestration, open-source]
@@ -218,6 +222,7 @@ sources:
     type: github_repo
     enabled: true
     project: Pydantic-AI
+    package: {ecosystem: PyPI, name: pydantic-ai}
     category: agent_frameworks
     url: https://github.com/pydantic/pydantic-ai
     tags: [agent-framework, orchestration, open-source]
