@@ -15,6 +15,7 @@ from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
 from radar.pipeline.dedupe import dedupe_signals
 from radar.pipeline.delta import CardDelta, ChangeType, compute_deltas
+from radar.pipeline.evidence import build_evidence, collect_project_metrics
 from radar.pipeline.llm_classify import build_analyst
 from radar.pipeline.quotas import apply_category_quotas
 from radar.reports.history import render_history_report
@@ -25,6 +26,7 @@ from radar.storage.config import load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_log import append_events, load_events
 from radar.storage.history_store import HistoryStore, deltas_to_events
+from radar.storage.metrics_store import MetricsStore
 from radar.storage.run_store import RunStore
 
 
@@ -50,6 +52,7 @@ class RadarOrchestrator:
         self.run_store = RunStore(self.data_dir / "runs")
         self.database = RadarDatabase(self.data_dir / "radar.db")
         self.history = HistoryStore(self.data_dir / "radar.db")
+        self.metrics = MetricsStore(self.data_dir / "radar.db")
         # Durable, portable source of truth for the timeline (the DB is a cache).
         self.history_log = self.data_dir / "history.jsonl"
 
@@ -112,15 +115,31 @@ class RadarOrchestrator:
                 },
             )
         deduped = dedupe_signals(firehose.kept)
+        # Observed evidence: reduce this scan's signals to per-project metrics,
+        # compare against the previous scan's rows (read BEFORE recording the
+        # new ones), and let scoring see the result.
+        observed_at = datetime.now(UTC)
+        self.metrics.initialize()
+        current_metrics = collect_project_metrics(deduped, run_id, observed_at)
+        evidence = {
+            project: build_evidence(
+                metrics,
+                self.metrics.latest(project, exclude_run=run_id),
+                now=observed_at,
+            )
+            for project, metrics in current_metrics.items()
+        }
+        self.metrics.record(list(current_metrics.values()))
         scored: list[ScoredSignal] = [
-            score_signal(signal, config.scoring) for signal in deduped
+            score_signal(signal, config.scoring, evidence.get(signal.project))
+            for signal in deduped
         ]
         self.run_store.save_stage(
             run_id,
             "scored_signals",
             [item.model_dump(mode="json") for item in scored],
         )
-        cards = build_decision_cards(scored)
+        cards = build_decision_cards(scored, evidence_by_project=evidence)
         filtered_cards = apply_category_quotas(cards, config.quotas)
         filtered_projects = {card.project for card in filtered_cards}
         self.run_store.save_stage(
