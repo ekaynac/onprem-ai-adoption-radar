@@ -87,4 +87,4 @@ All notable changes to this project are documented here. The format follows
 - **CI** (tests on push/PR) and **scheduled publish** to GitHub Pages.
 - Released into the public domain under The Unlicense.
 
-[Unreleased]: https://github.com/OWNER/onprem-ai-adoption-radar/commits/main
+[Unreleased]: https://github.com/ekaynac/onprem-ai-adoption-radar/commits/main
