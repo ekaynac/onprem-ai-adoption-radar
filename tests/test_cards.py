@@ -113,3 +113,32 @@ def test_cards_without_evidence_have_empty_notes():
     cards = build_decision_cards([scored])
 
     assert cards[0].evidence_notes == []
+
+
+def test_cards_flag_upgrade_risk_from_release_highlights():
+    from datetime import UTC, datetime
+
+    from radar.models import Category, ScoreBreakdown, ScoredSignal, Signal
+    from radar.models import Ring as RingEnum
+    from radar.pipeline.cards import build_decision_cards
+
+    signal = Signal(
+        id="r1", source_id="src", project="vLLM", category=Category.MODEL_SERVING,
+        title="vLLM released v2.0", url="https://github.com/org/vllm/releases/v2.0",
+        published_at=datetime(2026, 6, 12, tzinfo=UTC),
+        signal_type="github_release",
+        metadata={"release_highlights": ["BREAKING CHANGE: new engine API."]},
+    )
+    scored = ScoredSignal(
+        signal=signal,
+        scores=ScoreBreakdown(
+            workflow_impact=4, laptop_runnability=4, open_source_maturity=4,
+            on_prem_relevance=4, security_posture=4, demo_value=4, setup_friction=4,
+        ),
+        recommended_ring=RingEnum.PILOT,
+    )
+
+    card = build_decision_cards([scored])[0]
+
+    assert card.upgrade_risk == "high"
+    assert any("BREAKING" in note for note in card.upgrade_risk_notes)

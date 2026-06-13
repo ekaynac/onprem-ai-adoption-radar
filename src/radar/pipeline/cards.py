@@ -14,6 +14,7 @@ from radar.models import (
     ScoredSignal,
 )
 from radar.pipeline.evidence import evidence_notes
+from radar.pipeline.upgrade_risk import assess_upgrade_risk
 from radar.scoring.calibrate import calibrate_rings
 
 
@@ -64,6 +65,9 @@ def build_decision_cards(
         risk_reasons = _risk_reasons(best)
         rubric = _merge_rubric(items)
         evidence_for_project = (evidence_by_project or {}).get(project)
+        upgrade_risk, upgrade_risk_notes = assess_upgrade_risk(
+            _release_note_lines(items)
+        )
         cards.append(
             DecisionCard(
                 project=project,
@@ -92,6 +96,10 @@ def build_decision_cards(
                 evidence_notes=(
                     evidence_notes(evidence_for_project) if evidence_for_project else []
                 ),
+                upgrade_risk=upgrade_risk,
+                upgrade_risk_notes=[
+                    _clean_text(note) for note in upgrade_risk_notes[:3]
+                ],
                 try_this_week=_try_steps(best),
                 try_next=_try_steps(best),
                 company_demo={
@@ -212,6 +220,19 @@ def _risks(
         if assessment.score <= 2:
             risks.append(f"{_label(name)}: {assessment.reason}")
     return _dedupe(risks)[:5]
+
+
+def _release_note_lines(items: list[ScoredSignal]) -> list[str]:
+    """All release-note lines for a project's signals in this scan."""
+    lines: list[str] = []
+    for item in items:
+        if item.signal.signal_type != "github_release":
+            continue
+        highlights = item.signal.metadata.get("release_highlights") or []
+        lines.extend(str(h) for h in highlights)
+        if not highlights and item.signal.raw_summary:
+            lines.extend(item.signal.raw_summary.splitlines())
+    return lines
 
 
 def _merge_rubric(items: list[ScoredSignal]) -> dict[str, OnPremAssessment]:
