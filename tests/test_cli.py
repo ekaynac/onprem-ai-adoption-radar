@@ -389,3 +389,28 @@ def test_scan_with_profile_records_it_in_meta(tmp_path):
         (tmp_path / "data" / "runs" / run_id / "meta.json").read_text()
     )
     assert meta["profile"] == "solo-dev"
+
+
+def test_seed_list_flags_stale_sources(tmp_path):
+    from datetime import UTC, datetime, timedelta
+
+    from radar.storage.source_health_store import SourceHealthStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    # Simulate 3 consecutive scans where a known seed produced nothing.
+    health = SourceHealthStore(tmp_path / "data" / "radar.db")
+    health.initialize()
+    base = datetime(2026, 6, 1, tzinfo=UTC)
+    for day in range(3):
+        health.record(f"run-{day}", base + timedelta(days=day), {"github-vllm": 0})
+
+    result = runner.invoke(app, ["seed", "list", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "1 stale" in result.stdout
+    stale_line = next(
+        line for line in result.stdout.splitlines() if "github-vllm" in line
+    )
+    assert "STALE?" in stale_line

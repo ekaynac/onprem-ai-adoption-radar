@@ -34,6 +34,7 @@ from radar.storage.history_store import HistoryStore, deltas_to_events
 from radar.storage.metrics_store import MetricsStore
 from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
+from radar.storage.source_health_store import SourceHealthStore
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,7 @@ class RadarOrchestrator:
         self.database = RadarDatabase(self.data_dir / "radar.db")
         self.history = HistoryStore(self.data_dir / "radar.db")
         self.metrics = MetricsStore(self.data_dir / "radar.db")
+        self.source_health = SourceHealthStore(self.data_dir / "radar.db")
         # Durable, portable source of truth for the timeline (the DB is a cache).
         self.history_log = self.data_dir / "history.jsonl"
         # Human decisions: pinned rings + trial journal (portable YAML).
@@ -114,6 +116,14 @@ class RadarOrchestrator:
             "raw_signals",
             [signal.model_dump(mode="json") for signal in raw],
         )
+        # Record per-source signal counts so dead feeds can be flagged. Every
+        # enabled source gets a row (zero when it produced nothing this scan).
+        self.source_health.initialize()
+        source_counts = {s.id: 0 for s in config.sources if s.enabled}
+        for signal in raw:
+            if signal.source_id in source_counts:
+                source_counts[signal.source_id] += 1
+        self.source_health.record(run_id, datetime.now(UTC), source_counts)
         # Re-attribute high-volume firehose entries to tracked projects before
         # dedupe/scoring. Unmatched entries are dropped (not silently): their
         # count and a sample are recorded in the run meta for visibility.

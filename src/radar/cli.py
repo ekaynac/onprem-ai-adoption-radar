@@ -147,8 +147,9 @@ def seed_add(
 def seed_list(
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
-    """List the configured signal sources."""
+    """List the configured signal sources (stale = no signals for 3+ scans)."""
     from radar.storage.config import load_config
+    from radar.storage.source_health_store import SourceHealthStore
 
     config_path = root / "data" / "config.yaml"
     if not config_path.exists():
@@ -158,7 +159,13 @@ def seed_list(
         raise typer.Exit(code=1)
     config = load_config(config_path)
 
-    console.print(f"{len(config.sources)} sources in {config_path}")
+    health = SourceHealthStore(root / "data" / "radar.db")
+    health.initialize()
+    stale = health.stale_source_ids()
+    latest = health.latest_counts()
+
+    stale_note = f" — {len(stale)} stale" if stale else ""
+    console.print(f"{len(config.sources)} sources in {config_path}{stale_note}")
     # Plain aligned text (no rich table): never truncated, grep/pipe friendly.
     for source in config.sources:
         flags = []
@@ -166,11 +173,18 @@ def seed_list(
             flags.append("disabled")
         if source.firehose:
             flags.append("firehose")
+        if source.id in stale:
+            flags.append("STALE?")
+        elif source.id in latest:
+            flags.append(f"last={latest[source.id]}")
         suffix = f"  [{', '.join(flags)}]" if flags else ""
+        # soft_wrap: keep each source on one line (never truncated/wrapped) so
+        # the output stays grep- and pipe-friendly.
         console.print(
             f"  {source.id:<28} {source.type.value:<12} {source.category.value:<26} "
             f"{source.project}{suffix}",
             highlight=False,
+            soft_wrap=True,
         )
 
 
