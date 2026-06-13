@@ -140,6 +140,30 @@ class EnrichmentConfig(BaseModel):
     advisory_window_days: int = Field(default=90, ge=1)
 
 
+class NotifyConfig(BaseModel):
+    """Post-scan webhook notification (off by default, fire-and-forget).
+
+    The URL is read via env expansion in config (``${RADAR_WEBHOOK_URL}``) so
+    no secret is stored. ``generic`` posts a structured JSON payload; ``slack``
+    posts ``{"text": ...}`` compatible with Slack/Discord/Teams incoming
+    webhooks. A notification fires only when a scan produced ring changes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    webhook_url: str = ""
+    format: str = "generic"  # generic | slack
+    timeout_seconds: int = Field(default=10, ge=1)
+
+    @field_validator("format")
+    @classmethod
+    def validate_format(cls, value: str) -> str:
+        if value not in {"generic", "slack"}:
+            raise ValueError("notify.format must be 'generic' or 'slack'")
+        return value
+
+
 class Config(BaseModel):
     """Application configuration."""
 
@@ -151,6 +175,7 @@ class Config(BaseModel):
     scoring: ScoringConfig = Field(default_factory=ScoringConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
+    notify: NotifyConfig = Field(default_factory=NotifyConfig)
     # Named per-dimension weight presets; `radar report --profile X` ranks the
     # same scores through that lens. Keys must be valid score dimensions.
     profiles: dict[str, dict[str, float]] = Field(default_factory=dict)

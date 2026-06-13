@@ -455,3 +455,22 @@ profiles:
     workflow_impact: 2.0
     setup_friction: 1.5
     on_prem_relevance: 0.5
+
+# Per-project enrichment (advisories, community traction, downloads). All on by
+# default and individually togglable; every call degrades gracefully so a scan
+# never fails because an enrichment endpoint is down.
+enrichment:
+  osv: true
+  hackernews: true
+  downloads: true
+  timeout_seconds: 15
+  advisory_window_days: 90
+
+# Optional post-scan webhook. OFF by default. Fires only when a scan produced
+# ring changes. The URL is read from the environment (never stored here);
+# format 'slack' posts {"text": ...}, compatible with Slack/Discord/Teams.
+notify:
+  enabled: false
+  webhook_url: ${RADAR_WEBHOOK_URL}
+  format: generic
+  timeout_seconds: 10
