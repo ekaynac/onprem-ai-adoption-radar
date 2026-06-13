@@ -44,6 +44,8 @@ def _card_lines(card: DecisionCard) -> list[str]:
         f"- **Decision:** `{card.ring.value}` (risk: `{card.risk_level}`)",
     ]
     lines.extend(_field("What changed", card.what_changed or [_clean_inline(card.summary)]))
+    if card.evidence_notes:
+        lines.extend(_field("Observed", card.evidence_notes))
     lines.extend(_field("Why it matters", card.why_it_matters or card.summary))
     lines.extend(_field("On-prem fit", card.on_prem_fit or card.workflow_fit.get("enterprise_onprem", "unknown")))
     lines.extend(_field("Risks", card.risks or card.risk_reasons))

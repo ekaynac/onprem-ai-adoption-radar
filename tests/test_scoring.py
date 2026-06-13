@@ -179,3 +179,62 @@ def test_keyword_scoring_is_deterministic_and_rewards_strong_positives():
         _score_keywords(tags={"mcp"}, text="", positives={"mcp", "self-hosted"}, negatives=set(), base=3)
         == 4
     )
+
+
+def test_open_high_advisory_caps_security_posture():
+    from radar.models import Advisory, ProjectEvidence
+
+    signal = _make_signal(tags=["self-hosted"])
+    evidence = ProjectEvidence(
+        advisories=[Advisory(id="GHSA-1", severity="CRITICAL", summary="RCE")]
+    )
+
+    scored = score_signal(signal, ScoringConfig(), evidence=evidence)
+
+    assert scored.scores.security_posture <= 2
+    assert "open_security_advisories" in scored.reason_codes
+
+
+def test_moderate_advisory_caps_security_at_three():
+    from radar.models import Advisory, ProjectEvidence
+
+    signal = _make_signal(tags=["self-hosted"])
+    evidence = ProjectEvidence(
+        advisories=[Advisory(id="GHSA-2", severity="MODERATE", summary="DoS")]
+    )
+
+    scored = score_signal(signal, ScoringConfig(), evidence=evidence)
+
+    assert scored.scores.security_posture <= 3
+
+
+def test_strong_growth_and_cadence_lift_maturity():
+    from radar.models import ProjectEvidence
+
+    signal = _make_signal(tags=[])
+    base = score_signal(signal, ScoringConfig())
+    evidence = ProjectEvidence(star_growth=800, star_growth_pct=2.5, releases_in_window=3)
+
+    boosted = score_signal(signal, ScoringConfig(), evidence=evidence)
+
+    assert boosted.scores.open_source_maturity == min(base.scores.open_source_maturity + 1, 5)
+    assert "active_development" in boosted.reason_codes
+
+
+def test_license_change_adds_reason_code():
+    from radar.models import ProjectEvidence
+
+    signal = _make_signal(tags=[])
+    evidence = ProjectEvidence(license_changed_from="Apache-2.0", license="BUSL-1.1")
+
+    scored = score_signal(signal, ScoringConfig(), evidence=evidence)
+
+    assert "license_changed" in scored.reason_codes
+
+
+def test_no_evidence_keeps_existing_behavior():
+    signal = _make_signal(tags=["self-hosted"])
+
+    assert score_signal(signal, ScoringConfig()) == score_signal(
+        signal, ScoringConfig(), evidence=None
+    )

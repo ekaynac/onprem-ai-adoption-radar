@@ -127,6 +127,35 @@ class Signal(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class Advisory(BaseModel):
+    """A known security advisory affecting a project (e.g. from OSV.dev)."""
+
+    id: str
+    severity: str = "UNKNOWN"
+    summary: str = ""
+
+
+class ProjectEvidence(BaseModel):
+    """Observed, per-project evidence assembled before scoring.
+
+    Every field is optional: absent evidence means "no adjustment", so projects
+    without metrics history score exactly as they did before this existed.
+    Evidence is collected input — the scoring math over it stays deterministic.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    star_growth: int | None = None
+    star_growth_pct: float | None = None
+    releases_in_window: int = 0
+    days_since_push: int | None = None
+    advisories: list[Advisory] = Field(default_factory=list)
+    hn_mentions: int | None = None
+    downloads_weekly: int | None = None
+    license: str | None = None
+    license_changed_from: str | None = None
+
+
 class ScoreBreakdown(BaseModel):
     """Deterministic score dimensions."""
 
@@ -189,6 +218,9 @@ class DecisionCard(BaseModel):
     try_next: list[str] = Field(default_factory=list)
     company_demo: dict[str, str | bool] = Field(default_factory=dict)
     evidence: list[str] = Field(default_factory=list)
+    # Human-readable observed-data lines ("stars +1,240 (+3.1%) since last
+    # scan"), distinct from `evidence` which holds source URLs.
+    evidence_notes: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     last_reviewed_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC)

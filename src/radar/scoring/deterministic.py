@@ -8,6 +8,7 @@ from typing import Any
 from radar.models import (
     Category,
     OnPremAssessment,
+    ProjectEvidence,
     ScoreBreakdown,
     ScoredSignal,
     ScoringConfig,
@@ -27,8 +28,17 @@ CLEAR_LICENSES = {
 RESTRICTIVE_LICENSES = {"AGPL-3.0", "GPL-2.0", "GPL-3.0", "SSPL-1.0"}
 
 
-def score_signal(signal: Signal, config: ScoringConfig) -> ScoredSignal:
-    """Score a signal using explainable rules."""
+def score_signal(
+    signal: Signal,
+    config: ScoringConfig,
+    evidence: ProjectEvidence | None = None,
+) -> ScoredSignal:
+    """Score a signal using explainable rules.
+
+    ``evidence`` carries observed per-project data (star growth, release
+    cadence, known advisories, license changes); when absent, scoring falls
+    back to the tag/metadata rules alone, unchanged.
+    """
     tags = set(signal.tags)
     reason_codes: list[str] = []
     metadata = signal.metadata or {}
@@ -63,6 +73,17 @@ def score_signal(signal: Signal, config: ScoringConfig) -> ScoredSignal:
     else:
         security_posture = 4
 
+    if evidence is not None:
+        cap = _advisory_security_cap(evidence)
+        if cap is not None:
+            security_posture = min(security_posture, cap)
+            reason_codes.append("open_security_advisories")
+        if _shows_active_development(evidence):
+            open_source_maturity = min(open_source_maturity + 1, 5)
+            reason_codes.append("active_development")
+        if evidence.license_changed_from:
+            reason_codes.append("license_changed")
+
     rubric = build_on_prem_rubric(signal)
     reason_codes.extend(_reason_codes_from_rubric(rubric, metadata))
 
@@ -83,6 +104,27 @@ def score_signal(signal: Signal, config: ScoringConfig) -> ScoredSignal:
         recommended_ring=ring,
         on_prem_rubric=rubric,
     )
+
+
+_SEVERE_ADVISORIES = {"CRITICAL", "HIGH"}
+_MODERATE_ADVISORIES = {"MODERATE", "MEDIUM"}
+
+
+def _advisory_security_cap(evidence: ProjectEvidence) -> int | None:
+    """Cap for security_posture from open advisories, or None when clean."""
+    severities = {a.severity.upper() for a in evidence.advisories}
+    if severities & _SEVERE_ADVISORIES:
+        return 2
+    if severities & _MODERATE_ADVISORIES:
+        return 3
+    return None
+
+
+def _shows_active_development(evidence: ProjectEvidence) -> bool:
+    """Observed momentum strong enough to lift open-source maturity by one."""
+    growing = evidence.star_growth_pct is not None and evidence.star_growth_pct >= 1.0
+    shipping = evidence.releases_in_window >= 2
+    return growing or shipping
 
 
 def build_on_prem_rubric(signal: Signal) -> dict[str, OnPremAssessment]:

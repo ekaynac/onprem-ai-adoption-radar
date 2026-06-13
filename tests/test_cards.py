@@ -47,3 +47,69 @@ def test_clean_text_unescapes_entities_and_strips_html_tags():
     text = "It&amp;#39;s a <strong>big</strong> release<br/> with &lt;tags&gt; <!-- noise -->"
 
     assert _clean_text(text) == "It's a big release with <tags>"
+
+
+def test_cards_carry_evidence_notes_and_license_change_risk():
+    from datetime import UTC, datetime
+
+    from radar.models import (
+        Category,
+        ProjectEvidence,
+        ScoreBreakdown,
+        ScoredSignal,
+        Signal,
+    )
+    from radar.models import Ring as RingEnum
+    from radar.pipeline.cards import build_decision_cards
+
+    signal = Signal(
+        id="s1", source_id="src", project="vLLM", category=Category.MODEL_SERVING,
+        title="vLLM repository snapshot", url="https://github.com/org/vllm",
+        published_at=datetime(2026, 6, 12, tzinfo=UTC),
+        signal_type="github_repo_snapshot",
+    )
+    scored = ScoredSignal(
+        signal=signal,
+        scores=ScoreBreakdown(
+            workflow_impact=4, laptop_runnability=4, open_source_maturity=4,
+            on_prem_relevance=4, security_posture=4, demo_value=4, setup_friction=4,
+        ),
+        recommended_ring=RingEnum.PILOT,
+    )
+    evidence = ProjectEvidence(
+        star_growth=500, star_growth_pct=2.0,
+        license_changed_from="Apache-2.0", license="BUSL-1.1",
+    )
+
+    cards = build_decision_cards([scored], evidence_by_project={"vLLM": evidence})
+
+    card = cards[0]
+    assert any("+500" in note for note in card.evidence_notes)
+    assert any("Apache-2.0" in risk and "BUSL-1.1" in risk for risk in card.risks)
+
+
+def test_cards_without_evidence_have_empty_notes():
+    from datetime import UTC, datetime
+
+    from radar.models import Category, ScoreBreakdown, ScoredSignal, Signal
+    from radar.models import Ring as RingEnum
+    from radar.pipeline.cards import build_decision_cards
+
+    signal = Signal(
+        id="s1", source_id="src", project="vLLM", category=Category.MODEL_SERVING,
+        title="snapshot", url="https://github.com/org/vllm",
+        published_at=datetime(2026, 6, 12, tzinfo=UTC),
+        signal_type="github_repo_snapshot",
+    )
+    scored = ScoredSignal(
+        signal=signal,
+        scores=ScoreBreakdown(
+            workflow_impact=4, laptop_runnability=4, open_source_maturity=4,
+            on_prem_relevance=4, security_posture=4, demo_value=4, setup_friction=4,
+        ),
+        recommended_ring=RingEnum.PILOT,
+    )
+
+    cards = build_decision_cards([scored])
+
+    assert cards[0].evidence_notes == []

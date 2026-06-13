@@ -6,16 +6,28 @@ import html
 import re
 from collections import defaultdict
 
-from radar.models import DecisionCard, OnPremAssessment, Ring, ScoredSignal
+from radar.models import (
+    DecisionCard,
+    OnPremAssessment,
+    ProjectEvidence,
+    Ring,
+    ScoredSignal,
+)
+from radar.pipeline.evidence import evidence_notes
 from radar.scoring.calibrate import calibrate_rings
 
 
-def build_decision_cards(scored_signals: list[ScoredSignal]) -> list[DecisionCard]:
+def build_decision_cards(
+    scored_signals: list[ScoredSignal],
+    evidence_by_project: dict[str, ProjectEvidence] | None = None,
+) -> list[DecisionCard]:
     """Build one decision card per project.
 
     Rings are calibrated across the whole batch (hybrid absolute + quartile)
     so they discriminate instead of collapsing into one band; the calibrated
     ring overrides each project's per-signal recommendation everywhere.
+    ``evidence_by_project`` adds observed-data notes (and license-change
+    risks) to each project's card.
     """
     grouped: dict[str, list[ScoredSignal]] = defaultdict(list)
     for scored in scored_signals:
@@ -51,6 +63,7 @@ def build_decision_cards(scored_signals: list[ScoredSignal]) -> list[DecisionCar
         risk_level = _risk_level(best)
         risk_reasons = _risk_reasons(best)
         rubric = _merge_rubric(items)
+        evidence_for_project = (evidence_by_project or {}).get(project)
         cards.append(
             DecisionCard(
                 project=project,
@@ -75,7 +88,10 @@ def build_decision_cards(scored_signals: list[ScoredSignal]) -> list[DecisionCar
                 on_prem_fit=_on_prem_fit(rubric),
                 on_prem_rubric=rubric,
                 risk_reasons=risk_reasons,
-                risks=_risks(best, rubric),
+                risks=_risks(best, rubric, evidence_for_project),
+                evidence_notes=(
+                    evidence_notes(evidence_for_project) if evidence_for_project else []
+                ),
                 try_this_week=_try_steps(best),
                 try_next=_try_steps(best),
                 company_demo={
@@ -176,8 +192,22 @@ def _on_prem_fit(rubric: dict[str, OnPremAssessment]) -> str:
     return f"{prefix}: {detail}."
 
 
-def _risks(best: ScoredSignal, rubric: dict[str, OnPremAssessment]) -> list[str]:
-    risks = list(_risk_reasons(best))
+def _risks(
+    best: ScoredSignal,
+    rubric: dict[str, OnPremAssessment],
+    evidence: ProjectEvidence | None = None,
+) -> list[str]:
+    risks: list[str] = []
+    if evidence is not None:
+        # Observed risk events lead the list — they must survive the [:5] cap.
+        if evidence.license_changed_from:
+            risks.append(
+                f"License changed from {evidence.license_changed_from} to "
+                f"{evidence.license or 'unknown'}; re-review commercial terms."
+            )
+        for advisory in evidence.advisories:
+            risks.append(f"Open {advisory.severity} security advisory {advisory.id}.")
+    risks.extend(_risk_reasons(best))
     for name, assessment in rubric.items():
         if assessment.score <= 2:
             risks.append(f"{_label(name)}: {assessment.reason}")
