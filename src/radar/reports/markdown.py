@@ -8,9 +8,17 @@ from collections import defaultdict
 from radar.models import DecisionCard, Ring
 
 
-def render_markdown_report(cards: list[DecisionCard], title: str) -> str:
+def render_markdown_report(
+    cards: list[DecisionCard],
+    title: str,
+    movers: list[str] | None = None,
+) -> str:
     """Render decision cards as a decision-oriented Markdown report."""
     lines = [f"# {_clean_inline(title)}", ""]
+    if movers:
+        lines.extend(["## Movers", ""])
+        lines.extend(f"- {_clean_inline(line)}" for line in movers)
+        lines.append("")
     lines.extend(
         _section("Try This Week", [c for c in cards if c.ring in {Ring.ADOPT, Ring.PILOT}])
     )

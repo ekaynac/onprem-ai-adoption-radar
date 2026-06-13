@@ -18,9 +18,11 @@ from radar.pipeline.dedupe import dedupe_signals
 from radar.pipeline.delta import CardDelta, ChangeType, compute_deltas
 from radar.pipeline.evidence import build_evidence, collect_project_metrics
 from radar.pipeline.llm_classify import build_analyst
+from radar.pipeline.momentum import compute_momentum
 from radar.pipeline.quotas import apply_category_quotas
 from radar.reports.history import render_history_report
 from radar.reports.markdown import render_markdown_report
+from radar.reports.movers import build_mover_lines
 from radar.reports.try_this_week import render_try_this_week_report
 from radar.scoring.deterministic import score_signal
 from radar.storage.config import load_config
@@ -173,17 +175,11 @@ class RadarOrchestrator:
                 if item.signal.project in filtered_projects
             ],
         )
-        self.run_store.save_stage(
-            run_id,
-            "decision_cards",
-            [card.model_dump(mode="json") for card in filtered_cards],
-        )
         # Capture the prior persisted state BEFORE upserting so the delta
         # reflects what changed since the last scan.
         previous_cards = self.database.list_cards()
         deltas = compute_deltas(previous=previous_cards, current=filtered_cards)
 
-        self.database.upsert_cards(filtered_cards)
         # Persist this scan's changes to BOTH the durable JSONL log (source of
         # truth) and the DB projection. Drop "new" events for projects already
         # in the timeline: after a DB/snapshot wipe every project would look new
@@ -200,7 +196,31 @@ class RadarOrchestrator:
         self.history.add_events(events)
         append_events(self.history_log, events)
 
-        report = render_markdown_report(filtered_cards, "Agent/Tooling Adoption Radar")
+        # Momentum reads metrics + ring history INCLUDING this scan, so it runs
+        # after both were persisted; trend is attached before cards persist.
+        momentums = {
+            card.project: compute_momentum(
+                card.project,
+                metric_rows=self.metrics.history_for(card.project),
+                ring_events=self.history.history_for(card.project),
+            )
+            for card in filtered_cards
+        }
+        filtered_cards = [
+            card.model_copy(update={"trend": momentums[card.project].direction})
+            for card in filtered_cards
+        ]
+        self.run_store.save_stage(
+            run_id,
+            "decision_cards",
+            [card.model_dump(mode="json") for card in filtered_cards],
+        )
+        self.database.upsert_cards(filtered_cards)
+
+        mover_lines = build_mover_lines(deltas, list(momentums.values()))
+        report = render_markdown_report(
+            filtered_cards, "Agent/Tooling Adoption Radar", movers=mover_lines
+        )
         report_path = self.run_store.save_report(run_id, report)
 
         delta_report = render_try_this_week_report(deltas, "Try This Week")

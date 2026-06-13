@@ -161,6 +161,44 @@ def history(
 
 
 @app.command()
+def movers(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Show each project's direction of travel (rising / falling / steady)."""
+    from radar.pipeline.momentum import compute_momentum, trend_arrow
+    from radar.storage.history_store import HistoryStore
+    from radar.storage.metrics_store import MetricsStore
+
+    history = HistoryStore(root / "data" / "radar.db")
+    history.initialize()
+    metrics = MetricsStore(root / "data" / "radar.db")
+    metrics.initialize()
+
+    summaries = history.summaries()
+    if not summaries:
+        console.print("No history yet. Run [bold]radar scan[/bold] first.")
+        raise typer.Exit(code=1)
+
+    momentums = [
+        compute_momentum(
+            s.project,
+            metric_rows=metrics.history_for(s.project),
+            ring_events=history.history_for(s.project),
+        )
+        for s in summaries
+    ]
+    order = {"rising": 0, "falling": 1, "steady": 2}
+    momentums.sort(key=lambda m: (order.get(m.direction, 3), -(m.star_growth_pct or 0)))
+    for momentum in momentums:
+        note = f"  {momentum.note}" if momentum.note else ""
+        console.print(
+            f"  {trend_arrow(momentum.direction)} {momentum.project:<28} "
+            f"{momentum.direction:<8}{note}",
+            highlight=False,
+        )
+
+
+@app.command()
 def sandbox(
     project: str = typer.Option(..., help="Project to generate a trial plan for."),
     root: Path = typer.Option(Path("."), help="Project root."),

@@ -36,7 +36,7 @@
     <h2>Try This Week</h2>
     <table>
       <thead>
-        <tr><th>Project</th><th>Category</th><th>Ring</th><th>Risk</th><th>Summary</th></tr>
+        <tr><th>Project</th><th>Category</th><th>Ring</th><th>Trend</th><th>Risk</th><th>Summary</th></tr>
       </thead>
       <tbody>
         {% for card in try_this_week %}
@@ -44,11 +44,12 @@
           <td>{{ card.project }}</td>
           <td>{{ card.category.value }}</td>
           <td class="ring {{ card.ring.value }}">{{ card.ring.value }}</td>
+          <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
           <td>{{ card.risk_level }}</td>
           <td>{{ card.summary }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="5">No adopt/pilot picks in the latest scan.</td></tr>
+        <tr><td colspan="6">No adopt/pilot picks in the latest scan.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -56,7 +57,7 @@
     <h2>All Tracked Projects</h2>
     <table>
       <thead>
-        <tr><th>Project</th><th>Category</th><th>Ring</th><th>Risk</th><th>On-prem fit</th></tr>
+        <tr><th>Project</th><th>Category</th><th>Ring</th><th>Trend</th><th>Risk</th><th>On-prem fit</th></tr>
       </thead>
       <tbody>
         {% for card in cards %}
@@ -64,11 +65,12 @@
           <td>{{ card.project }}</td>
           <td>{{ card.category.value }}</td>
           <td class="ring {{ card.ring.value }}">{{ card.ring.value }}</td>
+          <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
           <td>{{ card.risk_level }}</td>
           <td>{{ card.on_prem_fit }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="5">No cards yet.</td></tr>
+        <tr><td colspan="6">No cards yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

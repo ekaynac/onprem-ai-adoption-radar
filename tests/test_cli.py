@@ -192,3 +192,42 @@ def test_report_json_outputs_machine_readable_cards(tmp_path):
     payload = json.loads(result.stdout)
     assert payload[0]["project"] == "vLLM"
     assert payload[0]["ring"] == "adopt"
+
+
+def test_movers_command_shows_directions(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+version: "1.0"
+sources:
+  - id: mcp-docs
+    type: manual
+    enabled: true
+    project: Model Context Protocol
+    category: mcp_tooling
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+    tags: [mcp]
+quotas:
+  mcp_tooling: 4
+scoring:
+  default_ring: watch
+""",
+        encoding="utf-8",
+    )
+    runner.invoke(app, ["scan", "--root", str(tmp_path), "--days", "2"])
+
+    result = runner.invoke(app, ["movers", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Model Context Protocol" in result.stdout
+
+
+def test_movers_without_history_explains_scan(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["movers", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0
+    assert "radar scan" in result.stdout
