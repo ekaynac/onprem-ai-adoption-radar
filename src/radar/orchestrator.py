@@ -84,101 +84,13 @@ class RadarOrchestrator:
         weights = resolve_weights(config.profiles, profile) if profile else None
         self.database.initialize()
         self.history.initialize()
-        # Reconcile the durable log (source of truth) with the DB projection:
-        # rebuild the DB from the log if present, or backfill the log from a
-        # legacy DB that predates the log. Either way the log ends up complete.
-        log_events = load_events(self.history_log)
-        if log_events:
-            self.history.import_events(log_events)
-        elif self.history.has_events():
-            append_events(self.history_log, self.history.all_events())
+        self._reconcile_history()
         run_id = self.run_store.create_run()
         since = datetime.now(UTC) - timedelta(days=days)
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            collectors = build_collectors(config, client)
-            raw = []
-            collector_warnings: list[str] = []
-            for collector in collectors:
-                try:
-                    raw.extend(await collector.fetch(since))
-                except Exception as exc:
-                    collector_warnings.append(
-                        f"{collector.__class__.__name__}: {exc}"
-                    )
-            if collector_warnings:
-                self.run_store.update_meta(
-                    run_id, {"collector_warnings": collector_warnings}
-                )
-
-        self.run_store.save_stage(
-            run_id,
-            "raw_signals",
-            [signal.model_dump(mode="json") for signal in raw],
-        )
-        # Record per-source signal counts so dead feeds can be flagged. Every
-        # enabled source gets a row (zero when it produced nothing this scan).
-        self.source_health.initialize()
-        source_counts = {s.id: 0 for s in config.sources if s.enabled}
-        for signal in raw:
-            if signal.source_id in source_counts:
-                source_counts[signal.source_id] += 1
-        self.source_health.record(run_id, datetime.now(UTC), source_counts)
-        # Re-attribute high-volume firehose entries to tracked projects before
-        # dedupe/scoring. Unmatched entries are dropped (not silently): their
-        # count and a sample are recorded in the run meta for visibility.
-        index = build_project_index(config.sources)
-        # Optional LLM analyst (off by default) takes a second pass at entries
-        # the deterministic matcher dropped. build_analyst returns None unless
-        # config.llm.enabled, so the default path stays fully offline.
-        analyst = build_analyst(config.llm)
-        firehose = reclassify_firehose(raw, index, analyst=analyst)
-        if firehose.dropped_titles or firehose.llm_recovered:
-            self.run_store.update_meta(
-                run_id,
-                {
-                    "firehose_dropped_count": len(firehose.dropped_titles),
-                    "firehose_dropped_sample": firehose.dropped_titles[:10],
-                    "firehose_llm_recovered": firehose.llm_recovered,
-                },
-            )
-        deduped = dedupe_signals(firehose.kept)
-        # Observed evidence: reduce this scan's signals to per-project metrics,
-        # enrich them (advisories / HN / downloads — additive, never fatal),
-        # compare against the previous scan's rows (read BEFORE recording the
-        # new ones), and let scoring see the result.
-        observed_at = datetime.now(UTC)
-        self.metrics.initialize()
-        current_metrics = collect_project_metrics(deduped, run_id, observed_at)
-        advisories: dict[str, list] = {}
-        if current_metrics:
-            async with httpx.AsyncClient(
-                timeout=float(config.enrichment.timeout_seconds)
-            ) as enrich_client:
-                enrichment = await run_enrichment(
-                    config.enrichment,
-                    sources=config.sources,
-                    metrics=current_metrics,
-                    since=since,
-                    now=observed_at,
-                    client=enrich_client,
-                )
-            current_metrics = enrichment.metrics
-            advisories = dict(enrichment.advisories)
-            if enrichment.warnings:
-                self.run_store.update_meta(
-                    run_id, {"enrichment_warnings": enrichment.warnings}
-                )
-        evidence = {
-            project: build_evidence(
-                metrics,
-                self.metrics.latest(project, exclude_run=run_id),
-                now=observed_at,
-                advisories=advisories.get(project),
-            )
-            for project, metrics in current_metrics.items()
-        }
-        self.metrics.record(list(current_metrics.values()))
+        raw = await self._collect_raw(config, run_id, since)
+        deduped = self._classify(config, raw, run_id)
+        evidence = await self._assemble_evidence(config, deduped, run_id, since)
         scored: list[ScoredSignal] = [
             score_signal(signal, config.scoring, evidence.get(signal.project))
             for signal in deduped
@@ -212,33 +124,11 @@ class RadarOrchestrator:
         # reflects what changed since the last scan.
         previous_cards = self.database.list_cards()
         deltas = compute_deltas(previous=previous_cards, current=filtered_cards)
-
-        # Persist this scan's changes to BOTH the durable JSONL log (source of
-        # truth) and the DB projection. Drop "new" events for projects already
-        # in the timeline: after a DB/snapshot wipe every project would look new
-        # again, which would pollute the durable record on a re-scan.
-        seen = self.history.seen_projects()
-        persistable = [
-            d
-            for d in deltas
-            if not (d.change_type == ChangeType.NEW and d.project in seen)
-        ]
-        events = deltas_to_events(
-            persistable, run_id=run_id, observed_at=datetime.now(UTC)
-        )
-        self.history.add_events(events)
-        append_events(self.history_log, events)
+        self._persist_history(deltas, run_id)
 
         # Momentum reads metrics + ring history INCLUDING this scan, so it runs
         # after both were persisted; trend is attached before cards persist.
-        momentums = {
-            card.project: compute_momentum(
-                card.project,
-                metric_rows=self.metrics.history_for(card.project),
-                ring_events=self.history.history_for(card.project),
-            )
-            for card in filtered_cards
-        }
+        momentums = self._compute_momentums(filtered_cards)
         filtered_cards = [
             card.model_copy(update={"trend": momentums[card.project].direction})
             for card in filtered_cards
@@ -266,17 +156,7 @@ class RadarOrchestrator:
         )
         history_report_path = self.run_store.save_history(run_id, history_report)
 
-        # Fire-and-forget outbound notification (off by default). Only ring
-        # changes trigger it; failure is logged, never fatal to the scan.
-        if config.notify.enabled:
-            async with httpx.AsyncClient(
-                timeout=float(config.notify.timeout_seconds)
-            ) as notify_client:
-                sent = await send_notification(
-                    config.notify, deltas, run_id=run_id, client=notify_client
-                )
-            if sent:
-                self.run_store.update_meta(run_id, {"notified": True})
+        await self._notify(config, deltas, run_id)
 
         return ScanResult(
             run_id=run_id,
@@ -286,6 +166,159 @@ class RadarOrchestrator:
             history_report_path=history_report_path,
             deltas=deltas,
         )
+
+    # --- scan phases (extracted from _scan for readability) -----------------
+
+    def _reconcile_history(self) -> None:
+        """Reconcile the durable JSONL log (source of truth) with the DB.
+
+        Rebuild the DB projection from the log if present, or backfill the log
+        from a legacy DB that predates it. Either way the log ends up complete.
+        """
+        log_events = load_events(self.history_log)
+        if log_events:
+            self.history.import_events(log_events)
+        elif self.history.has_events():
+            append_events(self.history_log, self.history.all_events())
+
+    async def _collect_raw(self, config, run_id: str, since: datetime) -> list[Signal]:
+        """Fetch from all collectors, persist raw signals, record source health.
+
+        A failing collector costs at most its own signals; the failure is
+        recorded in the run meta rather than aborting the scan.
+        """
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            collectors = build_collectors(config, client)
+            raw: list[Signal] = []
+            collector_warnings: list[str] = []
+            for collector in collectors:
+                try:
+                    raw.extend(await collector.fetch(since))
+                except Exception as exc:
+                    collector_warnings.append(f"{collector.__class__.__name__}: {exc}")
+            if collector_warnings:
+                self.run_store.update_meta(
+                    run_id, {"collector_warnings": collector_warnings}
+                )
+
+        self.run_store.save_stage(
+            run_id, "raw_signals", [signal.model_dump(mode="json") for signal in raw]
+        )
+        # Per-source counts (zero when a source produced nothing) feed dead-feed
+        # detection in `radar seed list`.
+        self.source_health.initialize()
+        source_counts = {s.id: 0 for s in config.sources if s.enabled}
+        for signal in raw:
+            if signal.source_id in source_counts:
+                source_counts[signal.source_id] += 1
+        self.source_health.record(run_id, datetime.now(UTC), source_counts)
+        return raw
+
+    def _classify(self, config, raw: list[Signal], run_id: str) -> list[Signal]:
+        """Re-attribute firehose entries to tracked projects, then dedupe.
+
+        Unmatched firehose entries are dropped but counted/sampled into the run
+        meta. The optional LLM analyst (off by default) handles the tail.
+        """
+        index = build_project_index(config.sources)
+        analyst = build_analyst(config.llm)
+        firehose = reclassify_firehose(raw, index, analyst=analyst)
+        if firehose.dropped_titles or firehose.llm_recovered:
+            self.run_store.update_meta(
+                run_id,
+                {
+                    "firehose_dropped_count": len(firehose.dropped_titles),
+                    "firehose_dropped_sample": firehose.dropped_titles[:10],
+                    "firehose_llm_recovered": firehose.llm_recovered,
+                },
+            )
+        return dedupe_signals(firehose.kept)
+
+    async def _assemble_evidence(
+        self, config, deduped: list[Signal], run_id: str, since: datetime
+    ) -> dict:
+        """Reduce signals to metrics, enrich them, and build per-project evidence.
+
+        Enrichment (advisories / HN / downloads) is best-effort. Evidence
+        compares against the PREVIOUS scan's metrics (read before the current
+        rows are recorded), then the new rows are persisted.
+        """
+        observed_at = datetime.now(UTC)
+        self.metrics.initialize()
+        current_metrics = collect_project_metrics(deduped, run_id, observed_at)
+        advisories: dict[str, list] = {}
+        if current_metrics:
+            async with httpx.AsyncClient(
+                timeout=float(config.enrichment.timeout_seconds)
+            ) as enrich_client:
+                enrichment = await run_enrichment(
+                    config.enrichment,
+                    sources=config.sources,
+                    metrics=current_metrics,
+                    since=since,
+                    now=observed_at,
+                    client=enrich_client,
+                )
+            current_metrics = enrichment.metrics
+            advisories = dict(enrichment.advisories)
+            if enrichment.warnings:
+                self.run_store.update_meta(
+                    run_id, {"enrichment_warnings": enrichment.warnings}
+                )
+        evidence = {
+            project: build_evidence(
+                metrics,
+                self.metrics.latest(project, exclude_run=run_id),
+                now=observed_at,
+                advisories=advisories.get(project),
+            )
+            for project, metrics in current_metrics.items()
+        }
+        self.metrics.record(list(current_metrics.values()))
+        return evidence
+
+    def _persist_history(self, deltas: list[CardDelta], run_id: str) -> None:
+        """Append ring-change events to the DB and durable log.
+
+        Drops "new" events for projects already in the timeline: after a
+        DB/snapshot wipe every project would look new again, which would
+        pollute the durable record on a re-scan.
+        """
+        seen = self.history.seen_projects()
+        persistable = [
+            d
+            for d in deltas
+            if not (d.change_type == ChangeType.NEW and d.project in seen)
+        ]
+        events = deltas_to_events(
+            persistable, run_id=run_id, observed_at=datetime.now(UTC)
+        )
+        self.history.add_events(events)
+        append_events(self.history_log, events)
+
+    def _compute_momentums(self, cards: list[DecisionCard]) -> dict:
+        """Direction of travel per project from metrics + ring history."""
+        return {
+            card.project: compute_momentum(
+                card.project,
+                metric_rows=self.metrics.history_for(card.project),
+                ring_events=self.history.history_for(card.project),
+            )
+            for card in cards
+        }
+
+    async def _notify(self, config, deltas: list[CardDelta], run_id: str) -> None:
+        """Fire-and-forget outbound webhook on ring changes (off by default)."""
+        if not config.notify.enabled:
+            return
+        async with httpx.AsyncClient(
+            timeout=float(config.notify.timeout_seconds)
+        ) as notify_client:
+            sent = await send_notification(
+                config.notify, deltas, run_id=run_id, client=notify_client
+            )
+        if sent:
+            self.run_store.update_meta(run_id, {"notified": True})
 
     def replay(self, source_run_id: str) -> ReplayResult:
         """Re-score a past run's persisted raw signals with CURRENT config.
