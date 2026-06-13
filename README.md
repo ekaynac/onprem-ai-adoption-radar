@@ -53,7 +53,7 @@ Everything new degrades gracefully and stays off the critical path: enrichment (
 Requires Python 3.12+. Uses [uv](https://github.com/astral-sh/uv).
 
 ```bash
-git clone <your-fork-url> onprem-ai-adoption-radar
+git clone https://github.com/ekaynac/onprem-ai-adoption-radar.git
 cd onprem-ai-adoption-radar
 uv venv && uv pip install -e ".[dev]"
 ```
