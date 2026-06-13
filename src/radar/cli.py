@@ -161,6 +161,161 @@ def history(
 
 
 @app.command()
+def override(
+    project: str = typer.Option(..., help="Project whose ring to pin."),
+    ring: str = typer.Option("", help="Ring to pin: adopt, pilot, watch, or avoid."),
+    reason: str = typer.Option("", help="Why this pin exists (required when pinning)."),
+    clear: bool = typer.Option(False, "--clear", help="Remove the project's pin."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Pin a project's ring (your decision wins; drift vs the radar is surfaced)."""
+    from datetime import datetime
+
+    from radar.storage.overrides_store import OverridesStore, RingOverride
+
+    store = OverridesStore(root / "data" / "overrides.yaml")
+    if clear:
+        if store.clear_override(project):
+            console.print(f"Cleared pin for {project}. Next scan returns it to computed rings.")
+        else:
+            console.print(f"[yellow]No pin existed for {project}.[/yellow]")
+        _repin_stored_card(root, project, None, "")
+        return
+
+    from radar.models import Ring as RingEnum
+
+    try:
+        pinned_ring = RingEnum(ring)
+    except ValueError as exc:
+        console.print(f"[red]Unknown ring:[/red] {ring or '(missing)'} — use adopt/pilot/watch/avoid.")
+        raise typer.Exit(code=1) from exc
+    if not reason.strip():
+        console.print("[red]A pin needs a --reason.[/red] Future-you will want to know why.")
+        raise typer.Exit(code=1)
+
+    store.set_override(
+        RingOverride(
+            project=project,
+            ring=pinned_ring,
+            reason=reason.strip(),
+            set_at=datetime.now(UTC),
+        )
+    )
+    console.print(f"Pinned {project} to [bold]{pinned_ring.value}[/bold]: {reason.strip()}")
+    _repin_stored_card(root, project, pinned_ring, reason.strip())
+
+
+def _repin_stored_card(root: Path, project: str, ring, reason: str) -> None:
+    """Apply/clear a pin on the persisted card immediately and journal the move."""
+    from datetime import datetime
+
+    from radar.pipeline.delta import compute_deltas
+    from radar.storage.database import RadarDatabase
+    from radar.storage.history_log import append_events
+    from radar.storage.history_store import HistoryStore, deltas_to_events
+
+    db = RadarDatabase(root / "data" / "radar.db")
+    db.initialize()
+    cards = db.list_cards()
+    card = next((c for c in cards if c.project == project), None)
+    if card is None:
+        console.print("(No scanned card yet — the pin applies from the next scan.)")
+        return
+
+    if ring is None:  # clearing: restore the computed ring if we have one
+        restored_ring = card.computed_ring or card.ring
+        updated = card.model_copy(
+            update={
+                "ring": restored_ring,
+                "pinned": False,
+                "pinned_reason": "",
+                "computed_ring": None,
+            }
+        )
+    else:
+        updated = card.model_copy(
+            update={
+                "ring": ring,
+                "pinned": True,
+                "pinned_reason": reason,
+                "computed_ring": card.computed_ring or card.ring,
+            }
+        )
+    if updated.ring == card.ring:
+        db.upsert_cards([updated])
+        return
+
+    deltas = compute_deltas(previous=[card], current=[updated])
+    db.upsert_cards([updated])
+    now = datetime.now(UTC)
+    run_id = f"override-{now:%Y%m%dT%H%M%SZ}"
+    history = HistoryStore(root / "data" / "radar.db")
+    history.initialize()
+    events = deltas_to_events(deltas, run_id=run_id, observed_at=now)
+    history.add_events(events)
+    append_events(root / "data" / "history.jsonl", events)
+    console.print(f"Card updated: {card.ring.value} → {updated.ring.value} (journaled).")
+
+
+@app.command()
+def trial(
+    project: str = typer.Option(..., help="Project you trialed."),
+    outcome: str = typer.Option(..., help="adopted, rejected, or inconclusive."),
+    notes: str = typer.Option("", help="What you observed."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Record a sandbox-trial outcome in the decision journal (and timeline)."""
+    from datetime import datetime
+
+    from radar.storage.overrides_store import OverridesStore, TrialRecord
+
+    store = OverridesStore(root / "data" / "overrides.yaml")
+    try:
+        record = TrialRecord(
+            project=project,
+            outcome=outcome,
+            notes=notes.strip(),
+            recorded_at=datetime.now(UTC),
+        )
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+    store.add_trial(record)
+    _journal_trial(root, record)
+    console.print(f"Recorded trial for {project}: [bold]{outcome}[/bold].")
+
+
+def _journal_trial(root: Path, record) -> None:
+    """Append the trial to the project's timeline when the project is tracked."""
+    from radar.pipeline.delta import ChangeType
+    from radar.storage.database import RadarDatabase
+    from radar.storage.history_log import append_events
+    from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
+
+    db = RadarDatabase(root / "data" / "radar.db")
+    db.initialize()
+    card = next((c for c in db.list_cards() if c.project == record.project), None)
+    if card is None:
+        console.print("(Project has no card yet — journaled in overrides.yaml only.)")
+        return
+    reason = f"Trial {record.outcome}" + (f": {record.notes}" if record.notes else ".")
+    event = ProjectHistoryEvent(
+        project=record.project,
+        category=card.category,
+        change_type=ChangeType.UPDATED,
+        ring=card.ring,
+        previous_ring=card.ring,
+        run_id=f"trial-{record.recorded_at:%Y%m%dT%H%M%SZ}",
+        observed_at=record.recorded_at,
+        reasons=[reason],
+    )
+    history = HistoryStore(root / "data" / "radar.db")
+    history.initialize()
+    history.add_events([event])
+    append_events(root / "data" / "history.jsonl", [event])
+
+
+@app.command()
 def movers(
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:

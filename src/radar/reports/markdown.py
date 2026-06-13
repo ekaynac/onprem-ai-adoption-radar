@@ -51,6 +51,9 @@ def _card_lines(card: DecisionCard) -> list[str]:
         "",
         f"- **Decision:** `{card.ring.value}` (risk: `{card.risk_level}`)",
     ]
+    if card.pinned:
+        computed = f" (computed: `{card.computed_ring.value}`)" if card.computed_ring else ""
+        lines.append(f"- **Pinned:** {_clean_inline(card.pinned_reason)}{computed}")
     lines.extend(_field("What changed", card.what_changed or [_clean_inline(card.summary)]))
     if card.evidence_notes:
         lines.extend(_field("Observed", card.evidence_notes))
