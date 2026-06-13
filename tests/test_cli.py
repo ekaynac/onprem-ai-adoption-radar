@@ -477,3 +477,63 @@ def test_backtest_creates_no_new_run_dirs(tmp_path):
 
     after = sorted(p.name for p in runs_dir.iterdir())
     assert after == before
+
+
+def _seed_cards_for_calibration(tmp_path, rings):
+    """Upsert cards with the given rings (and per-dim breakdowns) for calibrate tests."""
+    from radar.models import Category, DecisionCard, Ring, ScoreBreakdown
+    from radar.storage.database import RadarDatabase
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    cards = []
+    for i, ring in enumerate(rings):
+        # Vary one dimension so scores aren't all identical.
+        cards.append(
+            DecisionCard(
+                project=f"P{i}", category=Category.MODEL_SERVING, ring=Ring(ring),
+                score=4.0, summary="s", workflow_fit={}, risk_level="low",
+                score_breakdown=ScoreBreakdown(
+                    workflow_impact=4, laptop_runnability=4, open_source_maturity=3 + (i % 3),
+                    on_prem_relevance=4, security_posture=4, demo_value=4, setup_friction=4,
+                ),
+            )
+        )
+    db.upsert_cards(cards)
+
+
+def test_calibrate_check_fails_when_not_discriminating(tmp_path):
+    runner = CliRunner()
+    _seed_cards_for_calibration(tmp_path, ["watch"] * 5)  # one ring → collapse
+
+    result = runner.invoke(app, ["calibrate-report", "--root", str(tmp_path), "--check"])
+
+    assert result.exit_code == 1
+    assert "Scoring Calibration" in result.stdout  # report still printed for diagnosis
+
+
+def test_calibrate_check_passes_when_discriminating(tmp_path):
+    runner = CliRunner()
+    _seed_cards_for_calibration(tmp_path, ["adopt", "pilot", "pilot", "watch", "avoid"])
+
+    result = runner.invoke(app, ["calibrate-report", "--root", str(tmp_path), "--check"])
+
+    assert result.exit_code == 0
+
+
+def test_calibrate_without_check_exits_zero_even_if_collapsed(tmp_path):
+    runner = CliRunner()
+    _seed_cards_for_calibration(tmp_path, ["watch"] * 5)
+
+    result = runner.invoke(app, ["calibrate-report", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+
+
+def test_calibrate_check_no_cards_exits_one(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["calibrate-report", "--root", str(tmp_path), "--check"])
+
+    assert result.exit_code != 0
