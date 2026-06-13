@@ -25,6 +25,7 @@ from radar.reports.markdown import render_markdown_report
 from radar.reports.movers import build_mover_lines
 from radar.reports.try_this_week import render_try_this_week_report
 from radar.scoring.deterministic import score_signal
+from radar.scoring.profiles import resolve_weights, reweight_cards
 from radar.storage.config import load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_log import append_events, load_events
@@ -71,12 +72,13 @@ class RadarOrchestrator:
         # Human decisions: pinned rings + trial journal (portable YAML).
         self.overrides_path = self.data_dir / "overrides.yaml"
 
-    def scan(self, days: int) -> ScanResult:
+    def scan(self, days: int, profile: str | None = None) -> ScanResult:
         """Run the scan pipeline synchronously for CLI callers."""
-        return asyncio.run(self._scan(days))
+        return asyncio.run(self._scan(days, profile))
 
-    async def _scan(self, days: int) -> ScanResult:
+    async def _scan(self, days: int, profile: str | None = None) -> ScanResult:
         config = load_config(self.config_path)
+        weights = resolve_weights(config.profiles, profile) if profile else None
         self.database.initialize()
         self.history.initialize()
         # Reconcile the durable log (source of truth) with the DB projection:
@@ -175,7 +177,11 @@ class RadarOrchestrator:
             "scored_signals",
             [item.model_dump(mode="json") for item in scored],
         )
-        cards = build_decision_cards(scored, evidence_by_project=evidence)
+        cards = build_decision_cards(
+            scored, evidence_by_project=evidence, weights=weights
+        )
+        if profile:
+            self.run_store.update_meta(run_id, {"profile": profile})
         filtered_cards = apply_category_quotas(cards, config.quotas)
         # Human pins win over computed rings (and surface drift) BEFORE deltas,
         # so pin changes land in the timeline like any other ring move.
@@ -318,7 +324,19 @@ class RadarOrchestrator:
             for summary in self.history.summaries()
         }
 
-    def latest_cards(self) -> list[DecisionCard]:
-        """Return cards from SQLite."""
+    def latest_cards(self, profile: str | None = None) -> list[DecisionCard]:
+        """Return cards from SQLite, optionally re-ranked through a profile.
+
+        Re-ranking is a view only — it never persists. Cards are re-sorted by
+        the reweighted score so the report reflects the profile's ordering.
+        """
         self.database.initialize()
-        return self.database.list_cards()
+        cards = self.database.list_cards()
+        if not profile:
+            return cards
+        config = load_config(self.config_path)
+        weights = resolve_weights(config.profiles, profile)
+        reweighted = reweight_cards(cards, weights)
+        return sorted(
+            reweighted, key=lambda c: (c.category.value, -c.score, c.project.lower())
+        )

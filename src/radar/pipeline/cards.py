@@ -16,11 +16,13 @@ from radar.models import (
 from radar.pipeline.evidence import evidence_notes
 from radar.pipeline.upgrade_risk import assess_upgrade_risk
 from radar.scoring.calibrate import calibrate_rings
+from radar.scoring.profiles import weighted_average
 
 
 def build_decision_cards(
     scored_signals: list[ScoredSignal],
     evidence_by_project: dict[str, ProjectEvidence] | None = None,
+    weights: dict[str, float] | None = None,
 ) -> list[DecisionCard]:
     """Build one decision card per project.
 
@@ -28,21 +30,26 @@ def build_decision_cards(
     so they discriminate instead of collapsing into one band; the calibrated
     ring overrides each project's per-signal recommendation everywhere.
     ``evidence_by_project`` adds observed-data notes (and license-change
-    risks) to each project's card.
+    risks) to each project's card. ``weights`` re-weights the dimensions
+    (a scoring profile) before ranking and is reflected in each card score.
     """
     grouped: dict[str, list[ScoredSignal]] = defaultdict(list)
     for scored in scored_signals:
         grouped[scored.signal.project].append(scored)
 
     projects = list(grouped)
+
+    def project_score(item: ScoredSignal) -> float:
+        return weighted_average(item.scores, weights)
+
     bests = {
-        project: sorted(items, key=lambda i: i.scores.average, reverse=True)[0]
+        project: sorted(items, key=project_score, reverse=True)[0]
         for project, items in grouped.items()
     }
     calibrated = calibrate_rings(
         [
             (
-                bests[p].scores.average,
+                project_score(bests[p]),
                 bests[p].scores.security_posture,
                 bests[p].scores.on_prem_relevance,  # tiebreak within score ties
             )
@@ -73,7 +80,8 @@ def build_decision_cards(
                 project=project,
                 category=best.signal.category,
                 ring=best.recommended_ring,
-                score=best.scores.average,
+                score=project_score(best),
+                score_breakdown=best.scores,
                 summary=_summary(best, rubric),
                 workflow_fit={
                     "personal_dev": (

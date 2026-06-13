@@ -14,6 +14,7 @@ from radar.constants import APP_NAME
 from radar.init_project import initialize_project
 from radar.orchestrator import RadarOrchestrator
 from radar.reports.markdown import render_markdown_report
+from radar.scoring.profiles import UnknownProfileError
 from radar.storage.seed_store import SeedError, add_seed
 from radar.web.app import create_app
 
@@ -53,6 +54,9 @@ def scan(
     replay: str = typer.Option(
         "", help="Re-score a past run's raw signals offline with CURRENT config."
     ),
+    profile: str = typer.Option(
+        "", help="Score through a named profile from config (re-weighted dimensions)."
+    ),
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Collect signals, score them, and write run artifacts."""
@@ -67,7 +71,11 @@ def scan(
         console.print(f"Report: {replay_result.report_path}")
         console.print("(Offline replay: no history, metrics, or card DB changes.)")
         return
-    result = RadarOrchestrator(root).scan(days=days)
+    try:
+        result = RadarOrchestrator(root).scan(days=days, profile=profile or None)
+    except UnknownProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
     console.print(f"Run: {result.run_id}")
     console.print(f"Cards: {len(result.cards)}")
     console.print(f"Report: {result.report_path}")
@@ -80,16 +88,26 @@ def scan(
 def report(
     root: Path = typer.Option(Path("."), help="Project root."),
     as_json: bool = typer.Option(False, "--json", help="Emit cards as JSON for scripting."),
+    profile: str = typer.Option(
+        "", help="Re-rank the view through a named profile (does not persist)."
+    ),
 ) -> None:
     """Print a report from persisted cards."""
-    cards = RadarOrchestrator(root).latest_cards()
+    try:
+        cards = RadarOrchestrator(root).latest_cards(profile=profile or None)
+    except UnknownProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
     if as_json:
         from radar.reports.json_export import cards_to_json
 
         # print, not console.print: rich would wrap/highlight the payload.
         print(cards_to_json(cards))
         return
-    console.print(render_markdown_report(cards, "Agent/Tooling Adoption Radar"))
+    title = "Agent/Tooling Adoption Radar"
+    if profile:
+        title += f" — {profile} profile"
+    console.print(render_markdown_report(cards, title))
 
 
 @seed_app.command("add")

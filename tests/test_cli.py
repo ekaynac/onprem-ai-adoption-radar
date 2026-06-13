@@ -247,6 +247,11 @@ quotas:
   mcp_tooling: 4
 scoring:
   default_ring: watch
+profiles:
+  security-first:
+    security_posture: 3.0
+  solo-dev:
+    laptop_runnability: 2.5
 """
 
 
@@ -345,3 +350,42 @@ def test_trial_rejects_invalid_outcome(tmp_path):
     )
 
     assert result.exit_code != 0
+
+
+def test_report_profile_reranks_view(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(
+        app, ["report", "--root", str(tmp_path), "--profile", "security-first"]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert "security-first profile" in result.stdout
+
+
+def test_report_unknown_profile_errors(tmp_path):
+    runner = _scan_manual(tmp_path)
+
+    result = runner.invoke(
+        app, ["report", "--root", str(tmp_path), "--profile", "does-not-exist"]
+    )
+
+    assert result.exit_code != 0
+    assert "Unknown profile" in result.stdout
+
+
+def test_scan_with_profile_records_it_in_meta(tmp_path):
+    import json as json_module
+
+    runner = _scan_manual(tmp_path)
+    result = runner.invoke(
+        app, ["scan", "--root", str(tmp_path), "--days", "2", "--profile", "solo-dev"]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    run_line = next(line for line in result.stdout.splitlines() if line.startswith("Run:"))
+    run_id = run_line.split("Run:", 1)[1].strip()
+    meta = json_module.loads(
+        (tmp_path / "data" / "runs" / run_id / "meta.json").read_text()
+    )
+    assert meta["profile"] == "solo-dev"
