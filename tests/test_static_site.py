@@ -91,3 +91,31 @@ def test_static_index_back_compat_without_scan_meta(tmp_path: Path):
     )
 
     assert (tmp_path / "_site" / "index.html").exists()
+
+
+def test_static_index_renders_filter_controls(tmp_path: Path):
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT), _card("Aider", Ring.PILOT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+    )
+
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'id="filter-category"' in index
+    assert 'id="filter-text"' in index
+    assert "radarFilter" in index
+
+
+def test_static_filter_targets_all_tracked_only(tmp_path: Path):
+    # "Try This Week" rows (adopt/pilot) must NOT carry data-category;
+    # only the "All Tracked Projects" table is filtered.
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+    )
+
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    # exactly one data-project (the all-tracked row), not two.
+    assert index.count('data-project="vLLM"') == 1
+    assert 'id="radar-table"' in index

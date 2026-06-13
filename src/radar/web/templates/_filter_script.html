@@ -1,0 +1,24 @@
+{# Tiny dependency-free filter for #radar-table. Matches on data-* attributes
+   (not rendered cell text) to avoid badge/emoji noise. #}
+<script>
+  function radarFilter() {
+    var text = (document.getElementById('filter-text').value || '').toLowerCase();
+    var cat = document.getElementById('filter-category').value || '';
+    var rows = document.querySelectorAll('#radar-table tbody tr[data-project]');
+    var shown = 0;
+    rows.forEach(function (row) {
+      var hay = (
+        row.getAttribute('data-project') + ' ' +
+        row.getAttribute('data-summary') + ' ' +
+        row.getAttribute('data-category')
+      ).toLowerCase();
+      var matchText = !text || hay.indexOf(text) !== -1;
+      var matchCat = !cat || row.getAttribute('data-category') === cat;
+      var show = matchText && matchCat;
+      row.style.display = show ? '' : 'none';
+      if (show) shown++;
+    });
+    var none = document.getElementById('radar-no-matches');
+    if (none) none.style.display = shown ? 'none' : '';
+  }
+</script>

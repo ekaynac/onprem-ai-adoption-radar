@@ -53,13 +53,17 @@
       .scan-health summary { cursor: pointer; color: #b45309; }
       .scan-health ul { margin: 0.4rem 0 0; color: #6b7280; }
       .scan-health-ok { color: #15803d; margin: 0; }
+      .filter-bar { margin: 0.5rem 0 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .filter-bar input, .filter-bar select { padding: 0.35rem 0.5rem; font-size: 0.9rem; }
+      .filter-bar input { flex: 1; min-width: 12rem; }
     </style>
   </head>
   <body>
     <h1>Agent/Tooling Adoption Radar</h1>
     <nav><a href="/compare">Compare</a><a href="/history">History</a><a href="/sources">Sources</a></nav>
     {% include "_scan_health.html" %}
-    <table>
+    {% include "_filter_bar.html" %}
+    <table id="radar-table">
       <thead>
         <tr>
           <th>Project</th>
@@ -72,7 +76,7 @@
       </thead>
       <tbody>
         {% for card in cards %}
-        <tr>
+        <tr data-project="{{ card.project }}" data-category="{{ card.category.value }}" data-summary="{{ card.summary }}">
           <td><a href="/project/{{ card.project | urlencode }}">{{ card.project }}</a></td>
           <td>{{ card.category.value }}</td>
           <td class="ring">{{ card.ring.value }}</td>
@@ -94,7 +98,11 @@
           <td colspan="6">No cards yet. Run radar scan first.</td>
         </tr>
         {% endfor %}
+        <tr id="radar-no-matches" style="display: none;">
+          <td colspan="6">No projects match the current filter.</td>
+        </tr>
       </tbody>
     </table>
+    {% include "_filter_script.html" %}
   </body>
 </html>
