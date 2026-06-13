@@ -11,7 +11,7 @@ import httpx
 
 from radar.collectors.registry import build_collectors
 from radar.enrichment.runner import run_enrichment
-from radar.models import DecisionCard, ScoredSignal
+from radar.models import DecisionCard, ScoredSignal, Signal
 from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
 from radar.pipeline.dedupe import dedupe_signals
@@ -32,6 +32,15 @@ from radar.storage.history_store import HistoryStore, deltas_to_events
 from radar.storage.metrics_store import MetricsStore
 from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
+
+
+@dataclass(frozen=True)
+class ReplayResult:
+    """Result of an offline re-score of a past run."""
+
+    run_id: str
+    cards: list[DecisionCard]
+    report_path: Path
 
 
 @dataclass(frozen=True)
@@ -248,6 +257,59 @@ class RadarOrchestrator:
             history_report_path=history_report_path,
             deltas=deltas,
         )
+
+    def replay(self, source_run_id: str) -> ReplayResult:
+        """Re-score a past run's persisted raw signals with CURRENT config.
+
+        Fully offline and side-effect-free for the timeline: no collectors, no
+        enrichment, no history events, no metrics rows, no DB card upserts.
+        Evidence is rebuilt against the metrics recorded BEFORE the original
+        run (advisory lists were network data and are not replayed). This is
+        the loop for tuning scoring config: edit, replay, diff the report.
+        """
+        config = load_config(self.config_path)
+        raw_payload = self.run_store.load_stage(source_run_id, "raw_signals")
+        raw = [Signal.model_validate(item) for item in raw_payload]
+
+        run_id = self.run_store.create_run()
+        self.run_store.update_meta(run_id, {"replay_of": source_run_id})
+
+        index = build_project_index(config.sources)
+        firehose = reclassify_firehose(raw, index, analyst=None)
+        deduped = dedupe_signals(firehose.kept)
+
+        observed_at = datetime.now(UTC)
+        self.metrics.initialize()
+        current_metrics = collect_project_metrics(deduped, run_id, observed_at)
+        evidence = {
+            project: build_evidence(
+                metrics,
+                self.metrics.latest(project, exclude_run=source_run_id),
+                now=observed_at,
+            )
+            for project, metrics in current_metrics.items()
+        }
+        scored = [
+            score_signal(signal, config.scoring, evidence.get(signal.project))
+            for signal in deduped
+        ]
+        self.run_store.save_stage(
+            run_id, "scored_signals", [item.model_dump(mode="json") for item in scored]
+        )
+        cards = build_decision_cards(scored, evidence_by_project=evidence)
+        filtered_cards = apply_category_quotas(cards, config.quotas)
+        overrides = OverridesStore(self.overrides_path).load()
+        filtered_cards = apply_overrides(filtered_cards, overrides.overrides)
+        self.run_store.save_stage(
+            run_id,
+            "decision_cards",
+            [card.model_dump(mode="json") for card in filtered_cards],
+        )
+        report = render_markdown_report(
+            filtered_cards, f"Replay of {source_run_id} (current config)"
+        )
+        report_path = self.run_store.save_report(run_id, report)
+        return ReplayResult(run_id=run_id, cards=filtered_cards, report_path=report_path)
 
     def _history_by_project(self) -> dict[str, list]:
         """Group all recorded history events by project for report rendering."""
