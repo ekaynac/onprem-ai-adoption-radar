@@ -1,0 +1,4 @@
+{# Renders a project's backer as a colored badge. Context: `card` (in scope from
+   the surrounding loop). Uncurated backers render an em dash, never a guess. #}
+{% set b = backer_badge(card.backer) %}
+{% if b %}<span class="backer backer-{{ b.type }}" title="{{ b.title }}">{{ b.emoji }} {{ b.name }}</span>{% else %}<span class="backer-none" title="Backer not yet curated">—</span>{% endif %}

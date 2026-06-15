@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from radar.models import Category, DecisionCard, Ring
+from radar.models import Backer, BackerType, Category, DecisionCard, Ring
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.static_site import render_static_site
 
@@ -15,6 +15,35 @@ def _card(project: str, ring: Ring) -> DecisionCard:
         project=project, category=Category.MODEL_SERVING, ring=ring,
         summary=f"{project} summary", workflow_fit={}, risk_level="low",
     )
+
+
+def test_static_index_and_project_page_render_backer(tmp_path: Path):
+    card = _card("vLLM", Ring.ADOPT).model_copy(
+        update={"backer": Backer(name="NVIDIA", type=BackerType.BIG_TECH)}
+    )
+    render_static_site([card], tmp_path / "_site", datetime(2026, 6, 13, tzinfo=UTC))
+
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "Backed by" in index
+    assert "NVIDIA" in index
+    assert 'class="backer backer-big_tech"' in index
+    assert 'id="filter-backer"' in index
+    assert 'data-backer-type="big_tech"' in index
+
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "Backed by" in page
+    assert "NVIDIA" in page
+
+
+def test_static_index_renders_em_dash_for_uncurated_backer(tmp_path: Path):
+    # _card() leaves backer unset; the cell must degrade to a dash, not crash.
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+    )
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'class="backer-none"' in index
 
 
 def test_export_writes_per_project_pages_with_metrics(tmp_path: Path):

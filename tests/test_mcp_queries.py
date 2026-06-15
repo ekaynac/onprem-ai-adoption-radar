@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from radar.mcp_server.queries import RadarQueryService
-from radar.models import Category, DecisionCard, Ring
+from radar.models import Backer, BackerType, Category, DecisionCard, Ring
 from radar.pipeline.delta import CardDelta, ChangeType
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
@@ -137,6 +137,7 @@ def _rich_card() -> DecisionCard:
     return DecisionCard(
         project="vLLM",
         category=Category.MODEL_SERVING,
+        backer=Backer(name="vLLM (PyTorch Foundation)", type=BackerType.COMMUNITY),
         ring=Ring.AVOID,
         score=2.71,
         summary="fast inference",
@@ -171,6 +172,10 @@ def test_card_dict_surfaces_evidence_and_decision_context(tmp_path: Path):
     assert card["pinned"] is True
     assert card["pinned_reason"] == "failed internal review"
     assert card["computed_ring"] == "watch"
+    assert card["backer"] == {
+        "name": "vLLM (PyTorch Foundation)",
+        "type": "community",
+    }
 
 
 def test_card_dict_defaults_are_clean_for_plain_cards(tmp_path: Path):

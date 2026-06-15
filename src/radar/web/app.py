@@ -16,10 +16,13 @@ from radar.storage.history_store import HistoryStore
 from radar.storage.metrics_store import MetricsStore
 from radar.storage.run_store import RunStore
 from radar.storage.seed_store import SeedError, add_seed
+from radar.web.backer_badge import backer_badge
 from radar.web.scan_health import summarize_meta
 
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+# Shared presentation helper so live + static render backers identically.
+TEMPLATES.env.globals["backer_badge"] = backer_badge
 
 
 def create_app(root: Path) -> FastAPI:

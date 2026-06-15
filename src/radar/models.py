@@ -55,6 +55,28 @@ class Ring(str, Enum):
     AVOID = "avoid"
 
 
+class BackerType(str, Enum):
+    """Who stands behind a project — its provider/backer category.
+
+    Answers "is this a person, a community, or a big company?" at a glance.
+    """
+
+    BIG_TECH = "big_tech"  # large established tech/chip vendor (NVIDIA, Google)
+    STARTUP = "startup"  # VC-backed / commercial company (LangChain, Ollama)
+    COMMUNITY = "community"  # open, multi-contributor, no single corporate owner
+    INDIVIDUAL = "individual"  # solo maintainer or a very small team
+    ACADEMIC = "academic"  # university or research-lab origin
+
+
+class Backer(BaseModel):
+    """The provider/backer standing behind a tracked project."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    type: BackerType
+
+
 class PackageRef(BaseModel):
     """A package-registry mapping for a project (for downloads/advisories)."""
 
@@ -80,6 +102,9 @@ class SourceConfig(BaseModel):
     # Optional package-registry mapping; enables download counts and OSV
     # advisory lookups for this project.
     package: PackageRef | None = None
+    # Who provides/backs this project (person, community, company). Optional;
+    # surfaced on cards and the dashboard so users see provenance at a glance.
+    backer: Backer | None = None
     # When true, this source is a high-volume "firehose" (e.g. a broad vendor
     # blog) whose entries are re-attributed to tracked projects by the
     # classification layer instead of collapsing into one project card.
@@ -290,6 +315,9 @@ class DecisionCard(BaseModel):
     project: str
     category: Category
     ring: Ring
+    # Who backs this project (person, community, company); threaded from the
+    # source config so every read surface can show provenance.
+    backer: Backer | None = None
     score: float = 0.0  # representative average score (for transparency/sorting)
     # Per-dimension breakdown of the representative signal, kept so a scoring
     # profile can re-weight and re-rank stored cards without a re-scan.

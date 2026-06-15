@@ -1,6 +1,8 @@
 {# Shared project-detail body. Context: card, events (oldest-first),
    metrics (newest-first), links {home, compare, history}. #}
 <h1>{{ card.project }}</h1>
+{% set b = backer_badge(card.backer) %}
+{% if b %}<p class="backer-line">Backed by <span class="backer backer-{{ b.type }}" title="{{ b.title }}">{{ b.emoji }} {{ b.name }}</span> <span class="backer-type-label">({{ b.label }})</span></p>{% endif %}
 <p class="meta">
   {{ card.category.value }} ·
   <span class="ring {{ card.ring.value }}">{{ card.ring.value }}</span>

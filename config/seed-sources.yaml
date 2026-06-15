@@ -8,6 +8,7 @@ sources:
     category: coding_agents
     url: https://github.com/cline/cline
     tags: [coding-agent, mcp, file-write-access, terminal-access]
+    backer: {name: "Cline", type: startup}
   - id: github-openhands
     type: github_repo
     enabled: true
@@ -16,6 +17,7 @@ sources:
     category: coding_agents
     url: https://github.com/OpenHands/OpenHands
     tags: [coding-agent, software-agent-sdk, open-source]
+    backer: {name: "All Hands AI", type: startup}
   - id: github-aider
     type: github_repo
     enabled: true
@@ -24,6 +26,7 @@ sources:
     category: coding_agents
     url: https://github.com/Aider-AI/aider
     tags: [coding-agent, terminal, open-source]
+    backer: {name: "Paul Gauthier", type: individual}
 
   # ── General Agents ──────────────────────────────────────────────────────────
   - id: github-openclaw
@@ -33,6 +36,7 @@ sources:
     category: general_agents
     url: https://github.com/openclaw/openclaw
     tags: [general-agent, open-source, persistent-agent, workflow-automation, file-write-access]
+    backer: {name: "Community", type: community}
   - id: github-hermes-agent
     type: github_repo
     enabled: true
@@ -40,6 +44,7 @@ sources:
     category: general_agents
     url: https://github.com/NousResearch/hermes-agent
     tags: [general-agent, persistent-agent, memory, open-source]
+    backer: {name: "Nous Research", type: startup}
   - id: github-goose
     type: github_repo
     enabled: true
@@ -47,6 +52,7 @@ sources:
     category: general_agents
     url: https://github.com/aaif-goose/goose
     tags: [general-agent, mcp, desktop, cli]
+    backer: {name: "Block", type: big_tech}
 
   # ── MCP Tooling ─────────────────────────────────────────────────────────────
   - id: mcp-docs
@@ -56,6 +62,7 @@ sources:
     category: mcp_tooling
     url: https://modelcontextprotocol.io/docs/getting-started/intro
     tags: [mcp, protocol, tooling]
+    backer: {name: "Anthropic", type: big_tech}
 
   # ── Sandbox & Governance ────────────────────────────────────────────────────
   - id: github-nvidia-nemoclaw
@@ -65,6 +72,7 @@ sources:
     category: sandbox_governance
     url: https://github.com/NVIDIA/NemoClaw
     tags: [sandbox, governance, open-source, on-prem-relevant]
+    backer: {name: "NVIDIA", type: big_tech}
 
   # ── Agent Frameworks ────────────────────────────────────────────────────────
   - id: github-langgraph
@@ -75,6 +83,7 @@ sources:
     category: agent_frameworks
     url: https://github.com/langchain-ai/langgraph
     tags: [agent-framework, orchestration, open-source]
+    backer: {name: "LangChain", type: startup}
   - id: github-autogen
     type: github_repo
     enabled: true
@@ -83,6 +92,7 @@ sources:
     category: agent_frameworks
     url: https://github.com/microsoft/autogen
     tags: [agent-framework, multi-agent, open-source]
+    backer: {name: "Microsoft", type: big_tech}
 
   # ── Model Serving ───────────────────────────────────────────────────────────
   - id: github-vllm
@@ -93,6 +103,7 @@ sources:
     category: model_serving
     url: https://github.com/vllm-project/vllm
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
+    backer: {name: "vLLM (PyTorch Foundation)", type: community}
   - id: github-sglang
     type: github_repo
     enabled: true
@@ -101,6 +112,7 @@ sources:
     category: model_serving
     url: https://github.com/sgl-project/sglang
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
+    backer: {name: "SGLang", type: community}
   - id: github-nvidia-dynamo
     type: github_repo
     enabled: true
@@ -108,6 +120,7 @@ sources:
     category: model_serving
     url: https://github.com/ai-dynamo/dynamo
     tags: [model-serving, disaggregated-serving, self-hosted, open-source, gpu-required, on-prem-relevant]
+    backer: {name: "NVIDIA", type: big_tech}
   - id: github-kubeai
     type: github_repo
     enabled: true
@@ -115,6 +128,7 @@ sources:
     category: model_serving
     url: https://github.com/substratusai/kubeai
     tags: [model-serving, kubernetes, self-hosted, open-source, on-prem-relevant, openai-compatible]
+    backer: {name: "Substratus", type: startup}
 
   # ── AI Infrastructure ───────────────────────────────────────────────────────
   - id: github-kaito
@@ -124,6 +138,7 @@ sources:
     category: ai_infrastructure
     url: https://github.com/Azure/kaito
     tags: [kubernetes, gpu-required, self-hosted, open-source, on-prem-relevant, model-serving]
+    backer: {name: "Microsoft", type: big_tech}
   - id: github-nvidia-gpu-operator
     type: github_repo
     enabled: true
@@ -131,6 +146,7 @@ sources:
     category: ai_infrastructure
     url: https://github.com/NVIDIA/gpu-operator
     tags: [kubernetes, gpu-required, on-prem-relevant, open-source, operator]
+    backer: {name: "NVIDIA", type: big_tech}
 
   # ── Physical AI Infrastructure / Hardware ───────────────────────────────────
   - id: manual-nvidia-blackwell
@@ -140,6 +156,7 @@ sources:
     category: physical_ai_infrastructure
     url: https://www.nvidia.com/en-us/data-center/gb200-nvl72/
     tags: [hardware, gpu-required, on-prem-relevant, nvidia, data-center]
+    backer: {name: "NVIDIA", type: big_tech}
     aliases: [blackwell, gb200, "gb200 nvl72"]
   - id: manual-huawei-ascend
     type: manual
@@ -148,6 +165,7 @@ sources:
     category: physical_ai_infrastructure
     url: https://www.huawei.com/en/technology-insights/cloud-matrix-384
     tags: [hardware, gpu-required, on-prem-relevant, huawei, data-center]
+    backer: {name: "Huawei", type: big_tech}
 
   # ══ 2026 deep-research expansion (all URLs verified live 2026-06-12) ══════════
   # ── Coding Agents ───────────────────────────────────────────────────────────
@@ -158,6 +176,7 @@ sources:
     category: coding_agents
     url: https://github.com/continuedev/continue
     tags: [coding-agent, cli, open-source, on-prem-relevant, file-write-access]
+    backer: {name: "Continue", type: startup}
   - id: github-opencode
     type: github_repo
     enabled: true
@@ -165,6 +184,7 @@ sources:
     category: coding_agents
     url: https://github.com/sst/opencode
     tags: [coding-agent, terminal, open-source, file-write-access, terminal-access]
+    backer: {name: "SST", type: startup}
   - id: github-tabby
     type: github_repo
     enabled: true
@@ -172,6 +192,7 @@ sources:
     category: coding_agents
     url: https://github.com/TabbyML/tabby
     tags: [coding-agent, self-hosted, open-source, on-prem-relevant, gpu-required]
+    backer: {name: "TabbyML", type: startup}
 
   # ── MCP Tooling ─────────────────────────────────────────────────────────────
   - id: github-mcp-registry
@@ -181,6 +202,7 @@ sources:
     category: mcp_tooling
     url: https://github.com/modelcontextprotocol/registry
     tags: [mcp, protocol, tooling, open-source, self-hosted]
+    backer: {name: "Anthropic", type: big_tech}
   - id: github-github-mcp-server
     type: github_repo
     enabled: true
@@ -188,6 +210,7 @@ sources:
     category: mcp_tooling
     url: https://github.com/github/github-mcp-server
     tags: [mcp, tooling, open-source, self-hosted]
+    backer: {name: "GitHub", type: big_tech}
 
   # ── Sandbox & Governance ────────────────────────────────────────────────────
   - id: github-e2b
@@ -198,6 +221,7 @@ sources:
     category: sandbox_governance
     url: https://github.com/e2b-dev/e2b
     tags: [sandbox, governance, open-source, self-hosted, on-prem-relevant]
+    backer: {name: "E2B", type: startup}
   - id: github-gvisor
     type: github_repo
     enabled: true
@@ -205,6 +229,7 @@ sources:
     category: sandbox_governance
     url: https://github.com/google/gvisor
     tags: [sandbox, governance, open-source, on-prem-relevant]
+    backer: {name: "Google", type: big_tech}
   - id: github-microsandbox
     type: github_repo
     enabled: true
@@ -212,6 +237,7 @@ sources:
     category: sandbox_governance
     url: https://github.com/microsandbox/microsandbox
     tags: [sandbox, governance, open-source, self-hosted, on-prem-relevant, mcp]
+    backer: {name: "Microsandbox", type: startup}
 
   # ── Agent Frameworks ────────────────────────────────────────────────────────
   - id: github-crewai
@@ -222,6 +248,7 @@ sources:
     category: agent_frameworks
     url: https://github.com/crewAIInc/crewAI
     tags: [agent-framework, multi-agent, orchestration, open-source]
+    backer: {name: "CrewAI", type: startup}
   - id: github-pydantic-ai
     type: github_repo
     enabled: true
@@ -230,6 +257,7 @@ sources:
     category: agent_frameworks
     url: https://github.com/pydantic/pydantic-ai
     tags: [agent-framework, orchestration, open-source]
+    backer: {name: "Pydantic", type: startup}
   - id: github-agno
     type: github_repo
     enabled: true
@@ -238,6 +266,7 @@ sources:
     category: agent_frameworks
     url: https://github.com/agno-agi/agno
     tags: [agent-framework, multi-agent, open-source, self-hosted]
+    backer: {name: "Agno", type: startup}
 
   # ── Model Serving ───────────────────────────────────────────────────────────
   - id: github-ollama
@@ -247,6 +276,7 @@ sources:
     category: model_serving
     url: https://github.com/ollama/ollama
     tags: [model-serving, openai-compatible, self-hosted, open-source, on-prem-relevant]
+    backer: {name: "Ollama", type: startup}
   - id: github-llama-cpp
     type: github_repo
     enabled: true
@@ -254,6 +284,7 @@ sources:
     category: model_serving
     url: https://github.com/ggml-org/llama.cpp
     tags: [model-serving, openai-compatible, self-hosted, open-source, on-prem-relevant]
+    backer: {name: "llama.cpp / ggml", type: community}
   - id: github-localai
     type: github_repo
     enabled: true
@@ -261,6 +292,7 @@ sources:
     category: model_serving
     url: https://github.com/mudler/LocalAI
     tags: [model-serving, openai-compatible, self-hosted, open-source, on-prem-relevant]
+    backer: {name: "Ettore Di Giacinto (mudler)", type: individual}
   - id: github-lmdeploy
     type: github_repo
     enabled: true
@@ -269,6 +301,7 @@ sources:
     category: model_serving
     url: https://github.com/InternLM/lmdeploy
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
+    backer: {name: "Shanghai AI Lab (InternLM)", type: academic}
   - id: github-tensorrt-llm
     type: github_repo
     enabled: true
@@ -277,6 +310,7 @@ sources:
     category: model_serving
     url: https://github.com/NVIDIA/TensorRT-LLM
     tags: [model-serving, self-hosted, open-source, gpu-required, nvidia, on-prem-relevant]
+    backer: {name: "NVIDIA", type: big_tech}
     aliases: [tensorrt, "trt llm"]
 
   # ── AI Infrastructure ───────────────────────────────────────────────────────
@@ -288,6 +322,7 @@ sources:
     category: ai_infrastructure
     url: https://github.com/kserve/kserve
     tags: [kubernetes, model-serving, self-hosted, open-source, on-prem-relevant, operator]
+    backer: {name: "KServe", type: community}
   - id: github-ray
     type: github_repo
     enabled: true
@@ -296,6 +331,7 @@ sources:
     category: ai_infrastructure
     url: https://github.com/ray-project/ray
     tags: [orchestration, self-hosted, open-source, on-prem-relevant, gpu-required]
+    backer: {name: "Anyscale", type: startup}
   - id: github-volcano
     type: github_repo
     enabled: true
@@ -303,6 +339,7 @@ sources:
     category: ai_infrastructure
     url: https://github.com/volcano-sh/volcano
     tags: [kubernetes, orchestration, self-hosted, open-source, on-prem-relevant, gpu-required]
+    backer: {name: "CNCF (Volcano)", type: community}
   - id: manual-nvidia-nim
     type: manual
     enabled: true
@@ -310,6 +347,7 @@ sources:
     category: ai_infrastructure
     url: https://www.nvidia.com/en-us/ai-data-science/products/nim-microservices/
     tags: [model-serving, self-hosted, on-prem-relevant, nvidia, gpu-required]
+    backer: {name: "NVIDIA", type: big_tech}
 
   # ── Physical AI Infrastructure / Hardware ───────────────────────────────────
   - id: manual-amd-instinct-mi300x
@@ -319,6 +357,7 @@ sources:
     category: physical_ai_infrastructure
     url: https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html
     tags: [hardware, gpu-required, on-prem-relevant, data-center]
+    backer: {name: "AMD", type: big_tech}
   - id: manual-intel-gaudi
     type: manual
     enabled: true
@@ -326,6 +365,7 @@ sources:
     category: physical_ai_infrastructure
     url: https://www.intel.com/content/www/us/en/products/details/processors/ai-accelerators/gaudi.html
     tags: [hardware, gpu-required, on-prem-relevant, data-center]
+    backer: {name: "Intel", type: big_tech}
   - id: github-tenstorrent-tt-metal
     type: github_repo
     enabled: true
@@ -333,6 +373,7 @@ sources:
     category: physical_ai_infrastructure
     url: https://github.com/tenstorrent/tt-metal
     tags: [hardware, on-prem-relevant, open-source, data-center]
+    backer: {name: "Tenstorrent", type: startup}
 
   # ── Fun / Experimental (playful, creative local AI) ─────────────────────────
   - id: github-comfyui
@@ -342,6 +383,7 @@ sources:
     category: fun_experimental
     url: https://github.com/Comfy-Org/ComfyUI
     tags: [image-gen, local-model, self-hosted, open-source, gpu-required, fun]
+    backer: {name: "Comfy Org", type: startup}
   - id: github-sd-webui
     type: github_repo
     enabled: true
@@ -349,6 +391,7 @@ sources:
     category: fun_experimental
     url: https://github.com/AUTOMATIC1111/stable-diffusion-webui
     tags: [image-gen, local-model, self-hosted, open-source, gpu-required, fun]
+    backer: {name: "AUTOMATIC1111", type: individual}
   - id: github-sillytavern
     type: github_repo
     enabled: true
@@ -356,6 +399,7 @@ sources:
     category: fun_experimental
     url: https://github.com/SillyTavern/SillyTavern
     tags: [llm-frontend, roleplay, local-model, self-hosted, open-source, fun]
+    backer: {name: "SillyTavern", type: community}
   - id: github-piper
     type: github_repo
     enabled: true
@@ -363,6 +407,7 @@ sources:
     category: fun_experimental
     url: https://github.com/rhasspy/piper
     tags: [tts, voice, local-model, self-hosted, open-source, fun]
+    backer: {name: "Rhasspy", type: community}
   - id: github-openvoice
     type: github_repo
     enabled: true
@@ -370,6 +415,7 @@ sources:
     category: fun_experimental
     url: https://github.com/myshell-ai/OpenVoice
     tags: [voice-clone, tts, local-model, self-hosted, open-source, fun]
+    backer: {name: "MyShell", type: startup}
   - id: github-textgen-webui
     type: github_repo
     enabled: true
@@ -377,6 +423,7 @@ sources:
     category: fun_experimental
     url: https://github.com/oobabooga/textgen
     tags: [llm-frontend, playground, local-model, self-hosted, open-source, fun]
+    backer: {name: "oobabooga", type: individual}
 
   # ── RSS / Atom signal streams (non-GitHub vendor & engineering blogs) ────────
   # These broaden coverage beyond GitHub. Scoped vendor feeds are enabled;
@@ -390,6 +437,7 @@ sources:
     category: ai_infrastructure
     url: https://developer.nvidia.com/blog/feed/
     tags: [vendor-blog, on-prem-relevant, gpu, inference]
+    backer: {name: "NVIDIA", type: big_tech}
   - id: rss-ollama-blog
     type: rss
     enabled: true
@@ -398,6 +446,7 @@ sources:
     category: model_serving
     url: https://ollama.com/blog/rss.xml
     tags: [vendor-blog, local-model, on-prem-relevant, inference]
+    backer: {name: "Ollama", type: startup}
   - id: rss-redhat-ai-blog
     type: rss
     enabled: true
@@ -406,6 +455,7 @@ sources:
     category: ai_infrastructure
     url: https://www.redhat.com/en/rss/blog/channel/red-hat-ai
     tags: [vendor-blog, enterprise, on-prem-relevant, inference]
+    backer: {name: "Red Hat", type: big_tech}
   - id: rss-huggingface-blog
     type: rss
     enabled: true
@@ -414,6 +464,7 @@ sources:
     category: model_serving
     url: https://huggingface.co/blog/feed.xml
     tags: [vendor-blog, model-hub, firehose]
+    backer: {name: "Hugging Face", type: startup}
 
 quotas:
   coding_agents: 10
