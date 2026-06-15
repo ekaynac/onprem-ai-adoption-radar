@@ -35,11 +35,20 @@ class RadarQueryService:
         self.database.initialize()
         return self.database.list_cards()
 
-    def recommendations(self, rings: list[str] | None = None) -> list[dict[str, Any]]:
-        """Return decision cards as plain dicts, optionally filtered by ring.
+    def recommendations(
+        self,
+        rings: list[str] | None = None,
+        detail: str = "compact",
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return decision cards, optionally filtered by ring, newest-value first.
 
-        Unknown ring names are ignored rather than raising, so a caller passing
-        a typo simply gets no matches for it.
+        Cards are sorted by score (highest first) so the most actionable picks
+        lead and ``limit`` returns the top N. ``detail`` controls payload size:
+        ``"compact"`` (default) returns a lean, context-cheap projection for
+        browsing; ``"full"`` returns the complete card (same shape as
+        ``get_project`` minus history) for callers that need every field.
+        Unknown ring names are ignored rather than raising.
         """
         wanted: set[str] | None = None
         if rings is not None:
@@ -49,7 +58,12 @@ class RadarQueryService:
         cards = self._cards()
         if wanted is not None:
             cards = [c for c in cards if c.ring.value in wanted]
-        return [self._card_dict(c) for c in cards]
+        cards = sorted(cards, key=lambda c: c.score, reverse=True)
+        if limit is not None and limit >= 0:
+            cards = cards[:limit]
+
+        render = self._card_dict if detail == "full" else self._card_compact
+        return [render(c) for c in cards]
 
     def list_projects(self) -> list[dict[str, Any]]:
         """Return a compact list of tracked projects with current ring."""
@@ -120,17 +134,50 @@ class RadarQueryService:
         }
 
     @staticmethod
-    def _card_dict(card: DecisionCard) -> dict[str, Any]:
+    def _backer_dict(card: DecisionCard) -> dict[str, str] | None:
+        """Who backs the project (person / community / company), or None."""
+        if card.backer is None:
+            return None
+        return {"name": card.backer.name, "type": card.backer.type.value}
+
+    @staticmethod
+    def _headline_note(card: DecisionCard) -> str | None:
+        """One high-signal evidence line for compact views.
+
+        Prefers a security advisory (decision-critical) over the first note.
+        """
+        if not card.evidence_notes:
+            return None
+        advisory = next(
+            (n for n in card.evidence_notes if "advisory" in n.lower()), None
+        )
+        return advisory or card.evidence_notes[0]
+
+    @classmethod
+    def _card_compact(cls, card: DecisionCard) -> dict[str, Any]:
+        """Lean, context-cheap card for browsing — drill into get_project for all."""
+        return {
+            "project": card.project,
+            "category": card.category.value,
+            "backer": cls._backer_dict(card),
+            "ring": card.ring.value,
+            "score": card.score,
+            "risk_level": card.risk_level,
+            "trend": card.trend,
+            "upgrade_risk": card.upgrade_risk,
+            "pinned": card.pinned,
+            "summary": card.summary,
+            "headline": cls._headline_note(card),
+        }
+
+    @classmethod
+    def _card_dict(cls, card: DecisionCard) -> dict[str, Any]:
         return {
             "project": card.project,
             "category": card.category.value,
             # Who backs the project (person / community / company), so an agent
             # can weigh provenance, not just the ring.
-            "backer": (
-                {"name": card.backer.name, "type": card.backer.type.value}
-                if card.backer
-                else None
-            ),
+            "backer": cls._backer_dict(card),
             "ring": card.ring.value,
             "score": card.score,
             "risk_level": card.risk_level,

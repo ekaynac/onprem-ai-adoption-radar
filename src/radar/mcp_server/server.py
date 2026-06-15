@@ -22,26 +22,40 @@ def build_mcp_server(root: Path) -> FastMCP:
     mcp = FastMCP("onprem-ai-adoption-radar")
 
     @mcp.tool()
-    def list_recommendations(rings: list[str] | None = None) -> list[dict[str, Any]]:
-        """List current decision cards, optionally filtered by ring.
+    def list_recommendations(
+        rings: list[str] | None = None,
+        detail: str = "compact",
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """List current decision cards (highest score first), to BROWSE.
 
-        Pass rings like ["adopt", "pilot"] for this week's actionable picks.
-        With no rings, returns every tracked project's current card. Each card
-        includes decision context: `trend` (rising/falling/steady),
-        `evidence_notes` (observed star growth, security advisories, license
-        changes), `upgrade_risk` + notes, and `pinned`/`computed_ring` when a
-        human has overridden the ring.
+        Returns a compact, context-cheap card per project so you can scan many
+        at once: project, category, backer, ring, score, risk_level, trend,
+        upgrade_risk, pinned, summary, and one `headline` evidence line. Then
+        call `get_project(<name>)` for the full card (evidence notes, risks,
+        try-next steps, source URLs, history).
+
+        - `rings`: filter, e.g. ["adopt", "pilot"]. Unknown rings are ignored.
+        - `limit`: cap the number returned (top-N by score).
+        - `detail`: "compact" (default) or "full" for every field at once
+          (heavy — prefer compact + get_project).
         """
-        return service.recommendations(rings=rings)
+        return service.recommendations(rings=rings, detail=detail, limit=limit)
 
     @mcp.tool()
-    def try_this_week() -> list[dict[str, Any]]:
-        """List the projects worth trying now (adopt + pilot rings).
+    def try_this_week(
+        detail: str = "compact", limit: int | None = None
+    ) -> list[dict[str, Any]]:
+        """The projects worth trying now (adopt + pilot), highest score first.
 
-        Cards carry `trend`, `evidence_notes`, `upgrade_risk`, and pin context
-        so you can explain WHY a project is a pick, not just that it is one.
+        Compact by default for cheap browsing — each card carries ring, backer,
+        risk, trend, upgrade_risk and a `headline` evidence line. Use `limit`
+        for just the top picks, `detail="full"` for every field, or
+        `get_project(<name>)` to drill into one.
         """
-        return service.recommendations(rings=list(TRY_THIS_WEEK_RINGS))
+        return service.recommendations(
+            rings=list(TRY_THIS_WEEK_RINGS), detail=detail, limit=limit
+        )
 
     @mcp.tool()
     def get_project(project: str) -> dict[str, Any] | None:

@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **MCP context optimization** — the list tools (`list_recommendations`,
+  `try_this_week`) now return a **compact** card by default (project, category,
+  backer, ring, score, risk, trend, upgrade-risk, pinned, summary + one
+  `headline` evidence line), sorted by score, with a `limit`. This cuts a
+  `try_this_week` response from ~13.4k to ~4.1k tokens (~70%; `limit=5` ≈ 520
+  tokens). Full payloads remain available via `detail="full"` or
+  `get_project(<name>)` — the intended browse-then-drill flow.
 - **License: Unlicense → MIT** (© 2026 Enes Kaynakcı). Updated `LICENSE`,
   `pyproject.toml`, README, and CONTRIBUTING accordingly.
 - **Company name** shown in credits is now the legal name **Mega Bilgisayar Tic.
