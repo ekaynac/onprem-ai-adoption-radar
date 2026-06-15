@@ -3,7 +3,7 @@ name = "onprem-ai-adoption-radar"
 version = "0.1.0"
 description = "Decision-oriented radar for agent/tooling adoption in on-prem AI workflows"
 readme = "README.md"
-license = "Unlicense"
+license = "MIT"
 authors = [{ name = "Enes Kaynakcı" }]
 keywords = ["ai", "agents", "tech-radar", "on-prem", "self-hosted", "mcp", "adoption"]
 classifiers = [
@@ -11,7 +11,7 @@ classifiers = [
   "Environment :: Console",
   "Intended Audience :: Developers",
   "Intended Audience :: System Administrators",
-  "License :: OSI Approved :: The Unlicense (Unlicense)",
+  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",

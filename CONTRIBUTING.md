@@ -1,8 +1,8 @@
 # Contributing
 
-Thanks for your interest in the On-Prem AI Adoption Radar. This project is in the
-public domain ([The Unlicense](LICENSE)) — contributions are welcome and become
-public domain too.
+Thanks for your interest in the On-Prem AI Adoption Radar. This project is
+licensed under the [MIT License](LICENSE) — contributions are welcome and are
+accepted under the same license.
 
 ## Development setup
 
