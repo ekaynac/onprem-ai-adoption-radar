@@ -250,7 +250,7 @@ Conventions: deterministic core (no LLM in the default path), immutable data flo
 
 ## Author
 
-Built by **Enes Kaynakcı** — Software Engineer at **[Mega Bilişim Teknolojileri](https://www.megabil.com)**.
+Built by **Enes Kaynakcı** — Software Engineer at **[Mega Bilişim Teknolojileri](https://www.megabilgisayar.com.tr)**.
 
 ## License
 
