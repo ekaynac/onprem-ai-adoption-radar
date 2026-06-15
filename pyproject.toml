@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Decision-oriented radar for agent/tooling adoption in on-prem AI workflows"
 readme = "README.md"
 license = "Unlicense"
-authors = [{ name = "ekaynac" }]
+authors = [{ name = "Enes Kaynakcı" }]
 keywords = ["ai", "agents", "tech-radar", "on-prem", "self-hosted", "mcp", "adoption"]
 classifiers = [
   "Development Status :: 4 - Beta",

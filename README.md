@@ -248,6 +248,10 @@ uv run mypy
 
 Conventions: deterministic core (no LLM in the default path), immutable data flow, many small focused modules, test-driven. Each feature lands via TDD with the timeline/decisions verified against real scans. CI runs lint (ruff), type checks (mypy), and the test suite with coverage on Python 3.12 and 3.13. See [docs/architecture.md](docs/architecture.md), [CONTRIBUTING.md](CONTRIBUTING.md), and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
+## Author
+
+Built by **Enes Kaynakcı** — Software Engineer at **[Mega Bilişim Teknolojileri](https://www.megabil.com)**.
+
 ## License
 
 Released into the **public domain** under [The Unlicense](LICENSE) — do anything you want with it, no attribution required.
