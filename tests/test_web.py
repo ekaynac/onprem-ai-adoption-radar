@@ -67,6 +67,22 @@ def test_dashboard_lists_cards(tmp_path: Path):
     assert "pilot" in response.text
 
 
+def test_brand_logo_served_and_referenced(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    client = TestClient(create_app(tmp_path))
+
+    # The dashboard references the real Mega logo (absolute /static path).
+    html = client.get("/").text
+    assert 'class="brand-logo"' in html
+    assert "/static/brand/mega-logo-white.png" in html
+
+    # And the asset is actually served.
+    asset = client.get("/static/brand/mega-logo-white.png")
+    assert asset.status_code == 200
+    assert asset.headers["content-type"].startswith("image/")
+
+
 def test_history_jsonl_download_route(tmp_path: Path):
     db = RadarDatabase(tmp_path / "data" / "radar.db")
     db.initialize()

@@ -26,6 +26,7 @@ from radar.web.slugs import build_slug_map
 
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
+_STATIC_DIR = Path(__file__).parent / "static"
 _TRY_RINGS = {Ring.ADOPT, Ring.PILOT}
 _FEED_LIMIT = 50
 
@@ -56,6 +57,13 @@ def render_static_site(
     )
     # Shared presentation helper so live + static render backers identically.
     env.globals["backer_badge"] = backer_badge
+    # Static pages are flat files at the site root, so brand assets are
+    # referenced relatively (the live app uses an absolute "/static" instead).
+    env.globals["asset_base"] = ""
+
+    # Copy bundled brand assets (logo, favicon) into the published site.
+    if _STATIC_DIR.is_dir():
+        shutil.copytree(_STATIC_DIR, out_dir / "static", dirs_exist_ok=True)
     stamp = generated_at.strftime("%Y-%m-%d %H:%M UTC")
 
     # One slug per project, shared by index links and per-project filenames so
