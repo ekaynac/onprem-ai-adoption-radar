@@ -3,7 +3,7 @@
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-349%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-350%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
@@ -241,7 +241,7 @@ docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-resea
 ## Development
 
 ```bash
-uv run pytest --cov    # 349 tests, coverage floor 80% (currently ~93%)
+uv run pytest --cov    # 350 tests, coverage floor 80% (currently ~93%)
 uv run ruff check src tests
 uv run mypy
 ```

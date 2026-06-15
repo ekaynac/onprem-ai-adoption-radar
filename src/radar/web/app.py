@@ -11,6 +11,7 @@ from fastapi.responses import (
     PlainTextResponse,
     RedirectResponse,
 )
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from radar.models import Category, SourceType
@@ -25,14 +26,21 @@ from radar.web.backer_badge import backer_badge
 from radar.web.scan_health import summarize_meta
 
 
-TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+_WEB_DIR = Path(__file__).parent
+STATIC_DIR = _WEB_DIR / "static"
+
+TEMPLATES = Jinja2Templates(directory=str(_WEB_DIR / "templates"))
 # Shared presentation helper so live + static render backers identically.
 TEMPLATES.env.globals["backer_badge"] = backer_badge
+# Live dashboard serves brand assets under an absolute /static path (pages live
+# at varying depths like /project/X, so a relative path would break).
+TEMPLATES.env.globals["asset_base"] = "/"
 
 
 def create_app(root: Path) -> FastAPI:
     """Create a local dashboard app with read views and seed management."""
     app = FastAPI(title="Agent/Tooling Adoption Radar")
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     db = RadarDatabase(root / "data" / "radar.db")
     history = HistoryStore(root / "data" / "radar.db")
     metrics = MetricsStore(root / "data" / "radar.db")
