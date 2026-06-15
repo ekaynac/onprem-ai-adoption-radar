@@ -12,7 +12,7 @@ on:
       - ".github/workflows/publish.yml"
 
 permissions:
-  contents: read
+  contents: write # commit the durable history log back to the repo
   pages: write
   id-token: write
 
@@ -25,6 +25,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Full history is needed so the committed history log carries forward.
       - uses: actions/checkout@v6
 
       - name: Install uv
@@ -35,17 +36,6 @@ jobs:
 
       - name: Install package
         run: uv venv && uv pip install -e .
-
-      # Persist the durable JSONL history log across runs so the timeline
-      # accumulates. The SQLite DB is just a cache rebuilt from this log, so we
-      # only need to carry the log forward.
-      - name: Restore radar history log
-        uses: actions/cache/restore@v5
-        with:
-          path: data/history.jsonl
-          key: radar-history-${{ github.run_id }}
-          restore-keys: |
-            radar-history-
 
       - name: Scan
         env:
@@ -62,18 +52,24 @@ jobs:
       - name: Export static site
         run: uv run radar export --root . --out _site
 
-      - name: Save radar history log
-        if: always()
-        uses: actions/cache/save@v5
-        with:
-          path: data/history.jsonl
-          key: radar-history-${{ github.run_id }}
-
-      # Also publish the durable log as a Pages artifact so the full timeline is
-      # downloadable and not dependent on the (evictable) Actions cache.
+      # Publish the durable log alongside the site so it's downloadable.
       - name: Include history log in site
         if: always()
         run: cp -f data/history.jsonl _site/history.jsonl || true
+
+      # Persist the durable JSONL history log back to the repo. This makes the
+      # timeline durable (in git, not an evictable cache) AND counts as repo
+      # activity, so GitHub never auto-disables the daily schedule after 60 idle
+      # days. `--allow-empty` guarantees a daily heartbeat even when nothing
+      # moved; `[skip ci]` keeps the bot commit from re-triggering workflows.
+      - name: Persist history log + keepalive
+        if: always()
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f data/history.jsonl || true
+          git commit --allow-empty -m "chore: radar history $(date -u +%F) [skip ci]"
+          git push
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
