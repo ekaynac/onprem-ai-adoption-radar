@@ -68,6 +68,21 @@ def test_export_without_history_log_omits_download(tmp_path: Path):
     assert 'href="changes.json"' in index
 
 
+def test_static_index_carries_mega_brand(tmp_path: Path):
+    # The Mega corporate identity must survive: Process Blue, the logo lockup,
+    # and the tagline. Guards against an accidental de-brand.
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+    )
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "#009FDA" in index  # Process Blue brand color
+    assert 'class="brand-mega"' in index  # mega wordmark lockup
+    assert "Bilişim Teknolojileri" in index  # brand tagline
+    assert "Mega Bilişim Teknolojileri" in index  # footer attribution
+
+
 def test_static_index_renders_hero_stats_and_legend(tmp_path: Path):
     render_static_site(
         [_card("vLLM", Ring.ADOPT), _card("Ray", Ring.PILOT)],

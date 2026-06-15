@@ -3,7 +3,7 @@
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-348%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-349%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
@@ -41,6 +41,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - 🧪 **Sandbox playbooks** — a safe, disposable trial recipe per tool. See [docs/sandbox-playbook.md](docs/sandbox-playbook.md).
 - 🔌 **MCP server** — query the radar from Claude / Codex / any MCP client ("what should I try this week?").
 - 🖥️ **Local dashboard** + 📄 **static export** for GitHub Pages — redesigned with a hero, ring-distribution stats, ring pills, a legend, sticky filters, and automatic dark mode.
+- 🟦 **Mega Bilişim corporate brand** — Process Blue `#009FDA` hero with the *mega®* lockup, Cool Gray surfaces, Centrale Sans type, and a subtle Buka dot-pattern, following the Mega design standard (light + dark). Generated with the Open Design app and ported into the shared design system.
 - ♾️ **Runs itself** — a daily GitHub Action scans, gates, and republishes; it commits the history log back to the repo, which keeps the timeline durable **and** keeps the schedule from auto-disabling, so the public site survives untouched.
 - ⬇️ **Downloadable data** — the full append-only timeline (`history.jsonl`) and change feeds (Atom/JSON) are published next to the site and served by the dashboard at `/history.jsonl`.
 - 🎨 **Fun lane** — playful local-AI projects (image gen, voice, LLM toys) tracked in their own category.
@@ -240,7 +241,7 @@ docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-resea
 ## Development
 
 ```bash
-uv run pytest --cov    # 348 tests, coverage floor 80% (currently ~93%)
+uv run pytest --cov    # 349 tests, coverage floor 80% (currently ~93%)
 uv run ruff check src tests
 uv run mypy
 ```

@@ -1,103 +1,146 @@
 {# Shared design system for the dashboard + static export, so both surfaces look
    identical and styles live in one place. Dependency-free, no build step.
-   Respects prefers-color-scheme for an automatic dark mode. #}
+   Branded to the Mega Bilişim Teknolojileri corporate standard (Process Blue
+   #009FDA, Cool Gray, Centrale Sans). Automatic dark mode via prefers-color-scheme. #}
 <style>
+  /* Centrale Sans — Mega corporate typeface; degrades to system-ui if absent.
+     Drop web fonts at static/brand/centrale-sans/ to activate. */
+  @font-face {
+    font-family: "Centrale Sans"; font-weight: 700; font-display: swap;
+    src: local("Centrale Sans Bold"), local("CentraleSans-Bold");
+  }
+  @font-face {
+    font-family: "Centrale Sans"; font-weight: 400; font-display: swap;
+    src: local("Centrale Sans"), local("CentraleSans-Regular");
+  }
   :root {
-    --bg: #f8fafc; --surface: #ffffff; --text: #1f2937; --muted: #6b7280;
-    --border: #e5e7eb; --link: #2563eb; --accent: #4f46e5;
-    --hero-from: #eef2ff; --hero-to: #f8fafc; --row-hover: #f9fafb;
+    --blue: #009FDA; --blue-dark: #0082B3; --blue-darker: #005F85;
+    --cool-gray: #BCBEC0; --surface-30: #E8E8E9; --surface-20: #F0F0F0;
+    --bg: #ffffff; --surface: #ffffff; --text: #1A1A1A; --muted: #6B7280;
+    --border: #E8E8E9; --border-mid: #BCBEC0; --link: #0082B3; --row-hover: #F0F0F0;
+    --font: "Centrale Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0f172a; --surface: #1e293b; --text: #e2e8f0; --muted: #94a3b8;
-      --border: #334155; --link: #93c5fd; --accent: #a5b4fc;
-      --hero-from: #1e1b4b; --hero-to: #0f172a; --row-hover: #243044;
+      --blue: #009FDA; --blue-dark: #33B3E8; --blue-darker: #60AACC;
+      --cool-gray: #2E3D52; --surface-30: #141820; --surface-20: #141820;
+      --bg: #0C1118; --surface: #181E2A; --text: #DDE4EF; --muted: #8499B5;
+      --border: #222B3A; --border-mid: #2E3D52; --link: #33C0F0; --row-hover: #141820;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.35);
     }
   }
   * { box-sizing: border-box; }
   body {
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: var(--font);
     margin: 0; background: var(--bg); color: var(--text);
     line-height: 1.5; -webkit-font-smoothing: antialiased;
   }
   .container { max-width: 1060px; margin: 0 auto; padding: 0 1.25rem 3rem; }
   a { color: var(--link); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  h1 { margin: 0 0 0.25rem; font-size: 1.9rem; letter-spacing: -0.02em; }
-  h2 { margin: 2rem 0 0.5rem; font-size: 1.25rem; letter-spacing: -0.01em; }
+  h1 { margin: 0 0 0.25rem; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; }
+  h2 { margin: 2rem 0 0.5rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
 
-  /* Hero */
+  /* Hero — Process Blue brand band with a subtle Buka dot-pattern */
   .hero {
-    background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
-    border-bottom: 1px solid var(--border); padding: 1.75rem 0 1.5rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+    background: var(--blue); color: #fff;
+    padding: 1.6rem 0 1.4rem; margin-bottom: 1.5rem;
   }
-  .hero .container { padding-bottom: 0; }
-  .tagline { color: var(--muted); margin: 0.25rem 0 0.75rem; max-width: 60ch; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+  .hero .container { position: relative; z-index: 1; padding-bottom: 0; }
+  .hero h1 { color: #fff; }
+  .hero a { color: #fff; }
+  /* Mega logo lockup */
+  .brand-lockup { display: flex; flex-direction: column; gap: 2px; margin-bottom: 0.9rem; }
+  .brand-mega { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; color: #fff; }
+  .brand-reg { font-size: 0.6rem; font-weight: 400; vertical-align: top; margin-left: 1px; opacity: 0.85; }
+  .brand-tagline {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.14em; color: rgba(255,255,255,0.85);
+  }
+  .tagline { color: rgba(255,255,255,0.82); margin: 0.25rem 0 0.85rem; max-width: 62ch; }
   .hero-nav { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.92rem; font-weight: 600; }
-  .generated { color: var(--muted); font-size: 0.85rem; margin: 0; }
+  .generated { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin: 0.75rem 0 0; }
 
-  /* Stat chips */
-  .stats { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.5rem 0 0; }
+  /* Stat cards — colored top accent per ring */
+  .stats { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0.25rem 0 0.5rem; }
   .stat {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 0.6rem;
-    padding: 0.45rem 0.8rem; min-width: 4.5rem;
+    position: relative; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem;
+    padding: 0.7rem 1rem 0.55rem; min-width: 5rem; box-shadow: var(--shadow-sm);
   }
-  .stat .num { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
-  .stat .lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-  .stat-adopt .num { color: #059669; }
-  .stat-pilot .num { color: #2563eb; }
-  .stat-watch .num { color: #d97706; }
-  .stat-avoid .num { color: #dc2626; }
+  .stat::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--border-mid); }
+  .stat-adopt::before { background: var(--blue); }
+  .stat-pilot::before { background: var(--blue-darker); }
+  .stat-watch::before { background: #C89100; }
+  .stat-avoid::before { background: #B93025; }
+  .stat .num { font-size: 1.5rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+  .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .stat-adopt .num { color: var(--blue-dark); }
+  .stat-pilot .num { color: var(--blue-darker); }
+  .stat-watch .num { color: #8C6200; }
+  .stat-avoid .num { color: #B93025; }
 
   /* Tables */
-  table { border-collapse: collapse; width: 100%; margin-bottom: 1.5rem; background: var(--surface); }
+  table {
+    border-collapse: collapse; width: 100%; margin-bottom: 1.5rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;
+  }
   th, td { border-bottom: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
-  th { background: var(--row-hover); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  th { background: var(--row-hover); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--muted); }
+  th:first-child { border-left: 3px solid var(--blue); }
   tbody tr:hover { background: var(--row-hover); }
+  tbody tr:last-child td { border-bottom: none; }
   .mono { font-family: ui-monospace, "SF Mono", monospace; }
 
-  /* Ring pills */
+  /* Ring pills — Mega palette (adopt = Process Blue family) */
   .ring { font-family: ui-monospace, monospace; }
   .ring-pill {
-    display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.03em; padding: 0.1rem 0.5rem; border-radius: 999px;
+    display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 0.12rem 0.55rem; border-radius: 999px; border: 1px solid;
   }
-  .ring-adopt { background: #d1fae5; color: #065f46; }
-  .ring-pilot { background: #dbeafe; color: #1e40af; }
-  .ring-watch { background: #fef3c7; color: #92400e; }
-  .ring-avoid { background: #fee2e2; color: #991b1b; }
-  .adopt { color: #047857; font-weight: 600; }
-  .pilot { color: #2563eb; font-weight: 600; }
-  .watch { color: #b45309; }
-  .avoid { color: #b91c1c; }
+  .ring-adopt { background: rgba(0,159,218,0.12); color: var(--blue-dark); border-color: rgba(0,159,218,0.35); }
+  .ring-pilot { background: rgba(0,95,133,0.10); color: var(--blue-darker); border-color: rgba(0,95,133,0.30); }
+  .ring-watch { background: rgba(200,145,0,0.12); color: #8C6200; border-color: rgba(200,145,0,0.35); }
+  .ring-avoid { background: rgba(185,48,37,0.10); color: #B93025; border-color: rgba(185,48,37,0.30); }
+  .adopt { color: var(--blue-dark); font-weight: 600; }
+  .pilot { color: var(--blue-darker); font-weight: 600; }
+  .watch { color: #8C6200; }
+  .avoid { color: #B93025; }
 
   /* Generic badges */
   .badge {
     display: inline-block; font-size: 0.7rem; font-weight: 600;
     padding: 0.05rem 0.4rem; border-radius: 0.3rem; margin-right: 0.3rem; white-space: nowrap;
   }
-  .badge-risk { background: #fee2e2; color: #b91c1c; }
-  .badge-risk-low { background: #fef3c7; color: #92400e; }
-  .badge-pinned { background: #e0e7ff; color: #3730a3; }
+  .badge-risk { background: rgba(185,48,37,0.12); color: #B93025; }
+  .badge-risk-low { background: rgba(200,145,0,0.14); color: #8C6200; }
+  .badge-pinned { background: rgba(0,159,218,0.14); color: var(--blue-dark); }
 
   /* Backer badges */
   .backer {
     display: inline-block; font-size: 0.72rem; font-weight: 600;
     padding: 0.05rem 0.4rem; border-radius: 0.3rem; white-space: nowrap;
   }
-  .backer-big_tech { background: #dbeafe; color: #1e40af; }
+  .backer-big_tech { background: rgba(0,159,218,0.14); color: var(--blue-dark); }
   .backer-startup { background: #ede9fe; color: #6d28d9; }
   .backer-community { background: #dcfce7; color: #166534; }
   .backer-individual { background: #fef9c3; color: #854d0e; }
   .backer-academic { background: #fce7f3; color: #9d174d; }
-  .backer-none { color: #9ca3af; }
+  .backer-none { color: var(--muted); }
   .backer-line { margin: 0.25rem 0 0.5rem; }
   .backer-type-label { color: var(--muted); font-size: 0.85rem; }
 
   /* Evidence + scan health */
   .evidence { margin: 0.3rem 0 0; padding-left: 1rem; color: var(--muted); font-size: 0.82rem; }
   .scan-health { margin: 0.75rem 0 1.25rem; font-size: 0.9rem; }
-  .scan-health summary { cursor: pointer; color: #b45309; }
+  .scan-health summary { cursor: pointer; color: #8C6200; }
   .scan-health ul { margin: 0.4rem 0 0; color: var(--muted); }
   .scan-health-ok { color: #15803d; margin: 0; }
 
@@ -107,29 +150,44 @@
     margin: 0.5rem 0 1rem; padding: 0.5rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap;
   }
   .filter-bar input, .filter-bar select {
-    padding: 0.4rem 0.6rem; font-size: 0.9rem; border: 1px solid var(--border);
+    padding: 0.45rem 0.7rem; font-size: 0.9rem; border: 1px solid var(--border-mid);
     border-radius: 0.4rem; background: var(--surface); color: var(--text);
+    font-family: var(--font); outline: none; transition: border-color .15s, box-shadow .15s;
   }
   .filter-bar input { flex: 1; min-width: 12rem; }
+  .filter-bar input:focus, .filter-bar select:focus {
+    border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,159,218,0.16);
+  }
 
   /* Legend */
   .legend { margin: 0.5rem 0 1.5rem; font-size: 0.9rem; }
-  .legend summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+  .legend summary { cursor: pointer; color: var(--muted); font-weight: 700; }
   .legend-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 0.75rem; }
-  .legend-col h4 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); }
+  .legend-col h4 { margin: 0 0 0.4rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
   .legend-col ul { list-style: none; margin: 0; padding: 0; }
   .legend-col li { margin: 0.25rem 0; }
 
-  /* Downloads + footer */
+  /* Downloads + footer — Cool Gray Buka dot-pattern */
   .footer {
-    border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1.25rem;
-    color: var(--muted); font-size: 0.88rem;
+    position: relative; overflow: hidden;
+    border-top: 1px solid var(--border); margin-top: 2.5rem;
+    background: var(--surface-20); color: var(--muted); font-size: 0.88rem;
   }
-  .footer h4 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .footer::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(188,190,192,0.45) 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+  .footer .container { position: relative; z-index: 1; padding-top: 1.25rem; }
+  .footer h4 { margin: 0 0 0.4rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
   .footer-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem; }
-  .dl { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .dl {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0.4rem; color: var(--link);
+  }
+  .dl:hover { border-color: var(--blue); text-decoration: none; }
 
   /* Project detail */
   .meta { color: var(--muted); }
-  .pinned-note { color: #92400e; }
+  .pinned-note { color: #8C6200; }
 </style>

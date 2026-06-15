@@ -7,6 +7,14 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Mega Bilişim corporate rebrand** — the dashboard and static site now follow
+  the Mega Bilişim Teknolojileri design standard: Process Blue `#009FDA` hero
+  band with the *mega®* logo lockup + "Bilişim Teknolojileri" tagline, Cool Gray
+  surfaces, Centrale Sans typography (system-ui fallback), ring/stat accents in
+  the brand palette, a subtle Buka dot-pattern on the header and footer, and a
+  Mega attribution footer. Light + dark. Design generated with the Open Design
+  app from the corporate standard, then ported into the shared `_base_styles`
+  design system (so live + static stay identical).
 - **Self-sustaining daily publish** — the publish workflow now commits the
   durable history log back to the repo after each scan (`[skip ci]`). This makes
   the timeline durable in git (not an evictable cache) **and** counts as
