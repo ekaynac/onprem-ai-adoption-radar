@@ -8,6 +8,7 @@ __pycache__/
 data/runs/
 data/*.db
 data/config.yaml
+data/config.yaml.bak
 # Durable history log: ignored by default so local/test timelines aren't
 # committed. To version your history (recommended for self-hosting durability),
 # `git add -f data/history.jsonl`. See docs/persistence.md.
