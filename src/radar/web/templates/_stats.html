@@ -1,0 +1,12 @@
+{# Ring distribution summary. Context: cards. #}
+{% set adopt = cards | selectattr('ring.value', 'equalto', 'adopt') | list | length %}
+{% set pilot = cards | selectattr('ring.value', 'equalto', 'pilot') | list | length %}
+{% set watch = cards | selectattr('ring.value', 'equalto', 'watch') | list | length %}
+{% set avoid = cards | selectattr('ring.value', 'equalto', 'avoid') | list | length %}
+<div class="stats">
+  <div class="stat"><div class="num">{{ cards | length }}</div><div class="lbl">Tracked</div></div>
+  <div class="stat stat-adopt"><div class="num">{{ adopt }}</div><div class="lbl">Adopt</div></div>
+  <div class="stat stat-pilot"><div class="num">{{ pilot }}</div><div class="lbl">Pilot</div></div>
+  <div class="stat stat-watch"><div class="num">{{ watch }}</div><div class="lbl">Watch</div></div>
+  {% if avoid %}<div class="stat stat-avoid"><div class="num">{{ avoid }}</div><div class="lbl">Avoid</div></div>{% endif %}
+</div>

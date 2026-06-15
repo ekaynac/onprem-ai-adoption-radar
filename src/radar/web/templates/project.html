@@ -3,42 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ card.project }} · Adoption Radar</title>
-    <style>
-      body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 1000px; color: #1f2937; padding: 0 1rem; }
-      h1 { margin-bottom: 0.25rem; }
-      h2 { margin-top: 1.75rem; font-size: 1.1rem; }
-      .meta { color: #4b5563; font-size: 0.9rem; margin: 0.25rem 0 1rem; }
-      .pinned-note { background: #eef2ff; border-left: 3px solid #6366f1; padding: 0.5rem 0.75rem; }
-      table { border-collapse: collapse; width: 100%; margin-bottom: 0.5rem; }
-      th, td { border-bottom: 1px solid #e5e7eb; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
-      th { background: #f9fafb; }
-      .mono, .ring { font-family: ui-monospace, monospace; }
-      .adopt { color: #047857; font-weight: 600; }
-      .pilot { color: #2563eb; font-weight: 600; }
-      .watch { color: #b45309; }
-      .avoid { color: #b91c1c; }
-      .badge { display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 0.05rem 0.4rem; border-radius: 0.3rem; }
-      .badge-pinned { background: #e0e7ff; color: #3730a3; }
-      .backer { display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 0.3rem; }
-      .backer-big_tech { background: #dbeafe; color: #1e40af; }
-      .backer-startup { background: #ede9fe; color: #6d28d9; }
-      .backer-community { background: #dcfce7; color: #166534; }
-      .backer-individual { background: #fef9c3; color: #854d0e; }
-      .backer-academic { background: #fce7f3; color: #9d174d; }
-      .backer-line { margin: 0.25rem 0 0.5rem; }
-      .backer-type-label { color: #6b7280; font-size: 0.85rem; }
-      .evidence { color: #374151; }
-      nav a { color: #2563eb; margin-right: 1rem; }
-    </style>
+    <title>{{ card.project if card else "Not found" }} · Adoption Radar</title>
+    {% include "_base_styles.html" %}
   </head>
   <body>
-    <nav><a href="{{ links.home }}">← Radar</a><a href="{{ links.compare }}">Compare</a><a href="{{ links.history }}">History</a></nav>
-    {% if card %}
-    {% include "_project_detail.html" %}
-    {% else %}
-    <h1>Project not found</h1>
-    <p>No tracked project matches "{{ missing }}". <a href="{{ links.home }}">Back to the radar</a>.</p>
-    {% endif %}
+    <main class="container" style="padding-top: 1.5rem;">
+      <nav class="hero-nav" style="margin-bottom: 1rem;"><a href="{{ links.home }}">← Radar</a><a href="{{ links.compare }}">Compare</a><a href="{{ links.history }}">History</a></nav>
+      {% if card %}
+      {% include "_project_detail.html" %}
+      {% else %}
+      <h1>Project not found</h1>
+      <p>No tracked project matches "{{ missing }}". <a href="{{ links.home }}">Back to the radar</a>.</p>
+      {% endif %}
+    </main>
+    {% set nav = {"Radar": links.home, "Compare": links.compare, "History": links.history} %}
+    {% include "_footer.html" %}
   </body>
 </html>

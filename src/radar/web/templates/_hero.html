@@ -1,0 +1,11 @@
+{# Brand header. Context: page_title, tagline, generated_at, nav (label->url). #}
+<header class="hero">
+  <div class="container">
+    <h1>{{ page_title }}</h1>
+    <p class="tagline">{{ tagline }}</p>
+    <nav class="hero-nav">
+      {% for label, url in nav.items() %}{% if url %}<a href="{{ url }}">{{ label }}</a>{% endif %}{% endfor %}
+    </nav>
+    {% if generated_at %}<p class="generated">Updated {{ generated_at }}</p>{% endif %}
+  </div>
+</header>

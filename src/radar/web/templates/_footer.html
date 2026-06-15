@@ -1,0 +1,15 @@
+{# Site footer. Context: nav (label->url), downloads (label->url, optional). #}
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      {% for label, url in nav.items() %}{% if url %}<a href="{{ url }}">{{ label }}</a>{% endif %}{% endfor %}
+    </div>
+    {% if downloads and downloads.values() | select | list %}
+    <h4>Download data</h4>
+    <div class="footer-links">
+      {% for label, url in downloads.items() %}{% if url %}<a class="dl" href="{{ url }}" download>⬇ {{ label }}</a>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+    <p>Auto-updated daily · deterministic &amp; self-hosted · <a href="https://github.com/ekaynac/onprem-ai-adoption-radar">source on GitHub</a></p>
+  </div>
+</footer>

@@ -650,6 +650,7 @@ def export(
         timelines=timelines,
         metrics_by_project=metrics_by_project,
         latest_scan_meta=latest_scan_meta,
+        history_jsonl=root / "data" / "history.jsonl",
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages)"

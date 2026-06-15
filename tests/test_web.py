@@ -67,6 +67,42 @@ def test_dashboard_lists_cards(tmp_path: Path):
     assert "pilot" in response.text
 
 
+def test_history_jsonl_download_route(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    log = tmp_path / "data" / "history.jsonl"
+    log.write_text('{"event": "demo"}\n', encoding="utf-8")
+
+    client = TestClient(create_app(tmp_path))
+    ok = client.get("/history.jsonl")
+    assert ok.status_code == 200
+    assert ok.text == '{"event": "demo"}\n'
+
+
+def test_history_jsonl_download_404_when_absent(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    client = TestClient(create_app(tmp_path))
+    assert client.get("/history.jsonl").status_code == 404
+
+
+def test_dashboard_renders_hero_stats_and_download_link(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Cline", category=Category.CODING_AGENTS, ring=Ring.PILOT,
+                summary="Coding agent", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert 'class="hero"' in text
+    assert 'class="stats"' in text
+    assert 'href="/history.jsonl"' in text  # footer download link
+
+
 def _init_project(tmp_path: Path) -> None:
     from radar.init_project import initialize_project
 
