@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from radar.models import PackageRef
+from radar.models import Backer, BackerType, PackageRef
 from radar.storage.config import load_config
 
 
@@ -26,3 +26,13 @@ def test_mapped_sources_have_valid_package_refs():
         assert isinstance(source.package, PackageRef)
         assert source.package.ecosystem in {"PyPI", "npm"}
         assert source.package.name.strip()
+
+
+def test_every_source_has_a_curated_backer():
+    # Provenance is a first-class column on the dashboard, so the shipped seed
+    # must classify every project's backer (no blank "—" rows out of the box).
+    config = load_config(SEED_CONFIG)
+    for source in config.sources:
+        assert isinstance(source.backer, Backer), f"{source.project} lacks a backer"
+        assert source.backer.name.strip()
+        assert isinstance(source.backer.type, BackerType)

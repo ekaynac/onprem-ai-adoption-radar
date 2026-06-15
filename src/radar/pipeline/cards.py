@@ -7,6 +7,7 @@ import re
 from collections import defaultdict
 
 from radar.models import (
+    Backer,
     DecisionCard,
     OnPremAssessment,
     ProjectEvidence,
@@ -23,6 +24,7 @@ def build_decision_cards(
     scored_signals: list[ScoredSignal],
     evidence_by_project: dict[str, ProjectEvidence] | None = None,
     weights: dict[str, float] | None = None,
+    backer_by_project: dict[str, Backer] | None = None,
 ) -> list[DecisionCard]:
     """Build one decision card per project.
 
@@ -79,6 +81,7 @@ def build_decision_cards(
             DecisionCard(
                 project=project,
                 category=best.signal.category,
+                backer=(backer_by_project or {}).get(project),
                 ring=best.recommended_ring,
                 score=project_score(best),
                 score_breakdown=best.scores,

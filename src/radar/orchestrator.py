@@ -16,7 +16,7 @@ from radar.analysis.backtest import (
 )
 from radar.collectors.registry import build_collectors
 from radar.enrichment.runner import run_enrichment
-from radar.models import DecisionCard, ScoredSignal, Signal
+from radar.models import Backer, Config, DecisionCard, ScoredSignal, Signal
 from radar.notify.webhook import send_notification
 from radar.pipeline.cards import build_decision_cards
 from radar.pipeline.classify import build_project_index, reclassify_firehose
@@ -40,6 +40,11 @@ from radar.storage.metrics_store import MetricsStore
 from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
 from radar.storage.source_health_store import SourceHealthStore
+
+
+def _backers_by_project(config: Config) -> dict[str, Backer]:
+    """Map each configured project to its backer, skipping uncurated sources."""
+    return {s.project: s.backer for s in config.sources if s.backer is not None}
 
 
 @dataclass(frozen=True)
@@ -106,7 +111,10 @@ class RadarOrchestrator:
             [item.model_dump(mode="json") for item in scored],
         )
         cards = build_decision_cards(
-            scored, evidence_by_project=evidence, weights=weights
+            scored,
+            evidence_by_project=evidence,
+            weights=weights,
+            backer_by_project=_backers_by_project(config),
         )
         if profile:
             self.run_store.update_meta(run_id, {"profile": profile})
@@ -389,7 +397,10 @@ class RadarOrchestrator:
             for signal in deduped
         ]
         cards = build_decision_cards(
-            scored, evidence_by_project=evidence, weights=weights
+            scored,
+            evidence_by_project=evidence,
+            weights=weights,
+            backer_by_project=_backers_by_project(config),
         )
         filtered_cards = apply_category_quotas(cards, config.quotas)
         overrides = OverridesStore(self.overrides_path).load()

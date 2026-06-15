@@ -124,6 +124,13 @@ class RadarQueryService:
         return {
             "project": card.project,
             "category": card.category.value,
+            # Who backs the project (person / community / company), so an agent
+            # can weigh provenance, not just the ring.
+            "backer": (
+                {"name": card.backer.name, "type": card.backer.type.value}
+                if card.backer
+                else None
+            ),
             "ring": card.ring.value,
             "score": card.score,
             "risk_level": card.risk_level,

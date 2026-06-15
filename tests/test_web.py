@@ -3,9 +3,43 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from radar.models import Category, DecisionCard, OnPremAssessment, Ring
+from radar.models import (
+    Backer,
+    BackerType,
+    Category,
+    DecisionCard,
+    OnPremAssessment,
+    Ring,
+)
 from radar.storage.database import RadarDatabase
 from radar.web.app import create_app
+
+
+def test_dashboard_shows_backer_badge_and_filter(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM",
+                category=Category.MODEL_SERVING,
+                backer=Backer(name="NVIDIA", type=BackerType.BIG_TECH),
+                ring=Ring.ADOPT,
+                summary="fast inference",
+                workflow_fit={},
+                risk_level="low",
+            )
+        ]
+    )
+
+    response = TestClient(create_app(tmp_path)).get("/")
+
+    assert response.status_code == 200
+    assert "Backed by" in response.text  # column header
+    assert "NVIDIA" in response.text  # backer name badge
+    assert 'class="backer backer-big_tech"' in response.text
+    assert 'id="filter-backer"' in response.text  # backer filter control
+    assert 'data-backer-type="big_tech"' in response.text  # row attr for JS filter
 
 
 def test_dashboard_lists_cards(tmp_path: Path):

@@ -10,4 +10,10 @@
     <option value="{{ cat }}">{{ cat }}</option>
     {% endfor %}
   </select>
+  <select id="filter-backer" onchange="radarFilter()" aria-label="Filter by backer">
+    <option value="">Any backer</option>
+    {% for bt in cards | selectattr('backer') | map(attribute='backer.type.value') | unique | sort %}
+    <option value="{{ bt }}">{{ bt | replace('_', ' ') | title }}</option>
+    {% endfor %}
+  </select>
 </div>

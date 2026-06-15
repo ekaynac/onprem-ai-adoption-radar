@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Provider / backer dimension** — every project is classified by who stands
+  behind it: 🏢 Big Tech, 🚀 Startup, 🌐 Community, 👤 Individual, or 🎓 Academic.
+  Shown as a colored "Backed by" badge on the dashboard and static index (with a
+  new backer filter), on each project page, and in the MCP card payload. Curated
+  for all shipped sources via a `backer: {name, type}` field on each source.
 - **Evidence-based scoring** — per-scan `metrics_store` records stars, forks,
   license, release cadence; `ProjectEvidence` compares the current scan to the
   previous one. Observed momentum lifts open-source maturity; known OSV.dev

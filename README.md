@@ -3,7 +3,7 @@
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-331%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-342%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
@@ -23,6 +23,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - 🔬 **Evidence-based scoring** — decisions move on *observed data*, not just config tags: star growth and release cadence between scans, days-since-push, and **known security advisories (OSV.dev)** that cap a project's security score. Cards explain themselves with an "Observed" section.
 - 🚨 **License-change & upgrade-risk detection** — a tracked project flipping `Apache-2.0 → BUSL` is flagged the scan it happens; release notes are scanned for breaking changes / migrations / security fixes and surfaced as an upgrade-risk level.
 - 📈 **Momentum & movers** — `rising` / `falling` / `steady` per project from the accumulated timeline; reports open with a **Movers** section and the dashboard shows trend arrows.
+- 🏢 **Provider / backer at a glance** — every project is tagged with who stands behind it (🏢 Big Tech · 🚀 Startup · 🌐 Community · 👤 Individual · 🎓 Academic), shown as a colored badge on the index and project pages, filterable, and exposed over MCP.
 - 📌 **Overrides & decision journal** — pin a ring with a reason (`radar override`), record trial outcomes (`radar trial`); pins win over the computed ring and **drift is surfaced**, not hidden.
 - 🎛️ **Scoring profiles** — re-rank the same data through `security-first` / `solo-dev` / `demo-hunter` lenses without a re-scan.
 - 📄 **Per-project pages** — a full view per project (score breakdown, rubric, evidence, advisories, metrics history, ring timeline) on both the dashboard and the published static site.
@@ -237,7 +238,7 @@ docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-resea
 ## Development
 
 ```bash
-uv run pytest --cov    # 331 tests, coverage floor 80% (currently ~92%)
+uv run pytest --cov    # 342 tests, coverage floor 80% (currently ~93%)
 uv run ruff check src tests
 uv run mypy
 ```

@@ -19,6 +19,7 @@ from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
+from radar.web.backer_badge import backer_badge
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 
@@ -51,6 +52,8 @@ def render_static_site(
         loader=FileSystemLoader(str(_TEMPLATE_DIR)),
         autoescape=select_autoescape(["html"]),
     )
+    # Shared presentation helper so live + static render backers identically.
+    env.globals["backer_badge"] = backer_badge
     stamp = generated_at.strftime("%Y-%m-%d %H:%M UTC")
 
     # One slug per project, shared by index links and per-project filenames so

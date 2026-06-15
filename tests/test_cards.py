@@ -1,7 +1,60 @@
 from datetime import UTC, datetime
 
-from radar.models import Category, Ring, ScoreBreakdown, ScoredSignal, Signal
+from radar.models import (
+    Backer,
+    BackerType,
+    Category,
+    Ring,
+    ScoreBreakdown,
+    ScoredSignal,
+    Signal,
+)
 from radar.pipeline.cards import build_decision_cards
+
+
+def _scored(project: str = "Cline") -> ScoredSignal:
+    signal = Signal(
+        id="s1",
+        source_id="github-cline",
+        project=project,
+        category=Category.CODING_AGENTS,
+        title=f"{project} released v1",
+        url="https://github.com/cline/cline/releases/tag/v1",
+        published_at=datetime(2026, 6, 10, tzinfo=UTC),
+        raw_summary="release",
+        signal_type="github_release",
+        tags=[],
+    )
+    return ScoredSignal(
+        signal=signal,
+        scores=ScoreBreakdown(
+            workflow_impact=4,
+            laptop_runnability=4,
+            open_source_maturity=4,
+            on_prem_relevance=4,
+            security_posture=4,
+            demo_value=4,
+            setup_friction=4,
+        ),
+        reason_codes=[],
+        recommended_ring=Ring.PILOT,
+    )
+
+
+def test_cards_carry_backer_when_provided():
+    backer = Backer(name="Cline", type=BackerType.STARTUP)
+    cards = build_decision_cards(
+        [_scored("Cline")], backer_by_project={"Cline": backer}
+    )
+
+    assert cards[0].backer == backer
+    assert cards[0].backer.type is BackerType.STARTUP
+
+
+def test_cards_without_backer_map_have_none():
+    cards = build_decision_cards([_scored("Cline")])
+
+    assert cards[0].backer is None
 
 
 def test_build_decision_cards_groups_by_project():

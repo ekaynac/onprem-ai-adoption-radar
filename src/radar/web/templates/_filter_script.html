@@ -4,17 +4,21 @@
   function radarFilter() {
     var text = (document.getElementById('filter-text').value || '').toLowerCase();
     var cat = document.getElementById('filter-category').value || '';
+    var backerEl = document.getElementById('filter-backer');
+    var backer = backerEl ? backerEl.value : '';
     var rows = document.querySelectorAll('#radar-table tbody tr[data-project]');
     var shown = 0;
     rows.forEach(function (row) {
       var hay = (
         row.getAttribute('data-project') + ' ' +
         row.getAttribute('data-summary') + ' ' +
-        row.getAttribute('data-category')
+        row.getAttribute('data-category') + ' ' +
+        (row.getAttribute('data-backer') || '')
       ).toLowerCase();
       var matchText = !text || hay.indexOf(text) !== -1;
       var matchCat = !cat || row.getAttribute('data-category') === cat;
-      var show = matchText && matchCat;
+      var matchBacker = !backer || row.getAttribute('data-backer-type') === backer;
+      var show = matchText && matchCat && matchBacker;
       row.style.display = show ? '' : 'none';
       if (show) shown++;
     });
