@@ -6,9 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **License: Unlicense → MIT** (© 2026 Enes Kaynakcı). Updated `LICENSE`,
+  `pyproject.toml`, README, and CONTRIBUTING accordingly.
+- **Company name** shown in credits is now the legal name **Mega Bilgisayar Tic.
+  Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
+
 ### Added
 - **Mega Bilişim corporate rebrand** — the dashboard and static site now follow
-  the Mega Bilişim Teknolojileri design standard: Process Blue `#009FDA` hero
+  the Mega Bilgisayar Tic. Ltd. Şti. design standard: Process Blue `#009FDA` hero
   band with the **real Mega logo** (chameleon + wordmark, white variant on the
   blue band) and a chameleon favicon, Cool Gray surfaces, Centrale Sans
   typography (system-ui fallback), ring/stat accents in the brand palette, a
@@ -147,6 +153,6 @@ All notable changes to this project are documented here. The format follows
   export** (index + compare + history) for GitHub Pages.
 - **Fun/experimental category** for playful local-AI projects.
 - **CI** (tests on push/PR) and **scheduled publish** to GitHub Pages.
-- Released into the public domain under The Unlicense.
+- Released under the MIT License.
 
 [Unreleased]: https://github.com/ekaynac/onprem-ai-adoption-radar/commits/main

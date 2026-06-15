@@ -5,7 +5,7 @@
 
 ## Goal
 Rebrand the On-Prem AI Adoption Radar dashboard and static site to the
-**Mega Bilişim Teknolojileri** corporate design standard, at "faithful
+**Mega Bilgisayar Tic. Ltd. Şti.** corporate design standard, at "faithful
 corporate" fidelity, with an **English** UI.
 
 ## Source of truth

@@ -6,7 +6,7 @@
 ![Tests](https://img.shields.io/badge/tests-350%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
-![License](https://img.shields.io/badge/license-Unlicense%20(public%20domain)-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
 This is **not** a generic AI news digest. It collects real signals (GitHub releases, registries, vendor/engineering blogs), scores them against an on-prem adoption rubric, and produces **decision cards** with rings — plus a cumulative timeline of how each project moves over time. It runs on a laptop, needs no cloud service, and the entire scoring pipeline is **deterministic** (an LLM is optional and off by default).
 
@@ -250,8 +250,8 @@ Conventions: deterministic core (no LLM in the default path), immutable data flo
 
 ## Author
 
-Built by **Enes Kaynakcı** — Software Engineer at **[Mega Bilişim Teknolojileri](https://www.megabilgisayar.com.tr)**.
+Built by **Enes Kaynakcı** — Software Engineer at **[Mega Bilgisayar Tic. Ltd. Şti.](https://www.megabilgisayar.com.tr)**.
 
 ## License
 
-Released into the **public domain** under [The Unlicense](LICENSE) — do anything you want with it, no attribution required.
+Released under the **[MIT License](LICENSE)** — © 2026 Enes Kaynakcı. Free to use, modify, and distribute; keep the copyright notice.
