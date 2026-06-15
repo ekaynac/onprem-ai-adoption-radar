@@ -61,10 +61,21 @@ def backtest(
 
 
 @app.command()
-def init(root: Path = typer.Option(Path("."), help="Project root to initialize.")) -> None:
+def init(
+    root: Path = typer.Option(Path("."), help="Project root to initialize."),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Refresh config.yaml from the bundled seed (backs up the existing one).",
+    ),
+) -> None:
     """Create starter config and data directories."""
-    result = initialize_project(root)
+    result = initialize_project(root, force=force)
     console.print(f"Config: {result.config_path}")
+    if result.config_refreshed and result.backup_path is not None:
+        console.print(f"[yellow]Config refreshed from seed.[/yellow] Backup: {result.backup_path}")
+    elif not result.config_refreshed:
+        console.print("[dim]Config already exists; left unchanged (use --force to refresh).[/dim]")
     console.print(f"Env example: {result.env_example_path}")
     console.print(f"Runs: {result.runs_path}")
 
