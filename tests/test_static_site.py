@@ -35,6 +35,53 @@ def test_static_index_and_project_page_render_backer(tmp_path: Path):
     assert "NVIDIA" in page
 
 
+def test_export_copies_history_log_and_offers_download(tmp_path: Path):
+    history = tmp_path / "history.jsonl"
+    history.write_text('{"event": "demo"}\n', encoding="utf-8")
+
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+        history_jsonl=history,
+    )
+
+    copied = tmp_path / "_site" / "history.jsonl"
+    assert copied.exists()
+    assert copied.read_text(encoding="utf-8") == '{"event": "demo"}\n'
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'href="history.jsonl"' in index
+    assert "Download data" in index
+
+
+def test_export_without_history_log_omits_download(tmp_path: Path):
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+        # no history_jsonl
+    )
+    assert not (tmp_path / "_site" / "history.jsonl").exists()
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'href="history.jsonl"' not in index
+    # Change feeds are always available, so the download section still renders.
+    assert 'href="changes.json"' in index
+
+
+def test_static_index_renders_hero_stats_and_legend(tmp_path: Path):
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT), _card("Ray", Ring.PILOT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+    )
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'class="hero"' in index  # brand header
+    assert 'class="stats"' in index  # ring distribution chips
+    assert 'class="legend"' in index  # rings/backer legend
+    assert 'class="footer"' in index
+    assert 'class="ring-pill ring-adopt"' in index  # ring rendered as a pill
+
+
 def test_static_index_renders_em_dash_for_uncurated_backer(tmp_path: Path):
     # _card() leaves backer unset; the cell must degrade to a dash, not crash.
     render_static_site(

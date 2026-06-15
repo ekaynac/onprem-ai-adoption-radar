@@ -5,7 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+)
 from fastapi.templating import Jinja2Templates
 
 from radar.models import Category, SourceType
@@ -47,6 +52,20 @@ def create_app(root: Path) -> FastAPI:
             request,
             "index.html",
             {"cards": cards, "scan_health": summarize_meta(meta)},
+        )
+
+    @app.get("/history.jsonl")
+    def history_download():
+        """Serve the durable append-only history log for download."""
+        log_path = root / "data" / "history.jsonl"
+        if not log_path.exists():
+            return PlainTextResponse(
+                "No history log yet. Run a scan first.", status_code=404
+            )
+        return FileResponse(
+            log_path,
+            media_type="application/x-ndjson",
+            filename="radar-history.jsonl",
         )
 
     @app.get("/project/{name}", response_class=HTMLResponse)

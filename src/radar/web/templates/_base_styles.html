@@ -1,0 +1,135 @@
+{# Shared design system for the dashboard + static export, so both surfaces look
+   identical and styles live in one place. Dependency-free, no build step.
+   Respects prefers-color-scheme for an automatic dark mode. #}
+<style>
+  :root {
+    --bg: #f8fafc; --surface: #ffffff; --text: #1f2937; --muted: #6b7280;
+    --border: #e5e7eb; --link: #2563eb; --accent: #4f46e5;
+    --hero-from: #eef2ff; --hero-to: #f8fafc; --row-hover: #f9fafb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --text: #e2e8f0; --muted: #94a3b8;
+      --border: #334155; --link: #93c5fd; --accent: #a5b4fc;
+      --hero-from: #1e1b4b; --hero-to: #0f172a; --row-hover: #243044;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; background: var(--bg); color: var(--text);
+    line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1060px; margin: 0 auto; padding: 0 1.25rem 3rem; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1 { margin: 0 0 0.25rem; font-size: 1.9rem; letter-spacing: -0.02em; }
+  h2 { margin: 2rem 0 0.5rem; font-size: 1.25rem; letter-spacing: -0.01em; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+    border-bottom: 1px solid var(--border); padding: 1.75rem 0 1.5rem; margin-bottom: 1.5rem;
+  }
+  .hero .container { padding-bottom: 0; }
+  .tagline { color: var(--muted); margin: 0.25rem 0 0.75rem; max-width: 60ch; }
+  .hero-nav { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.92rem; font-weight: 600; }
+  .generated { color: var(--muted); font-size: 0.85rem; margin: 0; }
+
+  /* Stat chips */
+  .stats { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.5rem 0 0; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0.6rem;
+    padding: 0.45rem 0.8rem; min-width: 4.5rem;
+  }
+  .stat .num { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
+  .stat .lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-adopt .num { color: #059669; }
+  .stat-pilot .num { color: #2563eb; }
+  .stat-watch .num { color: #d97706; }
+  .stat-avoid .num { color: #dc2626; }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; margin-bottom: 1.5rem; background: var(--surface); }
+  th, td { border-bottom: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+  th { background: var(--row-hover); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  tbody tr:hover { background: var(--row-hover); }
+  .mono { font-family: ui-monospace, "SF Mono", monospace; }
+
+  /* Ring pills */
+  .ring { font-family: ui-monospace, monospace; }
+  .ring-pill {
+    display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.03em; padding: 0.1rem 0.5rem; border-radius: 999px;
+  }
+  .ring-adopt { background: #d1fae5; color: #065f46; }
+  .ring-pilot { background: #dbeafe; color: #1e40af; }
+  .ring-watch { background: #fef3c7; color: #92400e; }
+  .ring-avoid { background: #fee2e2; color: #991b1b; }
+  .adopt { color: #047857; font-weight: 600; }
+  .pilot { color: #2563eb; font-weight: 600; }
+  .watch { color: #b45309; }
+  .avoid { color: #b91c1c; }
+
+  /* Generic badges */
+  .badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 600;
+    padding: 0.05rem 0.4rem; border-radius: 0.3rem; margin-right: 0.3rem; white-space: nowrap;
+  }
+  .badge-risk { background: #fee2e2; color: #b91c1c; }
+  .badge-risk-low { background: #fef3c7; color: #92400e; }
+  .badge-pinned { background: #e0e7ff; color: #3730a3; }
+
+  /* Backer badges */
+  .backer {
+    display: inline-block; font-size: 0.72rem; font-weight: 600;
+    padding: 0.05rem 0.4rem; border-radius: 0.3rem; white-space: nowrap;
+  }
+  .backer-big_tech { background: #dbeafe; color: #1e40af; }
+  .backer-startup { background: #ede9fe; color: #6d28d9; }
+  .backer-community { background: #dcfce7; color: #166534; }
+  .backer-individual { background: #fef9c3; color: #854d0e; }
+  .backer-academic { background: #fce7f3; color: #9d174d; }
+  .backer-none { color: #9ca3af; }
+  .backer-line { margin: 0.25rem 0 0.5rem; }
+  .backer-type-label { color: var(--muted); font-size: 0.85rem; }
+
+  /* Evidence + scan health */
+  .evidence { margin: 0.3rem 0 0; padding-left: 1rem; color: var(--muted); font-size: 0.82rem; }
+  .scan-health { margin: 0.75rem 0 1.25rem; font-size: 0.9rem; }
+  .scan-health summary { cursor: pointer; color: #b45309; }
+  .scan-health ul { margin: 0.4rem 0 0; color: var(--muted); }
+  .scan-health-ok { color: #15803d; margin: 0; }
+
+  /* Filter bar (sticky) */
+  .filter-bar {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    margin: 0.5rem 0 1rem; padding: 0.5rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap;
+  }
+  .filter-bar input, .filter-bar select {
+    padding: 0.4rem 0.6rem; font-size: 0.9rem; border: 1px solid var(--border);
+    border-radius: 0.4rem; background: var(--surface); color: var(--text);
+  }
+  .filter-bar input { flex: 1; min-width: 12rem; }
+
+  /* Legend */
+  .legend { margin: 0.5rem 0 1.5rem; font-size: 0.9rem; }
+  .legend summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+  .legend-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 0.75rem; }
+  .legend-col h4 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); }
+  .legend-col ul { list-style: none; margin: 0; padding: 0; }
+  .legend-col li { margin: 0.25rem 0; }
+
+  /* Downloads + footer */
+  .footer {
+    border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1.25rem;
+    color: var(--muted); font-size: 0.88rem;
+  }
+  .footer h4 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem; }
+  .dl { display: inline-flex; align-items: center; gap: 0.3rem; }
+
+  /* Project detail */
+  .meta { color: var(--muted); }
+  .pinned-note { color: #92400e; }
+</style>

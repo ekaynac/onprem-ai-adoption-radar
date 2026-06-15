@@ -7,6 +7,20 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Self-sustaining daily publish** — the publish workflow now commits the
+  durable history log back to the repo after each scan (`[skip ci]`). This makes
+  the timeline durable in git (not an evictable cache) **and** counts as
+  repository activity, so GitHub never auto-disables the daily schedule after 60
+  idle days. The public site now runs indefinitely with no manual intervention.
+- **Downloadable history** — the full append-only timeline is published as
+  `history.jsonl` next to the site (with a "Download data" section in the footer
+  and a button on the History page) and served by the dashboard at
+  `/history.jsonl`. Change feeds (`changes.json`, `changes.xml`) are linked too.
+- **Redesigned dashboard & static site** — a shared design system (one
+  `_base_styles.html`, used by live + static so they can't drift): a hero header
+  with tagline, a ring-distribution stat bar, ring **pill** badges, a
+  rings/backer **legend**, a sticky filter bar, a footer with downloads + source
+  link, and automatic dark mode via `prefers-color-scheme`.
 - **Provider / backer dimension** — every project is classified by who stands
   behind it: 🏢 Big Tech, 🚀 Startup, 🌐 Community, 👤 Individual, or 🎓 Academic.
   Shown as a colored "Backed by" badge on the dashboard and static index (with a

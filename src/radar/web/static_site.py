@@ -8,6 +8,7 @@ and relative cross-links, so a CI job can scan and publish a complete snapshot.
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,7 @@ def render_static_site(
     self_base_url: str = "",
     metrics_by_project: dict[str, list[ProjectMetrics]] | None = None,
     latest_scan_meta: dict[str, Any] | None = None,
+    history_jsonl: Path | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -60,6 +62,18 @@ def render_static_site(
     # they can never disagree.
     slug_by_project = build_slug_map([c.project for c in cards])
 
+    # Publish the durable history log alongside the site so visitors can download
+    # the full timeline. Only offered when the log exists.
+    history_available = False
+    if history_jsonl is not None and history_jsonl.exists():
+        shutil.copy2(history_jsonl, out_dir / "history.jsonl")
+        history_available = True
+    downloads = {
+        "History (JSONL)": "history.jsonl" if history_available else None,
+        "Changes (JSON)": "changes.json",
+        "Changes (Atom)": "changes.xml",
+    }
+
     index = out_dir / "index.html"
     index.write_text(
         env.get_template("static_index.html").render(
@@ -68,6 +82,7 @@ def render_static_site(
             generated_at=stamp,
             slug_by_project=slug_by_project,
             scan_health=summarize_meta(latest_scan_meta or {}),
+            downloads=downloads,
         ),
         encoding="utf-8",
     )
@@ -84,6 +99,7 @@ def render_static_site(
         env.get_template("static_history.html").render(
             timelines=timelines or [],
             generated_at=stamp,
+            downloads=downloads,
         ),
         encoding="utf-8",
     )

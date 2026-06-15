@@ -49,13 +49,9 @@ jobs:
       - name: Scoring quality gate
         run: uv run radar calibrate-report --root . --check
 
+      # `radar export` copies data/history.jsonl into the site for download.
       - name: Export static site
         run: uv run radar export --root . --out _site
-
-      # Publish the durable log alongside the site so it's downloadable.
-      - name: Include history log in site
-        if: always()
-        run: cp -f data/history.jsonl _site/history.jsonl || true
 
       # Persist the durable JSONL history log back to the repo. This makes the
       # timeline durable (in git, not an evictable cache) AND counts as repo
