@@ -65,7 +65,41 @@ def test_recommendations_returns_all_cards(tmp_path: Path):
     assert projects == {"vLLM", "Ollama", "SomethingElse"}
     vllm = next(r for r in recs if r["project"] == "vLLM")
     assert vllm["ring"] == "adopt"
-    assert vllm["why_it_matters"] == "it matters"
+    # full detail still exposes the prose fields
+    full = next(r for r in svc.recommendations(detail="full") if r["project"] == "vLLM")
+    assert full["why_it_matters"] == "it matters"
+
+
+def test_recommendations_compact_is_lean_by_default(tmp_path: Path):
+    _seed(tmp_path)
+    svc = RadarQueryService(tmp_path)
+
+    card = svc.recommendations()[0]
+
+    # high-signal browse fields present
+    for key in ("project", "ring", "score", "risk_level", "trend", "summary", "backer"):
+        assert key in card
+    assert "headline" in card  # one evidence line
+    # heavy drill-down fields are NOT in the compact projection
+    for key in ("evidence", "try_next", "risks", "why_it_matters", "tags"):
+        assert key not in card
+
+
+def test_recommendations_limit_and_score_order(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            _card("Low", Ring.PILOT).model_copy(update={"score": 1.0}),
+            _card("High", Ring.PILOT).model_copy(update={"score": 5.0}),
+            _card("Mid", Ring.PILOT).model_copy(update={"score": 3.0}),
+        ]
+    )
+    svc = RadarQueryService(tmp_path)
+
+    ranked = [c["project"] for c in svc.recommendations()]
+    assert ranked == ["High", "Mid", "Low"]  # highest score first
+    assert [c["project"] for c in svc.recommendations(limit=2)] == ["High", "Mid"]
 
 
 def test_recommendations_filters_by_ring(tmp_path: Path):
@@ -162,7 +196,7 @@ def test_card_dict_surfaces_evidence_and_decision_context(tmp_path: Path):
     db.upsert_cards([_rich_card()])
     svc = RadarQueryService(tmp_path)
 
-    card = svc.recommendations()[0]
+    card = svc.recommendations(detail="full")[0]
 
     assert card["score"] == 2.71
     assert card["trend"] == "rising"
@@ -182,7 +216,9 @@ def test_card_dict_defaults_are_clean_for_plain_cards(tmp_path: Path):
     _seed(tmp_path)
     svc = RadarQueryService(tmp_path)
 
-    card = next(c for c in svc.recommendations() if c["project"] == "vLLM")
+    card = next(
+        c for c in svc.recommendations(detail="full") if c["project"] == "vLLM"
+    )
 
     assert card["trend"] == "steady"
     assert card["upgrade_risk"] == "none"
