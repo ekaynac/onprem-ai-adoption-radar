@@ -16,7 +16,13 @@ All notable changes to this project are documented here. The format follows
   footer. Light + dark. Design generated with the Open Design app from the
   corporate standard, then ported into the shared `_base_styles` design system
   (so live + static stay identical). Brand assets live in `web/static/brand/`
-  (served at `/static` live, copied into the published site).
+  (served at `/static` live, copied into the published site): **vector (SVG)**
+  logos traced from the original, a favicon, and a bundled **Hanken Grotesk**
+  web font (SIL OFL) as a free near-match for the commercial Centrale Sans
+  (used via `local()` only, never redistributed). A central **`brand-kit/`**
+  collects the corporate standard, the Open Design reference mockup, all logo
+  variants, and the fonts in one place (heavy/confidential source originals are
+  git-ignored).
 - **Self-sustaining daily publish** — the publish workflow now commits the
   durable history log back to the repo after each scan (`[skip ci]`). This makes
   the timeline durable in git (not an evictable cache) **and** counts as

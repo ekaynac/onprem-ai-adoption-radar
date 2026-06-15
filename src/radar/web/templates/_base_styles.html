@@ -3,8 +3,10 @@
    Branded to the Mega Bilişim Teknolojileri corporate standard (Process Blue
    #009FDA, Cool Gray, Centrale Sans). Automatic dark mode via prefers-color-scheme. #}
 <style>
-  /* Centrale Sans — Mega corporate typeface; degrades to system-ui if absent.
-     Drop web fonts at static/brand/centrale-sans/ to activate. */
+  /* Type stack: the licensed Mega corporate face (Centrale Sans) is used when a
+     visitor has it installed; otherwise the bundled OFL near-match (Hanken
+     Grotesk) loads; otherwise system-ui. Centrale Sans is commercial (Typedepot)
+     and is NOT bundled — drop its web fonts at static/brand/fonts/ to self-host. */
   @font-face {
     font-family: "Centrale Sans"; font-weight: 700; font-display: swap;
     src: local("Centrale Sans Bold"), local("CentraleSans-Bold");
@@ -13,12 +15,20 @@
     font-family: "Centrale Sans"; font-weight: 400; font-display: swap;
     src: local("Centrale Sans"), local("CentraleSans-Regular");
   }
+  @font-face {
+    font-family: "Hanken Grotesk"; font-weight: 400; font-style: normal; font-display: swap;
+    src: url("{{ asset_base }}static/brand/fonts/hanken-grotesk-400.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Hanken Grotesk"; font-weight: 700; font-style: normal; font-display: swap;
+    src: url("{{ asset_base }}static/brand/fonts/hanken-grotesk-700.woff2") format("woff2");
+  }
   :root {
     --blue: #009FDA; --blue-dark: #0082B3; --blue-darker: #005F85;
     --cool-gray: #BCBEC0; --surface-30: #E8E8E9; --surface-20: #F0F0F0;
     --bg: #ffffff; --surface: #ffffff; --text: #1A1A1A; --muted: #6B7280;
     --border: #E8E8E9; --border-mid: #BCBEC0; --link: #0082B3; --row-hover: #F0F0F0;
-    --font: "Centrale Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font: "Centrale Sans", "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   }
   @media (prefers-color-scheme: dark) {

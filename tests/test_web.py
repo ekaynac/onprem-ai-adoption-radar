@@ -75,12 +75,14 @@ def test_brand_logo_served_and_referenced(tmp_path: Path):
     # The dashboard references the real Mega logo (absolute /static path).
     html = client.get("/").text
     assert 'class="brand-logo"' in html
-    assert "/static/brand/mega-logo-white.png" in html
+    assert "/static/brand/mega-logo-white.svg" in html
 
-    # And the asset is actually served.
-    asset = client.get("/static/brand/mega-logo-white.png")
+    # And the assets (vector logo + bundled font) are actually served.
+    asset = client.get("/static/brand/mega-logo-white.svg")
     assert asset.status_code == 200
-    assert asset.headers["content-type"].startswith("image/")
+    assert "svg" in asset.headers["content-type"]
+    font = client.get("/static/brand/fonts/hanken-grotesk-400.woff2")
+    assert font.status_code == 200
 
 
 def test_history_jsonl_download_route(tmp_path: Path):
