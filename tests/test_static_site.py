@@ -79,11 +79,14 @@ def test_static_index_carries_mega_brand(tmp_path: Path):
     index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
     assert "#009FDA" in index  # Process Blue brand color
     assert 'class="brand-logo"' in index  # real mega logo lockup
-    assert "static/brand/mega-logo-white.png" in index  # logo asset (relative)
+    assert "static/brand/mega-logo-white.svg" in index  # vector logo asset (relative)
     assert "Mega Bilişim Teknolojileri" in index  # footer attribution
-    # The logo + favicon assets are copied into the published site.
-    assert (tmp_path / "_site" / "static" / "brand" / "mega-logo-white.png").exists()
+    # The logo, favicon, and bundled font are copied into the published site.
+    assert (tmp_path / "_site" / "static" / "brand" / "mega-logo-white.svg").exists()
     assert (tmp_path / "_site" / "static" / "brand" / "favicon.png").exists()
+    assert (
+        tmp_path / "_site" / "static" / "brand" / "fonts" / "hanken-grotesk-400.woff2"
+    ).exists()
 
 
 def test_static_index_renders_hero_stats_and_legend(tmp_path: Path):
