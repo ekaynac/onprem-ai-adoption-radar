@@ -63,6 +63,11 @@ All notable changes to this project are documented here. The format follows
   evidence (trend, evidence notes, upgrade-risk, advisories) and human pins.
 - **CLI** — `radar seed list` (plain, pipe-friendly source listing) and
   `radar report --json` for scripting.
+- **Config refresh** — `radar init --force` rewrites `data/config.yaml` from
+  the bundled seed (backing up the existing one as `config.yaml.bak`), so a
+  project initialized before later config additions (enrichment, profiles,
+  package mappings) can adopt them without a manual merge. Default `init` stays
+  non-destructive.
 - **Quality gates** — ruff (lint) and mypy (types, pydantic plugin) configured
   and enforced in CI alongside the test suite with an 80% coverage floor;
   CI now tests Python 3.12 and 3.13.
