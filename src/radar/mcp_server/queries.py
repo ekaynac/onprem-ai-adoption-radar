@@ -141,6 +141,22 @@ class RadarQueryService:
         return {"name": card.backer.name, "type": card.backer.type.value}
 
     @staticmethod
+    def _backer_str(card: DecisionCard) -> str | None:
+        """Flat backer string for compact views — saves ~17 chars vs nested object."""
+        if card.backer is None:
+            return None
+        return f"{card.backer.name} ({card.backer.type.value})"
+
+    @staticmethod
+    def _strip_summary_prefix(summary: str, project: str) -> str:
+        """Remove the boilerplate '{project} repository snapshot. ' prefix."""
+        for suffix in (" repository snapshot. ", " reference. "):
+            prefix = project + suffix
+            if summary.startswith(prefix):
+                return summary[len(prefix):]
+        return summary
+
+    @staticmethod
     def _headline_note(card: DecisionCard) -> str | None:
         """One high-signal evidence line for compact views.
 
@@ -156,19 +172,23 @@ class RadarQueryService:
     @classmethod
     def _card_compact(cls, card: DecisionCard) -> dict[str, Any]:
         """Lean, context-cheap card for browsing — drill into get_project for all."""
-        return {
+        out: dict[str, Any] = {
             "project": card.project,
             "category": card.category.value,
-            "backer": cls._backer_dict(card),
+            "backer": cls._backer_str(card),
             "ring": card.ring.value,
             "score": card.score,
             "risk_level": card.risk_level,
             "trend": card.trend,
-            "upgrade_risk": card.upgrade_risk,
-            "pinned": card.pinned,
-            "summary": card.summary,
+            "summary": cls._strip_summary_prefix(card.summary, card.project),
             "headline": cls._headline_note(card),
         }
+        # Omit defaults — saves ~430 tokens across a full project list.
+        if card.upgrade_risk != "none":
+            out["upgrade_risk"] = card.upgrade_risk
+        if card.pinned:
+            out["pinned"] = True
+        return out
 
     @classmethod
     def _card_dict(cls, card: DecisionCard) -> dict[str, Any]:
@@ -206,6 +226,5 @@ class RadarQueryService:
             "ring": event.ring.value,
             "previous_ring": event.previous_ring.value if event.previous_ring else None,
             "observed_at": event.observed_at.date().isoformat(),
-            "run_id": event.run_id,
             "reasons": event.reasons,
         }

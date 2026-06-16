@@ -80,9 +80,88 @@ def test_recommendations_compact_is_lean_by_default(tmp_path: Path):
     for key in ("project", "ring", "score", "risk_level", "trend", "summary", "backer"):
         assert key in card
     assert "headline" in card  # one evidence line
+    # backer is a flat string in compact, not a nested object
+    assert isinstance(card["backer"], str | type(None))
     # heavy drill-down fields are NOT in the compact projection
     for key in ("evidence", "try_next", "risks", "why_it_matters", "tags"):
         assert key not in card
+
+
+def test_compact_omits_default_pinned_and_upgrade_risk(tmp_path: Path):
+    _seed(tmp_path)
+    svc = RadarQueryService(tmp_path)
+
+    card = next(c for c in svc.recommendations() if c["project"] == "vLLM")
+
+    assert "pinned" not in card
+    assert "upgrade_risk" not in card
+
+
+def test_compact_includes_non_default_pinned_and_upgrade_risk(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_rich_card()])
+    svc = RadarQueryService(tmp_path)
+
+    card = svc.recommendations()[0]
+
+    assert card.get("pinned") is True
+    assert card.get("upgrade_risk") == "high"
+
+
+def test_compact_backer_is_flat_string(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_rich_card()])
+    svc = RadarQueryService(tmp_path)
+
+    card = svc.recommendations()[0]
+
+    assert card["backer"] == "vLLM (PyTorch Foundation) (community)"
+
+
+def test_compact_summary_prefix_stripped(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Ollama",
+                category=Category.MODEL_SERVING,
+                ring=Ring.ADOPT,
+                summary="Ollama repository snapshot. strong: great local runner.",
+                workflow_fit={},
+                risk_level="low",
+            )
+        ]
+    )
+    svc = RadarQueryService(tmp_path)
+
+    card = next(c for c in svc.recommendations() if c["project"] == "Ollama")
+
+    assert card["summary"] == "strong: great local runner."
+
+
+def test_compact_summary_unchanged_when_no_prefix(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Ollama",
+                category=Category.MODEL_SERVING,
+                ring=Ring.ADOPT,
+                summary="Custom summary without the boilerplate.",
+                workflow_fit={},
+                risk_level="low",
+            )
+        ]
+    )
+    svc = RadarQueryService(tmp_path)
+
+    card = next(c for c in svc.recommendations() if c["project"] == "Ollama")
+
+    assert card["summary"] == "Custom summary without the boilerplate."
 
 
 def test_recommendations_limit_and_score_order(tmp_path: Path):
