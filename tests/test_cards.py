@@ -168,6 +168,44 @@ def test_cards_without_evidence_have_empty_notes():
     assert cards[0].evidence_notes == []
 
 
+def test_paper_urls_appear_in_card_evidence():
+    from radar.models import PaperRef, ProjectEvidence
+
+    evidence_by_project = {
+        "vLLM": ProjectEvidence(
+            paper_mentions=1,
+            papers=[PaperRef(title="P", url="https://arxiv.org/abs/2506.1", published_at="2026-06-15")],
+        )
+    }
+    signal = Signal(
+        id="s1",
+        source_id="src",
+        project="vLLM",
+        category=Category.MODEL_SERVING,
+        title="vLLM repository snapshot",
+        url="https://github.com/org/vllm",
+        published_at=datetime(2026, 6, 12, tzinfo=UTC),
+        signal_type="github_repo_snapshot",
+    )
+    scored = ScoredSignal(
+        signal=signal,
+        scores=ScoreBreakdown(
+            workflow_impact=4,
+            laptop_runnability=4,
+            open_source_maturity=4,
+            on_prem_relevance=4,
+            security_posture=4,
+            demo_value=4,
+            setup_friction=4,
+        ),
+        recommended_ring=Ring.PILOT,
+    )
+
+    cards = build_decision_cards([scored], evidence_by_project=evidence_by_project)
+    card = next(c for c in cards if c.project == "vLLM")
+    assert "https://arxiv.org/abs/2506.1" in card.evidence
+
+
 def test_cards_flag_upgrade_risk_from_release_highlights():
     from datetime import UTC, datetime
 
