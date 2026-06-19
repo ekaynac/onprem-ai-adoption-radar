@@ -48,7 +48,10 @@ natural future input to that work.
   `fetch_paper_mentions(paper_query, client, since) -> PaperMentions`.
   - Queries `http://export.arxiv.org/api/query` with
     `search_query=(all:<paper_query>) AND (cat:cs.AI OR cat:cs.LG OR cat:cs.CL OR
-    cat:cs.DC OR cat:cs.SE)`, `sortBy=submittedDate&sortOrder=descending`.
+    cat:cs.DC OR cat:cs.SE OR cat:cs.CV OR cat:cs.RO)`,
+    `sortBy=submittedDate&sortOrder=descending`. The category set
+    (AI, ML, NLP, distributed, software-eng, vision, robotics) is a module
+    constant so it is easy to tune.
   - Parses the Atom response with `feedparser` (already a dependency).
   - Filters client-side to entries with `published >= since`.
   - Returns a **count** plus **up to 5 most-recent** papers as `PaperRef`
