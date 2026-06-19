@@ -466,6 +466,156 @@ sources:
     tags: [vendor-blog, model-hub, firehose]
     backer: {name: "Hugging Face", type: startup}
 
+  # ── Candidate batch 2026-06-19 (web-verified live; Apache-2.0/MIT) ───────────
+  # General Agents — computer-use / autonomous agents runnable on local models
+  - id: github-browser-use
+    type: github_repo
+    enabled: true
+    project: browser-use
+    package: {ecosystem: PyPI, name: browser-use}
+    category: general_agents
+    url: https://github.com/browser-use/browser-use
+    tags: [general-agent, browser-automation, local-models, ollama, open-source]
+    backer: {name: "Browser Use", type: startup}
+  - id: github-open-interpreter
+    type: github_repo
+    enabled: true
+    project: Open Interpreter
+    package: {ecosystem: PyPI, name: open-interpreter}
+    category: general_agents
+    url: https://github.com/OpenInterpreter/open-interpreter
+    tags: [general-agent, computer-use, local-first, ollama, open-source]
+    backer: {name: "Open Interpreter", type: startup}
+  - id: github-cua
+    type: github_repo
+    enabled: true
+    project: Cua
+    category: general_agents
+    url: https://github.com/trycua/cua
+    tags: [general-agent, computer-use, local-models, self-hosted, open-source]
+    backer: {name: "Cua", type: startup}
+  - id: github-suna
+    type: github_repo
+    enabled: true
+    project: Suna
+    category: general_agents
+    url: https://github.com/kortix-ai/suna
+    tags: [general-agent, autonomous, self-hosted, open-source]
+    backer: {name: "Kortix", type: startup}
+
+  # MCP Tooling — self-hostable gateways / registries / scanners
+  - id: github-mcp-context-forge
+    type: github_repo
+    enabled: true
+    project: MCP Context Forge
+    category: mcp_tooling
+    url: https://github.com/IBM/mcp-context-forge
+    tags: [mcp, gateway, registry, governance, self-hosted]
+    backer: {name: "IBM", type: big_tech}
+  - id: github-docker-mcp-gateway
+    type: github_repo
+    enabled: true
+    project: Docker MCP Gateway
+    category: mcp_tooling
+    url: https://github.com/docker/mcp-gateway
+    tags: [mcp, gateway, containers, isolation, self-hosted]
+    backer: {name: "Docker", type: startup}
+  - id: github-agent-scan
+    type: github_repo
+    enabled: true
+    project: Agent Scan
+    category: mcp_tooling
+    url: https://github.com/snyk/agent-scan
+    tags: [mcp, security, scanner, prompt-injection, self-hosted]
+    backer: {name: "Snyk", type: startup}
+  - id: github-awesome-mcp-servers
+    type: github_repo
+    enabled: true
+    project: Awesome MCP Servers
+    category: mcp_tooling
+    url: https://github.com/punkpeye/awesome-mcp-servers
+    tags: [mcp, curated-list, discovery, open-source]
+    backer: {name: "Community", type: community}
+
+  # Sandbox & Governance — isolation runtimes + LLM security/guardrails
+  - id: github-firecracker
+    type: github_repo
+    enabled: true
+    project: Firecracker
+    category: sandbox_governance
+    url: https://github.com/firecracker-microvm/firecracker
+    tags: [sandbox, microvm, isolation, self-hosted, open-source]
+    backer: {name: "AWS", type: big_tech}
+  - id: github-kata-containers
+    type: github_repo
+    enabled: true
+    project: Kata Containers
+    category: sandbox_governance
+    url: https://github.com/kata-containers/kata-containers
+    tags: [sandbox, microvm, kubernetes, isolation, open-source]
+    backer: {name: "OpenInfra Foundation", type: community}
+  - id: github-garak
+    type: github_repo
+    enabled: true
+    project: garak
+    package: {ecosystem: PyPI, name: garak}
+    category: sandbox_governance
+    url: https://github.com/NVIDIA/garak
+    tags: [governance, llm-security, red-team, scanner, self-hosted]
+    backer: {name: "NVIDIA", type: big_tech}
+  - id: github-guardrails
+    type: github_repo
+    enabled: true
+    project: Guardrails AI
+    package: {ecosystem: PyPI, name: guardrails-ai}
+    category: sandbox_governance
+    url: https://github.com/guardrails-ai/guardrails
+    tags: [governance, guardrails, validation, self-hosted, open-source]
+    backer: {name: "Guardrails AI", type: startup}
+
+  # Pre-vetted bench depth (from 2026-06-12 seed research; confirmed healthy)
+  - id: github-triton-inference-server
+    type: github_repo
+    enabled: true
+    project: Triton Inference Server
+    category: model_serving
+    url: https://github.com/triton-inference-server/server
+    tags: [model-serving, inference, gpu, kubernetes, open-source]
+    backer: {name: "NVIDIA", type: big_tech}
+  - id: github-bentoml
+    type: github_repo
+    enabled: true
+    project: BentoML
+    package: {ecosystem: PyPI, name: bentoml}
+    category: ai_infrastructure
+    url: https://github.com/bentoml/BentoML
+    tags: [model-serving, packaging, deployment, self-hosted, open-source]
+    backer: {name: "BentoML", type: startup}
+  - id: github-kubeflow
+    type: github_repo
+    enabled: true
+    project: Kubeflow
+    category: ai_infrastructure
+    url: https://github.com/kubeflow/kubeflow
+    tags: [mlops, kubernetes, platform, self-hosted, open-source]
+    backer: {name: "Community", type: community}
+  - id: github-megatron-lm
+    type: github_repo
+    enabled: true
+    project: Megatron-LM
+    category: ai_infrastructure
+    url: https://github.com/NVIDIA/Megatron-LM
+    tags: [training, distributed, gpu, open-source]
+    backer: {name: "NVIDIA", type: big_tech}
+  - id: github-llm-d
+    type: github_repo
+    enabled: true
+    project: llm-d
+    category: ai_infrastructure
+    url: https://github.com/llm-d/llm-d
+    tags: [model-serving, distributed-inference, kubernetes, open-source]
+    backer: {name: "Community", type: community}
+
 quotas:
   coding_agents: 10
   general_agents: 10
