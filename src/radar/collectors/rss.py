@@ -11,10 +11,15 @@ import httpx
 from dateutil import parser as date_parser
 
 from radar.collectors.base import BaseCollector
+from radar.constants import RSS_ACCEPT, RSS_USER_AGENT
 from radar.models import Signal, SourceConfig
 
 
 logger = logging.getLogger(__name__)
+
+# Sent on every feed request so bot-protected hosts return the real feed rather
+# than an HTML challenge page (see RSS_USER_AGENT in constants).
+_HEADERS = {"User-Agent": RSS_USER_AGENT, "Accept": RSS_ACCEPT}
 
 
 class RSSCollector(BaseCollector):
@@ -23,6 +28,10 @@ class RSSCollector(BaseCollector):
     def __init__(self, sources: list[SourceConfig], client: httpx.AsyncClient):
         self.sources = sources
         self.client = client
+        # Parse failures accumulate here so the orchestrator can fold them into
+        # the run's collector_warnings — a feed that returns an HTML challenge
+        # otherwise looks identical to "no new posts".
+        self.warnings: list[str] = []
 
     async def fetch(self, since: datetime) -> list[Signal]:
         signals: list[Signal] = []
@@ -34,10 +43,14 @@ class RSSCollector(BaseCollector):
 
     async def _fetch_source(self, source: SourceConfig, since: datetime) -> list[Signal]:
         try:
-            response = await self.client.get(str(source.url), follow_redirects=True)
+            response = await self.client.get(
+                str(source.url), headers=_HEADERS, follow_redirects=True
+            )
             response.raise_for_status()
         except httpx.HTTPError as exc:
-            logger.warning("RSS source %s failed: %s", source.id, exc)
+            message = f"rss {source.id}: request failed: {exc}"
+            logger.warning(message)
+            self.warnings.append(message)
             return []
 
         feed = feedparser.parse(response.text)
@@ -46,12 +59,13 @@ class RSSCollector(BaseCollector):
             # zero entries — indistinguishable from an empty feed unless logged.
             # feedparser sets bozo for malformed XML and leaves version empty
             # when the payload is not a recognized feed format at all.
-            logger.warning(
-                "RSS source %s did not parse as a feed (%s); %d entries recovered",
-                source.id,
-                getattr(feed, "bozo_exception", None) or "unrecognized format",
-                len(feed.entries),
+            reason = getattr(feed, "bozo_exception", None) or "unrecognized format"
+            message = (
+                f"rss {source.id}: feed did not parse ({reason}); "
+                f"{len(feed.entries)} entries recovered"
             )
+            logger.warning(message)
+            self.warnings.append(message)
         signals: list[Signal] = []
         for entry in feed.entries:
             published_at = self._published_at(entry)

@@ -209,6 +209,9 @@ class RadarOrchestrator:
                     raw.extend(await collector.fetch(since))
                 except Exception as exc:
                     collector_warnings.append(f"{collector.__class__.__name__}: {exc}")
+                # Per-source soft failures (e.g. a feed that returned an HTML
+                # challenge) are surfaced without aborting the whole collector.
+                collector_warnings.extend(getattr(collector, "warnings", []))
             if collector_warnings:
                 self.run_store.update_meta(
                     run_id, {"collector_warnings": collector_warnings}
