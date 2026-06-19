@@ -72,14 +72,20 @@ def test_collect_project_metrics_from_snapshot_and_releases():
 
 def test_build_evidence_computes_star_growth_and_license_change():
     current = ProjectMetrics(
-        project="vLLM", run_id="run-2", observed_at=NOW,
-        stars=1100, license="BUSL-1.1", releases_in_window=3,
+        project="vLLM",
+        run_id="run-2",
+        observed_at=NOW,
+        stars=1100,
+        license="BUSL-1.1",
+        releases_in_window=3,
         pushed_at="2026-06-12T00:00:00Z",
     )
     previous = ProjectMetrics(
-        project="vLLM", run_id="run-1",
+        project="vLLM",
+        run_id="run-1",
         observed_at=datetime(2026, 6, 6, tzinfo=UTC),
-        stars=1000, license="Apache-2.0",
+        stars=1000,
+        license="Apache-2.0",
     )
 
     evidence = build_evidence(current, previous, now=NOW)
@@ -93,7 +99,10 @@ def test_build_evidence_computes_star_growth_and_license_change():
 
 def test_build_evidence_without_previous_has_no_growth():
     current = ProjectMetrics(
-        project="vLLM", run_id="run-1", observed_at=NOW, stars=1000,
+        project="vLLM",
+        run_id="run-1",
+        observed_at=NOW,
+        stars=1000,
     )
 
     evidence = build_evidence(current, None, now=NOW)
@@ -104,10 +113,16 @@ def test_build_evidence_without_previous_has_no_growth():
 
 def test_build_evidence_same_license_is_not_a_change():
     current = ProjectMetrics(
-        project="x", run_id="r2", observed_at=NOW, license="MIT",
+        project="x",
+        run_id="r2",
+        observed_at=NOW,
+        license="MIT",
     )
     previous = ProjectMetrics(
-        project="x", run_id="r1", observed_at=NOW, license="MIT",
+        project="x",
+        run_id="r1",
+        observed_at=NOW,
+        license="MIT",
     )
 
     assert build_evidence(current, previous, now=NOW).license_changed_from is None
@@ -138,3 +153,34 @@ def test_evidence_notes_render_human_readable_lines():
 
 def test_evidence_notes_empty_for_empty_evidence():
     assert evidence_notes(ProjectEvidence()) == []
+
+
+# --- Task 5: paper evidence ---
+
+from radar.models import PaperRef  # noqa: E402
+
+
+NOW_T5 = datetime(2026, 6, 19, tzinfo=UTC)
+
+
+def test_build_evidence_carries_papers_and_count():
+    cur = ProjectMetrics(project="vLLM", run_id="r1", observed_at=NOW_T5, paper_mentions=2)
+    papers = [
+        PaperRef(
+            title="FlashInfer-2", url="https://arxiv.org/abs/2506.1", published_at="2026-06-15"
+        )
+    ]
+    ev = build_evidence(cur, None, now=NOW_T5, papers=papers)
+    assert ev.paper_mentions == 2
+    assert ev.papers[0].title == "FlashInfer-2"
+
+
+def test_evidence_notes_renders_paper_line():
+    cur = ProjectMetrics(project="vLLM", run_id="r1", observed_at=NOW_T5, paper_mentions=2)
+    papers = [
+        PaperRef(
+            title="FlashInfer-2", url="https://arxiv.org/abs/2506.1", published_at="2026-06-15"
+        )
+    ]
+    notes = evidence_notes(build_evidence(cur, None, now=NOW_T5, papers=papers))
+    assert any("2 recent papers" in n and "FlashInfer-2" in n for n in notes)
