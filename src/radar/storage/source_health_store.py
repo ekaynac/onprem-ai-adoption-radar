@@ -13,14 +13,17 @@ from datetime import datetime
 from pathlib import Path
 
 
-DEFAULT_STALE_WINDOW = 3
+# Scans run daily, so a 7-scan window means "produced nothing for ~a week"
+# before a source is called stale. A shorter window false-positives on healthy
+# low-frequency feeds (e.g. a blog that posts ~weekly).
+DEFAULT_STALE_WINDOW = 7
 
 
 class SourceHealthStore:
     """SQLite-backed per-source signal-count history."""
 
-    def __init__(self, path: Path):
-        self.path = path
+    def __init__(self, path: Path | str):
+        self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
     def initialize(self) -> None:

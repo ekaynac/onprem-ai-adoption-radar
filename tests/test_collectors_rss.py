@@ -19,8 +19,10 @@ class FakeResponse:
 class FakeClient:
     def __init__(self, text):
         self.text = text
+        self.headers_seen: list[dict | None] = []
 
-    async def get(self, url, follow_redirects=True):
+    async def get(self, url, headers=None, follow_redirects=True):
+        self.headers_seen.append(headers)
         return FakeResponse(self.text)
 
 
@@ -43,6 +45,8 @@ async def test_rss_collector_fetches_feed_items():
     assert len(signals) == 1
     assert signals[0].id == "rss:rss-agent-blog:https://example.com/mcp-approval"
     assert signals[0].title == "MCP server approval patterns"
+    # A browser-like User-Agent is sent so bot-protected hosts return the feed.
+    assert collector.client.headers_seen[0]["User-Agent"].startswith("Mozilla/5.0")
 
 
 def test_registry_builds_enabled_collectors():
@@ -107,3 +111,7 @@ async def test_broken_feed_logs_warning_instead_of_silence(caplog):
 
     assert signals == []
     assert any("rss-agent-blog" in record.getMessage() for record in caplog.records)
+    # Parse failures are also surfaced on the collector so the orchestrator can
+    # fold them into the run's collector_warnings (not just the logger).
+    assert collector.warnings
+    assert "rss-agent-blog" in collector.warnings[0]

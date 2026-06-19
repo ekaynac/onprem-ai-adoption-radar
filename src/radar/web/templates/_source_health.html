@@ -1,0 +1,19 @@
+{# Source/feed-health summary. Context: source_health (SourceHealth) | None.
+   Native <details> only — no JS, so it works on the static site too. #}
+{% if source_health and source_health.total_sources %}
+<div class="scan-health">
+  {% if source_health.has_stale %}
+  <details>
+    <summary>⚠ {{ source_health.one_line }}</summary>
+    <ul>
+      {% for feed in source_health.stale %}
+      <li>{{ feed.project }} (<code>{{ feed.source_id }}</code>): no signals for several scans
+        {%- if feed.firehose %} · firehose{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% else %}
+  <p class="scan-health-ok">✓ {{ source_health.one_line }}</p>
+  {% endif %}
+</div>
+{% endif %}

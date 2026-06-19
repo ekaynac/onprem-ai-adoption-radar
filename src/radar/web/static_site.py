@@ -23,6 +23,7 @@ from radar.storage.metrics_store import ProjectMetrics
 from radar.web.backer_badge import backer_badge
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
+from radar.web.source_health import SourceHealth
 
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -41,6 +42,7 @@ def render_static_site(
     metrics_by_project: dict[str, list[ProjectMetrics]] | None = None,
     latest_scan_meta: dict[str, Any] | None = None,
     history_jsonl: Path | None = None,
+    source_health: SourceHealth | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -90,6 +92,7 @@ def render_static_site(
             generated_at=stamp,
             slug_by_project=slug_by_project,
             scan_health=summarize_meta(latest_scan_meta or {}),
+            source_health=source_health,
             downloads=downloads,
         ),
         encoding="utf-8",

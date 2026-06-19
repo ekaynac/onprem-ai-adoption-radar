@@ -22,8 +22,10 @@ from radar.storage.history_store import HistoryStore
 from radar.storage.metrics_store import MetricsStore
 from radar.storage.run_store import RunStore
 from radar.storage.seed_store import SeedError, add_seed
+from radar.storage.source_health_store import SourceHealthStore
 from radar.web.backer_badge import backer_badge
 from radar.web.scan_health import summarize_meta
+from radar.web.source_health import SourceHealth, summarize_source_health
 
 
 _WEB_DIR = Path(__file__).parent
@@ -45,7 +47,21 @@ def create_app(root: Path) -> FastAPI:
     history = HistoryStore(root / "data" / "radar.db")
     metrics = MetricsStore(root / "data" / "radar.db")
     run_store = RunStore(root / "data" / "runs")
+    source_health = SourceHealthStore(root / "data" / "radar.db")
     config_path = root / "data" / "config.yaml"
+
+    def _source_health() -> SourceHealth | None:
+        """Build the source-health view, tolerating a missing config/store."""
+        try:
+            config = load_config(config_path)
+        except ConfigError:
+            return None
+        source_health.initialize()
+        return summarize_source_health(
+            source_health.stale_source_ids(),
+            source_health.latest_counts(),
+            config.sources,
+        )
 
     # Nav targets for the project-detail partial (live = server routes).
     live_links = {"home": "/", "compare": "/compare", "history": "/history"}
@@ -59,7 +75,11 @@ def create_app(root: Path) -> FastAPI:
         return TEMPLATES.TemplateResponse(
             request,
             "index.html",
-            {"cards": cards, "scan_health": summarize_meta(meta)},
+            {
+                "cards": cards,
+                "scan_health": summarize_meta(meta),
+                "source_health": _source_health(),
+            },
         )
 
     @app.get("/history.jsonl")

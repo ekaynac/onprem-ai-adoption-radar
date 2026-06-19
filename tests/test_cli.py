@@ -394,16 +394,19 @@ def test_scan_with_profile_records_it_in_meta(tmp_path):
 def test_seed_list_flags_stale_sources(tmp_path):
     from datetime import UTC, datetime, timedelta
 
-    from radar.storage.source_health_store import SourceHealthStore
+    from radar.storage.source_health_store import (
+        DEFAULT_STALE_WINDOW,
+        SourceHealthStore,
+    )
 
     runner = CliRunner()
     runner.invoke(app, ["init", "--root", str(tmp_path)])
 
-    # Simulate 3 consecutive scans where a known seed produced nothing.
+    # Simulate a full stale window of consecutive scans producing nothing.
     health = SourceHealthStore(tmp_path / "data" / "radar.db")
     health.initialize()
     base = datetime(2026, 6, 1, tzinfo=UTC)
-    for day in range(3):
+    for day in range(DEFAULT_STALE_WINDOW):
         health.record(f"run-{day}", base + timedelta(days=day), {"github-vllm": 0})
 
     result = runner.invoke(app, ["seed", "list", "--root", str(tmp_path)])

@@ -185,7 +185,7 @@ def seed_add(
 def seed_list(
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
-    """List the configured signal sources (stale = no signals for 3+ scans)."""
+    """List the configured signal sources (stale = no signals for 7+ scans)."""
     from radar.storage.config import load_config
     from radar.storage.source_health_store import SourceHealthStore
 
@@ -622,8 +622,11 @@ def export(
     """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
     from datetime import datetime
 
+    from radar.storage.config import ConfigError, load_config
     from radar.storage.history_store import HistoryStore
     from radar.storage.metrics_store import MetricsStore
+    from radar.storage.source_health_store import SourceHealthStore
+    from radar.web.source_health import summarize_source_health
     from radar.web.static_site import render_static_site
 
     orchestrator = RadarOrchestrator(root)
@@ -643,6 +646,22 @@ def export(
     run_ids = orchestrator.run_store.list_runs()
     latest_scan_meta = orchestrator.run_store.read_meta(run_ids[-1]) if run_ids else {}
 
+    # Source-health is best-effort: a missing config (e.g. a manual export
+    # before init) should not block publishing the snapshot.
+    source_health_view = None
+    try:
+        config = load_config(root / "data" / "config.yaml")
+    except ConfigError:
+        config = None
+    if config is not None:
+        source_health = SourceHealthStore(root / "data" / "radar.db")
+        source_health.initialize()
+        source_health_view = summarize_source_health(
+            source_health.stale_source_ids(),
+            source_health.latest_counts(),
+            config.sources,
+        )
+
     index = render_static_site(
         cards,
         out,
@@ -651,6 +670,7 @@ def export(
         metrics_by_project=metrics_by_project,
         latest_scan_meta=latest_scan_meta,
         history_jsonl=root / "data" / "history.jsonl",
+        source_health=source_health_view,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages)"
