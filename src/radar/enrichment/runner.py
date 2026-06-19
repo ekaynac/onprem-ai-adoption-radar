@@ -12,10 +12,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from radar.enrichment.arxiv import fetch_paper_mentions
 from radar.enrichment.downloads import fetch_weekly_downloads
 from radar.enrichment.hackernews import fetch_hn_mentions
 from radar.enrichment.osv import fetch_recent_advisories
-from radar.models import Advisory, EnrichmentConfig, PackageRef, SourceConfig
+from radar.models import Advisory, EnrichmentConfig, PackageRef, PaperRef, SourceConfig
 from radar.storage.metrics_store import ProjectMetrics
 
 
@@ -30,6 +31,7 @@ class EnrichmentResult:
 
     metrics: dict[str, ProjectMetrics]
     advisories: dict[str, list[Advisory]] = field(default_factory=dict)
+    papers: dict[str, list[PaperRef]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -43,7 +45,9 @@ async def run_enrichment(
 ) -> EnrichmentResult:
     """Enrich each project's metrics row; returns new objects, never mutates."""
     packages = _packages_by_project(sources)
+    paper_queries = _paper_queries_by_project(sources)
     advisories: dict[str, list[Advisory]] = {}
+    papers: dict[str, list[PaperRef]] = {}
     warnings: list[str] = []
     enriched: dict[str, ProjectMetrics] = {}
 
@@ -80,9 +84,21 @@ async def run_enrichment(
             if downloads is not None:
                 updates["downloads_weekly"] = downloads
 
+        paper_query = paper_queries.get(project)
+        if config.arxiv and paper_query:
+            mentions = await _safe(
+                fetch_paper_mentions(paper_query, client, since=since),
+                f"arxiv:{project}",
+                warnings,
+            )
+            if mentions is not None:
+                updates["paper_mentions"] = mentions.count
+                if mentions.papers:
+                    papers[project] = mentions.papers
+
         enriched[project] = row.model_copy(update=updates) if updates else row
 
-    return EnrichmentResult(metrics=enriched, advisories=advisories, warnings=warnings)
+    return EnrichmentResult(metrics=enriched, advisories=advisories, papers=papers, warnings=warnings)
 
 
 def _packages_by_project(sources: list[SourceConfig]) -> dict[str, PackageRef]:
@@ -90,6 +106,14 @@ def _packages_by_project(sources: list[SourceConfig]) -> dict[str, PackageRef]:
         source.project: source.package
         for source in sources
         if source.enabled and source.package is not None
+    }
+
+
+def _paper_queries_by_project(sources: list[SourceConfig]) -> dict[str, str]:
+    return {
+        source.project: source.paper_query
+        for source in sources
+        if source.enabled and source.paper_query
     }
 
 
