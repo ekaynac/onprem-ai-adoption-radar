@@ -8,8 +8,11 @@ import pytest
 from radar.models_radar.seed import ModelSeedError, load_model_seed
 
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 def test_loads_bundled_seed_with_known_families():
-    seeds = load_model_seed(Path("config/model-seed.yaml"))
+    seeds = load_model_seed(_REPO_ROOT / "config" / "model-seed.yaml")
     assert len(seeds) >= 6
     families = {s.family for s in seeds}
     assert {"Llama", "Qwen3"} <= families

@@ -56,4 +56,4 @@ models:
     family: gpt-oss
     hf_repo: openai/gpt-oss-20b
     ollama_name: gpt-oss
-    backer: {name: "OpenAI", type: startup}
+    backer: {name: "OpenAI", type: big_tech}
