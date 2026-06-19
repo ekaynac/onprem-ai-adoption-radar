@@ -185,7 +185,7 @@ def seed_add(
 def seed_list(
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
-    """List the configured signal sources (stale = no signals for 3+ scans)."""
+    """List the configured signal sources (stale = no signals for 7+ scans)."""
     from radar.storage.config import load_config
     from radar.storage.source_health_store import SourceHealthStore
 

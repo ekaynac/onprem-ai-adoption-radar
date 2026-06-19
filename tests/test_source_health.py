@@ -5,7 +5,10 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from radar.storage.source_health_store import SourceHealthStore
+from radar.storage.source_health_store import (
+    DEFAULT_STALE_WINDOW,
+    SourceHealthStore,
+)
 
 
 BASE = datetime(2026, 6, 1, tzinfo=UTC)
@@ -70,3 +73,24 @@ def test_empty_store_has_no_stale(tmp_path: Path):
     store.initialize()
     assert store.stale_source_ids() == set()
     assert store.latest_counts() == {}
+
+
+def test_default_window_tolerates_low_frequency_feed(tmp_path: Path):
+    """A feed silent for fewer than the default window of scans isn't stale."""
+    store = SourceHealthStore(tmp_path / "radar.db")
+    store.initialize()
+    for day in range(1, DEFAULT_STALE_WINDOW):  # one short of the window
+        store.record(f"run-{day}", _at(day), {"rss-weekly": 0})
+
+    assert store.stale_source_ids() == set()
+
+    store.record(f"run-{DEFAULT_STALE_WINDOW}", _at(DEFAULT_STALE_WINDOW), {"rss-weekly": 0})
+    assert "rss-weekly" in store.stale_source_ids()
+
+
+def test_accepts_str_path(tmp_path: Path):
+    store = SourceHealthStore(str(tmp_path / "radar.db"))
+    store.initialize()
+    store.record("run-1", _at(1), {"s": 1})
+
+    assert store.latest_counts()["s"] == 1
