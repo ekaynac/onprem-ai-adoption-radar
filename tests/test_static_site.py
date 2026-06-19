@@ -190,6 +190,36 @@ def test_static_index_back_compat_without_scan_meta(tmp_path: Path):
     assert (tmp_path / "_site" / "index.html").exists()
 
 
+def test_static_index_renders_stale_source_health(tmp_path: Path):
+    from radar.web.source_health import SourceHealth, StaleFeed
+
+    health = SourceHealth(
+        total_sources=3,
+        stale=[StaleFeed(source_id="rss-ollama-blog", project="Ollama Blog")],
+    )
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+        source_health=health,
+    )
+
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "rss-ollama-blog" in index
+    assert "1 stale feed of 3" in index
+
+
+def test_static_index_back_compat_without_source_health(tmp_path: Path):
+    # Omitting source_health must still render (the partial is guarded).
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+    )
+
+    assert (tmp_path / "_site" / "index.html").exists()
+
+
 def test_static_index_renders_filter_controls(tmp_path: Path):
     render_static_site(
         [_card("vLLM", Ring.ADOPT), _card("Aider", Ring.PILOT)],
