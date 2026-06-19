@@ -104,6 +104,7 @@ sources:
     url: https://github.com/vllm-project/vllm
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
     backer: {name: "vLLM (PyTorch Foundation)", type: community}
+    paper_query: '"vLLM"'
   - id: github-sglang
     type: github_repo
     enabled: true
@@ -113,6 +114,7 @@ sources:
     url: https://github.com/sgl-project/sglang
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
     backer: {name: "SGLang", type: community}
+    paper_query: '"SGLang"'
   - id: github-nvidia-dynamo
     type: github_repo
     enabled: true
@@ -285,6 +287,7 @@ sources:
     url: https://github.com/ggml-org/llama.cpp
     tags: [model-serving, openai-compatible, self-hosted, open-source, on-prem-relevant]
     backer: {name: "llama.cpp / ggml", type: community}
+    paper_query: '"llama.cpp"'
   - id: github-localai
     type: github_repo
     enabled: true
@@ -302,6 +305,7 @@ sources:
     url: https://github.com/InternLM/lmdeploy
     tags: [model-serving, openai-compatible, self-hosted, open-source, gpu-required, on-prem-relevant]
     backer: {name: "Shanghai AI Lab (InternLM)", type: academic}
+    paper_query: '"LMDeploy"'
   - id: github-tensorrt-llm
     type: github_repo
     enabled: true
@@ -312,6 +316,7 @@ sources:
     tags: [model-serving, self-hosted, open-source, gpu-required, nvidia, on-prem-relevant]
     backer: {name: "NVIDIA", type: big_tech}
     aliases: [tensorrt, "trt llm"]
+    paper_query: '"TensorRT-LLM"'
 
   # ── AI Infrastructure ───────────────────────────────────────────────────────
   - id: github-kserve
@@ -323,6 +328,7 @@ sources:
     url: https://github.com/kserve/kserve
     tags: [kubernetes, model-serving, self-hosted, open-source, on-prem-relevant, operator]
     backer: {name: "KServe", type: community}
+    paper_query: '"KServe"'
   - id: github-ray
     type: github_repo
     enabled: true
@@ -582,6 +588,7 @@ sources:
     url: https://github.com/triton-inference-server/server
     tags: [model-serving, inference, gpu, kubernetes, open-source]
     backer: {name: "NVIDIA", type: big_tech}
+    paper_query: '"Triton Inference Server"'
   - id: github-bentoml
     type: github_repo
     enabled: true

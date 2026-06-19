@@ -34,12 +34,13 @@ class ProjectMetrics(BaseModel):
     hn_mentions: int | None = None
     advisories_open: int | None = None
     advisories_max_severity: str | None = None
+    paper_mentions: int | None = None
 
 
 _COLUMNS = (
     "project, run_id, observed_at, stars, forks, open_issues, license, "
     "pushed_at, releases_in_window, downloads_weekly, hn_mentions, "
-    "advisories_open, advisories_max_severity"
+    "advisories_open, advisories_max_severity, paper_mentions"
 )
 
 
@@ -69,7 +70,8 @@ class MetricsStore:
                     downloads_weekly INTEGER,
                     hn_mentions INTEGER,
                     advisories_open INTEGER,
-                    advisories_max_severity TEXT
+                    advisories_max_severity TEXT,
+                    paper_mentions INTEGER
                 )
                 """
             )
@@ -77,6 +79,9 @@ class MetricsStore:
                 "CREATE INDEX IF NOT EXISTS idx_metrics_project "
                 "ON project_metrics(project, observed_at)"
             )
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(project_metrics)")}
+            if "paper_mentions" not in cols:
+                conn.execute("ALTER TABLE project_metrics ADD COLUMN paper_mentions INTEGER")
 
     def record(self, metrics: list[ProjectMetrics]) -> None:
         """Append one row per project for this scan. No-op for an empty list."""
@@ -85,7 +90,7 @@ class MetricsStore:
         with sqlite3.connect(self.path) as conn:
             conn.executemany(
                 f"INSERT INTO project_metrics({_COLUMNS}) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [self._row(m) for m in metrics],
             )
 
@@ -131,6 +136,7 @@ class MetricsStore:
             m.hn_mentions,
             m.advisories_open,
             m.advisories_max_severity,
+            m.paper_mentions,
         )
 
     @staticmethod
@@ -149,4 +155,5 @@ class MetricsStore:
             hn_mentions=row[10],
             advisories_open=row[11],
             advisories_max_severity=row[12],
+            paper_mentions=row[13],
         )

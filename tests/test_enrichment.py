@@ -21,6 +21,10 @@ NOW = datetime(2026, 6, 13, tzinfo=UTC)
 class FakeResponse:
     def __init__(self, payload):
         self.payload = payload
+        # When the payload is a plain string (e.g. Atom/XML), expose it via
+        # .text so arXiv-style consumers can call response.text.  JSON routes
+        # continue using .json() which returns the original object unchanged.
+        self.text = payload if isinstance(payload, str) else ""
 
     def raise_for_status(self):
         return None
@@ -325,3 +329,41 @@ def test_package_ref_parses_from_config_yaml():
 
     assert source.package is not None
     assert source.package.name == "vllm"
+
+
+NOW2 = datetime(2026, 6, 19, tzinfo=UTC)
+SINCE2 = datetime(2026, 6, 12, tzinfo=UTC)
+
+ARXIV_ATOM = (
+    '<feed xmlns="http://www.w3.org/2005/Atom">'
+    '<entry><title>vLLM speedups</title><id>http://arxiv.org/abs/2506.9</id>'
+    '<published>2026-06-15T00:00:00Z</published></entry></feed>'
+)
+
+
+def _src(sid, project, *, paper_query=None):
+    return SourceConfig(id=sid, type=SourceType.GITHUB_REPO, project=project,
+                        category=Category.MODEL_SERVING,
+                        url=f"https://github.com/x/{sid}", paper_query=paper_query)
+
+
+@pytest.mark.asyncio
+async def test_arxiv_mentions_recorded_for_queried_projects():
+    cfg = EnrichmentConfig(osv=False, hackernews=False, downloads=False, arxiv=True)
+    sources = [_src("github-vllm", "vLLM", paper_query='"vLLM"')]
+    metrics = {"vLLM": ProjectMetrics(project="vLLM", run_id="r1", observed_at=NOW2)}
+    client = FakeClient({"export.arxiv.org": ARXIV_ATOM})  # FakeResponse must expose .text
+    result = await run_enrichment(cfg, sources, metrics, since=SINCE2, now=NOW2, client=client)
+    assert result.metrics["vLLM"].paper_mentions == 1
+    assert result.papers["vLLM"][0].title == "vLLM speedups"
+
+
+@pytest.mark.asyncio
+async def test_arxiv_skipped_without_paper_query():
+    cfg = EnrichmentConfig(osv=False, hackernews=False, downloads=False, arxiv=True)
+    sources = [_src("github-ray", "Ray")]  # no paper_query
+    metrics = {"Ray": ProjectMetrics(project="Ray", run_id="r1", observed_at=NOW2)}
+    client = FakeClient({})  # any arXiv call would raise AssertionError (unexpected URL)
+    result = await run_enrichment(cfg, sources, metrics, since=SINCE2, now=NOW2, client=client)
+    assert result.metrics["Ray"].paper_mentions is None
+    assert "Ray" not in result.papers

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from radar.models import Advisory, ProjectEvidence, Signal
+from radar.models import Advisory, PaperRef, ProjectEvidence, Signal
 from radar.storage.metrics_store import ProjectMetrics
 
 
@@ -56,18 +56,15 @@ def build_evidence(
     previous: ProjectMetrics | None,
     now: datetime,
     advisories: list[Advisory] | None = None,
+    papers: list[PaperRef] | None = None,
 ) -> ProjectEvidence:
     """Compare current vs previous metrics into scoring-ready evidence."""
     if current is None:
-        return ProjectEvidence(advisories=advisories or [])
+        return ProjectEvidence(advisories=advisories or [], papers=papers or [])
 
     star_growth: int | None = None
     star_growth_pct: float | None = None
-    if (
-        previous is not None
-        and current.stars is not None
-        and previous.stars is not None
-    ):
+    if previous is not None and current.stars is not None and previous.stars is not None:
         star_growth = current.stars - previous.stars
         if previous.stars > 0:
             star_growth_pct = round(star_growth / previous.stars * 100, 1)
@@ -97,6 +94,8 @@ def build_evidence(
         advisories=advisories or [],
         downloads_weekly=current.downloads_weekly,
         hn_mentions=current.hn_mentions,
+        paper_mentions=current.paper_mentions,
+        papers=papers or [],
         license=current.license,
         license_changed_from=license_changed_from,
     )
@@ -122,6 +121,11 @@ def evidence_notes(evidence: ProjectEvidence) -> list[str]:
         )
     if evidence.hn_mentions:
         notes.append(f"{evidence.hn_mentions} Hacker News mentions in the scan window.")
+    if evidence.paper_mentions and evidence.papers:
+        titles = ", ".join(f"{p.title} ({p.url})" for p in evidence.papers)
+        notes.append(f"Cited in {evidence.paper_mentions} recent papers: {titles}.")
+    elif evidence.paper_mentions:
+        notes.append(f"Cited in {evidence.paper_mentions} recent papers.")
     if evidence.downloads_weekly is not None:
         notes.append(f"{evidence.downloads_weekly:,} weekly downloads.")
     return notes

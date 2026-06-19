@@ -36,3 +36,17 @@ def test_every_source_has_a_curated_backer():
         assert isinstance(source.backer, Backer), f"{source.project} lacks a backer"
         assert source.backer.name.strip()
         assert isinstance(source.backer.type, BackerType)
+
+
+def test_seed_has_paper_queries_for_distinctive_tools():
+    import yaml
+
+    _REPO_ROOT = Path(__file__).resolve().parents[1]
+
+    raw = yaml.safe_load((_REPO_ROOT / "config" / "seed-sources.yaml").read_text())
+    by_id = {s["id"]: s for s in raw["sources"]}
+    # Distinctively-named, high-value tools get a curated query.
+    for sid in ("github-vllm", "github-sglang", "github-llama-cpp"):
+        assert by_id[sid].get("paper_query"), f"{sid} missing paper_query"
+    # Ambiguous names stay off until curated.
+    assert by_id["github-ray"].get("paper_query") is None

@@ -190,8 +190,14 @@ def test_discover_cli_writes_proposals(tmp_path, monkeypatch):
             )
         ]
 
+    async def fake_hf(*args, **kwargs):
+        return []
+
     monkeypatch.setattr(
         "radar.discovery.github_trending.discover_trending", fake_discover
+    )
+    monkeypatch.setattr(
+        "radar.discovery.hf_papers.discover_from_hf_papers", fake_hf
     )
 
     runner = CliRunner()

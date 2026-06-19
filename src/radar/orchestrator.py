@@ -102,8 +102,7 @@ class RadarOrchestrator:
         deduped = self._classify(config, raw, run_id)
         evidence = await self._assemble_evidence(config, deduped, run_id, since)
         scored: list[ScoredSignal] = [
-            score_signal(signal, config.scoring, evidence.get(signal.project))
-            for signal in deduped
+            score_signal(signal, config.scoring, evidence.get(signal.project)) for signal in deduped
         ]
         self.run_store.save_stage(
             run_id,
@@ -213,9 +212,7 @@ class RadarOrchestrator:
                 # challenge) are surfaced without aborting the whole collector.
                 collector_warnings.extend(getattr(collector, "warnings", []))
             if collector_warnings:
-                self.run_store.update_meta(
-                    run_id, {"collector_warnings": collector_warnings}
-                )
+                self.run_store.update_meta(run_id, {"collector_warnings": collector_warnings})
 
         self.run_store.save_stage(
             run_id, "raw_signals", [signal.model_dump(mode="json") for signal in raw]
@@ -263,6 +260,7 @@ class RadarOrchestrator:
         self.metrics.initialize()
         current_metrics = collect_project_metrics(deduped, run_id, observed_at)
         advisories: dict[str, list] = {}
+        papers: dict[str, list] = {}
         if current_metrics:
             async with httpx.AsyncClient(
                 timeout=float(config.enrichment.timeout_seconds)
@@ -277,16 +275,16 @@ class RadarOrchestrator:
                 )
             current_metrics = enrichment.metrics
             advisories = dict(enrichment.advisories)
+            papers = dict(enrichment.papers)
             if enrichment.warnings:
-                self.run_store.update_meta(
-                    run_id, {"enrichment_warnings": enrichment.warnings}
-                )
+                self.run_store.update_meta(run_id, {"enrichment_warnings": enrichment.warnings})
         evidence = {
             project: build_evidence(
                 metrics,
                 self.metrics.latest(project, exclude_run=run_id),
                 now=observed_at,
                 advisories=advisories.get(project),
+                papers=papers.get(project),
             )
             for project, metrics in current_metrics.items()
         }
@@ -302,13 +300,9 @@ class RadarOrchestrator:
         """
         seen = self.history.seen_projects()
         persistable = [
-            d
-            for d in deltas
-            if not (d.change_type == ChangeType.NEW and d.project in seen)
+            d for d in deltas if not (d.change_type == ChangeType.NEW and d.project in seen)
         ]
-        events = deltas_to_events(
-            persistable, run_id=run_id, observed_at=datetime.now(UTC)
-        )
+        events = deltas_to_events(persistable, run_id=run_id, observed_at=datetime.now(UTC))
         self.history.add_events(events)
         append_events(self.history_log, events)
 
@@ -327,9 +321,7 @@ class RadarOrchestrator:
         """Fire-and-forget outbound webhook on ring changes (off by default)."""
         if not config.notify.enabled:
             return
-        async with httpx.AsyncClient(
-            timeout=float(config.notify.timeout_seconds)
-        ) as notify_client:
+        async with httpx.AsyncClient(timeout=float(config.notify.timeout_seconds)) as notify_client:
             sent = await send_notification(
                 config.notify, deltas, run_id=run_id, client=notify_client
             )
@@ -384,20 +376,19 @@ class RadarOrchestrator:
 
         observed_at = datetime.now(UTC)
         self.metrics.initialize()
-        current_metrics = collect_project_metrics(
-            deduped, source_run_id or "rescore", observed_at
-        )
+        current_metrics = collect_project_metrics(deduped, source_run_id or "rescore", observed_at)
+        papers: dict[str, list] = {}
         evidence = {
             project: build_evidence(
                 metrics,
                 self.metrics.latest(project, exclude_run=source_run_id),
                 now=observed_at,
+                papers=papers.get(project),
             )
             for project, metrics in current_metrics.items()
         }
         scored = [
-            score_signal(signal, config.scoring, evidence.get(signal.project))
-            for signal in deduped
+            score_signal(signal, config.scoring, evidence.get(signal.project)) for signal in deduped
         ]
         cards = build_decision_cards(
             scored,
@@ -409,9 +400,7 @@ class RadarOrchestrator:
         overrides = OverridesStore(self.overrides_path).load()
         return apply_overrides(filtered_cards, overrides.overrides)
 
-    def backtest(
-        self, profile: str | None = None, runs: int | None = None
-    ) -> BacktestReport:
+    def backtest(self, profile: str | None = None, runs: int | None = None) -> BacktestReport:
         """Re-score historical runs and report how rings would differ.
 
         ``profile`` → compare current config vs that profile's weights per run.
@@ -435,9 +424,7 @@ class RadarOrchestrator:
             created_at = self._run_created_at(run_id)
             if weights is not None:
                 baseline = self._rescore(raw, config, source_run_id=run_id)
-                candidate = self._rescore(
-                    raw, config, source_run_id=run_id, weights=weights
-                )
+                candidate = self._rescore(raw, config, source_run_id=run_id, weights=weights)
             else:
                 candidate = self._rescore(raw, config, source_run_id=run_id)
                 baseline = self._persisted_cards(run_id)
@@ -485,6 +472,4 @@ class RadarOrchestrator:
         config = load_config(self.config_path)
         weights = resolve_weights(config.profiles, profile)
         reweighted = reweight_cards(cards, weights)
-        return sorted(
-            reweighted, key=lambda c: (c.category.value, -c.score, c.project.lower())
-        )
+        return sorted(reweighted, key=lambda c: (c.category.value, -c.score, c.project.lower()))

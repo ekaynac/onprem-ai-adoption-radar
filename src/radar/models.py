@@ -112,6 +112,9 @@ class SourceConfig(BaseModel):
     # Optional extra match strings (beyond the project name) the firehose
     # classifier uses to attribute entries to this project.
     aliases: list[str] = Field(default_factory=list)
+    # Optional arXiv search phrase enabling paper-mention enrichment for this
+    # project. Absent → mention-tracking is OFF (keeps ambiguous names out).
+    paper_query: str | None = None
 
 
 class ScoringConfig(BaseModel):
@@ -161,6 +164,7 @@ class EnrichmentConfig(BaseModel):
     osv: bool = True
     hackernews: bool = True
     downloads: bool = True
+    arxiv: bool = True
     timeout_seconds: int = Field(default=15, ge=1)
     advisory_window_days: int = Field(default=90, ge=1)
 
@@ -246,6 +250,16 @@ class Advisory(BaseModel):
     summary: str = ""
 
 
+class PaperRef(BaseModel):
+    """A research paper referencing a tracked project."""
+
+    model_config = ConfigDict(frozen=True)
+
+    title: str
+    url: str
+    published_at: str
+
+
 class ProjectEvidence(BaseModel):
     """Observed, per-project evidence assembled before scoring.
 
@@ -265,6 +279,8 @@ class ProjectEvidence(BaseModel):
     downloads_weekly: int | None = None
     license: str | None = None
     license_changed_from: str | None = None
+    paper_mentions: int | None = None
+    papers: list[PaperRef] = Field(default_factory=list)
 
 
 class ScoreBreakdown(BaseModel):

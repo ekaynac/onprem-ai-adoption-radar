@@ -117,7 +117,15 @@ def build_decision_cards(
                     "suitable": best.recommended_ring in {Ring.ADOPT, Ring.PILOT},
                     "angle": f"{project} adoption review with workflow and safety notes",
                 },
-                evidence=sorted({str(item.signal.url) for item in items}),
+                evidence=sorted(
+                    {str(item.signal.url) for item in items}
+                    | {
+                        p.url
+                        for p in (
+                            evidence_for_project.papers if evidence_for_project else []
+                        )
+                    }
+                ),
                 tags=sorted({tag for item in items for tag in item.signal.tags}),
             )
         )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC
 from pathlib import Path
+from typing import Any
 
 import typer
 import uvicorn
@@ -239,6 +240,7 @@ def discover(
     import httpx
 
     from radar.discovery.github_trending import discover_trending
+    from radar.discovery.hf_papers import discover_from_hf_papers
     from radar.discovery.proposals import write_proposals
     from radar.models import Category
     from radar.storage.config import load_config
@@ -271,14 +273,17 @@ def discover(
 
     async def _run():
         async with httpx.AsyncClient(timeout=30.0) as client:
-            return await discover_trending(
-                config.sources,
-                client,
-                categories=categories,
-                min_stars=min_stars,
-                since_days=since_days,
-                headers=_headers(),
+            trending = await discover_trending(
+                config.sources, client, categories=categories,
+                min_stars=min_stars, since_days=since_days, headers=_headers(),
             )
+            hf = await discover_from_hf_papers(
+                config.sources, client, min_stars=min_stars, headers=_headers(),
+            )
+            merged: dict[str, Any] = {p.url: p for p in hf}
+            for proposal in trending:  # trending overrides HF on URL collision
+                merged[proposal.url] = proposal
+            return sorted(merged.values(), key=lambda p: p.stars, reverse=True)
 
     proposals = asyncio.run(_run())
     out_path = root / "data" / "proposed-seeds.yaml"
