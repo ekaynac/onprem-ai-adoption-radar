@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from radar.models_radar.entities import HardwareTier, Platform, QuantVariant
+from radar.models_radar.entities import HardwareTier, QuantVariant
 from radar.models_radar.memory import (
-    estimate_memory_gb, hardware_tier, minimum_viable_quant,
+    estimate_memory_gb,
+    hardware_tier,
+    minimum_viable_quant,
 )
 
 
