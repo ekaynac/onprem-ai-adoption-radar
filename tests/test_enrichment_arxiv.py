@@ -29,10 +29,24 @@ class FakeClient:
     def __init__(self, text: str) -> None:
         self.text = text
         self.params: dict[str, Any] | None = None
+        self.url: str | None = None
+        self.kwargs: dict[str, Any] = {}
 
     async def get(self, url: str, params: dict[str, Any] | None = None, **kw: Any) -> FakeResp:
         self.params = params
+        self.url = url
+        self.kwargs = kw
         return FakeResp(self.text)
+
+
+@pytest.mark.asyncio
+async def test_uses_https_endpoint_and_follows_redirects():
+    # arXiv's http endpoint 301-redirects to https; without https + redirect
+    # following, raise_for_status would fail every real call.
+    client = FakeClient(ATOM)
+    await fetch_paper_mentions('"vLLM"', client, since=datetime(2026, 6, 1, tzinfo=UTC))
+    assert client.url is not None and client.url.startswith("https://")
+    assert client.kwargs.get("follow_redirects") is True
 
 
 @pytest.mark.asyncio
