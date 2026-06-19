@@ -3,7 +3,7 @@ general_agents: 10
 mcp_tooling: 10
 sandbox_governance: 10
 agent_frameworks: 10
-model_serving: 10
-ai_infrastructure: 10
+model_serving: 12
+ai_infrastructure: 12
 physical_ai_infrastructure: 10
 fun_experimental: 10
