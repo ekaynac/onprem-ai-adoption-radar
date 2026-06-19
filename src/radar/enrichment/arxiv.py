@@ -17,7 +17,9 @@ from dateutil import parser as date_parser
 from radar.models import PaperRef
 
 
-ARXIV_API_URL = "http://export.arxiv.org/api/query"
+# HTTPS: the http:// endpoint 301-redirects to https, which an httpx client
+# without follow_redirects would turn into a raise_for_status failure.
+ARXIV_API_URL = "https://export.arxiv.org/api/query"
 # AI, ML, NLP, distributed, software-eng, vision, robotics. Module constant so
 # the searched fields are easy to tune.
 ARXIV_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL", "cs.DC", "cs.SE", "cs.CV", "cs.RO"]
@@ -50,6 +52,7 @@ async def fetch_paper_mentions(
             "start": 0,
             "max_results": 50,
         },
+        follow_redirects=True,
     )
     response.raise_for_status()
     feed = feedparser.parse(response.text)
