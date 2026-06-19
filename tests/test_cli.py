@@ -549,3 +549,23 @@ def test_scan_prints_scan_health_line(tmp_path):
 
     assert result.exit_code == 0, result.stdout
     assert "Scan health:" in result.stdout
+
+
+def test_discover_includes_hf_papers(tmp_path, monkeypatch):
+    from radar.discovery.proposals import SeedProposal, load_proposals
+    from radar.models import Category
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    async def fake_trending(*a, **k): return []
+    async def fake_hf(*a, **k):
+        return [SeedProposal(project="fastserve", category=Category.MODEL_SERVING,
+                             url="https://github.com/acme/fastserve", stars=1200,
+                             suggested_id="github-fastserve")]
+    monkeypatch.setattr("radar.discovery.github_trending.discover_trending", fake_trending)
+    monkeypatch.setattr("radar.discovery.hf_papers.discover_from_hf_papers", fake_hf)
+
+    result = runner.invoke(app, ["discover", "--root", str(tmp_path)])
+    assert result.exit_code == 0, result.stdout
+    proposals = load_proposals(tmp_path / "data" / "proposed-seeds.yaml")
+    assert any(p.suggested_id == "github-fastserve" for p in proposals)
