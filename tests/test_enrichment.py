@@ -128,6 +128,72 @@ async def test_downloads_unknown_ecosystem_returns_none():
     ) is None
 
 
+class _StatusResponse:
+    def __init__(self, status_code, payload=None, retry_after=None):
+        self.status_code = status_code
+        self.payload = payload or {}
+        self.headers = {"Retry-After": str(retry_after)} if retry_after else {}
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+    def json(self):
+        return self.payload
+
+
+class _SequenceClient:
+    """Returns queued responses in order, recording how many GETs happened."""
+
+    def __init__(self, responses):
+        self._responses = list(responses)
+        self.calls = 0
+
+    async def get(self, url, **kwargs):
+        self.calls += 1
+        return self._responses.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_downloads_retries_then_succeeds_on_429(monkeypatch):
+    slept: list[float] = []
+
+    async def fake_sleep(delay):
+        slept.append(delay)
+
+    monkeypatch.setattr("radar.enrichment.downloads.asyncio.sleep", fake_sleep)
+    client = _SequenceClient(
+        [
+            _StatusResponse(429, retry_after=1),
+            _StatusResponse(200, {"data": {"last_week": 12_345}}),
+        ]
+    )
+
+    result = await fetch_weekly_downloads(PackageRef(ecosystem="PyPI", name="ray"), client)
+
+    assert result == 12_345
+    assert client.calls == 2
+    assert slept == [1.0]  # honored Retry-After
+
+
+@pytest.mark.asyncio
+async def test_downloads_persistent_429_degrades_to_none(monkeypatch):
+    async def fake_sleep(delay):
+        return None
+
+    monkeypatch.setattr("radar.enrichment.downloads.asyncio.sleep", fake_sleep)
+    client = _SequenceClient([_StatusResponse(429) for _ in range(5)])
+
+    # The final attempt raises via raise_for_status; the runner's _safe wrapper
+    # is what turns that into None in production. Here we assert it raises so the
+    # degradation contract is explicit.
+    with pytest.raises(RuntimeError):
+        await fetch_weekly_downloads(PackageRef(ecosystem="PyPI", name="ray"), client)
+
+    # 1 initial + DOWNLOADS_MAX_RETRIES retries.
+    assert client.calls == 4
+
+
 @pytest.mark.asyncio
 async def test_runner_merges_enrichment_into_metrics():
     sources = [
