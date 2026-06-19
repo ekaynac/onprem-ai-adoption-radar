@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -71,3 +72,39 @@ def test_record_empty_is_noop(tmp_path: Path):
     store.initialize()
     store.record([])
     assert store.latest("vLLM") is None
+
+
+def test_paper_mentions_round_trip(tmp_path):
+    store = MetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    store.record(
+        [
+            ProjectMetrics(
+                project="vLLM",
+                run_id="r1",
+                observed_at=datetime(2026, 6, 19, tzinfo=UTC),
+                paper_mentions=7,
+            )
+        ]
+    )
+    latest = store.latest("vLLM")
+    assert latest is not None
+    assert latest.paper_mentions == 7
+
+
+def test_initialize_adds_paper_mentions_to_legacy_table(tmp_path):
+    db = tmp_path / "radar.db"
+    # Simulate a pre-existing table WITHOUT the new column.
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            "CREATE TABLE project_metrics (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "project TEXT NOT NULL, run_id TEXT NOT NULL, observed_at TEXT NOT NULL, "
+            "stars INTEGER, forks INTEGER, open_issues INTEGER, license TEXT, "
+            "pushed_at TEXT, releases_in_window INTEGER NOT NULL DEFAULT 0, "
+            "downloads_weekly INTEGER, hn_mentions INTEGER, advisories_open INTEGER, "
+            "advisories_max_severity TEXT)"
+        )
+    store = MetricsStore(db)
+    store.initialize()  # must add the missing column, not crash
+    cols = {r[1] for r in sqlite3.connect(db).execute("PRAGMA table_info(project_metrics)")}
+    assert "paper_mentions" in cols
