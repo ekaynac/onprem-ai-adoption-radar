@@ -61,3 +61,28 @@ def test_fit_report_sorts_fits_first():
     nofit = _model("huge", 200_000_000_000, [("Q4_K_M", 4.5)])
     report = fit_report([nofit, fits], DeviceProfile(name="g", kind="gpu", total_memory_gb=24))
     assert report[0].model_id == "small"
+
+
+def test_fits_tight_when_best_above_95pct():
+    # usable = 24 * 0.85 = 20.4 GB; tight threshold = 0.95 * 20.4 = 19.38 GB
+    # est_memory_gb_4k=20.0 lands in (19.38, 20.4] → fits_tight
+    # No params_total → estimator returns None, stored est_memory_gb_4k is used directly
+    m = ModelEntry(id="q", name="q", family="F",
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5,
+                                        est_memory_gb_4k=20.0, platform=Platform.GENERIC, source="x")])
+    fit = evaluate_fit(m, DeviceProfile(name="g", kind="gpu", total_memory_gb=24))
+    assert fit.verdict == "fits_tight"
+
+
+def test_fits_quantized_when_only_subq4_fits():
+    # Q3_K (3.4 bits, 10.0 GB) fits usable 13.6 GB but bits < VIABLE_MIN_BITS (4.0)
+    # Q8_0 (8.0 bits, 30.0 GB) does not fit usable 13.6 GB
+    # → no viable (≥4-bit) quant fits → verdict fits_quantized, best is Q3_K
+    m = ModelEntry(id="q", name="q", family="F", quants=[
+        QuantVariant(format="Q3_K", bits_per_weight=3.4, est_memory_gb_4k=10.0,
+                     platform=Platform.GENERIC, source="x"),
+        QuantVariant(format="Q8_0", bits_per_weight=8.0, est_memory_gb_4k=30.0,
+                     platform=Platform.GENERIC, source="x"),
+    ])
+    fit = evaluate_fit(m, DeviceProfile(name="g", kind="gpu", total_memory_gb=16))
+    assert fit.verdict == "fits_quantized" and fit.best_quant_format == "Q3_K"

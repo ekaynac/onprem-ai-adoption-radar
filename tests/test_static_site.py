@@ -313,3 +313,15 @@ def test_fit_by_tier_returns_verdicts():
     rows = fit_by_tier(m)
     assert rows and {"device", "verdict", "best_quant"} <= set(rows[0])
     assert any(r["verdict"] == "fits" for r in rows)
+
+
+def test_fit_by_tier_no_quants_returns_unknown():
+    from radar.models_radar.devices import COMMON_DEVICE_TIERS
+    from radar.models_radar.entities import ModelEntry
+    from radar.web.picker_context import fit_by_tier
+
+    m = ModelEntry(id="no-quants", name="no-quants", family="F")  # no quants, no params_total
+    rows = fit_by_tier(m)
+    assert len(rows) == len(COMMON_DEVICE_TIERS)
+    assert all(r["verdict"] == "unknown" for r in rows)
+    assert all(r["best_quant"] == "-" for r in rows)
