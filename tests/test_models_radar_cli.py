@@ -53,6 +53,46 @@ def test_models_discover_writes_proposals(tmp_path, monkeypatch):
     assert "Qwen3-32B" in result.stdout
 
 
+def test_models_devices_lists_presets(tmp_path):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+
+    r = CliRunner().invoke(app, ["models", "devices"])
+    assert r.exit_code == 0 and "rtx-4090-24gb" in r.stdout
+
+
+def test_models_fit_reports_verdicts(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        Modality,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.storage.run_store import RunStore
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    rs = RunStore(tmp_path / "data" / "runs")
+    rid = rs.create_run()
+    e = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", params_total=8_000_000_000,
+                   openness=Openness.OPEN_PERMISSIVE, hardware_tier=HardwareTier.LAPTOP,
+                   ring=Ring.ADOPT, modality=Modality.TEXT,
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                                        platform=Platform.GENERIC, source="hf:x")])
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json")])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+    r = runner.invoke(app, ["models", "fit", "--device", "rtx-4090-24gb", "--root", str(tmp_path)])
+    assert r.exit_code == 0, r.stdout
+    assert "qwen3-8b" in r.stdout and "fits" in r.stdout
+
+
 def test_models_scan_persists_rings_and_list_shows_them(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
