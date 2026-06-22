@@ -29,3 +29,34 @@ def test_models_list_reads_latest_scan(tmp_path: Path, monkeypatch):
     assert list_result.exit_code == 0, list_result.stdout
     assert "llama-3.1-8b" in list_result.stdout
     assert "laptop" in list_result.stdout
+
+
+def test_models_scan_persists_rings_and_list_shows_them(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        QuantVariant,
+    )
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    async def fake_scan(seed_path, client):
+        return [ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3",
+                           params_total=8_000_000_000, openness=Openness.OPEN_PERMISSIVE,
+                           hardware_tier=HardwareTier.LAPTOP, hf_downloads=1_000_000,
+                           quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5,
+                                                est_memory_gb_4k=8.0, source="hf:x")])]
+    monkeypatch.setattr("radar.models_radar.scan.run_model_scan", fake_scan)
+
+    assert runner.invoke(app, ["models", "scan", "--root", str(tmp_path)]).exit_code == 0
+    out = runner.invoke(app, ["models", "list", "--root", str(tmp_path)])
+    assert out.exit_code == 0, out.stdout
+    assert "qwen3-8b" in out.stdout
+    assert any(r in out.stdout for r in ("adopt", "pilot", "watch"))
+    # history log written
+    assert (tmp_path / "data" / "model-history.jsonl").exists()

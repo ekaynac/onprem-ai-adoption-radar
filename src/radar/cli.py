@@ -233,9 +233,11 @@ def seed_list(
 def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
     """Collect model specs from HF + Ollama + seed; write a model_cards.json run."""
     import asyncio
+    from datetime import UTC, datetime
 
     import httpx
 
+    from radar.models_radar.pipeline import persist_model_scan, score_entries
     from radar.models_radar.scan import run_model_scan
     from radar.storage.run_store import RunStore
 
@@ -249,8 +251,14 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
             return await run_model_scan(seed_path, client)
 
     entries = asyncio.run(_run())
+    entries = score_entries(entries)
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
+    observed_at = datetime.now(UTC)
+    persist_model_scan(
+        entries, run_id, observed_at,
+        root / "data" / "radar.db", root / "data" / "model-history.jsonl",
+    )
     run_store.save_stage(run_id, "model_cards", [m.model_dump(mode="json") for m in entries])
     run_store.update_meta(run_id, {"kind": "models", "model_count": len(entries)})
     console.print(f"Scanned {len(entries)} models → run {run_id}")
@@ -261,6 +269,8 @@ def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     """List models from the latest model scan."""
     import json as _json
 
+    from radar.models_radar.entities import ModelEntry as _ME
+    from radar.models_radar.pipeline import momentum_for
     from radar.storage.run_store import RunStore
 
     run_store = RunStore(root / "data" / "runs")
@@ -275,14 +285,20 @@ def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     cards_path = run_store._run_dir(model_run) / "model_cards.json"
     entries = _json.loads(cards_path.read_text(encoding="utf-8"))
     console.print(f"{len(entries)} models (run {model_run}):")
-    for m in entries:
-        quants = m.get("quants") or []
-        mems = [q["est_memory_gb_4k"] for q in quants
-                if q.get("est_memory_gb_4k") and q.get("bits_per_weight", 0) >= 4.0]
+    parsed = [_ME.model_validate(m) for m in entries]
+    moms = momentum_for(parsed, root / "data" / "radar.db",
+                        root / "data" / "model-history.jsonl")
+    _ARROW = {"rising": "↑", "falling": "↓", "steady": "→"}
+    for m in parsed:
+        quants = m.quants
+        mems = [q.est_memory_gb_4k for q in quants
+                if q.est_memory_gb_4k and q.bits_per_weight >= 4.0]
         min_mem = f"{min(mems):.1f}GB" if mems else "?"
+        arrow = _ARROW.get(moms[m.id].direction, "")
+        ring = m.ring.value if m.ring else "-"
         console.print(
-            f"  {m['id']:<28} {m.get('hardware_tier','unknown'):<16} "
-            f"min~{min_mem:<9} {m.get('family','')}",
+            f"  {m.id:<28} {ring:<7} {m.hardware_tier.value:<16} "
+            f"min~{min_mem:<9} {arrow} {m.family}",
             highlight=False,
         )
 
