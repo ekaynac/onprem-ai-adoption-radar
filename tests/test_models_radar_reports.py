@@ -5,9 +5,15 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from radar.models import Ring
+from radar.models_radar.entities import HardwareTier, ModelEntry, Openness
 from radar.models_radar.history import ModelHistoryEvent
 from radar.models_radar.momentum import ModelMomentum
-from radar.models_radar.reports import build_model_mover_lines
+from radar.models_radar.reports import (
+    build_model_mover_lines,
+    model_events_to_feed_atom,
+    model_events_to_feed_json,
+    render_model_report,
+)
 from radar.storage.history_store import ChangeType
 
 
@@ -35,3 +41,19 @@ def test_ring_changes_first_then_trending():
 
 def test_empty_inputs_yield_no_lines():
     assert build_model_mover_lines([], []) == []
+
+
+def test_render_model_report_has_sections():
+    e = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+                   hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE)
+    md = render_model_report([e], ["qwen3-8b: rising"], "Model Radar")
+    assert "# Model Radar" in md and "## Movers" in md and "qwen3-8b" in md
+    assert "laptop" in md
+
+
+def test_model_feeds_build_from_events():
+    ev = _ev("qwen3-8b", ChangeType.NEW, Ring.ADOPT)
+    j = model_events_to_feed_json([ev], "Model Radar")
+    assert j["items"] and "qwen3-8b" in j["items"][0]["title"]
+    x = model_events_to_feed_atom([ev], "Model Radar", "https://example/changes-models.xml")
+    assert "<feed" in x and "qwen3-8b" in x
