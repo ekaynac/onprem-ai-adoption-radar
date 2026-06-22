@@ -65,6 +65,12 @@ DEVICE_PRESETS: dict[str, DeviceProfile] = {
 }
 
 
+COMMON_DEVICE_TIERS: list[str] = [
+    "rtx-4060-8gb", "rtx-4080-16gb", "rtx-4090-24gb",
+    "rtx-6000-ada-48gb", "a100-80gb", "mac-64gb",
+]
+
+
 def resolve_device(spec: str | dict[str, Any]) -> DeviceProfile:
     """A preset name, or a custom dict {kind, total_memory_gb, gpu_count?}."""
     if isinstance(spec, str):

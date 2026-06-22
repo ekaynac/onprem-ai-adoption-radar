@@ -12,3 +12,9 @@
 <td>{{ '%.1f'|format(q.est_memory_gb_32k) if q.est_memory_gb_32k else '?' }} GB</td>
 <td>{{ q.platform.value }}</td></tr>{% endfor %}
 </tbody></table>
+{% if fit_by_tier %}
+<h3>Runs on</h3>
+<table><thead><tr><th>Device</th><th>Fit</th><th>Largest quant that fits</th></tr></thead><tbody>
+{% for r in fit_by_tier %}<tr><td>{{ r.device }}</td><td>{{ r.verdict }}</td><td>{{ r.best_quant }}</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
