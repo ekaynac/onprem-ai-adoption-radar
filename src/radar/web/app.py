@@ -88,6 +88,7 @@ def create_app(root: Path) -> FastAPI:
                 "scan_health": summarize_meta(meta),
                 "source_health": _source_health(),
                 "models_summary": summarize_models(_model_entries()),
+                "models_href": "/models",
             },
         )
 
@@ -212,7 +213,7 @@ def create_app(root: Path) -> FastAPI:
         slug_by_model = build_slug_map([e.id for e in entries])
         return TEMPLATES.TemplateResponse(
             request,
-            "static_models.html",
+            "models.html",
             {"models": entries, "slug_by_model": slug_by_model},
         )
 
@@ -222,7 +223,7 @@ def create_app(root: Path) -> FastAPI:
         if entry is None:
             return HTMLResponse("Model not found", status_code=404)
         return TEMPLATES.TemplateResponse(
-            request, "static_model.html", {"model": entry}
+            request, "model.html", {"model": entry}
         )
 
     @app.post("/sources")

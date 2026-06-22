@@ -7,7 +7,7 @@
       {% for ring, n in models_summary.by_ring.items() %}<li>{{ ring }}: {{ n }}</li>{% endfor %}
       {% for tier, n in models_summary.by_tier.items() %}<li>{{ tier }}: {{ n }}</li>{% endfor %}
     </ul>
-    <p><a href="models.html">Browse models →</a></p>
+    <p><a href="{{ models_href|default('models.html') }}">Browse models →</a></p>
   </details>
 </div>
 {% endif %}

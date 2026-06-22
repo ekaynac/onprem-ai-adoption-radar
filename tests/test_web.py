@@ -556,3 +556,31 @@ def test_models_route_empty_when_no_scan(tmp_path):
     (tmp_path / "data").mkdir(parents=True)
     client = TestClient(create_app(tmp_path))
     assert client.get("/models").status_code == 200  # renders "no models yet", no crash
+
+
+def test_models_route_links_to_live_model_paths(tmp_path):
+    """Live /models catalog must link to /model/<id>, not model_*.html."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/models")
+    assert r.status_code == 200
+    assert 'href="/model/' in r.text
+    assert "model_qwen3-8b.html" not in r.text
+
+
+def test_model_detail_route_back_link_is_live(tmp_path):
+    """Live /model/<id> detail page must link back to /models, not models.html."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/model/qwen3-8b")
+    assert r.status_code == 200
+    assert 'href="/models"' in r.text
+    assert 'href="models.html"' not in r.text
+
+
+def test_model_detail_route_unknown_returns_404(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    client = TestClient(create_app(tmp_path))
+    assert client.get("/model/does-not-exist").status_code == 404
