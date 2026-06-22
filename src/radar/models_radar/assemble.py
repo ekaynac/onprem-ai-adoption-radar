@@ -90,10 +90,7 @@ def build_model_entry(
                 platform=platform,
                 source=source,
                 file_size_gb=size_gb,
-                # Weights-only lower bound at 4k context (no KV cache term).
-                est_memory_gb_4k=estimate_memory_gb(
-                    params_total, bits, _REF_4K, None, None
-                ),
+                est_memory_gb_4k=estimate_memory_gb(params_total, bits, _REF_4K, num_layers, hidden),
                 # Full estimate at 32k context including KV cache when architecture
                 # (layers + hidden_size) is known.
                 est_memory_gb_32k=estimate_memory_gb(

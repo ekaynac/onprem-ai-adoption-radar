@@ -26,7 +26,7 @@ def test_build_merges_specs_computes_memory_and_tier():
     assert m.openness == Openness.OPEN_PERMISSIVE
     # quants from HF formats + ollama tag, each with a computed 4k memory estimate
     q4 = next(q for q in m.quants if q.bits_per_weight == 4.5 and q.est_memory_gb_4k)
-    assert 4.5 <= q4.est_memory_gb_4k <= 7.0
+    assert 7.0 <= q4.est_memory_gb_4k <= 9.0
     # 8B Q4 → laptop tier
     assert m.hardware_tier == HardwareTier.LAPTOP
 
