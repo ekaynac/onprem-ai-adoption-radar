@@ -73,3 +73,22 @@ def test_no_model_run_returns_empty(tmp_path: Path):
     (tmp_path / "data").mkdir(parents=True)
     svc = ModelQueryService(tmp_path)
     assert svc.list_models() == [] and svc.get_model("x") is None
+
+
+def test_can_run_and_fit_report(tmp_path: Path):
+    _seed(tmp_path)  # existing helper: writes qwen3-8b/qwen3-30b-a3b/big-405b model_cards run
+    from radar.mcp_server.model_queries import ModelQueryService
+    svc = ModelQueryService(tmp_path)
+
+    devices = svc.list_devices()
+    assert any(d["id"] == "rtx-4090-24gb" for d in devices)
+
+    one = svc.can_run("qwen3-8b", "rtx-4090-24gb")
+    assert one is not None and one["verdict"] in ("fits", "fits_tight", "fits_quantized")
+    assert svc.can_run("nope", "rtx-4090-24gb") is None
+
+    report = svc.device_fit_report("laptop-16gb-cpu")
+    assert {r["model_id"] for r in report} == {"qwen3-8b", "qwen3-30b-a3b", "big-405b"}
+    # custom device dict
+    custom = svc.device_fit_report({"kind": "gpu", "total_memory_gb": 8})
+    assert all("verdict" in r for r in custom)
