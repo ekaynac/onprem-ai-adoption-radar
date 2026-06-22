@@ -60,6 +60,16 @@ def test_list_models_filters_by_tier_and_family(tmp_path: Path):
     assert {r["id"] for r in svc.list_models(family="Qwen3")} == {"qwen3-8b", "qwen3-30b-a3b"}
 
 
+def test_list_models_tier_and_modality_filters_are_case_insensitive(tmp_path: Path):
+    # hardware_tier/modality should match like family does, regardless of caller casing.
+    _seed(tmp_path)
+    svc = ModelQueryService(tmp_path)
+    assert {r["id"] for r in svc.list_models(hardware_tier="LAPTOP")} == {"qwen3-8b"}
+    assert {r["id"] for r in svc.list_models(modality="Text")} == {
+        "qwen3-8b", "qwen3-30b-a3b", "big-405b"
+    }
+
+
 def test_get_model_returns_full_with_quants(tmp_path: Path):
     _seed(tmp_path)
     svc = ModelQueryService(tmp_path)

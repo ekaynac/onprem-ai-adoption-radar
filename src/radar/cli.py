@@ -288,7 +288,7 @@ def models_discover(
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             return await discover_trending_models(
-                seeds, client, min_downloads=min_downloads, limit=limit  # type: ignore[arg-type]
+                seeds, client, min_downloads=min_downloads, limit=limit
             )
 
     proposals = asyncio.run(_run())

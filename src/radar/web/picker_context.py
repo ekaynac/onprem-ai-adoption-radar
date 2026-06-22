@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from radar.models_radar.device_fit import evaluate_fit
+from radar.models_radar.device_fit import TIGHT_FRACTION, evaluate_fit
 from radar.models_radar.devices import (
     COMMON_DEVICE_TIERS,
     DEVICE_PRESETS,
@@ -23,6 +23,7 @@ def picker_context() -> dict[str, Any]:
             for key, d in DEVICE_PRESETS.items()
         ],
         "usable_fraction": dict(USABLE_FRACTION),
+        "tight_fraction": TIGHT_FRACTION,
     }
 
 

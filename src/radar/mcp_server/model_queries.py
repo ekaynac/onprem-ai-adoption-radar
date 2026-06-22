@@ -52,11 +52,11 @@ class ModelQueryService:
     ) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         for entry in self._entries():
-            if hardware_tier and entry.hardware_tier.value != hardware_tier:
+            if hardware_tier and entry.hardware_tier.value != hardware_tier.lower():
                 continue
             if family and entry.family.lower() != family.lower():
                 continue
-            if modality and entry.modality.value != modality:
+            if modality and entry.modality.value != modality.lower():
                 continue
             if max_memory_gb is not None:
                 mv = minimum_viable_quant(entry.quants)

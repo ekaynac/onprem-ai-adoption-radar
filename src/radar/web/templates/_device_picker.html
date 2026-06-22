@@ -20,6 +20,7 @@
 <script>
 window.RADAR_USABLE_FRACTION = {{ device_picker.usable_fraction | tojson }};
 window.RADAR_DEVICE_PRESETS = {{ device_picker.device_presets | tojson }};
+window.RADAR_TIGHT_FRACTION = {{ device_picker.tight_fraction | tojson }};
 (function () {
   var sel = document.getElementById("device-select");
   var custom = document.getElementById("device-custom");
@@ -43,7 +44,8 @@ window.RADAR_DEVICE_PRESETS = {{ device_picker.device_presets | tojson }};
       var min = parseFloat(row.getAttribute("data-min-memory-gb"));
       row.classList.remove("fit-yes", "fit-tight", "fit-no");
       if (!usable || isNaN(min)) return;
-      if (min <= usable * 0.95) row.classList.add("fit-yes");
+      var tight = window.RADAR_TIGHT_FRACTION || 0.95;
+      if (min <= usable * tight) row.classList.add("fit-yes");
       else if (min <= usable) row.classList.add("fit-tight");
       else row.classList.add("fit-no");
     });

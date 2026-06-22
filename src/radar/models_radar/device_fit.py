@@ -14,7 +14,9 @@ from radar.models_radar.entities import ModelEntry, QuantVariant
 from radar.models_radar.memory import VIABLE_MIN_BITS, estimate_memory_gb
 
 
-_TIGHT_FRACTION = 0.95
+# Fraction of usable memory above which a fit is "tight". Also injected into the
+# dashboard picker JS, so the row-coloring threshold stays a single source of truth.
+TIGHT_FRACTION = 0.95
 
 
 class ModelFit(BaseModel):
@@ -66,7 +68,7 @@ def evaluate_fit(
     viable_fits: list[tuple[QuantVariant, float]] = [(q, m) for q, m in fitting if q.bits_per_weight >= VIABLE_MIN_BITS]
     if not viable_fits:
         verdict = "fits_quantized"  # only sub-Q4 quants fit
-    elif best_m > usable * _TIGHT_FRACTION:
+    elif best_m > usable * TIGHT_FRACTION:
         verdict = "fits_tight"
     else:
         verdict = "fits"

@@ -38,7 +38,7 @@ def build_model_mover_lines(
     )
     for m in rising[:MAX_TRENDING]:
         pct = f" downloads {m.downloads_growth_pct:+.1f}%" if m.downloads_growth_pct is not None else ""
-        lines.append(f"{m.model_id}: rising —{pct} across recent scans".replace("— ", "— "))
+        lines.append(f"{m.model_id}: rising —{pct} across recent scans")
     return lines
 
 

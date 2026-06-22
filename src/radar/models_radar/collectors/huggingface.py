@@ -39,7 +39,7 @@ def quant_formats_from_siblings(filenames: list[str]) -> list[str]:
     for name in filenames:
         m = _GGUF_RE.search(name)
         if m:
-            label = f"GGUF {m.group(1).upper().replace('F16', 'F16')}"
+            label = f"GGUF {m.group(1).upper()}"
             if label not in formats:
                 formats.append(label)
     return formats

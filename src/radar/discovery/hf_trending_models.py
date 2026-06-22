@@ -9,7 +9,7 @@ review file (see model_proposals.py) — never auto-added to the seed.
 from __future__ import annotations
 
 import logging
-from typing import Any, Protocol
+from typing import Any
 
 from radar.discovery.model_proposals import ModelProposal
 from radar.models_radar.entities import ModelSeed
@@ -27,12 +27,8 @@ _MODALITY_BY_TAG = {
 }
 
 
-class _AsyncClient(Protocol):
-    async def get(self, url: str, **kwargs: Any) -> Any: ...
-
-
 async def fetch_trending_models(
-    client: _AsyncClient,
+    client: Any,
     limit: int = 50,
     pipeline_tag: str = "text-generation",
     sort: str = "trendingScore",
@@ -56,7 +52,7 @@ async def fetch_trending_models(
 
 async def discover_trending_models(
     seeds: list[ModelSeed],
-    client: _AsyncClient,
+    client: Any,
     min_downloads: int = 10000,
     limit: int = 50,
     headers: dict[str, str] | None = None,

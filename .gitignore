@@ -20,6 +20,7 @@ data/history.jsonl
 # Human decisions and discovery proposals (local runtime state).
 data/overrides.yaml
 data/proposed-seeds.yaml
+data/proposed-model-seeds.yaml
 
 # Coverage artifacts
 .coverage
