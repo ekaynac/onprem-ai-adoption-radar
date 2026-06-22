@@ -1,0 +1,13 @@
+{# Models summary. Context: models_summary (ModelsSummary) | None. #}
+{% if models_summary and models_summary.has_models %}
+<div class="scan-health">
+  <details>
+    <summary>🧠 {{ models_summary.one_line }}</summary>
+    <ul>
+      {% for ring, n in models_summary.by_ring.items() %}<li>{{ ring }}: {{ n }}</li>{% endfor %}
+      {% for tier, n in models_summary.by_tier.items() %}<li>{{ tier }}: {{ n }}</li>{% endfor %}
+    </ul>
+    <p><a href="models.html">Browse models →</a></p>
+  </details>
+</div>
+{% endif %}
