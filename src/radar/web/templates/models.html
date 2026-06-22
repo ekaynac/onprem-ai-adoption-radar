@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Local Models · Adoption Radar</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
+  </head>
+  <body>
+    <main class="container" style="padding-top: 1.5rem;">
+      <nav class="hero-nav" style="margin-bottom: 1rem;"><a href="/">← Radar</a></nav>
+      <h1>Local Models</h1>
+      {% if not models %}<p>No models scanned yet.</p>{% endif %}
+      <table><thead><tr><th>Model</th><th>Ring</th><th>Tier</th><th>Min mem</th><th>Family</th></tr></thead>
+      <tbody>
+      {% for m in models %}<tr>
+      <td><a href="/model/{{ m.id }}">{{ m.name }}</a></td>
+      <td>{{ m.ring.value if m.ring else '-' }}</td><td>{{ m.hardware_tier.value }}</td>
+      <td>{% set mv = m.quants|selectattr('est_memory_gb_4k')|list %}{{ '%.1f GB'|format(mv[0].est_memory_gb_4k) if mv else '?' }}</td>
+      <td>{{ m.family }}</td></tr>{% endfor %}
+      </tbody></table>
+    </main>
+  </body>
+</html>

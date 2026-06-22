@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ model.name }} · Adoption Radar</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
+  </head>
+  <body>
+    <main class="container" style="padding-top: 1.5rem;">
+      <nav class="hero-nav" style="margin-bottom: 1rem;"><a href="/models">← Models</a><a href="/">Radar</a></nav>
+      {% include "_model_detail.html" %}
+    </main>
+  </body>
+</html>

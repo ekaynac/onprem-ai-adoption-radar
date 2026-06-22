@@ -506,3 +506,53 @@ def test_index_rows_have_data_attributes(tmp_path: Path):
 
     assert 'data-project="vLLM"' in text
     assert 'data-category="coding_agents"' in text
+
+
+# ---------------------------------------------------------------------------
+# Models catalog + per-model live routes (Task 6)
+# ---------------------------------------------------------------------------
+
+from radar.storage.run_store import RunStore  # noqa: E402
+
+
+def _seed_models(root: Path):
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        Modality,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    rs = RunStore(root / "data" / "runs")
+    rid = rs.create_run()
+    e = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", params_total=8_000_000_000,
+                   openness=Openness.OPEN_PERMISSIVE, hardware_tier=HardwareTier.LAPTOP,
+                   ring=Ring.ADOPT, score=4.0, modality=Modality.TEXT,
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5,
+                                        est_memory_gb_4k=8.0, platform=Platform.GENERIC, source="hf:x")])
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json")])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+
+def test_models_route_lists_models(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/models")
+    assert r.status_code == 200 and "qwen3-8b" in r.text and "laptop" in r.text
+
+
+def test_model_detail_route(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/model/qwen3-8b")
+    assert r.status_code == 200 and "Q4_K_M" in r.text
+
+
+def test_models_route_empty_when_no_scan(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    client = TestClient(create_app(tmp_path))
+    assert client.get("/models").status_code == 200  # renders "no models yet", no crash

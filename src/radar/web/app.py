@@ -14,7 +14,9 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from radar.mcp_server.model_queries import _latest_model_cards
 from radar.models import Category, SourceType
+from radar.models_radar.entities import ModelEntry
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
@@ -24,7 +26,9 @@ from radar.storage.run_store import RunStore
 from radar.storage.seed_store import SeedError, add_seed
 from radar.storage.source_health_store import SourceHealthStore
 from radar.web.backer_badge import backer_badge
+from radar.web.models_summary import summarize_models
 from radar.web.scan_health import summarize_meta
+from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth, summarize_source_health
 
 
@@ -63,6 +67,10 @@ def create_app(root: Path) -> FastAPI:
             config.sources,
         )
 
+    def _model_entries() -> list[ModelEntry]:
+        """Load model entries from the latest models run; empty list if none."""
+        return [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
+
     # Nav targets for the project-detail partial (live = server routes).
     live_links = {"home": "/", "compare": "/compare", "history": "/history"}
 
@@ -79,6 +87,7 @@ def create_app(root: Path) -> FastAPI:
                 "cards": cards,
                 "scan_health": summarize_meta(meta),
                 "source_health": _source_health(),
+                "models_summary": summarize_models(_model_entries()),
             },
         )
 
@@ -195,6 +204,25 @@ def create_app(root: Path) -> FastAPI:
             request,
             "history.html",
             {"timelines": timelines},
+        )
+
+    @app.get("/models", response_class=HTMLResponse)
+    def models_page(request: Request):
+        entries = _model_entries()
+        slug_by_model = build_slug_map([e.id for e in entries])
+        return TEMPLATES.TemplateResponse(
+            request,
+            "static_models.html",
+            {"models": entries, "slug_by_model": slug_by_model},
+        )
+
+    @app.get("/model/{model_id}", response_class=HTMLResponse)
+    def model_detail(request: Request, model_id: str):
+        entry = next((e for e in _model_entries() if e.id == model_id), None)
+        if entry is None:
+            return HTMLResponse("Model not found", status_code=404)
+        return TEMPLATES.TemplateResponse(
+            request, "static_model.html", {"model": entry}
         )
 
     @app.post("/sources")
