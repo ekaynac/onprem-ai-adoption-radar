@@ -31,6 +31,28 @@ def test_models_list_reads_latest_scan(tmp_path: Path, monkeypatch):
     assert "laptop" in list_result.stdout
 
 
+def test_models_discover_writes_proposals(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.discovery.model_proposals import ModelProposal, load_model_proposals
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    async def fake_discover(seeds, client, min_downloads=10000, limit=50, headers=None):
+        return [ModelProposal(model_id="Qwen3-32B", name="Qwen3-32B", family="Qwen",
+                              hf_repo="Qwen/Qwen3-32B", downloads=900000, likes=1200,
+                              modality="text", reason="trending", suggested_id="hf-qwen3-32b")]
+    monkeypatch.setattr("radar.discovery.hf_trending_models.discover_trending_models", fake_discover)
+
+    result = runner.invoke(app, ["models", "discover", "--root", str(tmp_path)])
+    assert result.exit_code == 0, result.stdout
+    proposals = load_model_proposals(tmp_path / "data" / "proposed-model-seeds.yaml")
+    assert any(p.hf_repo == "Qwen/Qwen3-32B" for p in proposals)
+    assert "Qwen3-32B" in result.stdout
+
+
 def test_models_scan_persists_rings_and_list_shows_them(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
