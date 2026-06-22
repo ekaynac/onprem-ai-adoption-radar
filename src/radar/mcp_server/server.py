@@ -98,6 +98,21 @@ def build_mcp_server(root: Path) -> FastMCP:
         """Models trending up/down (ring changes or download growth)."""
         return models.model_movers()
 
+    @mcp.tool()
+    def list_devices() -> list[dict]:
+        """List built-in device presets (GPU/Apple/CPU) with usable memory."""
+        return models.list_devices()
+
+    @mcp.tool()
+    def can_run(model_id: str, device: str | dict, context_tokens: int = 4096) -> dict | None:
+        """Whether a model fits a device (preset id or {kind,total_memory_gb,gpu_count}) + best quant."""
+        return models.can_run(model_id, device, context_tokens)
+
+    @mcp.tool()
+    def fit_report(device: str | dict, context_tokens: int = 4096) -> list[dict]:
+        """Per-model fit verdicts for a device (preset id or custom spec)."""
+        return models.device_fit_report(device, context_tokens)
+
     return mcp
 
 

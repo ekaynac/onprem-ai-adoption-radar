@@ -302,6 +302,51 @@ def models_discover(
         )
 
 
+@models_app.command("devices")
+def models_devices() -> None:
+    """List built-in device presets for the fit check."""
+    from radar.models_radar.devices import DEVICE_PRESETS, usable_memory_gb
+    for key, d in DEVICE_PRESETS.items():
+        console.print(f"  {key:<20} {d.name:<28} ~{usable_memory_gb(d):>6.1f} GB usable",
+                      highlight=False)
+
+
+@models_app.command("fit")
+def models_fit(
+    device: str = typer.Option("", help="Preset id (see `radar models devices`)."),
+    memory: float = typer.Option(0.0, help="Custom: total memory GB (with --kind)."),
+    kind: str = typer.Option("gpu", help="Custom device kind: gpu|apple|cpu."),
+    gpus: int = typer.Option(1, help="Custom: number of GPUs."),
+    context: int = typer.Option(4096, help="Context length (tokens) for the estimate."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Show which tracked models fit a device, and at which quant."""
+    from radar.mcp_server.model_queries import _latest_model_cards
+    from radar.models_radar.device_fit import fit_report
+    from radar.models_radar.devices import DeviceError, resolve_device
+    from radar.models_radar.entities import ModelEntry
+
+    try:
+        spec: str | dict = device or {"kind": kind, "total_memory_gb": memory, "gpu_count": gpus}
+        if not device and memory <= 0:
+            console.print("[red]Provide --device <preset> or --memory <GB>.[/red]")
+            raise typer.Exit(code=1)
+        dev = resolve_device(spec)
+    except DeviceError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
+    if not entries:
+        console.print("[yellow]No model scan yet. Run [bold]radar models scan[/bold] first.[/yellow]")
+        return
+    from radar.models_radar.devices import usable_memory_gb
+    console.print(f"{dev.name} — ~{usable_memory_gb(dev):.1f} GB usable @ {context} ctx:")
+    for f in fit_report(entries, dev, context):
+        q = f.best_quant_format or "-"
+        console.print(f"  {f.model_id:<28} {f.verdict:<15} {q}", highlight=False)
+
+
 @models_app.command("list")
 def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
     """List models from the latest model scan."""

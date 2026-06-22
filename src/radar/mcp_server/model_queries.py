@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from radar.models_radar.device_fit import evaluate_fit
+from radar.models_radar.device_fit import fit_report as _fit_report
+from radar.models_radar.devices import DEVICE_PRESETS, resolve_device, usable_memory_gb
 from radar.models_radar.entities import ModelEntry
 from radar.models_radar.history import load_model_events
 from radar.models_radar.memory import minimum_viable_quant
@@ -80,6 +83,26 @@ class ModelQueryService:
         data["momentum"] = {"direction": mom.direction,
                             "downloads_growth_pct": mom.downloads_growth_pct}
         return data
+
+    def list_devices(self) -> list[dict[str, Any]]:
+        return [
+            {"id": key, "name": d.name, "kind": d.kind,
+             "total_memory_gb": d.total_memory_gb, "gpu_count": d.gpu_count,
+             "usable_gb": usable_memory_gb(d)}
+            for key, d in DEVICE_PRESETS.items()
+        ]
+
+    def can_run(self, model_id: str, device: str | dict[str, Any],
+                context_tokens: int = 4096) -> dict[str, Any] | None:
+        entry = next((e for e in self._entries() if e.id == model_id), None)
+        if entry is None:
+            return None
+        return evaluate_fit(entry, resolve_device(device), context_tokens).model_dump(mode="json")
+
+    def device_fit_report(self, device: str | dict[str, Any],
+                          context_tokens: int = 4096) -> list[dict[str, Any]]:
+        dev = resolve_device(device)
+        return [f.model_dump(mode="json") for f in _fit_report(self._entries(), dev, context_tokens)]
 
     def model_movers(self) -> list[dict[str, Any]]:
         store = ModelMetricsStore(self.db_path)

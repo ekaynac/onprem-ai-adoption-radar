@@ -82,3 +82,9 @@ def test_list_models_tool_filters_by_memory(tmp_path: Path):
     result = asyncio.run(server.call_tool("list_models", {"max_memory_gb": 24}))
     payload = result[1].get("result", result[1])
     assert any(item["id"] == "qwen3-8b" for item in payload)
+
+
+def test_server_registers_device_tools(tmp_path: Path):
+    _seed_models(tmp_path)
+    names = {t.name for t in asyncio.run(build_mcp_server(tmp_path).list_tools())}
+    assert {"list_devices", "can_run", "fit_report"} <= names
