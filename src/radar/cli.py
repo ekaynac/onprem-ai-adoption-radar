@@ -265,6 +265,43 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     console.print(f"Scanned {len(entries)} models → run {run_id}")
 
 
+@models_app.command("discover")
+def models_discover(
+    min_downloads: int = typer.Option(10000, help="Minimum HF downloads for a candidate."),
+    limit: int = typer.Option(50, help="Max candidates to fetch/propose."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Find trending HF models and write proposals for review (never auto-adds)."""
+    import asyncio
+
+    import httpx
+
+    from radar.discovery.hf_trending_models import discover_trending_models
+    from radar.discovery.model_proposals import write_model_proposals
+    from radar.models_radar.seed import load_model_seed
+
+    seed_path = root / "config" / "model-seed.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+    seeds = load_model_seed(seed_path)
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await discover_trending_models(
+                seeds, client, min_downloads=min_downloads, limit=limit  # type: ignore[arg-type]
+            )
+
+    proposals = asyncio.run(_run())
+    out_path = root / "data" / "proposed-model-seeds.yaml"
+    write_model_proposals(out_path, proposals)
+    console.print(f"Found {len(proposals)} model candidate(s) → {out_path}")
+    for p in proposals[:15]:
+        console.print(
+            f"  {p.downloads:>9,}↓  {p.model_id:<32} {p.family:<14} {p.hf_repo}",
+            highlight=False,
+        )
+
+
 @models_app.command("list")
 def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
     """List models from the latest model scan."""
