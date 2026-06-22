@@ -246,3 +246,35 @@ def test_static_filter_targets_all_tracked_only(tmp_path: Path):
     # exactly one data-project (the all-tracked row), not two.
     assert index.count('data-project="vLLM"') == 1
     assert 'id="radar-table"' in index
+
+
+def test_static_site_renders_models_section(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.web.static_site import render_static_site
+    e = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+                   hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5,
+                                        est_memory_gb_4k=8.0, platform=Platform.GENERIC, source="x")])
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC),
+                       model_entries=[e])
+    site = tmp_path / "_site"
+    assert (site / "models.html").exists()
+    assert "qwen3-8b" in (site / "models.html").read_text(encoding="utf-8")
+    assert (site / "model_qwen3-8b.html").exists()
+
+
+def test_static_site_models_backcompat_without_models(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.web.static_site import render_static_site
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC))
+    assert (tmp_path / "_site" / "index.html").exists()  # no crash, no models

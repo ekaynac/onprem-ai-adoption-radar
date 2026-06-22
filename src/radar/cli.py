@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import UTC
 from pathlib import Path
 from typing import Any
@@ -703,6 +704,9 @@ def export(
     """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
     from datetime import datetime
 
+    from radar.mcp_server.model_queries import _latest_model_cards
+    from radar.models_radar.entities import ModelEntry
+    from radar.models_radar.history import load_model_events
     from radar.storage.config import ConfigError, load_config
     from radar.storage.history_store import HistoryStore
     from radar.storage.metrics_store import MetricsStore
@@ -743,6 +747,16 @@ def export(
             config.sources,
         )
 
+    # Model entries + events (optional: only present after a `radar models scan`).
+    model_entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
+    model_events = load_model_events(root / "data" / "model-history.jsonl")
+
+    # Copy model-history.jsonl into the site so it's available as a download.
+    model_history_src = root / "data" / "model-history.jsonl"
+    out.mkdir(parents=True, exist_ok=True)
+    if model_history_src.exists():
+        shutil.copy2(model_history_src, out / "model-history.jsonl")
+
     index = render_static_site(
         cards,
         out,
@@ -752,9 +766,13 @@ def export(
         latest_scan_meta=latest_scan_meta,
         history_jsonl=root / "data" / "history.jsonl",
         source_health=source_health_view,
+        model_entries=model_entries or None,
+        model_events=model_events or None,
     )
     console.print(
-        f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages)"
+        f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
+        + (f", {len(model_entries)} model pages" if model_entries else "")
+        + ")"
     )
 
 
