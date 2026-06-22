@@ -44,3 +44,22 @@ def test_no_data_yields_incomplete_entry_with_warning():
     m = build_model_entry(seed, None, [])
     assert m.hardware_tier == HardwareTier.UNKNOWN
     assert any("no specs" in w.lower() or "incomplete" in w.lower() for w in m.warnings)
+
+
+def test_synthesizes_default_quants_when_none_collected():
+    seed = ModelSeed(
+        id="x",
+        name="X",
+        family="F",
+        params_total=8_000_000_000,
+        num_layers=32,
+        hidden_size=4096,
+        context_length=4096,
+    )
+    m = build_model_entry(seed, None, [])
+    assert m.quants, "expected synthesized quants"
+    q4 = next((q for q in m.quants if q.format == "Q4_K_M"), None)
+    assert q4 is not None, "Q4_K_M should be in synthesized ladder"
+    assert q4.source == "synthesized"
+    assert q4.est_memory_gb_4k is not None and q4.est_memory_gb_4k > 0
+    assert m.hardware_tier == HardwareTier.LAPTOP

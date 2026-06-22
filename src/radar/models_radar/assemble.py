@@ -23,6 +23,7 @@ _BITS_BY_FORMAT = {
 }
 _REF_4K = 4096
 _REF_32K = 32768
+_DEFAULT_QUANT_LADDER = [("Q4_K_M", 4.5), ("Q5_K_M", 5.5), ("Q8_0", 8.0), ("FP16", 16.0)]
 
 
 def bits_for_format(fmt: str) -> float:
@@ -116,6 +117,10 @@ def build_model_entry(
             f"ollama:{seed.ollama_name}",
             oq.size_gb,
         )
+
+    if not quants and params_total is not None:
+        for fmt, bits in _DEFAULT_QUANT_LADDER:
+            add(fmt, bits, Platform.GENERIC, "synthesized")
 
     mv = minimum_viable_quant(quants)
     tier = hardware_tier(mv.est_memory_gb_4k if mv else None)
