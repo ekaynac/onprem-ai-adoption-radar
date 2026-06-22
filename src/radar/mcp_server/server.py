@@ -13,12 +13,14 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from radar.mcp_server.model_queries import ModelQueryService
 from radar.mcp_server.queries import RadarQueryService
 
 
 def build_mcp_server(root: Path) -> FastMCP:
     """Build a FastMCP server backed by the radar state under ``root``."""
     service = RadarQueryService(root)
+    models = ModelQueryService(root)
     mcp = FastMCP("onprem-ai-adoption-radar")
 
     @mcp.tool()
@@ -74,6 +76,27 @@ def build_mcp_server(root: Path) -> FastMCP:
     def sandbox_plan(project: str) -> dict[str, Any] | None:
         """Get a safe, disposable trial recipe (steps, teardown, cautions)."""
         return service.sandbox_plan(project)
+
+    @mcp.tool()
+    def list_models(
+        max_memory_gb: float | None = None,
+        hardware_tier: str | None = None,
+        family: str | None = None,
+        modality: str | None = None,
+        detail: str = "compact",
+    ) -> list[dict]:
+        """List tracked local models, optionally filtered by fit/family/modality."""
+        return models.list_models(max_memory_gb, hardware_tier, family, modality, detail)
+
+    @mcp.tool()
+    def get_model(model_id: str) -> dict | None:
+        """Full spec + quant table + ring + recent history/momentum for one model."""
+        return models.get_model(model_id)
+
+    @mcp.tool()
+    def model_movers() -> list[dict]:
+        """Models trending up/down (ring changes or download growth)."""
+        return models.model_movers()
 
     return mcp
 

@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Models</title></head><body>
+<h1>Local Models</h1>
+{% if not models %}<p>No models scanned yet.</p>{% endif %}
+<table><thead><tr><th>Model</th><th>Ring</th><th>Tier</th><th>Min mem</th><th>Family</th></tr></thead><tbody>
+{% for m in models %}<tr>
+<td><a href="model_{{ slug_by_model[m.id] }}.html">{{ m.name }}</a></td>
+<td>{{ m.ring.value if m.ring else '-' }}</td><td>{{ m.hardware_tier.value }}</td>
+<td>{% set mv = m.quants|selectattr('est_memory_gb_4k')|list %}{{ '%.1f GB'|format(mv[0].est_memory_gb_4k) if mv else '?' }}</td>
+<td>{{ m.family }}</td></tr>{% endfor %}
+</tbody></table></body></html>

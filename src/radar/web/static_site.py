@@ -16,11 +16,15 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from radar.models import Category, DecisionCard, Ring
+from radar.models_radar.entities import ModelEntry
+from radar.models_radar.history import ModelHistoryEvent
+from radar.models_radar.reports import model_events_to_feed_atom, model_events_to_feed_json
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.backer_badge import backer_badge
+from radar.web.models_summary import summarize_models
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth
@@ -43,6 +47,8 @@ def render_static_site(
     latest_scan_meta: dict[str, Any] | None = None,
     history_jsonl: Path | None = None,
     source_health: SourceHealth | None = None,
+    model_entries: list[ModelEntry] | None = None,
+    model_events: list[ModelHistoryEvent] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -51,6 +57,9 @@ def render_static_site(
     The same events drive ``changes.xml`` (Atom) and ``changes.json`` so the
     published site is subscribable. ``metrics_by_project`` (optional) supplies
     each project page's metrics history; omitting it renders empty metric tables.
+    When ``model_entries`` is provided, writes ``models.html``, per-model pages,
+    and ``changes-models.xml``/``.json`` feeds (the latter only when
+    ``model_events`` is also provided).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -78,11 +87,20 @@ def render_static_site(
     if history_jsonl is not None and history_jsonl.exists():
         shutil.copy2(history_jsonl, out_dir / "history.jsonl")
         history_available = True
+
+    # Model-history download: only when the log exists in the site root
+    # (cli.py copies it there before calling us).
+    model_history_available = (out_dir / "model-history.jsonl").exists()
+
     downloads = {
         "History (JSONL)": "history.jsonl" if history_available else None,
         "Changes (JSON)": "changes.json",
         "Changes (Atom)": "changes.xml",
+        "Model History (JSONL)": "model-history.jsonl" if model_history_available else None,
     }
+
+    # Summarize models for the index page banner (None when no models yet).
+    models_summary = summarize_models(model_entries) if model_entries else None
 
     index = out_dir / "index.html"
     index.write_text(
@@ -94,6 +112,7 @@ def render_static_site(
             scan_health=summarize_meta(latest_scan_meta or {}),
             source_health=source_health,
             downloads=downloads,
+            models_summary=models_summary,
         ),
         encoding="utf-8",
     )
@@ -119,6 +138,10 @@ def render_static_site(
         env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {}
     )
     _write_feeds(out_dir, timelines or [], site_title, self_base_url)
+
+    if model_entries:
+        _write_model_pages(env, out_dir, model_entries, model_events or [], site_title, self_base_url)
+
     return index
 
 
@@ -172,6 +195,48 @@ def _write_feeds(
         json.dumps(render_changes_json(recent, site_title=site_title), indent=2),
         encoding="utf-8",
     )
+
+
+def _write_model_pages(
+    env: Environment,
+    out_dir: Path,
+    model_entries: list[ModelEntry],
+    model_events: list[ModelHistoryEvent],
+    site_title: str,
+    self_base_url: str,
+) -> None:
+    """Render models.html, per-model pages, and model feed files."""
+    slug_by_model = build_slug_map([m.id for m in model_entries])
+
+    (out_dir / "models.html").write_text(
+        env.get_template("static_models.html").render(
+            models=model_entries,
+            slug_by_model=slug_by_model,
+        ),
+        encoding="utf-8",
+    )
+
+    model_template = env.get_template("static_model.html")
+    for entry in model_entries:
+        (out_dir / f"model_{slug_by_model[entry.id]}.html").write_text(
+            model_template.render(model=entry),
+            encoding="utf-8",
+        )
+
+    if model_events:
+        self_url = (
+            f"{self_base_url.rstrip('/')}/changes-models.xml"
+            if self_base_url
+            else "changes-models.xml"
+        )
+        (out_dir / "changes-models.xml").write_text(
+            model_events_to_feed_atom(model_events, site_title=site_title, self_url=self_url),
+            encoding="utf-8",
+        )
+        (out_dir / "changes-models.json").write_text(
+            json.dumps(model_events_to_feed_json(model_events, site_title=site_title), indent=2),
+            encoding="utf-8",
+        )
 
 
 def _comparisons_by_category(cards: list[DecisionCard]) -> list[dict[str, Any]]:
