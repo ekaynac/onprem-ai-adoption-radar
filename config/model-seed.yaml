@@ -1,0 +1,59 @@
+version: "1.0"
+models:
+  - id: llama-3.1-8b
+    name: Llama 3.1 8B Instruct
+    family: Llama
+    hf_repo: meta-llama/Llama-3.1-8B-Instruct
+    ollama_name: llama3.1
+    backer: {name: "Meta", type: big_tech}
+
+  - id: qwen3-30b-a3b
+    name: Qwen3-30B-A3B
+    family: Qwen3
+    hf_repo: Qwen/Qwen3-30B-A3B
+    ollama_name: qwen3
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 30000000000
+    params_active: 3000000000   # MoE: APIs don't expose active params
+
+  - id: qwen3-8b
+    name: Qwen3 8B
+    family: Qwen3
+    hf_repo: Qwen/Qwen3-8B
+    ollama_name: qwen3
+    backer: {name: "Alibaba", type: big_tech}
+
+  - id: deepseek-r1-distill-qwen-7b
+    name: DeepSeek-R1-Distill-Qwen-7B
+    family: DeepSeek
+    hf_repo: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+    ollama_name: deepseek-r1
+    backer: {name: "DeepSeek", type: startup}
+
+  - id: mistral-small-3
+    name: Mistral Small 3
+    family: Mistral
+    hf_repo: mistralai/Mistral-Small-24B-Instruct-2501
+    ollama_name: mistral-small
+    backer: {name: "Mistral AI", type: startup}
+
+  - id: gemma-3-12b
+    name: Gemma 3 12B
+    family: Gemma
+    hf_repo: google/gemma-3-12b-it
+    ollama_name: gemma3
+    backer: {name: "Google", type: big_tech}
+
+  - id: phi-4
+    name: Phi-4
+    family: Phi
+    hf_repo: microsoft/phi-4
+    ollama_name: phi4
+    backer: {name: "Microsoft", type: big_tech}
+
+  - id: gpt-oss-20b
+    name: gpt-oss-20b
+    family: gpt-oss
+    hf_repo: openai/gpt-oss-20b
+    ollama_name: gpt-oss
+    backer: {name: "OpenAI", type: big_tech}

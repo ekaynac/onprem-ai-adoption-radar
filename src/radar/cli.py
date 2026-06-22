@@ -26,6 +26,8 @@ app = typer.Typer(
 )
 seed_app = typer.Typer(help="Manage signal sources (seeds).", no_args_is_help=True)
 app.add_typer(seed_app, name="seed")
+models_app = typer.Typer(help="Local-model radar (catalog + specs).", no_args_is_help=True)
+app.add_typer(models_app, name="models")
 console = Console()
 
 
@@ -224,6 +226,64 @@ def seed_list(
             f"{source.project}{suffix}",
             highlight=False,
             soft_wrap=True,
+        )
+
+
+@models_app.command("scan")
+def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+    """Collect model specs from HF + Ollama + seed; write a model_cards.json run."""
+    import asyncio
+
+    import httpx
+
+    from radar.models_radar.scan import run_model_scan
+    from radar.storage.run_store import RunStore
+
+    seed_path = root / "config" / "model-seed.yaml"
+    if not seed_path.exists():
+        # fall back to the packaged seed
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await run_model_scan(seed_path, client)
+
+    entries = asyncio.run(_run())
+    run_store = RunStore(root / "data" / "runs")
+    run_id = run_store.create_run()
+    run_store.save_stage(run_id, "model_cards", [m.model_dump(mode="json") for m in entries])
+    run_store.update_meta(run_id, {"kind": "models", "model_count": len(entries)})
+    console.print(f"Scanned {len(entries)} models → run {run_id}")
+
+
+@models_app.command("list")
+def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+    """List models from the latest model scan."""
+    import json as _json
+
+    from radar.storage.run_store import RunStore
+
+    run_store = RunStore(root / "data" / "runs")
+    model_run = None
+    for rid in reversed(run_store.list_runs()):
+        if run_store.read_meta(rid).get("kind") == "models":
+            model_run = rid
+            break
+    if model_run is None:
+        console.print("[yellow]No model scan yet. Run [bold]radar models scan[/bold] first.[/yellow]")
+        return
+    cards_path = run_store._run_dir(model_run) / "model_cards.json"
+    entries = _json.loads(cards_path.read_text(encoding="utf-8"))
+    console.print(f"{len(entries)} models (run {model_run}):")
+    for m in entries:
+        quants = m.get("quants") or []
+        mems = [q["est_memory_gb_4k"] for q in quants
+                if q.get("est_memory_gb_4k") and q.get("bits_per_weight", 0) >= 4.0]
+        min_mem = f"{min(mems):.1f}GB" if mems else "?"
+        console.print(
+            f"  {m['id']:<28} {m.get('hardware_tier','unknown'):<16} "
+            f"min~{min_mem:<9} {m.get('family','')}",
+            highlight=False,
         )
 
 

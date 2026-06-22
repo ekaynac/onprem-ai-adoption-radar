@@ -17,6 +17,7 @@ STAGE_NAMES = {
     "scored_signals",
     "filtered_signals",
     "decision_cards",
+    "model_cards",
 }
 
 
