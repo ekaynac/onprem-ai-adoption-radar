@@ -1,0 +1,62 @@
+{# Device picker. Context: device_picker = {device_presets, usable_fraction}. #}
+{% if device_picker %}
+<div class="device-picker" style="margin:1rem 0;">
+  <label>Will it run on
+    <select id="device-select">
+      <option value="">— pick a device —</option>
+      {% for d in device_picker.device_presets %}
+      <option value="{{ d.id }}" data-usable="{{ d.usable_gb }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
+      {% endfor %}
+      <option value="__custom__">Custom…</option>
+    </select>
+  </label>
+  <span id="device-custom" style="display:none;">
+    <input id="device-mem" type="number" min="1" step="1" placeholder="GB" style="width:5rem;">
+    <select id="device-kind"><option value="gpu">GPU</option><option value="apple">Apple</option><option value="cpu">CPU</option></select>
+    <input id="device-gpus" type="number" min="1" step="1" value="1" style="width:3.5rem;" title="GPU count">
+  </span>
+  <span id="device-usable" style="margin-left:.5rem;color:#666;"></span>
+</div>
+<script>
+window.RADAR_USABLE_FRACTION = {{ device_picker.usable_fraction | tojson }};
+window.RADAR_DEVICE_PRESETS = {{ device_picker.device_presets | tojson }};
+(function () {
+  var sel = document.getElementById("device-select");
+  var custom = document.getElementById("device-custom");
+  var usableLabel = document.getElementById("device-usable");
+  if (!sel) return;
+  function usableGb() {
+    if (sel.value === "__custom__") {
+      var mem = parseFloat(document.getElementById("device-mem").value) || 0;
+      var kind = document.getElementById("device-kind").value;
+      var gpus = parseInt(document.getElementById("device-gpus").value) || 1;
+      return mem * (window.RADAR_USABLE_FRACTION[kind] || 0.85) * gpus;
+    }
+    var preset = window.RADAR_DEVICE_PRESETS.find(function (d) { return d.id === sel.value; });
+    return preset ? preset.usable_gb : 0;
+  }
+  function apply() {
+    custom.style.display = sel.value === "__custom__" ? "" : "none";
+    var usable = usableGb();
+    usableLabel.textContent = usable ? "~" + usable.toFixed(1) + " GB usable" : "";
+    document.querySelectorAll("tr[data-min-memory-gb]").forEach(function (row) {
+      var min = parseFloat(row.getAttribute("data-min-memory-gb"));
+      row.classList.remove("fit-yes", "fit-tight", "fit-no");
+      if (!usable || isNaN(min)) return;
+      if (min <= usable * 0.95) row.classList.add("fit-yes");
+      else if (min <= usable) row.classList.add("fit-tight");
+      else row.classList.add("fit-no");
+    });
+  }
+  sel.addEventListener("change", apply);
+  ["device-mem", "device-kind", "device-gpus"].forEach(function (id) {
+    var el = document.getElementById(id); if (el) el.addEventListener("input", apply);
+  });
+})();
+</script>
+<style>
+tr.fit-yes td:first-child { box-shadow: inset 3px 0 0 #2e7d32; }
+tr.fit-tight td:first-child { box-shadow: inset 3px 0 0 #f9a825; }
+tr.fit-no { opacity: .5; }
+</style>
+{% endif %}

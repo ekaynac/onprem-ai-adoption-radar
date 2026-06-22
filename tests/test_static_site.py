@@ -278,3 +278,50 @@ def test_static_site_models_backcompat_without_models(tmp_path):
     from radar.web.static_site import render_static_site
     render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC))
     assert (tmp_path / "_site" / "index.html").exists()  # no crash, no models
+
+
+def test_model_page_has_runs_on_table(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.web.static_site import render_static_site
+
+    m = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", params_total=8_000_000_000,
+                   ring=Ring.ADOPT, hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                                        platform=Platform.GENERIC, source="x")])
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC), model_entries=[m])
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert "Runs on" in page
+    assert "RTX 4090 (24GB)" in page  # one of the COMMON_DEVICE_TIERS
+
+
+def test_fit_by_tier_returns_verdicts():
+    from radar.models_radar.entities import ModelEntry, Platform, QuantVariant
+    from radar.web.picker_context import fit_by_tier
+
+    m = ModelEntry(id="x", name="x", family="F", params_total=8_000_000_000,
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                                        platform=Platform.GENERIC, source="x")])
+    rows = fit_by_tier(m)
+    assert rows and {"device", "verdict", "best_quant"} <= set(rows[0])
+    assert any(r["verdict"] == "fits" for r in rows)
+
+
+def test_fit_by_tier_no_quants_returns_unknown():
+    from radar.models_radar.devices import COMMON_DEVICE_TIERS
+    from radar.models_radar.entities import ModelEntry
+    from radar.web.picker_context import fit_by_tier
+
+    m = ModelEntry(id="no-quants", name="no-quants", family="F")  # no quants, no params_total
+    rows = fit_by_tier(m)
+    assert len(rows) == len(COMMON_DEVICE_TIERS)
+    assert all(r["verdict"] == "unknown" for r in rows)
+    assert all(r["best_quant"] == "-" for r in rows)

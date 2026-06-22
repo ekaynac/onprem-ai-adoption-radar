@@ -25,6 +25,7 @@ from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.backer_badge import backer_badge
 from radar.web.models_summary import summarize_models
+from radar.web.picker_context import fit_by_tier, picker_context
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth
@@ -212,6 +213,7 @@ def _write_model_pages(
         env.get_template("static_models.html").render(
             models=model_entries,
             slug_by_model=slug_by_model,
+            device_picker=picker_context(),
         ),
         encoding="utf-8",
     )
@@ -219,7 +221,7 @@ def _write_model_pages(
     model_template = env.get_template("static_model.html")
     for entry in model_entries:
         (out_dir / f"model_{slug_by_model[entry.id]}.html").write_text(
-            model_template.render(model=entry),
+            model_template.render(model=entry, fit_by_tier=fit_by_tier(entry)),
             encoding="utf-8",
         )
 
