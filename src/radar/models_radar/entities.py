@@ -6,7 +6,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from radar.models import Backer
+from radar.models import Backer, Ring
 
 
 class Modality(str, Enum):
@@ -53,6 +53,18 @@ class QuantVariant(BaseModel):
     perf_device: str | None = None
 
 
+class ModelScore(BaseModel):
+    """Deterministic model-adoption score dimensions (1-5)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    openness: int = Field(ge=1, le=5)
+    local_runnability: int = Field(ge=1, le=5)
+    capability_tier: int = Field(ge=1, le=5)
+    ecosystem_support: int = Field(ge=1, le=5)
+    average: float
+
+
 class ModelEntry(BaseModel):
     """A tracked local model with specs and quantizations."""
 
@@ -78,6 +90,9 @@ class ModelEntry(BaseModel):
     hardware_tier: HardwareTier = HardwareTier.UNKNOWN
     quants: list[QuantVariant] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    score: float | None = None
+    score_breakdown: ModelScore | None = None
+    ring: Ring | None = None
 
 
 class ModelSeed(BaseModel):
