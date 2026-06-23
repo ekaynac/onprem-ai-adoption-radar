@@ -32,6 +32,13 @@ _DEFAULT_QUANT_LADDER = [("Q4_K_M", 4.5), ("Q5_K_M", 5.5), ("Q8_0", 8.0), ("FP16
 # whole family's tag list; keep only tags whose parameter size (from the API label
 # or the tag-name token) is within this fraction of the model's resolved param
 # count. Tags with no parseable size are kept (we can't disprove them).
+#
+# A relative band rather than exact match because a model's resolved params and the
+# vendor's rounded tag label often differ by up to ~0.5B (e.g. 7.6B params labeled
+# "7b"); a tighter rule would drop a model's own tag. The trade-off: two same-name
+# seeds whose sizes are within 20% (e.g. 7B vs 8B) would each keep the other's tags
+# — a graceful over-keep, never a wrong crash. No such pair exists in the seed today
+# (the only shared name, "qwen3", spans 8B vs 30B, cleanly separated).
 _OLLAMA_SIZE_TOLERANCE = 0.2
 
 

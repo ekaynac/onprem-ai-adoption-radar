@@ -194,7 +194,7 @@ async def test_downloads_persistent_429_degrades_to_none(monkeypatch):
     with pytest.raises(RuntimeError):
         await fetch_weekly_downloads(PackageRef(ecosystem="PyPI", name="ray"), client)
 
-    # 1 initial + DOWNLOADS_MAX_RETRIES retries.
+    # 1 initial attempt + retry.MAX_RETRIES (3) retries.
     assert client.calls == 4
 
 
