@@ -584,3 +584,17 @@ def test_model_detail_route_unknown_returns_404(tmp_path):
     (tmp_path / "data").mkdir(parents=True)
     client = TestClient(create_app(tmp_path))
     assert client.get("/model/does-not-exist").status_code == 404
+
+
+def test_models_page_is_styled_and_filterable(tmp_path):
+    """Live /models page must have the shell, filter bar, and richer table."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/models")
+    assert r.status_code == 200
+    assert "models-table" in r.text
+    assert "mfilter-family" in r.text
+    assert "ring-pill" in r.text
+    assert "Use case" in r.text
+    assert "Context" in r.text

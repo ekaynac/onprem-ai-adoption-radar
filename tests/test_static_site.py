@@ -325,3 +325,39 @@ def test_fit_by_tier_no_quants_returns_unknown():
     assert len(rows) == len(COMMON_DEVICE_TIERS)
     assert all(r["verdict"] == "unknown" for r in rows)
     assert all(r["best_quant"] == "-" for r in rows)
+
+
+def test_models_page_is_styled_and_filterable(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.web.static_site import render_static_site
+
+    e = ModelEntry(
+        id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+        hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+        quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5,
+                              est_memory_gb_4k=8.0, platform=Platform.GENERIC, source="x")],
+    )
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC), model_entries=[e])
+    html = (tmp_path / "_site" / "models.html").read_text(encoding="utf-8")
+    # Shell is included (not literal tag name)
+    assert "_base_styles" not in html
+    # Filter bar and table
+    assert "mfilter-family" in html
+    assert "models-table" in html
+    # Ring pill present
+    assert "ring-pill" in html
+    # Richer metadata columns
+    assert "Use case" in html
+    assert "Context" in html
+    # "Models" nav link in the dashboard
+    index_html = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'href="models.html"' in index_html

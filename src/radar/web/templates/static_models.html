@@ -1,12 +1,50 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Models</title></head><body>
-<h1>Local Models</h1>
-{% if not models %}<p>No models scanned yet.</p>{% endif %}
-{% include "_device_picker.html" %}
-<table><thead><tr><th>Model</th><th>Ring</th><th>Tier</th><th>Min mem</th><th>Family</th></tr></thead><tbody>
-{% for m in models %}{% set mems = m.quants | selectattr('est_memory_gb_4k') | map(attribute='est_memory_gb_4k') | list %}
-<tr{% if mems %} data-min-memory-gb="{{ mems | min }}"{% endif %}>
-<td><a href="model_{{ slug_by_model[m.id] }}.html">{{ m.name }}</a></td>
-<td>{{ m.ring.value if m.ring else '-' }}</td><td>{{ m.hardware_tier.value }}</td>
-<td>{{ '%.1f GB'|format(mems | min) if mems else '?' }}</td>
-<td>{{ m.family }}</td></tr>{% endfor %}
-</tbody></table></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Local Models · On-Prem AI Adoption Radar</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
+  </head>
+  <body>
+    {% set page_title = "Local Models" %}
+    {% set tagline = "Open models you can run on-prem — sized to your hardware, refreshed daily." %}
+    {% set nav = {"Radar": "index.html", "Compare": "compare.html", "History": "history.html"} %}
+    {% include "_hero.html" %}
+    <main class="container">
+      {% if not models %}<p>No models scanned yet.</p>{% endif %}
+      {% include "_device_picker.html" %}
+      {% include "_models_filter_bar.html" %}
+      <table id="models-table">
+        <thead>
+          <tr><th>Model</th><th>Family</th><th>Ring</th><th>Tier</th><th>Params</th>
+              <th>Context</th><th>License</th><th>Use case</th><th>Min mem</th></tr>
+        </thead>
+        <tbody>
+          {% for m in models %}
+          {% set mems = m.quants | selectattr('est_memory_gb_4k') | map(attribute='est_memory_gb_4k') | list %}
+          <tr data-model="{{ m.name }}" data-family="{{ m.family }}"
+              data-ring="{{ m.ring.value if m.ring else '' }}" data-tier="{{ m.hardware_tier.value }}"
+              data-use-case="{{ m.use_case or '' }}"{% if mems %} data-min-memory-gb="{{ mems | min }}"{% endif %}>
+            <td><a href="model_{{ slug_by_model[m.id] }}.html">{{ m.name }}</a></td>
+            <td>{{ m.family }}</td>
+            <td>{% if m.ring %}<span class="ring-pill ring-{{ m.ring.value }}">{{ m.ring.value }}</span>{% else %}-{% endif %}</td>
+            <td>{{ m.hardware_tier.value }}</td>
+            <td>{{ '%.0fB'|format(m.params_total / 1e9) if m.params_total else '?' }}{% if m.params_active %} <small>(A{{ '%.0f'|format(m.params_active / 1e9) }}B)</small>{% endif %}</td>
+            <td>{{ '{:,}'.format(m.context_length) if m.context_length else '?' }}</td>
+            <td>{{ m.license or '?' }}</td>
+            <td>{{ m.use_case or '' }}</td>
+            <td>{{ '%.1f GB'|format(mems | min) if mems else '?' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No models yet.</td></tr>
+          {% endfor %}
+          <tr id="models-no-matches" style="display:none;"><td colspan="9">No models match the current filter.</td></tr>
+        </tbody>
+      </table>
+      {% include "_models_filter_script.html" %}
+    </main>
+    {% include "_footer.html" %}
+  </body>
+</html>

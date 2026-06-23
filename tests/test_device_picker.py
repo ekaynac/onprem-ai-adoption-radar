@@ -47,3 +47,5 @@ def test_static_models_page_has_picker_and_row_data(tmp_path: Path):
     assert 'id="device-select"' in html
     assert 'data-min-memory-gb="8.4"' in html   # min across quants, not first
     assert "RADAR_USABLE_FRACTION" in html and "rtx-4090-24gb" in html
+    # Device picker options are now grouped by kind
+    assert "<optgroup" in html

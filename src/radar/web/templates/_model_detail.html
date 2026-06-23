@@ -2,9 +2,11 @@
 <h2>{{ model.name }} <small>{{ model.family }}</small></h2>
 <p>Ring: <strong>{{ model.ring.value if model.ring else '-' }}</strong> ·
    Hardware: <strong>{{ model.hardware_tier.value }}</strong> ·
-   Modality: {{ model.modality.value }}{% if model.license %} · License: {{ model.license }}{% endif %}</p>
-<p>Params: {{ model.params_total or '?' }}{% if model.params_active %} (active {{ model.params_active }}){% endif %}
-   {% if model.context_length %} · Context: {{ model.context_length }}{% endif %}</p>
+   Modality: {{ model.modality.value }}{% if model.license %} · License: {{ model.license }}{% endif %}
+   {% if model.use_case %} · Use case: {{ model.use_case }}{% endif %}</p>
+<p>Params: {{ '%.1fB'|format(model.params_total / 1e9) if model.params_total else '?' }}{% if model.params_active %} (active {{ '%.1fB'|format(model.params_active / 1e9) }}){% endif %}
+   {% if model.context_length %} · Context: {{ '{:,}'.format(model.context_length) }}{% endif %}
+   {% if model.release_date %} · Released: {{ model.release_date }}{% endif %}</p>
 <table><thead><tr><th>Quant</th><th>Bits</th><th>Mem @4K</th><th>Mem @32K</th><th>Platform</th></tr></thead>
 <tbody>
 {% for q in model.quants %}<tr><td>{{ q.format }}</td><td>{{ q.bits_per_weight }}</td>

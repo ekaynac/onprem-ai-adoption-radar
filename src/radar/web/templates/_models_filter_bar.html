@@ -1,0 +1,23 @@
+{# Client-side filter for #models-table. Context: models. Progressive enhancement. #}
+<div class="filter-bar">
+  <input id="mfilter-text" type="text" placeholder="Search models…"
+         oninput="modelsFilter()" aria-label="Search models">
+  <select id="mfilter-family" onchange="modelsFilter()" aria-label="Filter by family">
+    <option value="">All families</option>
+    {% for fam in models | map(attribute='family') | unique | sort %}
+    <option value="{{ fam }}">{{ fam }}</option>
+    {% endfor %}
+  </select>
+  <select id="mfilter-ring" onchange="modelsFilter()" aria-label="Filter by ring">
+    <option value="">Any ring</option>
+    {% for r in models | selectattr('ring') | map(attribute='ring.value') | unique | sort %}
+    <option value="{{ r }}">{{ r }}</option>
+    {% endfor %}
+  </select>
+  <select id="mfilter-tier" onchange="modelsFilter()" aria-label="Filter by hardware tier">
+    <option value="">Any tier</option>
+    {% for t in models | map(attribute='hardware_tier.value') | unique | sort %}
+    <option value="{{ t }}">{{ t }}</option>
+    {% endfor %}
+  </select>
+</div>

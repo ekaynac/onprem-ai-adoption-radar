@@ -1,11 +1,20 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ model.name }} · Models</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
   </head>
   <body>
-    <nav><a href="models.html">← Models</a></nav>
-    {% include "_model_detail.html" %}
+    {% set page_title = model.name %}
+    {% set tagline = model.family %}
+    {% set nav = {"Models": "models.html", "Radar": "index.html"} %}
+    {% include "_hero.html" %}
+    <main class="container">
+      {% include "_model_detail.html" %}
+    </main>
+    {% include "_footer.html" %}
   </body>
 </html>
