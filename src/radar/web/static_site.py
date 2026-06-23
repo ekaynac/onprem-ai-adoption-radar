@@ -141,7 +141,9 @@ def render_static_site(
     _write_feeds(out_dir, timelines or [], site_title, self_base_url)
 
     if model_entries:
-        _write_model_pages(env, out_dir, model_entries, model_events or [], site_title, self_base_url)
+        _write_model_pages(
+            env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp
+        )
 
     return index
 
@@ -205,6 +207,7 @@ def _write_model_pages(
     model_events: list[ModelHistoryEvent],
     site_title: str,
     self_base_url: str,
+    generated_at: str = "",
 ) -> None:
     """Render models.html, per-model pages, and model feed files."""
     slug_by_model = build_slug_map([m.id for m in model_entries])
@@ -214,6 +217,7 @@ def _write_model_pages(
             models=model_entries,
             slug_by_model=slug_by_model,
             device_picker=picker_context(),
+            generated_at=generated_at,
         ),
         encoding="utf-8",
     )
@@ -221,7 +225,9 @@ def _write_model_pages(
     model_template = env.get_template("static_model.html")
     for entry in model_entries:
         (out_dir / f"model_{slug_by_model[entry.id]}.html").write_text(
-            model_template.render(model=entry, fit_by_tier=fit_by_tier(entry)),
+            model_template.render(
+                model=entry, fit_by_tier=fit_by_tier(entry), generated_at=generated_at
+            ),
             encoding="utf-8",
         )
 
