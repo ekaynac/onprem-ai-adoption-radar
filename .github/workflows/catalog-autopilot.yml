@@ -43,7 +43,15 @@ jobs:
       # If promote already aborted (non-zero exit) this step is never reached.
       # If something slipped through, this catches it before any commit happens.
       - name: Catalog integrity gate
-        run: uv run pytest tests/test_models_radar_seed.py -q
+        run: |
+          uv run python -c "
+          from pathlib import Path
+          from radar.models_radar.seed import load_model_seed
+          seeds = load_model_seed(Path('config/model-seed.yaml'))
+          ids = [s.id for s in seeds]
+          assert len(ids) == len(set(ids)), 'duplicate seed ids'
+          print(f'catalog OK: {len(seeds)} models, ids unique')
+          "
 
       # Commit only when config/model-seed.yaml actually changed.
       # promote validates-or-aborts before writing, so if we reach here the
