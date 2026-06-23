@@ -456,3 +456,35 @@ class TestRoundTrip:
         assert len(loaded) == 3
         assert loaded[0].id == "model-1b"
         assert loaded[2].id == "model-3b"
+
+    def test_round_trip_with_yaml_special_chars(self, tmp_path: Path) -> None:
+        """YAML special chars in license and use_case round-trip correctly."""
+        # Create a seed with YAML-special chars: colons, spaces
+        seed = ModelSeed(
+            id="test-special-chars",
+            name="Test Model Special",
+            family="Test",
+            hf_repo="test-org/Test-Model-7B",
+            params_total=7_000_000_000,
+            license="custom: see the model card",
+            use_case="chat: general, coding",
+            backer=None,
+            modality=None,
+            openness=None,
+            release_date=None,
+        )
+
+        block = seed_to_yaml_block(seed)
+        yaml_content = f"models:\n{block}"
+        seed_file = tmp_path / "model-seed-special.yaml"
+        seed_file.write_text(yaml_content, encoding="utf-8")
+
+        # Load and verify the YAML is valid and values are preserved exactly
+        loaded = load_model_seed(seed_file)
+        assert len(loaded) == 1
+        loaded_seed = loaded[0]
+        assert loaded_seed.id == "test-special-chars"
+        assert loaded_seed.license == "custom: see the model card"
+        assert loaded_seed.use_case == "chat: general, coding"
+        assert loaded_seed.family == "Test"
+        assert loaded_seed.name == "Test Model Special"

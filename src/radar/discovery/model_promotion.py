@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import re
 
+import yaml
+
 from radar.discovery.model_proposals import ModelProposal
 from radar.models import Backer, BackerType
 from radar.models_radar.assemble import openness_from_license
@@ -218,6 +220,19 @@ def build_seed(
 # ---------------------------------------------------------------------------
 
 
+def _yaml_str(s: str) -> str:
+    """Return a YAML-safe scalar string via safe_dump quoting.
+
+    Handles special chars (colons, etc.) by dumping a single-key dict,
+    extracting the value, and letting PyYAML apply proper quoting.
+    Examples: "Test" → Test, "custom: see" → 'custom: see'
+    """
+    dumped = yaml.safe_dump({"_": s}, default_flow_style=False)
+    # Extract the value part after "_: "
+    value_part = dumped.split("_: ", 1)[1].strip()
+    return value_part
+
+
 def seed_to_yaml_block(seed: ModelSeed) -> str:
     """Render one ModelSeed as a hand-authored-style YAML list item.
 
@@ -226,15 +241,16 @@ def seed_to_yaml_block(seed: ModelSeed) -> str:
     - inline backer: ``    backer: {name: "X", type: big_tech}``
     - only non-None optional fields are emitted
     - enum fields use ``.value``
+    - string fields use YAML-safe quoting via _yaml_str() to handle special chars
     """
     lines: list[str] = []
-    lines.append(f"  - id: {seed.id}")
-    lines.append(f"    name: {seed.name}")
-    lines.append(f"    family: {seed.family}")
+    lines.append(f"  - id: {_yaml_str(seed.id)}")
+    lines.append(f"    name: {_yaml_str(seed.name)}")
+    lines.append(f"    family: {_yaml_str(seed.family)}")
     if seed.hf_repo is not None:
-        lines.append(f"    hf_repo: {seed.hf_repo}")
+        lines.append(f"    hf_repo: {_yaml_str(seed.hf_repo)}")
     if seed.ollama_name is not None:
-        lines.append(f"    ollama_name: {seed.ollama_name}")
+        lines.append(f"    ollama_name: {_yaml_str(seed.ollama_name)}")
     if seed.backer is not None:
         lines.append(
             f'    backer: {{name: "{seed.backer.name}", type: {seed.backer.type.value}}}'
@@ -252,12 +268,12 @@ def seed_to_yaml_block(seed: ModelSeed) -> str:
     if seed.modality is not None:
         lines.append(f"    modality: {seed.modality.value}")
     if seed.license is not None:
-        lines.append(f"    license: {seed.license}")
+        lines.append(f"    license: {_yaml_str(seed.license)}")
     if seed.openness is not None:
         lines.append(f"    openness: {seed.openness.value}")
     if seed.release_date is not None:
-        lines.append(f'    release_date: "{seed.release_date}"')
+        lines.append(f"    release_date: {_yaml_str(seed.release_date)}")
     if seed.use_case is not None:
-        lines.append(f"    use_case: {seed.use_case}")
+        lines.append(f"    use_case: {_yaml_str(seed.use_case)}")
     lines.append("")  # trailing newline / blank separator
     return "\n".join(lines)
