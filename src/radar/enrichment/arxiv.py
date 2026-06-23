@@ -14,6 +14,7 @@ from typing import Any, Protocol
 import feedparser
 from dateutil import parser as date_parser
 
+from radar.enrichment.retry import get_with_retry
 from radar.models import PaperRef
 
 
@@ -43,8 +44,13 @@ async def fetch_paper_mentions(
 ) -> PaperMentions:
     """Recent arXiv papers matching ``paper_query`` since a date."""
     cats = " OR ".join(f"cat:{c}" for c in ARXIV_CATEGORIES)
-    response = await client.get(
+    # arXiv asks automated clients for a gentle request pace and returns 503 when
+    # overloaded; the shared retry helper backs off on 429/5xx (honoring
+    # Retry-After) so a growing paper_query list degrades gracefully.
+    response = await get_with_retry(
+        client,
         ARXIV_API_URL,
+        label="arxiv",
         params={
             "search_query": f"(all:{paper_query}) AND ({cats})",
             "sortBy": "submittedDate",
@@ -54,7 +60,6 @@ async def fetch_paper_mentions(
         },
         follow_redirects=True,
     )
-    response.raise_for_status()
     feed = feedparser.parse(response.text)
     papers: list[PaperRef] = []
     for entry in feed.entries:

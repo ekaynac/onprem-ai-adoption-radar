@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from radar.models_radar.collectors.huggingface import HFModelData
-from radar.models_radar.collectors.ollama import OllamaQuant
+from radar.models_radar.collectors.ollama import (
+    OllamaQuant,
+    param_billions,
+    tag_param_billions,
+)
 from radar.models_radar.entities import (
     Modality,
     ModelEntry,
@@ -24,6 +28,18 @@ _BITS_BY_FORMAT = {
 _REF_4K = 4096
 _REF_32K = 32768
 _DEFAULT_QUANT_LADDER = [("Q4_K_M", 4.5), ("Q5_K_M", 5.5), ("Q8_0", 8.0), ("FP16", 16.0)]
+# Seeds that share an ``ollama_name`` (e.g. both Qwen3 sizes use "qwen3") pull the
+# whole family's tag list; keep only tags whose parameter size (from the API label
+# or the tag-name token) is within this fraction of the model's resolved param
+# count. Tags with no parseable size are kept (we can't disprove them).
+#
+# A relative band rather than exact match because a model's resolved params and the
+# vendor's rounded tag label often differ by up to ~0.5B (e.g. 7.6B params labeled
+# "7b"); a tighter rule would drop a model's own tag. The trade-off: two same-name
+# seeds whose sizes are within 20% (e.g. 7B vs 8B) would each keep the other's tags
+# — a graceful over-keep, never a wrong crash. No such pair exists in the seed today
+# (the only shared name, "qwen3", spans 8B vs 30B, cleanly separated).
+_OLLAMA_SIZE_TOLERANCE = 0.2
 
 
 def bits_for_format(fmt: str) -> float:
@@ -109,7 +125,7 @@ def build_model_entry(
     if hf:
         for fmt in hf.quant_formats:
             add(fmt, bits_for_format(fmt), Platform.GENERIC, f"hf:{seed.hf_repo}")
-    for oq in ollama_quants:
+    for oq in _ollama_quants_for_size(ollama_quants, params_total):
         add(
             f"Ollama {oq.tag}",
             oq.bits_per_weight,
@@ -151,3 +167,26 @@ def build_model_entry(
         quants=quants,
         warnings=warnings,
     )
+
+
+def _ollama_quants_for_size(
+    quants: list[OllamaQuant],
+    params_total: int | None,
+) -> list[OllamaQuant]:
+    """Drop Ollama tags whose advertised parameter size doesn't match this model.
+
+    Seeds that share an ``ollama_name`` otherwise inherit the whole family's tags
+    (e.g. a 8B model picking up ``qwen3:30b-*``). Tags without a parseable size
+    label, or any model with no resolved param count, pass through unchanged.
+    """
+    if params_total is None:
+        return quants
+    target_b = params_total / 1e9
+    kept: list[OllamaQuant] = []
+    for q in quants:
+        # Prefer the API's parameter-size label; fall back to the size token in the
+        # tag name (the label is often empty on the featured /api/tags endpoint).
+        size_b = param_billions(q.param_label) or tag_param_billions(q.tag)
+        if size_b is None or abs(size_b - target_b) <= _OLLAMA_SIZE_TOLERANCE * target_b:
+            kept.append(q)
+    return kept

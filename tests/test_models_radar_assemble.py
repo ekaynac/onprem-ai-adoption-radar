@@ -46,6 +46,44 @@ def test_no_data_yields_incomplete_entry_with_warning():
     assert any("no specs" in w.lower() or "incomplete" in w.lower() for w in m.warnings)
 
 
+def test_ollama_tags_filtered_to_model_size():
+    # Seeds sharing ollama_name="qwen3" pull the whole family's tags; an 8B model
+    # must keep only the 8B tags, not the 30B ones.
+    seed = ModelSeed(id="qwen3-8b", name="Qwen3 8B", family="Qwen3",
+                     params_total=8_000_000_000, ollama_name="qwen3")
+    ollama = [
+        OllamaQuant(tag="qwen3:8b-q4_K_M", size_gb=4.9, bits_per_weight=4.5, param_label="8B"),
+        OllamaQuant(tag="qwen3:30b-a3b-q4_K_M", size_gb=17.5, bits_per_weight=4.5, param_label="30B"),
+    ]
+    m = build_model_entry(seed, None, ollama)
+    ollama_formats = [q.format for q in m.quants if q.source.startswith("ollama")]
+    assert "Ollama qwen3:8b-q4_K_M" in ollama_formats
+    assert "Ollama qwen3:30b-a3b-q4_K_M" not in ollama_formats
+
+
+def test_ollama_tags_filtered_by_name_token_when_label_empty():
+    # The featured /api/tags endpoint leaves parameter_size empty; size is then only
+    # in the tag name. A 12B model must drop the 4B and 27B family tags.
+    seed = ModelSeed(id="gemma-3-12b", name="Gemma 3 12B", family="Gemma",
+                     params_total=12_000_000_000, ollama_name="gemma3")
+    ollama = [
+        OllamaQuant(tag="gemma3:4b", size_gb=3.3, bits_per_weight=4.5, param_label=""),
+        OllamaQuant(tag="gemma3:12b", size_gb=8.1, bits_per_weight=4.5, param_label=""),
+        OllamaQuant(tag="gemma3:27b", size_gb=17.0, bits_per_weight=4.5, param_label=""),
+    ]
+    m = build_model_entry(seed, None, ollama)
+    ollama_formats = [q.format for q in m.quants if q.source.startswith("ollama")]
+    assert ollama_formats == ["Ollama gemma3:12b"]
+
+
+def test_ollama_tags_without_label_or_params_are_kept():
+    # No resolvable param count → cannot disprove any tag, so keep them all.
+    seed = ModelSeed(id="x", name="X", family="F", ollama_name="x")
+    ollama = [OllamaQuant(tag="x:q4_K_M", size_gb=4.9, bits_per_weight=4.5, param_label=None)]
+    m = build_model_entry(seed, None, ollama)
+    assert any(q.format == "Ollama x:q4_K_M" for q in m.quants)
+
+
 def test_synthesizes_default_quants_when_none_collected():
     seed = ModelSeed(
         id="x",
