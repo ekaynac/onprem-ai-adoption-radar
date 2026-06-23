@@ -163,6 +163,8 @@ def build_model_entry(
         hf_downloads=(hf.downloads if hf else None),
         hf_likes=(hf.likes if hf else None),
         last_modified=(hf.last_modified if hf else None),
+        release_date=seed.release_date,
+        use_case=seed.use_case,
         hardware_tier=tier,
         quants=quants,
         warnings=warnings,

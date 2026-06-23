@@ -101,3 +101,10 @@ def test_synthesizes_default_quants_when_none_collected():
     assert q4.source == "synthesized"
     assert q4.est_memory_gb_4k is not None and q4.est_memory_gb_4k > 0
     assert m.hardware_tier == HardwareTier.LAPTOP
+
+
+def test_build_carries_release_date_and_use_case():
+    seed = ModelSeed(id="x", name="X", family="F", params_total=8_000_000_000,
+                     release_date="2025-01", use_case="reasoning")
+    m = build_model_entry(seed, None, [])
+    assert m.release_date == "2025-01" and m.use_case == "reasoning"
