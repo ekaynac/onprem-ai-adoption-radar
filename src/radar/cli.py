@@ -383,7 +383,9 @@ def models_promote(
         return
 
     old_text = seed_path.read_text(encoding="utf-8")
-    new_text = old_text.rstrip("\n") + "\n" + "".join(seed_to_yaml_block(s) for s in collected)
+    # Separate each appended entry with a blank line, matching the hand-authored style.
+    blocks = "".join("\n" + seed_to_yaml_block(s).strip("\n") + "\n" for s in collected)
+    new_text = old_text.rstrip("\n") + "\n" + blocks
 
     tmp = seed_path.with_suffix(".promote.tmp")
     tmp.write_text(new_text, encoding="utf-8")
