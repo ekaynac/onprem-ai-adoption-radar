@@ -3,7 +3,7 @@ from __future__ import annotations
 from radar.models_radar.assemble import build_model_entry, openness_from_license
 from radar.models_radar.collectors.huggingface import HFModelData
 from radar.models_radar.collectors.ollama import OllamaQuant
-from radar.models_radar.entities import HardwareTier, ModelSeed, Openness
+from radar.models_radar.entities import HardwareTier, ModelSeed, Openness, Platform
 
 
 def test_openness_mapping():
@@ -101,3 +101,20 @@ def test_synthesizes_default_quants_when_none_collected():
     assert q4.source == "synthesized"
     assert q4.est_memory_gb_4k is not None and q4.est_memory_gb_4k > 0
     assert m.hardware_tier == HardwareTier.LAPTOP
+
+
+def test_build_carries_release_date_and_use_case():
+    seed = ModelSeed(id="x", name="X", family="F", params_total=8_000_000_000,
+                     release_date="2025-01", use_case="reasoning")
+    m = build_model_entry(seed, None, [])
+    assert m.release_date == "2025-01" and m.use_case == "reasoning"
+
+
+def test_synthesized_ladder_includes_mlx_and_q6():
+    seed = ModelSeed(id="x", name="X", family="F", params_total=8_000_000_000,
+                     num_layers=32, hidden_size=4096, context_length=4096)
+    m = build_model_entry(seed, None, [])
+    formats = {q.format for q in m.quants}
+    assert {"Q4_K_M", "Q6_K", "Q8_0", "FP16"} <= formats
+    assert any(q.platform == Platform.APPLE_MLX for q in m.quants)
+    assert {"MLX-4bit", "MLX-8bit"} <= formats

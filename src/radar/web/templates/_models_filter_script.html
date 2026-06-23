@@ -1,0 +1,23 @@
+{# Dependency-free filter for #models-table. Matches on data-* attributes. #}
+<script>
+  function modelsFilter() {
+    var text = (document.getElementById('mfilter-text').value || '').toLowerCase();
+    var fam = document.getElementById('mfilter-family').value || '';
+    var ring = document.getElementById('mfilter-ring').value || '';
+    var tier = document.getElementById('mfilter-tier').value || '';
+    var rows = document.querySelectorAll('#models-table tbody tr[data-model]');
+    var shown = 0;
+    rows.forEach(function (row) {
+      var hay = (row.getAttribute('data-model') + ' ' + row.getAttribute('data-family') + ' ' +
+                 (row.getAttribute('data-use-case') || '')).toLowerCase();
+      var ok = (!text || hay.indexOf(text) !== -1)
+        && (!fam || row.getAttribute('data-family') === fam)
+        && (!ring || row.getAttribute('data-ring') === ring)
+        && (!tier || row.getAttribute('data-tier') === tier);
+      row.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    var none = document.getElementById('models-no-matches');
+    if (none) none.style.display = shown ? 'none' : '';
+  }
+</script>

@@ -57,3 +57,332 @@ models:
     hf_repo: openai/gpt-oss-20b
     ollama_name: gpt-oss
     backer: {name: "OpenAI", type: big_tech}
+
+  - id: llama-3.3-70b
+    name: Llama 3.3 70B Instruct
+    family: Llama
+    hf_repo: meta-llama/Llama-3.3-70B-Instruct
+    ollama_name: llama3.3
+    backer: {name: "Meta", type: big_tech}
+    params_total: 70000000000
+    context_length: 131072
+    license: llama-3.3
+    openness: open-restricted
+    release_date: "2024-12"
+    use_case: general chat, instruction following
+
+  - id: llama-3.1-70b
+    name: Llama 3.1 70B Instruct
+    family: Llama
+    hf_repo: meta-llama/Llama-3.1-70B-Instruct
+    ollama_name: llama3.1
+    backer: {name: "Meta", type: big_tech}
+    params_total: 70000000000
+    context_length: 131072
+    license: llama-3.1
+    openness: open-restricted
+    release_date: "2024-07"
+    use_case: general chat
+
+  - id: qwen2.5-7b
+    name: Qwen2.5 7B Instruct
+    family: Qwen2.5
+    hf_repo: Qwen/Qwen2.5-7B-Instruct
+    ollama_name: qwen2.5
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 7600000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-09"
+    use_case: general chat
+
+  - id: qwen2.5-14b
+    name: Qwen2.5 14B Instruct
+    family: Qwen2.5
+    hf_repo: Qwen/Qwen2.5-14B-Instruct
+    ollama_name: qwen2.5
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 14700000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-09"
+    use_case: general chat
+
+  - id: qwen2.5-32b
+    name: Qwen2.5 32B Instruct
+    family: Qwen2.5
+    hf_repo: Qwen/Qwen2.5-32B-Instruct
+    ollama_name: qwen2.5
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 32500000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-09"
+    use_case: general chat
+
+  - id: qwen2.5-72b
+    name: Qwen2.5 72B Instruct
+    family: Qwen2.5
+    hf_repo: Qwen/Qwen2.5-72B-Instruct
+    ollama_name: qwen2.5
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 72700000000
+    context_length: 131072
+    license: qwen
+    openness: open-restricted
+    release_date: "2024-09"
+    use_case: general chat, high capability
+
+  - id: qwen2.5-coder-7b
+    name: Qwen2.5-Coder 7B
+    family: Qwen2.5-Coder
+    hf_repo: Qwen/Qwen2.5-Coder-7B-Instruct
+    ollama_name: qwen2.5-coder
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 7600000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-11"
+    use_case: coding
+
+  - id: qwen2.5-coder-32b
+    name: Qwen2.5-Coder 32B
+    family: Qwen2.5-Coder
+    hf_repo: Qwen/Qwen2.5-Coder-32B-Instruct
+    ollama_name: qwen2.5-coder
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 32500000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-11"
+    use_case: coding
+
+  - id: qwen3-32b
+    name: Qwen3 32B
+    family: Qwen3
+    hf_repo: Qwen/Qwen3-32B
+    ollama_name: qwen3
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 32800000000
+    context_length: 40960
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2025-04"
+    use_case: reasoning, general chat
+
+  - id: qwen3-14b
+    name: Qwen3 14B
+    family: Qwen3
+    hf_repo: Qwen/Qwen3-14B
+    ollama_name: qwen3
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 14800000000
+    context_length: 40960
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2025-04"
+    use_case: reasoning, general chat
+
+  - id: mixtral-8x7b
+    name: Mixtral 8x7B Instruct
+    family: Mixtral
+    hf_repo: mistralai/Mixtral-8x7B-Instruct-v0.1
+    ollama_name: mixtral
+    backer: {name: "Mistral AI", type: startup}
+    params_total: 46700000000
+    params_active: 12900000000
+    context_length: 32768
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2023-12"
+    use_case: general chat (MoE)
+
+  - id: mixtral-8x22b
+    name: Mixtral 8x22B Instruct
+    family: Mixtral
+    hf_repo: mistralai/Mixtral-8x22B-Instruct-v0.1
+    ollama_name: mixtral
+    backer: {name: "Mistral AI", type: startup}
+    params_total: 141000000000
+    params_active: 39000000000
+    context_length: 65536
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-04"
+    use_case: high capability (MoE)
+
+  - id: mistral-nemo-12b
+    name: Mistral Nemo 12B
+    family: Mistral
+    hf_repo: mistralai/Mistral-Nemo-Instruct-2407
+    ollama_name: mistral-nemo
+    backer: {name: "Mistral AI", type: startup}
+    params_total: 12200000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-07"
+    use_case: general chat, long context
+
+  - id: deepseek-r1
+    name: DeepSeek-R1
+    family: DeepSeek
+    hf_repo: deepseek-ai/DeepSeek-R1
+    ollama_name: deepseek-r1
+    backer: {name: "DeepSeek", type: startup}
+    params_total: 671000000000
+    params_active: 37000000000
+    context_length: 163840
+    license: mit
+    openness: open-permissive
+    release_date: "2025-01"
+    use_case: reasoning (MoE)
+
+  - id: deepseek-v3
+    name: DeepSeek-V3
+    family: DeepSeek
+    hf_repo: deepseek-ai/DeepSeek-V3
+    ollama_name: deepseek-v3
+    backer: {name: "DeepSeek", type: startup}
+    params_total: 671000000000
+    params_active: 37000000000
+    context_length: 131072
+    license: deepseek
+    openness: open-restricted
+    release_date: "2024-12"
+    use_case: general chat, high capability (MoE)
+
+  - id: command-r-35b
+    name: Command R 35B
+    family: Command-R
+    hf_repo: CohereForAI/c4ai-command-r-v01
+    ollama_name: command-r
+    backer: {name: "Cohere", type: startup}
+    params_total: 35000000000
+    context_length: 131072
+    license: cc-by-nc-4.0
+    openness: open-restricted
+    release_date: "2024-03"
+    use_case: RAG, tool use
+
+  - id: command-r-plus-104b
+    name: Command R+ 104B
+    family: Command-R
+    hf_repo: CohereForAI/c4ai-command-r-plus
+    ollama_name: command-r-plus
+    backer: {name: "Cohere", type: startup}
+    params_total: 104000000000
+    context_length: 131072
+    license: cc-by-nc-4.0
+    openness: open-restricted
+    release_date: "2024-04"
+    use_case: RAG, tool use, high capability
+
+  - id: gemma-2-9b
+    name: Gemma 2 9B
+    family: Gemma
+    hf_repo: google/gemma-2-9b-it
+    ollama_name: gemma2
+    backer: {name: "Google", type: big_tech}
+    params_total: 9200000000
+    context_length: 8192
+    license: gemma
+    openness: gated
+    release_date: "2024-06"
+    use_case: general chat
+
+  - id: gemma-2-27b
+    name: Gemma 2 27B
+    family: Gemma
+    hf_repo: google/gemma-2-27b-it
+    ollama_name: gemma2
+    backer: {name: "Google", type: big_tech}
+    params_total: 27200000000
+    context_length: 8192
+    license: gemma
+    openness: gated
+    release_date: "2024-06"
+    use_case: general chat
+
+  - id: yi-1.5-34b
+    name: Yi 1.5 34B Chat
+    family: Yi
+    hf_repo: 01-ai/Yi-1.5-34B-Chat
+    ollama_name: yi
+    backer: {name: "01.AI", type: startup}
+    params_total: 34000000000
+    context_length: 32768
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-05"
+    use_case: general chat
+
+  - id: granite-3-8b
+    name: Granite 3.1 8B Instruct
+    family: Granite
+    hf_repo: ibm-granite/granite-3.1-8b-instruct
+    ollama_name: granite3.1-dense
+    backer: {name: "IBM", type: big_tech}
+    params_total: 8200000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-12"
+    use_case: enterprise, tool use
+
+  - id: qwq-32b
+    name: QwQ 32B
+    family: Qwen
+    hf_repo: Qwen/QwQ-32B
+    ollama_name: qwq
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 32500000000
+    context_length: 131072
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2025-03"
+    use_case: reasoning
+
+  - id: starcoder2-15b
+    name: StarCoder2 15B
+    family: StarCoder
+    hf_repo: bigcode/starcoder2-15b
+    ollama_name: starcoder2
+    backer: {name: "BigCode", type: community}
+    params_total: 16000000000
+    context_length: 16384
+    license: bigcode-openrail-m
+    openness: open-restricted
+    release_date: "2024-02"
+    use_case: coding
+
+  - id: phi-3.5-mini
+    name: Phi-3.5-mini Instruct
+    family: Phi
+    hf_repo: microsoft/Phi-3.5-mini-instruct
+    ollama_name: phi3.5
+    backer: {name: "Microsoft", type: big_tech}
+    params_total: 3800000000
+    context_length: 131072
+    license: mit
+    openness: open-permissive
+    release_date: "2024-08"
+    use_case: small, on-device
+
+  - id: smollm2-1.7b
+    name: SmolLM2 1.7B Instruct
+    family: SmolLM
+    hf_repo: HuggingFaceTB/SmolLM2-1.7B-Instruct
+    ollama_name: smollm2
+    backer: {name: "Hugging Face", type: community}
+    params_total: 1700000000
+    context_length: 8192
+    license: apache-2.0
+    openness: open-permissive
+    release_date: "2024-11"
+    use_case: small, on-device

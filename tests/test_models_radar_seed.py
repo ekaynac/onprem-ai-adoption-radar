@@ -32,3 +32,13 @@ def test_invalid_yaml_raises(tmp_path: Path):
     p.write_text("models: [::::]", encoding="utf-8")
     with pytest.raises(ModelSeedError):
         load_model_seed(p)
+
+
+def test_seed_catalog_is_comprehensive_and_valid():
+    seeds = load_model_seed(_REPO_ROOT / "config" / "model-seed.yaml")
+    assert len(seeds) >= 26
+    ids = [s.id for s in seeds]
+    assert len(ids) == len(set(ids)), "seed ids must be unique"
+    # MoE seeds carry active params
+    moe = {s.id: s for s in seeds if s.id in ("mixtral-8x7b", "deepseek-r1")}
+    assert all(s.params_active and s.params_active < s.params_total for s in moe.values())

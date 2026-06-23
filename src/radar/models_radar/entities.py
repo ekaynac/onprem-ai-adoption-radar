@@ -87,6 +87,8 @@ class ModelEntry(BaseModel):
     hf_downloads: int | None = None
     hf_likes: int | None = None
     last_modified: str | None = None
+    release_date: str | None = None   # ISO date "YYYY-MM" or "YYYY-MM-DD"
+    use_case: str | None = None        # short note, e.g. "reasoning", "coding", "general chat"
     hardware_tier: HardwareTier = HardwareTier.UNKNOWN
     quants: list[QuantVariant] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
@@ -117,4 +119,6 @@ class ModelSeed(BaseModel):
     modality: Modality | None = None
     license: str | None = None
     openness: Openness | None = None
+    release_date: str | None = None   # ISO date "YYYY-MM" or "YYYY-MM-DD"
+    use_case: str | None = None        # short note, e.g. "reasoning", "coding", "general chat"
     manual_quants: list[QuantVariant] = Field(default_factory=list)
