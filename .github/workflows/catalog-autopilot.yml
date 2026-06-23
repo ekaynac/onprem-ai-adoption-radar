@@ -1,0 +1,75 @@
+name: Catalog autopilot
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # commit updated model-seed.yaml
+  actions: write  # dispatch publish.yml after commit
+
+# Prevent two autopilot runs racing to modify model-seed.yaml.
+concurrency:
+  group: catalog-autopilot
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install package
+        run: uv venv && uv pip install -e .
+
+      - name: Discover model candidates
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run radar models discover --root .
+
+      - name: Promote top candidates into catalog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run radar models promote --root . --limit 5
+
+      # Belt-and-suspenders gate: verify the catalog still loads and IDs are unique.
+      # If promote already aborted (non-zero exit) this step is never reached.
+      # If something slipped through, this catches it before any commit happens.
+      - name: Catalog integrity gate
+        run: uv run pytest tests/test_models_radar_seed.py -q
+
+      # Commit only when config/model-seed.yaml actually changed.
+      # promote validates-or-aborts before writing, so if we reach here the
+      # catalog is known good.  We use a $GITHUB_OUTPUT flag so the dispatch
+      # step can use the same condition cleanly.
+      - name: Commit catalog changes (if any)
+        id: commit
+        run: |
+          if git diff --quiet -- config/model-seed.yaml; then
+            echo "No new models this week — nothing to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "radar-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add config/model-seed.yaml
+            git commit -m "chore(catalog): autopilot model additions $(date -u +%F)"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Pushes made by GITHUB_TOKEN do NOT auto-trigger other workflows (GitHub
+      # security restriction).  So the daily publish.yml would not pick up this
+      # commit until its next scheduled run.  The explicit dispatch below ensures
+      # the live site refreshes immediately after new models land in the catalog.
+      - name: Dispatch publish to refresh live site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml --ref main
