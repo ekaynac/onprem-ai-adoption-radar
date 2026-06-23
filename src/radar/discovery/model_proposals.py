@@ -1,8 +1,13 @@
-"""Candidate MODEL proposals — written for human review, never auto-applied.
+"""Candidate MODEL proposals — discovered, written to a review file, optionally promoted.
 
-Model discovery writes suggestions to ``data/proposed-model-seeds.yaml``. A human
-reviews them and promotes the good ones into ``config/model-seed.yaml``. The radar
-never adds a model to its own seed automatically.
+Model discovery writes suggestions to ``data/proposed-model-seeds.yaml``. Those become
+catalog entries one of two ways:
+
+- **Manual:** a human reviews the file and edits the good ones into ``config/model-seed.yaml``.
+- **Autopilot:** ``radar models promote`` (run weekly by ``catalog-autopilot.yml``) filters the
+  proposals, enriches survivors into full seeds, and appends them — validating the catalog before
+  it writes. See ``radar.discovery.model_promotion`` for the filtering/enrichment gate that stands
+  in for human review on that path.
 """
 
 from __future__ import annotations
