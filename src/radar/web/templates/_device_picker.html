@@ -6,17 +6,17 @@
       <option value="">— pick a device —</option>
       <optgroup label="GPU">
         {% for d in device_picker.device_presets if d.kind == 'gpu' %}
-        <option value="{{ d.id }}" data-usable="{{ d.usable_gb }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
+        <option value="{{ d.id }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
         {% endfor %}
       </optgroup>
       <optgroup label="Apple">
         {% for d in device_picker.device_presets if d.kind == 'apple' %}
-        <option value="{{ d.id }}" data-usable="{{ d.usable_gb }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
+        <option value="{{ d.id }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
         {% endfor %}
       </optgroup>
       <optgroup label="CPU / RAM">
         {% for d in device_picker.device_presets if d.kind == 'cpu' %}
-        <option value="{{ d.id }}" data-usable="{{ d.usable_gb }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
+        <option value="{{ d.id }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
         {% endfor %}
       </optgroup>
       <option value="__custom__">Custom…</option>

@@ -18,14 +18,25 @@
       {% include "_models_filter_bar.html" %}
       <table id="models-table">
         <thead>
-          <tr><th>Model</th><th>Family</th><th>Ring</th><th>Tier</th><th>Params</th>
-              <th>Context</th><th>License</th><th>Use case</th><th>Min mem</th></tr>
+          <tr>
+            <th data-key="model" data-type="str" onclick="modelsSort(this)">Model</th>
+            <th data-key="family" data-type="str" onclick="modelsSort(this)">Family</th>
+            <th data-key="ring" data-type="str" onclick="modelsSort(this)">Ring</th>
+            <th data-key="tier" data-type="str" onclick="modelsSort(this)">Tier</th>
+            <th data-key="params" data-type="num" onclick="modelsSort(this)">Params</th>
+            <th data-key="context" data-type="num" onclick="modelsSort(this)">Context</th>
+            <th data-key="license" data-type="str" onclick="modelsSort(this)">License</th>
+            <th data-key="use-case" data-type="str" onclick="modelsSort(this)">Use case</th>
+            <th data-key="min-memory-gb" data-type="num" onclick="modelsSort(this)">Min mem</th>
+          </tr>
         </thead>
         <tbody>
           {% for m in models %}
           {% set mems = m.quants | selectattr('est_memory_gb_4k') | map(attribute='est_memory_gb_4k') | list %}
           <tr data-model="{{ m.name }}" data-family="{{ m.family }}"
               data-ring="{{ m.ring.value if m.ring else '' }}" data-tier="{{ m.hardware_tier.value }}"
+              data-params="{{ m.params_total or 0 }}" data-context="{{ m.context_length or 0 }}"
+              data-license="{{ m.license or '' }}"
               data-use-case="{{ m.use_case or '' }}"{% if mems %} data-min-memory-gb="{{ mems | min }}"{% endif %}>
             <td><a href="/model/{{ m.id }}">{{ m.name }}</a></td>
             <td>{{ m.family }}</td>
@@ -44,6 +55,7 @@
         </tbody>
       </table>
       {% include "_models_filter_script.html" %}
+      {% include "_models_sort_script.html" %}
     </main>
     {% include "_footer.html" %}
   </body>

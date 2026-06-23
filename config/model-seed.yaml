@@ -322,7 +322,7 @@ models:
     release_date: "2024-05"
     use_case: general chat
 
-  - id: granite-3-8b
+  - id: granite-3.1-8b
     name: Granite 3.1 8B Instruct
     family: Granite
     hf_repo: ibm-granite/granite-3.1-8b-instruct

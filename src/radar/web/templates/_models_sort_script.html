@@ -1,0 +1,32 @@
+{# Dependency-free click-to-sort for #models-table. Headers carry data-key
+   (the row's data-* suffix) + data-type (num|str). Composes with the filter:
+   sorting only reorders rows, leaving each row's display (filter) + fit classes
+   (device picker) untouched. The no-matches row is kept last. #}
+<style>
+  #models-table th[data-key] { cursor: pointer; user-select: none; white-space: nowrap; }
+  #models-table th[data-key][data-dir="asc"]::after { content: " \25B2"; font-size: .75em; }
+  #models-table th[data-key][data-dir="desc"]::after { content: " \25BC"; font-size: .75em; }
+</style>
+<script>
+  function modelsSort(th) {
+    var key = th.getAttribute('data-key');
+    var type = th.getAttribute('data-type');
+    var dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
+    var table = th.closest('table');
+    var tbody = table.querySelector('tbody');
+    table.querySelectorAll('th[data-key]').forEach(function (h) { h.removeAttribute('data-dir'); });
+    th.setAttribute('data-dir', dir);
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-model]'));
+    rows.sort(function (a, b) {
+      var av = a.getAttribute('data-' + key) || '';
+      var bv = b.getAttribute('data-' + key) || '';
+      var cmp = type === 'num'
+        ? (parseFloat(av) || 0) - (parseFloat(bv) || 0)
+        : av.toLowerCase().localeCompare(bv.toLowerCase());
+      return dir === 'asc' ? cmp : -cmp;
+    });
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    var none = document.getElementById('models-no-matches');
+    if (none) tbody.appendChild(none);
+  }
+</script>
