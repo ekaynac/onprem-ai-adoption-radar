@@ -598,3 +598,6 @@ def test_models_page_is_styled_and_filterable(tmp_path):
     assert "ring-pill" in r.text
     assert "Use case" in r.text
     assert "Context" in r.text
+    # Sortable headers + sort script on the live page too
+    assert "function modelsSort" in r.text
+    assert 'data-key="min-memory-gb" data-type="num"' in r.text

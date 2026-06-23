@@ -342,6 +342,7 @@ def test_models_page_is_styled_and_filterable(tmp_path):
 
     e = ModelEntry(
         id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+        params_total=8_000_000_000, context_length=40960,
         hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
         quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5,
                               est_memory_gb_4k=8.0, platform=Platform.GENERIC, source="x")],
@@ -358,6 +359,11 @@ def test_models_page_is_styled_and_filterable(tmp_path):
     # Richer metadata columns
     assert "Use case" in html
     assert "Context" in html
+    # Sortable headers + numeric sort data + sort script
+    assert 'data-key="params" data-type="num"' in html
+    assert "onclick=\"modelsSort(this)\"" in html
+    assert "function modelsSort" in html
+    assert 'data-params="8000000000"' in html and 'data-context=' in html
     # "Models" nav link in the dashboard
     index_html = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
     assert 'href="models.html"' in index_html

@@ -29,3 +29,6 @@ htmlcov/
 
 # macOS
 .DS_Store
+
+# Playwright MCP scratch artifacts
+.playwright-mcp/
