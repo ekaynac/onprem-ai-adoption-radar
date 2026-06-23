@@ -223,7 +223,7 @@ def test_models_promote_appends_clean_model(tmp_path: Path, monkeypatch):
     assert result.exit_code == 0, result.stdout
 
     seed_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
-    assert "hf-phi-4-14b" in seed_text or "Phi-4-14B" in seed_text
+    assert "hf-phi-4-14b" in seed_text
 
     loaded = load_model_seed(tmp_path / "config" / "model-seed.yaml")
     ids = [s.id for s in loaded]

@@ -316,7 +316,7 @@ def models_promote(
 
     from radar.discovery.model_promotion import build_seed, is_promotable, seed_to_yaml_block
     from radar.discovery.model_proposals import load_model_proposals
-    from radar.models_radar.collectors.huggingface import HFModelData, fetch_hf_model
+    from radar.models_radar.collectors.huggingface import fetch_hf_model
     from radar.models_radar.entities import ModelSeed
     from radar.models_radar.seed import ModelSeedError, load_model_seed
 
@@ -336,22 +336,29 @@ def models_promote(
 
     candidates = [p for p in proposals if is_promotable(p, min_downloads=min_downloads, seeded_repos=seeded_repos)]
 
-    async def _run() -> list[tuple[Any, HFModelData | None]]:
+    async def _run() -> list[ModelSeed]:
+        _collected: list[ModelSeed] = []
+        _existing = set(existing_ids)
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             _client: Any = client
-            return [(p, await fetch_hf_model(p.hf_repo, _client)) for p in candidates]
+            for p in candidates:
+                if len(_collected) >= limit:
+                    break
+                hf = await fetch_hf_model(p.hf_repo, _client)
+                if hf is None:
+                    console.print(f"  [dim]skip {p.hf_repo}: HF fetch failed[/dim]")
+                    continue
+                if hf.params_total is None:
+                    console.print(f"  [dim]skip {p.hf_repo}: no params_total from HF[/dim]")
+                    continue
+                seed = build_seed(p, hf, existing_ids=_existing)
+                if seed is None:
+                    continue
+                _existing = _existing | {seed.id}
+                _collected.append(seed)
+        return _collected
 
-    fetched: list[tuple[Any, HFModelData | None]] = asyncio.run(_run())
-    collected: list[ModelSeed] = []
-    for p, hf in fetched:
-        if len(collected) >= limit:
-            break
-        seed = build_seed(p, hf, existing_ids=existing_ids)
-        if seed is None:
-            console.print(f"  [dim]skip {p.hf_repo}: no params from HF[/dim]")
-            continue
-        existing_ids = existing_ids | {seed.id}
-        collected.append(seed)
+    collected: list[ModelSeed] = asyncio.run(_run())
 
     if not collected:
         console.print("No new models qualified.")
