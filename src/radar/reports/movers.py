@@ -31,19 +31,13 @@ def build_mover_lines(
 
     moved = {line.split(":", 1)[0] for line in lines}
     trending = sorted(
-        (
-            m
-            for m in momentums
-            if m.direction == "rising"
-            and m.star_growth_pct is not None
-            and m.project not in moved
-        ),
+        (m for m in momentums if m.direction == "rising" and m.project not in moved),
         key=lambda m: m.star_growth_pct or 0.0,
         reverse=True,
     )
     for momentum in trending[:MAX_TRENDING]:
-        lines.append(
-            f"{momentum.project}: rising — stars {momentum.star_growth_pct:+.1f}% "
-            "across recent scans"
-        )
+        # The note names the driving signal (stars / downloads / mentions); fall
+        # back to a bare label if a rising momentum carried no note.
+        detail = momentum.note or "trending across recent scans"
+        lines.append(f"{momentum.project}: rising — {detail}")
     return lines

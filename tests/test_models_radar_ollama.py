@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from radar.models_radar.collectors.ollama import bits_for_tag, fetch_ollama_quants
+from radar.models_radar.collectors.ollama import (
+    bits_for_tag,
+    fetch_ollama_quants,
+    param_billions,
+    tag_param_billions,
+)
 
 
 # Global catalog response — contains entries for multiple models
@@ -62,6 +67,30 @@ async def test_fetch_ollama_quants_filters_by_model_name():
     assert not any("mistral" in t for t in by_tag)
     # "latest" must be skipped
     assert "latest" not in by_tag
+
+
+def test_param_billions_parses_labels():
+    assert param_billions("8B") == 8.0
+    assert param_billions("30.5B") == 30.5
+    assert param_billions("350M") == 0.35
+    assert param_billions(None) is None
+    assert param_billions("") is None
+    assert param_billions("unknown") is None
+
+
+def test_tag_param_billions_parses_variant():
+    assert tag_param_billions("qwen3:8b-q4_K_M") == 8.0
+    assert tag_param_billions("qwen3:30b-a3b-q4_K_M") == 30.0  # total, not the 3B active
+    assert tag_param_billions("gemma3:12b") == 12.0
+    assert tag_param_billions("gemma3") is None  # family digit not mistaken for a size
+    assert tag_param_billions("model:q4_K_M") is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_ollama_quants_captures_param_label():
+    quants = await fetch_ollama_quants("llama3.1", FakeClient(GLOBAL_CATALOG_JSON))
+    by_tag = {q.tag: q for q in quants}
+    assert by_tag["llama3.1:8b-instruct-q4_K_M"].param_label == "8B"
 
 
 @pytest.mark.asyncio

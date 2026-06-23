@@ -75,5 +75,39 @@ async def test_cap_limits_named_papers():
     assert len(result.papers) == 5
 
 
+class _StatusResp:
+    def __init__(self, status_code: int, text: str = "", retry_after: int | None = None) -> None:
+        self.status_code = status_code
+        self.text = text
+        self.headers = {"Retry-After": str(retry_after)} if retry_after else {}
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+class _SequenceClient:
+    def __init__(self, responses: list[_StatusResp]) -> None:
+        self._responses = list(responses)
+        self.calls = 0
+
+    async def get(self, url: str, **kw: Any) -> _StatusResp:
+        self.calls += 1
+        return self._responses.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_arxiv_retries_on_429_then_succeeds(monkeypatch):
+    # arXiv returns 503/429 under load; the shared retry helper backs off and retries.
+    async def fake_sleep(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr("radar.enrichment.retry.asyncio.sleep", fake_sleep)
+    client = _SequenceClient([_StatusResp(429, retry_after=1), _StatusResp(200, text=ATOM)])
+    result = await fetch_paper_mentions('"vLLM"', client, since=datetime(2026, 6, 1, tzinfo=UTC))
+    assert client.calls == 2
+    assert result.count == 1
+
+
 def test_category_set_includes_vision_and_robotics():
     assert "cs.CV" in ARXIV_CATEGORIES and "cs.RO" in ARXIV_CATEGORIES

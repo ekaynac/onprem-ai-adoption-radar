@@ -165,7 +165,7 @@ async def test_downloads_retries_then_succeeds_on_429(monkeypatch):
     async def fake_sleep(delay):
         slept.append(delay)
 
-    monkeypatch.setattr("radar.enrichment.downloads.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr("radar.enrichment.retry.asyncio.sleep", fake_sleep)
     client = _SequenceClient(
         [
             _StatusResponse(429, retry_after=1),
@@ -185,7 +185,7 @@ async def test_downloads_persistent_429_degrades_to_none(monkeypatch):
     async def fake_sleep(delay):
         return None
 
-    monkeypatch.setattr("radar.enrichment.downloads.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr("radar.enrichment.retry.asyncio.sleep", fake_sleep)
     client = _SequenceClient([_StatusResponse(429) for _ in range(5)])
 
     # The final attempt raises via raise_for_status; the runner's _safe wrapper

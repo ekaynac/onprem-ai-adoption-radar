@@ -100,6 +100,53 @@ def test_old_ring_change_defers_to_star_trend():
     assert momentum.direction == "steady"
 
 
+def test_download_growth_means_rising_when_stars_flat():
+    rows = [
+        ProjectMetrics(project="vLLM", run_id="r1", observed_at=datetime(2026, 6, 1, tzinfo=UTC),
+                       stars=1000, downloads_weekly=100_000),
+        ProjectMetrics(project="vLLM", run_id="r2", observed_at=datetime(2026, 6, 12, tzinfo=UTC),
+                       stars=1000, downloads_weekly=130_000),  # +30%
+    ]
+    momentum = compute_momentum("vLLM", metric_rows=rows, ring_events=[])
+    assert momentum.direction == "rising"
+    assert "downloads" in momentum.note.lower()
+
+
+def test_paper_mention_rise_means_rising():
+    rows = [
+        ProjectMetrics(project="vLLM", run_id="r1", observed_at=datetime(2026, 6, 1, tzinfo=UTC),
+                       paper_mentions=0),
+        ProjectMetrics(project="vLLM", run_id="r2", observed_at=datetime(2026, 6, 12, tzinfo=UTC),
+                       paper_mentions=4),  # +4 across the window
+    ]
+    momentum = compute_momentum("vLLM", metric_rows=rows, ring_events=[])
+    assert momentum.direction == "rising"
+    assert "paper" in momentum.note.lower()
+    assert momentum.star_growth_pct is None  # no star data, yet still rising
+
+
+def test_single_paper_mention_increase_stays_steady():
+    rows = [
+        ProjectMetrics(project="vLLM", run_id="r1", observed_at=datetime(2026, 6, 1, tzinfo=UTC),
+                       paper_mentions=1),
+        ProjectMetrics(project="vLLM", run_id="r2", observed_at=datetime(2026, 6, 12, tzinfo=UTC),
+                       paper_mentions=2),  # +1 < MENTION_RISE_ABS
+    ]
+    assert compute_momentum("vLLM", metric_rows=rows, ring_events=[]).direction == "steady"
+
+
+def test_mover_lines_surface_non_star_rising():
+    rows = [
+        ProjectMetrics(project="SGLang", run_id="r1", observed_at=datetime(2026, 6, 1, tzinfo=UTC),
+                       paper_mentions=0),
+        ProjectMetrics(project="SGLang", run_id="r2", observed_at=datetime(2026, 6, 12, tzinfo=UTC),
+                       paper_mentions=3),
+    ]
+    momentum = compute_momentum("SGLang", metric_rows=rows, ring_events=[])
+    lines = build_mover_lines([], [momentum])
+    assert any("SGLang" in line and "rising" in line and "Paper" in line for line in lines)
+
+
 def _card(project: str, category: Category, ring: Ring):
     from radar.models import DecisionCard
 
