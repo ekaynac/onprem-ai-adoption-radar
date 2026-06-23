@@ -302,6 +302,104 @@ def models_discover(
         )
 
 
+@models_app.command("promote")
+def models_promote(
+    min_downloads: int = typer.Option(100000, help="Minimum HF downloads to promote."),
+    limit: int = typer.Option(5, help="Max new models to add per run."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would be added; do not write."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Promote high-quality proposals from data/proposed-model-seeds.yaml into config/model-seed.yaml."""
+    import asyncio
+
+    import httpx
+
+    from radar.discovery.model_promotion import build_seed, is_promotable, seed_to_yaml_block
+    from radar.discovery.model_proposals import load_model_proposals
+    from radar.models_radar.collectors.huggingface import HFModelData, fetch_hf_model
+    from radar.models_radar.entities import ModelSeed
+    from radar.models_radar.seed import ModelSeedError, load_model_seed
+
+    seed_path = root / "config" / "model-seed.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+    seeds = load_model_seed(seed_path)
+
+    seeded_repos = {s.hf_repo.lower() for s in seeds if s.hf_repo}
+    existing_ids = {s.id for s in seeds}
+
+    proposals_path = root / "data" / "proposed-model-seeds.yaml"
+    proposals = load_model_proposals(proposals_path)
+    if not proposals:
+        console.print(f"No proposals found at {proposals_path}.")
+        return
+
+    candidates = [p for p in proposals if is_promotable(p, min_downloads=min_downloads, seeded_repos=seeded_repos)]
+
+    async def _run() -> list[tuple[Any, HFModelData | None]]:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            _client: Any = client
+            return [(p, await fetch_hf_model(p.hf_repo, _client)) for p in candidates]
+
+    fetched: list[tuple[Any, HFModelData | None]] = asyncio.run(_run())
+    collected: list[ModelSeed] = []
+    for p, hf in fetched:
+        if len(collected) >= limit:
+            break
+        seed = build_seed(p, hf, existing_ids=existing_ids)
+        if seed is None:
+            console.print(f"  [dim]skip {p.hf_repo}: no params from HF[/dim]")
+            continue
+        existing_ids = existing_ids | {seed.id}
+        collected.append(seed)
+
+    if not collected:
+        console.print("No new models qualified.")
+        return
+
+    if dry_run:
+        from rich.table import Table
+
+        table = Table(title="Would promote (dry run)")
+        table.add_column("id")
+        table.add_column("family")
+        table.add_column("params_total")
+        table.add_column("hf_repo")
+        for s in collected:
+            table.add_row(
+                s.id,
+                s.family,
+                str(s.params_total) if s.params_total is not None else "",
+                s.hf_repo or "",
+            )
+        console.print(table)
+        return
+
+    old_text = seed_path.read_text(encoding="utf-8")
+    new_text = old_text.rstrip("\n") + "\n" + "".join(seed_to_yaml_block(s) for s in collected)
+
+    tmp = seed_path.with_suffix(".promote.tmp")
+    tmp.write_text(new_text, encoding="utf-8")
+
+    try:
+        loaded = load_model_seed(tmp)
+    except ModelSeedError as exc:
+        tmp.unlink(missing_ok=True)
+        console.print(f"[red]Validation failed: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    loaded_ids = [s.id for s in loaded]
+    if len(loaded_ids) != len(set(loaded_ids)):
+        tmp.unlink(missing_ok=True)
+        console.print("[red]Duplicate IDs detected after promotion; aborting.[/red]")
+        raise typer.Exit(code=1)
+
+    tmp.replace(seed_path)
+    for s in collected:
+        console.print(f"  [green]added[/green] {s.id}  ({s.hf_repo})")
+    console.print(f"Promoted {len(collected)} model(s) → {seed_path}")
+
+
 @models_app.command("devices")
 def models_devices() -> None:
     """List built-in device presets for the fit check."""

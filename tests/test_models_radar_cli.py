@@ -122,3 +122,180 @@ def test_models_scan_persists_rings_and_list_shows_them(tmp_path, monkeypatch):
     assert any(r in out.stdout for r in ("adopt", "pilot", "watch"))
     # history log written
     assert (tmp_path / "data" / "model-history.jsonl").exists()
+
+
+# ---------------------------------------------------------------------------
+# models promote tests
+# ---------------------------------------------------------------------------
+
+_SEED_YAML = """\
+version: "1.0"
+models:
+  - id: llama-3.1-8b
+    name: Llama 3.1 8B Instruct
+    family: Llama
+    hf_repo: meta-llama/Llama-3.1-8B-Instruct
+    backer: {name: "Meta", type: big_tech}
+    params_total: 8000000000
+
+  - id: qwen3-8b
+    name: Qwen3 8B
+    family: Qwen3
+    hf_repo: Qwen/Qwen3-8B
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 8000000000
+"""
+
+
+def _setup_promote_env(tmp_path: Path) -> None:
+    """Write seed file and proposals used by promote tests."""
+    from radar.discovery.model_proposals import ModelProposal, write_model_proposals
+
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "model-seed.yaml").write_text(_SEED_YAML, encoding="utf-8")
+
+    proposals = [
+        ModelProposal(
+            model_id="Phi-4-14B",
+            name="Phi-4-14B",
+            family="Phi",
+            hf_repo="microsoft/Phi-4-14B",
+            downloads=500000,
+            likes=1000,
+            modality="text",
+            suggested_id="hf-phi-4-14b",
+        ),
+        # Junk: republisher org
+        ModelProposal(
+            model_id="Phi-4-GGUF",
+            name="Phi-4-GGUF",
+            family="Phi",
+            hf_repo="bartowski/Phi-4-GGUF",
+            downloads=500000,
+            likes=500,
+            modality="text",
+            suggested_id="hf-phi-4-gguf",
+        ),
+        # Already seeded repo
+        ModelProposal(
+            model_id="Llama-3.1-8B-Instruct",
+            name="Llama 3.1 8B Instruct",
+            family="Llama",
+            hf_repo="meta-llama/Llama-3.1-8B-Instruct",
+            downloads=5000000,
+            likes=9000,
+            modality="text",
+            suggested_id="hf-llama-3-1-8b",
+        ),
+    ]
+    write_model_proposals(tmp_path / "data" / "proposed-model-seeds.yaml", proposals)
+
+
+def test_models_promote_appends_clean_model(tmp_path: Path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.models_radar.collectors.huggingface import HFModelData
+    from radar.models_radar.seed import load_model_seed
+
+    runner = CliRunner()
+    _setup_promote_env(tmp_path)
+
+    async def fake_fetch_hf_model(hf_repo: str, client):
+        if hf_repo == "microsoft/Phi-4-14B":
+            return HFModelData(
+                params_total=14_000_000_000,
+                context_length=128000,
+                last_modified="2025-01-15T00:00:00Z",
+            )
+        return None
+
+    monkeypatch.setattr(
+        "radar.models_radar.collectors.huggingface.fetch_hf_model",
+        fake_fetch_hf_model,
+    )
+
+    result = runner.invoke(
+        app,
+        ["models", "promote", "--min-downloads", "100000", "--root", str(tmp_path)],
+    )
+    assert result.exit_code == 0, result.stdout
+
+    seed_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
+    assert "hf-phi-4-14b" in seed_text or "Phi-4-14B" in seed_text
+
+    loaded = load_model_seed(tmp_path / "config" / "model-seed.yaml")
+    ids = [s.id for s in loaded]
+    assert len(ids) == len(set(ids)), "Duplicate IDs after promotion"
+
+    assert "bartowski/Phi-4-GGUF" not in seed_text
+    assert seed_text.count("meta-llama/Llama-3.1-8B-Instruct") == 1
+
+
+def test_models_promote_dry_run_does_not_write(tmp_path: Path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    runner = CliRunner()
+    _setup_promote_env(tmp_path)
+
+    original_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
+
+    async def fake_fetch_hf_model(hf_repo: str, client):
+        if hf_repo == "microsoft/Phi-4-14B":
+            return HFModelData(
+                params_total=14_000_000_000,
+                context_length=128000,
+                last_modified="2025-01-15T00:00:00Z",
+            )
+        return None
+
+    monkeypatch.setattr(
+        "radar.models_radar.collectors.huggingface.fetch_hf_model",
+        fake_fetch_hf_model,
+    )
+
+    result = runner.invoke(
+        app,
+        ["models", "promote", "--dry-run", "--min-downloads", "100000", "--root", str(tmp_path)],
+    )
+    assert result.exit_code == 0, result.stdout
+
+    after_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
+    assert after_text == original_text, "dry-run must not modify the seed file"
+
+    assert "microsoft/Phi-4-14B" in result.stdout or "hf-phi-4-14b" in result.stdout
+
+
+def test_models_promote_no_params_qualifies_nothing(tmp_path: Path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    runner = CliRunner()
+    _setup_promote_env(tmp_path)
+
+    original_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
+
+    async def fake_fetch_hf_model(hf_repo: str, client):
+        return HFModelData()  # no params_total
+
+    monkeypatch.setattr(
+        "radar.models_radar.collectors.huggingface.fetch_hf_model",
+        fake_fetch_hf_model,
+    )
+
+    result = runner.invoke(
+        app,
+        ["models", "promote", "--min-downloads", "100000", "--root", str(tmp_path)],
+    )
+    assert result.exit_code == 0, result.stdout
+
+    after_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
+    assert after_text == original_text, "file must not change when no models qualify"
+
+    assert "No new models qualified" in result.stdout
