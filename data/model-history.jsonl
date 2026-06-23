@@ -32,3 +32,4 @@
 {"model_id": "smollm2-1.7b", "family": "SmolLM", "change_type": "new", "ring": "adopt", "previous_ring": null, "run_id": "run-20260623T084900Z-e579d8de", "observed_at": "2026-06-23T08:49:00.864155Z", "reasons": ["new to adopt"]}
 {"model_id": "starcoder2-15b", "family": "StarCoder", "change_type": "new", "ring": "adopt", "previous_ring": null, "run_id": "run-20260623T084900Z-e579d8de", "observed_at": "2026-06-23T08:49:00.864155Z", "reasons": ["new to adopt"]}
 {"model_id": "yi-1.5-34b", "family": "Yi", "change_type": "new", "ring": "adopt", "previous_ring": null, "run_id": "run-20260623T084900Z-e579d8de", "observed_at": "2026-06-23T08:49:00.864155Z", "reasons": ["new to adopt"]}
+{"model_id": "granite-3.1-8b", "family": "Granite", "change_type": "new", "ring": "adopt", "previous_ring": null, "run_id": "run-20260623T091254Z-c59fd7f3", "observed_at": "2026-06-23T09:12:54.641240Z", "reasons": ["new to adopt"]}
