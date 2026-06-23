@@ -27,7 +27,8 @@ _BITS_BY_FORMAT = {
 }
 _REF_4K = 4096
 _REF_32K = 32768
-_DEFAULT_QUANT_LADDER = [("Q4_K_M", 4.5), ("Q5_K_M", 5.5), ("Q8_0", 8.0), ("FP16", 16.0)]
+_DEFAULT_QUANT_LADDER = [("Q4_K_M", 4.5), ("Q5_K_M", 5.5), ("Q6_K", 6.6), ("Q8_0", 8.0), ("FP16", 16.0)]
+_DEFAULT_MLX_LADDER = [("MLX-4bit", 4.5), ("MLX-8bit", 8.0)]
 # Seeds that share an ``ollama_name`` (e.g. both Qwen3 sizes use "qwen3") pull the
 # whole family's tag list; keep only tags whose parameter size (from the API label
 # or the tag-name token) is within this fraction of the model's resolved param
@@ -137,6 +138,8 @@ def build_model_entry(
     if not quants and params_total is not None:
         for fmt, bits in _DEFAULT_QUANT_LADDER:
             add(fmt, bits, Platform.GENERIC, "synthesized")
+        for fmt, bits in _DEFAULT_MLX_LADDER:
+            add(fmt, bits, Platform.APPLE_MLX, "synthesized")
 
     mv = minimum_viable_quant(quants)
     tier = hardware_tier(mv.est_memory_gb_4k if mv else None)
