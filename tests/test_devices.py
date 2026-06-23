@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from radar.models_radar.devices import (
+    COMMON_DEVICE_TIERS,
     DEVICE_PRESETS,
     DeviceError,
     DeviceProfile,
@@ -47,3 +48,16 @@ def test_device_profile_is_frozen():
     d = DeviceProfile(name="g", kind="gpu", total_memory_gb=24)
     with pytest.raises(ValidationError):
         d.total_memory_gb = 48
+
+
+def test_expanded_presets_resolve_and_count():
+    assert len(DEVICE_PRESETS) >= 45
+    # spot-check new kinds + usable math
+    assert usable_memory_gb(DEVICE_PRESETS["rtx-3090-24gb"]) == 20.4
+    assert usable_memory_gb(DEVICE_PRESETS["8x-h100-80gb"]) == round(80 * 0.85 * 8, 2)
+    assert usable_memory_gb(DEVICE_PRESETS["mac-96gb"]) == round(96 * 0.72, 2)
+    assert usable_memory_gb(DEVICE_PRESETS["server-256gb-cpu"]) == round(256 * 0.5, 2)
+
+
+def test_common_tiers_all_present():
+    assert all(k in DEVICE_PRESETS for k in COMMON_DEVICE_TIERS)
