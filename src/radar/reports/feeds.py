@@ -1,12 +1,14 @@
-"""Subscribable change feeds (Atom + JSON Feed) over the ring-change timeline.
+"""Subscribable change feeds (Atom + JSON Feed + RSS) over the ring-change timeline.
 
 Exported alongside the static site so the GitHub Pages deployment becomes
 subscribable: a reader or agent can follow ring changes without polling the
-dashboard.
+dashboard. The same events drive all three formats; RSS 2.0 exists for the
+older readers/tools that still prefer ``<rss>`` over Atom.
 """
 
 from __future__ import annotations
 
+from email.utils import format_datetime
 from typing import Any
 from xml.sax.saxutils import escape
 
@@ -77,4 +79,43 @@ def render_changes_atom(
             ]
         )
     parts.append("</feed>")
+    return "\n".join(parts) + "\n"
+
+
+def render_changes_rss(
+    events: list[ProjectHistoryEvent],
+    site_title: str,
+    self_url: str,
+) -> str:
+    """RSS 2.0 feed of ring changes, newest first.
+
+    RSS is the same data as the Atom feed in the format older readers prefer.
+    The one wire difference from Atom: RSS timestamps are RFC-822
+    (``Fri, 12 Jun 2026 00:00:00 +0000``), not ISO-8601.
+    """
+    ordered = _newest_first(events)
+    build_date = format_datetime(ordered[0].observed_at) if ordered else None
+    parts = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+        "  <channel>",
+        f"    <title>{escape(site_title)}</title>",
+        f"    <link>{escape(self_url)}</link>",
+        f"    <description>{escape(site_title)} — ring changes</description>",
+        f'    <atom:link href="{escape(self_url)}" rel="self" type="application/rss+xml"/>',
+    ]
+    if build_date:
+        parts.append(f"    <lastBuildDate>{build_date}</lastBuildDate>")
+    for event in ordered:
+        parts.extend(
+            [
+                "    <item>",
+                f"      <title>{escape(_title(event))}</title>",
+                f"      <description>{escape(' '.join(event.reasons) or _title(event))}</description>",
+                f'      <guid isPermaLink="false">urn:radar:{escape(_entry_id(event))}</guid>',
+                f"      <pubDate>{format_datetime(event.observed_at)}</pubDate>",
+                "    </item>",
+            ]
+        )
+    parts.extend(["  </channel>", "</rss>"])
     return "\n".join(parts) + "\n"
