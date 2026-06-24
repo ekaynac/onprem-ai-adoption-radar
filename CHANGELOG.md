@@ -20,6 +20,12 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **RSS 2.0 change feed** — the static site now also publishes `changes.rss`
+  alongside the existing `changes.xml` (Atom) and `changes.json`, built from the
+  same ring-change timeline (newest-first, capped at `_FEED_LIMIT`). Each
+  `<item>` is one ring change — title `Cline: watch → pilot (promoted)`,
+  description = the human-readable reasons — for the older readers/tools that
+  prefer `<rss>` over Atom. It appears in the index/history download lists.
 - **Mega Bilişim corporate rebrand** — the dashboard and static site now follow
   the Mega Bilgisayar Tic. Ltd. Şti. design standard: Process Blue `#009FDA` hero
   band with the **real Mega logo** (chameleon + wordmark, white variant on the

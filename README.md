@@ -34,7 +34,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - 📡 **Firehose classification** — broad vendor blogs are re-attributed entry-by-entry to the projects they mention. Deterministic matching with an **optional, off-by-default LLM** second pass for the ambiguous tail.
 - 🩺 **Source health** — sources that go quiet for several scans are flagged as likely-dead feeds in `radar seed list`.
 - 🛰️ **Auto-discovery** — `radar discover` proposes fast-rising untracked GitHub repos for review (never auto-added).
-- 🔔 **Webhooks & subscribable feeds** — optional post-scan webhook (Slack/Discord/Teams or generic JSON) on ring changes; the static site publishes Atom + JSON change feeds.
+- 🔔 **Webhooks & subscribable feeds** — optional post-scan webhook (Slack/Discord/Teams or generic JSON) on ring changes; the static site publishes Atom, RSS 2.0, and JSON change feeds.
 - 🆕 **Delta / "Try This Week"** — a separate report of only what changed since the last scan.
 - 🕰️ **Durable history** — an append-only timeline of every ring change, persisted in a portable JSONL log that survives a lost database. See [docs/persistence.md](docs/persistence.md).
 - 🆚 **Comparison matrices** — side-by-side "Cline vs Aider vs Goose" across rings, risk, and rubric dimensions.
@@ -43,7 +43,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - 🖥️ **Local dashboard** + 📄 **static export** for GitHub Pages — redesigned with a hero, ring-distribution stats, ring pills, a legend, sticky filters, and automatic dark mode.
 - 🟦 **Mega Bilişim corporate brand** — Process Blue `#009FDA` hero with the *mega®* lockup, Cool Gray surfaces, Centrale Sans type, and a subtle Buka dot-pattern, following the Mega design standard (light + dark). Generated with the Open Design app and ported into the shared design system.
 - ♾️ **Runs itself** — a daily GitHub Action scans, gates, and republishes; it commits the history log back to the repo, which keeps the timeline durable **and** keeps the schedule from auto-disabling, so the public site survives untouched.
-- ⬇️ **Downloadable data** — the full append-only timeline (`history.jsonl`) and change feeds (Atom/JSON) are published next to the site and served by the dashboard at `/history.jsonl`.
+- ⬇️ **Downloadable data** — the full append-only timeline (`history.jsonl`) and change feeds (Atom/RSS/JSON) are published next to the site and served by the dashboard at `/history.jsonl`.
 - 🎨 **Fun lane** — playful local-AI projects (image gen, voice, LLM toys) tracked in their own category.
 
 Everything new degrades gracefully and stays off the critical path: enrichment (OSV/HN/downloads) and webhooks are best-effort and never fail a scan, and the default scoring path remains fully deterministic and offline.

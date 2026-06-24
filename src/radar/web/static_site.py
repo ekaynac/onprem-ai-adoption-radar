@@ -20,7 +20,7 @@ from radar.models_radar.entities import ModelEntry
 from radar.models_radar.history import ModelHistoryEvent
 from radar.models_radar.reports import model_events_to_feed_atom, model_events_to_feed_json
 from radar.reports.comparison import ComparisonError, build_comparison
-from radar.reports.feeds import render_changes_atom, render_changes_json
+from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.backer_badge import backer_badge
@@ -55,8 +55,8 @@ def render_static_site(
 
     ``timelines`` is an optional list of ``{"summary", "events"}`` (as the live
     dashboard builds) for the history page; when omitted, history renders empty.
-    The same events drive ``changes.xml`` (Atom) and ``changes.json`` so the
-    published site is subscribable. ``metrics_by_project`` (optional) supplies
+    The same events drive ``changes.xml`` (Atom), ``changes.json``, and
+    ``changes.rss`` (RSS 2.0) so the published site is subscribable. ``metrics_by_project`` (optional) supplies
     each project page's metrics history; omitting it renders empty metric tables.
     When ``model_entries`` is provided, writes ``models.html``, per-model pages,
     and ``changes-models.xml``/``.json`` feeds (the latter only when
@@ -97,6 +97,7 @@ def render_static_site(
         "History (JSONL)": "history.jsonl" if history_available else None,
         "Changes (JSON)": "changes.json",
         "Changes (Atom)": "changes.xml",
+        "Changes (RSS)": "changes.rss",
         "Model History (JSONL)": "model-history.jsonl" if model_history_available else None,
     }
 
@@ -182,20 +183,26 @@ def _write_feeds(
     site_title: str,
     self_base_url: str,
 ) -> None:
-    """Write changes.xml (Atom) and changes.json from the timeline events."""
+    """Write changes.xml (Atom), changes.json, and changes.rss from the timeline events."""
     events: list[ProjectHistoryEvent] = []
     for timeline in timelines:
         events.extend(timeline.get("events") or [])
     events.sort(key=lambda e: e.observed_at, reverse=True)
     recent = events[:_FEED_LIMIT]
 
-    self_url = f"{self_base_url.rstrip('/')}/changes.xml" if self_base_url else "changes.xml"
+    base = self_base_url.rstrip("/") if self_base_url else ""
+    self_url = f"{base}/changes.xml" if base else "changes.xml"
     (out_dir / "changes.xml").write_text(
         render_changes_atom(recent, site_title=site_title, self_url=self_url),
         encoding="utf-8",
     )
     (out_dir / "changes.json").write_text(
         json.dumps(render_changes_json(recent, site_title=site_title), indent=2),
+        encoding="utf-8",
+    )
+    rss_url = f"{base}/changes.rss" if base else "changes.rss"
+    (out_dir / "changes.rss").write_text(
+        render_changes_rss(recent, site_title=site_title, self_url=rss_url),
         encoding="utf-8",
     )
 
