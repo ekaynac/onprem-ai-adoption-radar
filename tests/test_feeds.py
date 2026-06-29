@@ -164,3 +164,27 @@ def test_static_export_writes_change_feeds(tmp_path):
     feed_rss = (tmp_path / "_site" / "changes.rss").read_text(encoding="utf-8")
     assert "vLLM" in feed_rss
     assert ElementTree.fromstring(feed_rss).attrib["version"] == "2.0"
+
+
+def test_static_export_base_url_makes_feed_urls_absolute(tmp_path):
+    from radar.models import DecisionCard
+    from radar.web.static_site import render_static_site
+
+    card = DecisionCard(
+        project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+        summary="fast", workflow_fit={}, risk_level="low",
+    )
+
+    render_static_site(
+        [card],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+        self_base_url="https://example.test/radar/",  # trailing slash must be normalized
+    )
+
+    # Both feeds carry an absolute self/link URL (not the relative filename).
+    rss = (tmp_path / "_site" / "changes.rss").read_text(encoding="utf-8")
+    atom = (tmp_path / "_site" / "changes.xml").read_text(encoding="utf-8")
+    assert "https://example.test/radar/changes.rss" in rss
+    assert "changes.rss/" not in rss  # no double slash from the trailing-slash base
+    assert "https://example.test/radar/changes.xml" in atom

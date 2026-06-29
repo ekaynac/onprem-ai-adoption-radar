@@ -51,8 +51,19 @@ jobs:
         run: uv run radar calibrate-report --root . --check
 
       # `radar export` copies data/history.jsonl into the site for download.
+      # --base-url makes the Atom/RSS feed self/link URLs absolute. Derived from
+      # the repo context via env vars (never interpolated into the shell line
+      # directly). Assumes the default github.io Pages domain — adjust if a
+      # custom CNAME is ever configured. `github.repository`/`repository_owner`
+      # are always populated, including on scheduled runs.
       - name: Export static site
-        run: uv run radar export --root . --out _site
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_FULL: ${{ github.repository }}
+        run: |
+          repo_name="${REPO_FULL#*/}"
+          uv run radar export --root . --out _site \
+            --base-url "https://${OWNER}.github.io/${repo_name}"
 
       # Persist the durable JSONL history log back to the repo. This makes the
       # timeline durable (in git, not an evictable cache) AND counts as repo
