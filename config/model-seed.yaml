@@ -386,3 +386,67 @@ models:
     openness: open-permissive
     release_date: "2024-11"
     use_case: small, on-device
+
+  - id: hf-qwen3-6-35b-a3b-nvfp4
+    name: Qwen3.6-35B-A3B-NVFP4
+    family: nvidia
+    hf_repo: nvidia/Qwen3.6-35B-A3B-NVFP4
+    backer: {name: "NVIDIA", type: big_tech}
+    params_total: 18683860336
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-06
+
+  - id: hf-gpt-oss-120b
+    name: gpt-oss-120b
+    family: gpt-oss
+    hf_repo: openai/gpt-oss-120b
+    backer: {name: "openai", type: community}
+    params_total: 120412337472
+    num_layers: 36
+    hidden_size: 2880
+    context_length: 131072
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2025-08
+
+  - id: hf-gemma-4-26b-a4b-nvfp4
+    name: Gemma-4-26B-A4B-NVFP4
+    family: nvidia
+    hf_repo: nvidia/Gemma-4-26B-A4B-NVFP4
+    backer: {name: "NVIDIA", type: big_tech}
+    params_total: 14386941232
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-05
+
+  - id: hf-deepseek-v4-flash
+    name: DeepSeek-V4-Flash
+    family: deepseek-ai
+    hf_repo: deepseek-ai/DeepSeek-V4-Flash
+    backer: {name: "DeepSeek", type: startup}
+    params_total: 158069433298
+    num_layers: 43
+    hidden_size: 4096
+    context_length: 1048576
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-06
+
+  - id: hf-deepseek-v4-pro
+    name: DeepSeek-V4-Pro
+    family: deepseek-ai
+    hf_repo: deepseek-ai/DeepSeek-V4-Pro
+    backer: {name: "DeepSeek", type: startup}
+    params_total: 861608274846
+    num_layers: 61
+    hidden_size: 7168
+    context_length: 1048576
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-06
