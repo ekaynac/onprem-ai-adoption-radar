@@ -889,9 +889,24 @@ def sandbox(
 def export(
     out: Path = typer.Option(Path("_site"), help="Output directory for static HTML."),
     root: Path = typer.Option(Path("."), help="Project root."),
+    base_url: str = typer.Option(
+        "",
+        help=(
+            "Absolute site URL (e.g. https://user.github.io/repo) used to make the "
+            "Atom/RSS feed self/link URLs absolute. Defaults to relative filenames."
+        ),
+    ),
 ) -> None:
     """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
     from datetime import datetime
+
+    # Validate at the boundary: a non-empty base URL must be absolute http(s),
+    # otherwise the feed self/link URLs would be silently malformed.
+    if base_url and not base_url.startswith(("http://", "https://")):
+        raise typer.BadParameter(
+            "--base-url must be an absolute http(s) URL, e.g. https://user.github.io/repo",
+            param_hint="--base-url",
+        )
 
     from radar.mcp_server.model_queries import _latest_model_cards
     from radar.models_radar.entities import ModelEntry
@@ -951,6 +966,7 @@ def export(
         out,
         datetime.now(UTC),
         timelines=timelines,
+        self_base_url=base_url,
         metrics_by_project=metrics_by_project,
         latest_scan_meta=latest_scan_meta,
         history_jsonl=root / "data" / "history.jsonl",

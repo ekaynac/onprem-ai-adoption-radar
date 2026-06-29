@@ -97,9 +97,51 @@ def test_export_writes_static_site(tmp_path):
     assert compare.exists() and history.exists()
     assert 'href="compare.html"' in html  # relative cross-links, not "/compare"
     assert 'href="history.html"' in html
+
     # Compare page shows the two model_serving projects side by side.
     comp_html = compare.read_text(encoding="utf-8")
     assert "vLLM" in comp_html and "Ollama" in comp_html
+
+
+def test_export_base_url_makes_feed_self_urls_absolute(tmp_path):
+    from radar.models import Category, DecisionCard, Ring
+    from radar.storage.database import RadarDatabase
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="fast inference", workflow_fit={}, risk_level="low",
+            ),
+        ]
+    )
+
+    out = tmp_path / "_site"
+    result = CliRunner().invoke(
+        app,
+        ["export", "--root", str(tmp_path), "--out", str(out),
+         "--base-url", "https://acme.github.io/radar"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    rss = (out / "changes.rss").read_text(encoding="utf-8")
+    assert "https://acme.github.io/radar/changes.rss" in rss
+
+
+def test_export_rejects_non_http_base_url(tmp_path):
+    from radar.storage.database import RadarDatabase
+
+    RadarDatabase(tmp_path / "data" / "radar.db").initialize()
+
+    result = CliRunner().invoke(
+        app,
+        ["export", "--root", str(tmp_path), "--out", str(tmp_path / "_site"),
+         "--base-url", "acme.github.io/radar"],  # missing scheme
+    )
+
+    assert result.exit_code != 0
 
 
 def test_history_command_shows_recorded_timeline(tmp_path):

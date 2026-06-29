@@ -7,6 +7,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Absolute feed URLs** — `radar export` gained `--base-url`; when set, the
+  Atom (`changes.xml`) and RSS (`changes.rss`) feeds emit absolute self/link
+  URLs instead of relative filenames (strict-validator-friendly). The publish
+  workflow derives it from the repo context (`https://<owner>.github.io/<repo>`),
+  so the published feeds are now self-describing. Local exports default to the
+  prior relative behavior.
 - **MCP context optimization** — the list tools (`list_recommendations`,
   `try_this_week`) now return a **compact** card by default (project, category,
   backer, ring, score, risk, trend, upgrade-risk, pinned, summary + one
