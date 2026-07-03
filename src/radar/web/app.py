@@ -15,9 +15,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from radar.mcp_server.model_queries import _latest_model_cards
+from radar.mcp_server.technique_queries import _latest_technique_cards
 from radar.models import Category, SourceType
 from radar.models_radar.entities import ModelEntry
 from radar.reports.comparison import ComparisonError, build_comparison
+from radar.research_radar.entities import TechniqueEntry
+from radar.research_radar.history import load_technique_events
+from radar.research_radar.timeline import build_technique_timeline
 from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
@@ -28,6 +32,7 @@ from radar.storage.source_health_store import SourceHealthStore
 from radar.web.backer_badge import backer_badge
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
+from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth, summarize_source_health
@@ -72,6 +77,10 @@ def create_app(root: Path) -> FastAPI:
         """Load model entries from the latest models run; empty list if none."""
         return [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
 
+    def _technique_entries() -> list[TechniqueEntry]:
+        """Load technique entries from the latest research run; empty list if none."""
+        return [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+
     # Nav targets for the project-detail partial (live = server routes).
     live_links = {"home": "/", "compare": "/compare", "history": "/history"}
 
@@ -90,6 +99,8 @@ def create_app(root: Path) -> FastAPI:
                 "source_health": _source_health(),
                 "models_summary": summarize_models(_model_entries()),
                 "models_href": "/models",
+                "techniques_summary": summarize_techniques(_technique_entries()),
+                "research_href": "/research",
             },
         )
 
@@ -225,6 +236,24 @@ def create_app(root: Path) -> FastAPI:
             return HTMLResponse("Model not found", status_code=404)
         return TEMPLATES.TemplateResponse(
             request, "model.html", {"model": entry, "fit_by_tier": fit_by_tier(entry)}
+        )
+
+    @app.get("/research", response_class=HTMLResponse)
+    def research_page(request: Request):
+        entries = _technique_entries()
+        return TEMPLATES.TemplateResponse(
+            request, "techniques.html", {"techniques": entries}
+        )
+
+    @app.get("/technique/{technique_id}", response_class=HTMLResponse)
+    def technique_detail(request: Request, technique_id: str):
+        entry = next((e for e in _technique_entries() if e.id == technique_id), None)
+        if entry is None:
+            return HTMLResponse("Technique not found", status_code=404)
+        events = load_technique_events(root / "data" / "technique-history.jsonl")
+        return TEMPLATES.TemplateResponse(
+            request, "technique.html",
+            {"technique": entry, "timeline": build_technique_timeline(entry, events)},
         )
 
     @app.post("/sources")

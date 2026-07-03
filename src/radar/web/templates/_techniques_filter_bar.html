@@ -1,0 +1,23 @@
+{# Client-side filter for #techniques-table. Context: techniques. Progressive enhancement. #}
+<div class="filter-bar">
+  <input id="tfilter-text" type="text" placeholder="Search techniques…"
+         oninput="techniquesFilter()" aria-label="Search techniques">
+  <select id="tfilter-domain" onchange="techniquesFilter()" aria-label="Filter by domain">
+    <option value="">All domains</option>
+    {% for d in techniques | map(attribute='domain.value') | unique | sort %}
+    <option value="{{ d }}">{{ d }}</option>
+    {% endfor %}
+  </select>
+  <select id="tfilter-ring" onchange="techniquesFilter()" aria-label="Filter by ring">
+    <option value="">Any ring</option>
+    {% for r in techniques | selectattr('ring') | map(attribute='ring.value') | unique | sort %}
+    <option value="{{ r }}">{{ r }}</option>
+    {% endfor %}
+  </select>
+  <select id="tfilter-category" onchange="techniquesFilter()" aria-label="Filter by category">
+    <option value="">Any category</option>
+    {% for c in techniques | map(attribute='category.value') | unique | sort %}
+    <option value="{{ c }}">{{ c }}</option>
+    {% endfor %}
+  </select>
+</div>

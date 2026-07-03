@@ -1,0 +1,52 @@
+{# Shared technique-detail body. Context: technique (TechniqueEntry), timeline (list[TimelineItem]). #}
+<h2>{{ technique.name }} <small>{{ technique.domain.value }}</small></h2>
+<p>Ring: <strong>{{ technique.ring.value if technique.ring else '-' }}</strong>
+   · Category: {{ technique.category.value }}
+   · On-prem impact: {{ technique.onprem_impact.value }}
+   {% if technique.citation_count is not none %} · Citations: {{ technique.citation_count }}{% endif %}
+   {% if technique.superseded_by %} · Superseded by: <strong>{{ technique.superseded_by }}</strong>{% endif %}</p>
+{% if technique.notes %}<p>{{ technique.notes }}</p>{% endif %}
+{% if technique.score_breakdown %}
+<table>
+  <thead><tr><th>Breadth</th><th>Maturity</th><th>Validation</th><th>Reproducibility</th>
+             <th>Momentum</th><th>On-prem</th><th>Avg</th></tr></thead>
+  <tbody><tr>
+    <td>{{ technique.score_breakdown.implementation_breadth }}</td>
+    <td>{{ technique.score_breakdown.implementation_maturity }}</td>
+    <td>{{ technique.score_breakdown.validation }}</td>
+    <td>{{ technique.score_breakdown.reproducibility }}</td>
+    <td>{{ technique.score_breakdown.momentum }}</td>
+    <td>{{ technique.score_breakdown.onprem_impact }}</td>
+    <td><strong>{{ technique.score_breakdown.average }}</strong></td>
+  </tr></tbody>
+</table>
+{% endif %}
+{% if technique.papers %}
+<h3>Papers</h3>
+<ul>
+  {% for p in technique.papers %}
+  <li>[{{ p.role.value }}] <a href="https://arxiv.org/abs/{{ p.arxiv_id }}">{{ p.title }}</a>
+      {% if p.published %}({{ p.published }}){% endif %}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if technique.resolved_implementations %}
+<h3>Implementations</h3>
+<ul>
+  {% for impl in technique.resolved_implementations %}
+  <li>[{{ impl.kind.value }}] {{ impl.ref }} — {{ impl.ring.value if impl.ring else 'unringed' }}
+      {% if impl.note %}· {{ impl.note }}{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if timeline %}
+<h3>Research → production timeline</h3>
+<ul>
+  {% for item in timeline %}
+  <li><strong>{{ item.date }}</strong> — {{ item.label }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% for warning in technique.warnings %}
+<p class="warning">⚠ {{ warning }}</p>
+{% endfor %}
