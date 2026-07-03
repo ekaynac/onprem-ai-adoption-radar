@@ -1,5 +1,7 @@
 """Closed-loop resolution: implementation links → current rings from own catalogs."""
 
+from __future__ import annotations
+
 from radar.models import Ring
 from radar.research_radar.entities import ImplementationLink, ImplKind
 from radar.research_radar.resolve import (
@@ -102,3 +104,33 @@ def test_build_context_degrades_when_stores_missing(tmp_path):
     assert context.tool_rings == {}
     assert context.model_rings == {}
     assert len(context.warnings) == 2  # config unavailable + model seed unavailable
+
+
+def test_build_context_with_config_but_no_cards_db(tmp_path):
+    """Tool radar has never run: sources resolve as unringed, no warnings."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+sources:
+  - id: github-vllm
+    type: github_repo
+    project: vLLM
+    category: model_serving
+    url: https://github.com/vllm-project/vllm
+""",
+        encoding="utf-8",
+    )
+    model_seed = tmp_path / "model-seed.yaml"
+    model_seed.write_text(
+        "models:\n  - id: llama-3.3-70b\n    name: Llama 3.3 70B\n    family: llama\n",
+        encoding="utf-8",
+    )
+
+    context = build_resolution_context(
+        config_path, tmp_path / "never-created.db", model_seed,
+        tmp_path / "model-history.jsonl",
+    )
+
+    assert context.tool_rings == {"github-vllm": None}
+    assert context.model_rings == {"llama-3.3-70b": None}
+    assert context.warnings == []
