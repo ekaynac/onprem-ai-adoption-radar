@@ -627,18 +627,13 @@ def research_show(
 
 
 def _latest_technique_entries(root: Path):
-    import json as _json
-
+    from radar.mcp_server.technique_queries import _latest_technique_cards
     from radar.research_radar.entities import TechniqueEntry as _TE
-    from radar.storage.run_store import RunStore
 
-    run_store = RunStore(root / "data" / "runs")
-    for rid in reversed(run_store.list_runs()):
-        if run_store.read_meta(rid).get("kind") == "research":
-            cards_path = run_store._run_dir(rid) / "technique_cards.json"
-            payload = _json.loads(cards_path.read_text(encoding="utf-8"))
-            return [_TE.model_validate(item) for item in payload]
-    return None
+    payload = _latest_technique_cards(root)
+    if not payload:
+        return None
+    return [_TE.model_validate(item) for item in payload]
 
 
 @app.command()
