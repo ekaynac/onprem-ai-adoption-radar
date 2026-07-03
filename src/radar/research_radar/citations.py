@@ -74,6 +74,8 @@ async def _from_semantic_scholar(
             json={"ids": [f"ARXIV:{arxiv_id}" for arxiv_id in chunk]},
         )
         payload = response.json()
+        if not isinstance(payload, list):
+            raise ValueError(f"unexpected S2 batch payload: {type(payload).__name__}")
         for arxiv_id, item in zip(chunk, payload, strict=False):
             if not isinstance(item, dict):
                 continue  # unmatched ids come back as null
@@ -106,7 +108,7 @@ async def _openalex_chunk(
 ) -> dict[str, CitationRecord]:
     """Fetch and parse a single OpenAlex batch (up to 50 ids)."""
     records: dict[str, CitationRecord] = {}
-    dois = "|".join(f"doi:10.48550/arXiv.{arxiv_id}" for arxiv_id in chunk)
+    dois = "doi:" + "|".join(f"10.48550/arXiv.{arxiv_id}" for arxiv_id in chunk)
     params: dict[str, str] = {
         "filter": dois,
         "select": "doi,cited_by_count,primary_location",

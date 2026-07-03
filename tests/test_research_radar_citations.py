@@ -1,5 +1,7 @@
 """Citation enrichment: S2 batch primary, OpenAlex batch fallback, {} on total failure."""
 
+from __future__ import annotations
+
 import pytest
 
 from radar.research_radar.citations import (
@@ -109,12 +111,40 @@ async def test_openalex_fallback_when_s2_fails():
 
 
 @pytest.mark.asyncio
+async def test_openalex_filter_uses_doi_key_once_for_multiple_ids():
+    """The filter format is key-once (doi:A|B), never repeated per value (doi:A|doi:B);
+    the real API rejects the repeated form with HTTP 400."""
+    client = _Client(post_responses=[], get_responses=[OPENALEX_OK])  # S2 down -> OpenAlex used
+
+    await fetch_citations(["2211.17192", "2305.14314"], client)
+
+    filter_value = client.get_params[0]["filter"]
+    assert filter_value.count("doi:") == 1
+    assert "10.48550/arXiv.2211.17192" in filter_value
+    assert "10.48550/arXiv.2305.14314" in filter_value
+
+
+@pytest.mark.asyncio
 async def test_openalex_mailto_forwarded():
     client = _Client(post_responses=[], get_responses=[OPENALEX_OK])
 
     await fetch_citations(["2211.17192"], client, contact_email="radar@mega.com.tr")
 
     assert client.get_params[0]["mailto"] == "radar@mega.com.tr"
+
+
+@pytest.mark.asyncio
+async def test_s2_non_list_payload_falls_back_to_openalex():
+    """A 200 response whose body isn't a list (e.g. an error envelope) must not be
+    treated as a successful batch, or the OpenAlex fallback is silently skipped."""
+    client = _Client(
+        post_responses=[_Response({"error": "internal error"})],
+        get_responses=[OPENALEX_OK],
+    )
+
+    records = await fetch_citations(["2211.17192"], client)
+
+    assert records["2211.17192"].source == "openalex"
 
 
 @pytest.mark.asyncio
