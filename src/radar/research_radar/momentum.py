@@ -64,8 +64,11 @@ def _citation_growth_pct(
     if current is None or source is None:
         return None
     for row in reversed(rows):  # most recent same-source row wins
-        if row.citation_source == source and row.citation_count:
-            return round((current - row.citation_count) / row.citation_count * 100, 1)
+        if row.citation_source != source:
+            continue
+        if not row.citation_count:  # zero/None baseline: pct growth is undefined
+            return None
+        return round((current - row.citation_count) / row.citation_count * 100, 1)
     return None
 
 

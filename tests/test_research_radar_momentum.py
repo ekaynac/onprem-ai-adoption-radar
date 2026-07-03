@@ -81,3 +81,17 @@ def test_missing_current_citations_still_uses_impl_delta():
     signal = momentum_signal("t", [_row(100, impls=2)], None, None, impl_count=3)
 
     assert signal.score == 5
+
+
+def test_zero_count_same_source_baseline_yields_no_velocity():
+    signal = momentum_signal("t", [_row(0)], 50, "s2", impl_count=2)
+
+    assert signal.citation_growth_pct is None
+    assert signal.score == 3
+
+
+def test_new_impl_wins_over_negative_velocity():
+    signal = momentum_signal("t", [_row(100, impls=2)], 80, "s2", impl_count=3)
+
+    assert signal.score == 5
+    assert signal.direction == "rising"
