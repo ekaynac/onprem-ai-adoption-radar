@@ -23,6 +23,10 @@ def load_technique_seed(path: Path) -> list[TechniqueSeed]:
         raw = yaml.safe_load(contents) or {}
     except yaml.YAMLError as exc:
         raise TechniqueSeedError(f"Invalid YAML in {path}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise TechniqueSeedError(
+            f"Technique seed {path} must be a mapping with a 'techniques' list"
+        )
     try:
         seeds = [TechniqueSeed.model_validate(item) for item in raw.get("techniques") or []]
     except ValidationError as exc:
@@ -39,7 +43,14 @@ def _check_ids(seeds: list[TechniqueSeed], path: Path) -> None:
         raise TechniqueSeedError(f"Duplicate technique ids in {path}: {', '.join(duplicates)}")
     known = set(ids)
     for seed in seeds:
-        if seed.superseded_by is not None and seed.superseded_by not in known:
+        if seed.superseded_by is None:
+            continue
+        if seed.superseded_by == seed.id:
+            raise TechniqueSeedError(
+                f"{path}: {seed.id} has superseded_by set to its own id"
+                " (self-supersession is not allowed)"
+            )
+        if seed.superseded_by not in known:
             raise TechniqueSeedError(
                 f"{path}: {seed.id} has superseded_by={seed.superseded_by!r},"
                 " which is not a seeded technique id"
