@@ -45,6 +45,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - ♾️ **Runs itself** — a daily GitHub Action scans, gates, and republishes; it commits the history log back to the repo, which keeps the timeline durable **and** keeps the schedule from auto-disabling, so the public site survives untouched.
 - ⬇️ **Downloadable data** — the full append-only timeline (`history.jsonl`) and change feeds (Atom/RSS/JSON) are published next to the site and served by the dashboard at `/history.jsonl`.
 - 🎨 **Fun lane** — playful local-AI projects (image gen, voice, LLM toys) tracked in their own category.
+- 🎓 **Research technique radar** — curated academic techniques (speculative decoding, PagedAttention, LoRA, ReAct…) get their own deterministic rings, scored by *which tracked tools already implement them* plus citation evidence — research verdicts move when tool verdicts move.
 
 Everything new degrades gracefully and stays off the critical path: enrichment (OSV/HN/downloads) and webhooks are best-effort and never fail a scan, and the default scoring path remains fully deterministic and offline.
 
@@ -97,6 +98,9 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | `radar sandbox --project X` | Disposable trial plan (steps, teardown, cautions). |
 | `radar seed add --id … --type … --project … --category … --url …` | Add a new source. |
 | `radar seed list` | List sources with type, category, flags, and dead-feed (stale) status. |
+| `radar research scan` | Score seeded research techniques: closed-loop vs the radar's own tool/model rings + citations (Semantic Scholar/OpenAlex, best-effort). |
+| `radar research list [--ring R] [--domain D]` | List techniques from the latest research scan. |
+| `radar research show <id>` | One technique: score breakdown, papers, implementations, ring history. |
 | `radar export --out _site` | Render a self-contained static HTML snapshot (+ change feeds). |
 | `radar serve [--port 8765]` | Run the local dashboard. |
 | `radar mcp` | Run the MCP server over stdio. |
