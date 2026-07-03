@@ -1,5 +1,7 @@
 """Momentum: 1-5 score + direction from technique metric history."""
 
+from __future__ import annotations
+
 from datetime import datetime
 
 from radar.research_radar.momentum import MomentumSignal, momentum_signal

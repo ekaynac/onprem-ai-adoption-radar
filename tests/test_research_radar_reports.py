@@ -1,5 +1,7 @@
 """Mover lines + markdown report for techniques."""
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
 
 from radar.models import Category, Ring

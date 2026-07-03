@@ -1,5 +1,7 @@
 """SQLite store of per-scan technique metrics (mirror of model_metrics_store)."""
 
+from __future__ import annotations
+
 from datetime import datetime
 
 from radar.storage.technique_metrics_store import TechniqueMetrics, TechniqueMetricsStore

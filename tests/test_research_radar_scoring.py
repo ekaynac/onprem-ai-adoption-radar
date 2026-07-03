@@ -1,5 +1,7 @@
 """Six scoring ladders + the technique ring gate, boundary by boundary."""
 
+from __future__ import annotations
+
 import pytest
 
 from radar.models import Category, Ring

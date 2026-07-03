@@ -1,5 +1,7 @@
 """post_with_retry: same 429/5xx semantics as get_with_retry, for POST endpoints."""
 
+from __future__ import annotations
+
 import pytest
 
 from radar.enrichment.retry import get_with_retry, post_with_retry

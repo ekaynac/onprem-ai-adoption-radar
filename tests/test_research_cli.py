@@ -1,10 +1,25 @@
 """CLI: radar research scan / list / show against a temp project root."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from radar.cli import app
+
+
+@pytest.fixture(autouse=True)
+def _no_live_citations(monkeypatch):
+    """Keep `research scan` offline: the pipeline imports fetch_citations into its
+    own namespace, so it must be patched there (not on radar.research_radar.citations)
+    to avoid live POSTs to api.semanticscholar.org during tests."""
+
+    async def _no_citations(arxiv_ids, client, contact_email=None):
+        return {}
+
+    monkeypatch.setattr("radar.research_radar.pipeline.fetch_citations", _no_citations)
 
 
 SEED = """
@@ -99,3 +114,41 @@ def test_research_show_unknown_id_fails(tmp_path):
     result = runner.invoke(app, ["research", "show", "nope", "--root", str(root)])
 
     assert result.exit_code == 1
+
+
+BAD_SEED_DUPLICATE_IDS = """
+techniques:
+  - id: qlora
+    name: QLoRA
+    category: ai_infrastructure
+    domain: fine_tuning
+    open_code: true
+    onprem_impact: reduces_memory
+  - id: qlora
+    name: QLoRA Duplicate
+    category: ai_infrastructure
+    domain: fine_tuning
+    open_code: true
+    onprem_impact: reduces_memory
+"""
+
+
+def test_research_scan_bad_seed_fails_clean_without_orphan_run_dir(tmp_path):
+    """A broken seed must be rejected before create_run(): no unhandled traceback,
+    and no orphaned data/runs/<id> directory left behind."""
+    runner = CliRunner()
+    root = tmp_path
+    (root / "config").mkdir()
+    (root / "config" / "technique-seed.yaml").write_text(
+        BAD_SEED_DUPLICATE_IDS, encoding="utf-8"
+    )
+    (root / "data").mkdir()
+
+    result = runner.invoke(app, ["research", "scan", "--root", str(root)])
+
+    assert result.exit_code == 1
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert "Duplicate technique ids" in result.output
+    assert "Traceback" not in result.output
+    runs_dir = root / "data" / "runs"
+    assert not runs_dir.exists() or list(runs_dir.iterdir()) == []

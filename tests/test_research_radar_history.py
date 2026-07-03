@@ -1,5 +1,7 @@
 """Technique ring-change events + append-only JSONL log."""
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
 
 from radar.models import Category, Ring

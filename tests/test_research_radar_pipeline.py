@@ -1,5 +1,7 @@
 """Pipeline integration: assemble → momentum → score → persist, offline determinism."""
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
 
 import pytest

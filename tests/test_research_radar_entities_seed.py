@@ -1,5 +1,7 @@
 """Schema layer: entities + technique-seed loader."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
@@ -87,6 +89,18 @@ def test_dangling_superseded_by_rejected(tmp_path):
     bad = VALID_SEED + "    superseded_by: not-a-technique\n"
     with pytest.raises(TechniqueSeedError, match="superseded_by"):
         load_technique_seed(_write(tmp_path, bad))
+
+
+def test_self_superseded_by_rejected(tmp_path):
+    bad = VALID_SEED + "    superseded_by: speculative-decoding\n"
+    with pytest.raises(TechniqueSeedError, match="own id"):
+        load_technique_seed(_write(tmp_path, bad))
+
+
+def test_non_mapping_top_level_rejected(tmp_path):
+    bare_list = "- id: speculative-decoding\n  name: Speculative Decoding\n"
+    with pytest.raises(TechniqueSeedError, match="mapping"):
+        load_technique_seed(_write(tmp_path, bare_list))
 
 
 def test_superseded_by_resolving_to_seeded_id_is_accepted(tmp_path):
