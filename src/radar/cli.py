@@ -1104,6 +1104,18 @@ def export(
     if model_history_src.exists():
         shutil.copy2(model_history_src, out / "model-history.jsonl")
 
+    # Technique entries + events (optional: only present after a `radar research scan`).
+    from radar.mcp_server.technique_queries import _latest_technique_cards
+    from radar.research_radar.entities import TechniqueEntry
+    from radar.research_radar.history import load_technique_events as _load_tech_events
+
+    technique_entries = [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+    technique_events = _load_tech_events(root / "data" / "technique-history.jsonl")
+
+    technique_history_src = root / "data" / "technique-history.jsonl"
+    if technique_history_src.exists():
+        shutil.copy2(technique_history_src, out / "technique-history.jsonl")
+
     index = render_static_site(
         cards,
         out,
@@ -1116,6 +1128,8 @@ def export(
         source_health=source_health_view,
         model_entries=model_entries or None,
         model_events=model_events or None,
+        technique_entries=technique_entries or None,
+        technique_events=technique_events or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

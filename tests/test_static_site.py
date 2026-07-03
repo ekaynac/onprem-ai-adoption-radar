@@ -367,3 +367,67 @@ def test_models_page_is_styled_and_filterable(tmp_path):
     # "Models" nav link in the dashboard
     index_html = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
     assert 'href="models.html"' in index_html
+
+
+def _technique_entry():
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import (
+        OnPremImpact,
+        PaperLink,
+        TechniqueDomain,
+        TechniqueEntry,
+    )
+
+    return TechniqueEntry(
+        id="speculative-decoding", name="Speculative Decoding",
+        category=Category.MODEL_SERVING, domain=TechniqueDomain.INFERENCE,
+        onprem_impact=OnPremImpact.REDUCES_LATENCY, ring=Ring.ADOPT, score=4.3,
+        citation_count=1697,
+        papers=[PaperLink(arxiv_id="2211.17192", title="Fast Inference", published="2022-11")],
+    )
+
+
+def _technique_event():
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.research_radar.entities import TechniqueDomain
+    from radar.research_radar.history import TechniqueHistoryEvent
+    from radar.storage.history_store import ChangeType
+
+    return TechniqueHistoryEvent(
+        technique_id="speculative-decoding", domain=TechniqueDomain.INFERENCE,
+        change_type=ChangeType.NEW, ring=Ring.ADOPT, run_id="run-1",
+        observed_at=datetime(2026, 7, 3, 10, 0, tzinfo=UTC),
+    )
+
+
+def test_static_site_renders_research_section(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 3, tzinfo=UTC),
+        technique_entries=[_technique_entry()], technique_events=[_technique_event()],
+    )
+    site = tmp_path / "_site"
+
+    techniques_html = (site / "techniques.html").read_text(encoding="utf-8")
+    assert "Speculative Decoding" in techniques_html
+    assert 'href="technique_speculative-decoding.html"' in techniques_html
+    detail_html = (site / "technique_speculative-decoding.html").read_text(encoding="utf-8")
+    assert "2211.17192" in detail_html
+    assert "canonical paper" in detail_html  # timeline rendered
+    assert 'href="techniques.html"' in detail_html  # static back-link
+    assert (site / "changes-research.xml").exists()
+    assert "urn:radar-technique:speculative-decoding" in (
+        site / "changes-research.json").read_text(encoding="utf-8")
+    index_html = (site / "index.html").read_text(encoding="utf-8")
+    assert "Research: 1 techniques" in index_html
+    assert 'href="techniques.html"' in index_html
+
+
+def test_static_site_backcompat_without_techniques(tmp_path):
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 3, tzinfo=UTC))
+    site = tmp_path / "_site"
+
+    assert not (site / "techniques.html").exists()
+    assert not (site / "changes-research.xml").exists()
+    assert (site / "index.html").exists()
