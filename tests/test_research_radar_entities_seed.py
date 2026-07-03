@@ -136,3 +136,21 @@ def test_resolved_implementation_carries_ring():
 def test_paper_link_rejects_unknown_fields():
     with pytest.raises(ValidationError):
         PaperLink(arxiv_id="1", title="t", doi="nope")  # type: ignore[call-arg]
+
+
+def test_packaged_starter_seed_loads_and_is_coherent():
+    packaged = Path(__file__).resolve().parents[1] / "config" / "technique-seed.yaml"
+
+    seeds = load_technique_seed(packaged)
+
+    assert len(seeds) >= 15
+    assert len({s.id for s in seeds}) == len(seeds)
+    domains = {s.domain for s in seeds}
+    assert TechniqueDomain.INFERENCE in domains
+    assert TechniqueDomain.FINE_TUNING in domains
+    assert TechniqueDomain.AGENT_ARCHITECTURE in domains
+    assert TechniqueDomain.RAG in domains
+    # every technique with papers has exactly one canonical paper
+    for seed in seeds:
+        if seed.papers:
+            assert sum(1 for p in seed.papers if p.role.value == "canonical") == 1

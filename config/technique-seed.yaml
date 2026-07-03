@@ -1,0 +1,262 @@
+# Starter technique seed — curated evidence-linked research techniques.
+# implementations[].ref must be a source id (kind: tool) from
+# config/seed-sources.yaml / data/config.yaml, or a model id (kind: model)
+# from config/model-seed.yaml. Expansion to 60-100 techniques is a separate
+# curated pass (spec §8).
+techniques:
+  - id: speculative-decoding
+    name: Speculative Decoding
+    category: model_serving
+    domain: inference
+    aliases: ["speculative sampling", "draft model decoding"]
+    papers:
+      - arxiv_id: "2211.17192"
+        title: "Fast Inference from Transformers via Speculative Decoding"
+        published: "2022-11"
+      - arxiv_id: "2302.01318"
+        title: "Accelerating Large Language Model Decoding with Speculative Sampling"
+        role: followup
+        published: "2023-02"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-sglang
+      - kind: tool
+        ref: github-llama-cpp
+      - kind: tool
+        ref: github-tensorrt-llm
+    open_code: true
+    onprem_impact: reduces_latency
+
+  - id: paged-attention
+    name: PagedAttention
+    category: model_serving
+    domain: inference
+    aliases: ["paged KV cache"]
+    papers:
+      - arxiv_id: "2309.06180"
+        title: "Efficient Memory Management for Large Language Model Serving with PagedAttention"
+        published: "2023-09"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-tensorrt-llm
+      - kind: tool
+        ref: github-lmdeploy
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: flash-attention
+    name: FlashAttention
+    category: model_serving
+    domain: inference
+    papers:
+      - arxiv_id: "2205.14135"
+        title: "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness"
+        published: "2022-05"
+      - arxiv_id: "2307.08691"
+        title: "FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning"
+        role: followup
+        published: "2023-07"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-sglang
+      - kind: tool
+        ref: github-tensorrt-llm
+    open_code: true
+    onprem_impact: reduces_latency
+
+  - id: mixture-of-experts
+    name: Mixture of Experts (sparse routing)
+    category: model_serving
+    domain: inference
+    aliases: ["MoE", "sparse expert models"]
+    papers:
+      - arxiv_id: "2101.03961"
+        title: "Switch Transformers: Scaling to Trillion Parameter Models"
+        published: "2021-01"
+      - arxiv_id: "2401.04088"
+        title: "Mixtral of Experts"
+        role: followup
+        published: "2024-01"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: model
+        ref: qwen3-30b-a3b
+    open_code: true
+    onprem_impact: enables_scale
+
+  - id: medusa-decoding
+    name: Medusa (multi-head decoding)
+    category: model_serving
+    domain: inference
+    papers:
+      - arxiv_id: "2401.10774"
+        title: "Medusa: Simple LLM Inference Acceleration Framework with Multiple Decoding Heads"
+        published: "2024-01"
+    implementations:
+      - kind: tool
+        ref: github-tensorrt-llm
+    open_code: true
+    onprem_impact: reduces_latency
+
+  - id: structured-generation
+    name: Structured / Constrained Generation
+    category: model_serving
+    domain: inference
+    aliases: ["guided decoding", "grammar-constrained decoding"]
+    papers:
+      - arxiv_id: "2307.09702"
+        title: "Efficient Guided Generation for Large Language Models"
+        published: "2023-07"
+    implementations:
+      - kind: tool
+        ref: github-sglang
+      - kind: tool
+        ref: github-vllm
+    open_code: true
+    onprem_impact: improves_safety
+
+  - id: gptq
+    name: GPTQ Quantization
+    category: model_serving
+    domain: inference
+    papers:
+      - arxiv_id: "2210.17323"
+        title: "GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers"
+        published: "2022-10"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: awq
+    name: AWQ (Activation-aware Weight Quantization)
+    category: model_serving
+    domain: inference
+    papers:
+      - arxiv_id: "2306.00978"
+        title: "AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration"
+        published: "2023-06"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-lmdeploy
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: lora
+    name: LoRA (Low-Rank Adaptation)
+    category: ai_infrastructure
+    domain: fine_tuning
+    papers:
+      - arxiv_id: "2106.09685"
+        title: "LoRA: Low-Rank Adaptation of Large Language Models"
+        published: "2021-06"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-llama-cpp
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: qlora
+    name: QLoRA (Quantized LoRA fine-tuning)
+    category: ai_infrastructure
+    domain: fine_tuning
+    papers:
+      - arxiv_id: "2305.14314"
+        title: "QLoRA: Efficient Finetuning of Quantized LLMs"
+        published: "2023-05"
+    open_code: true
+    onprem_impact: reduces_memory
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: dpo
+    name: DPO (Direct Preference Optimization)
+    category: ai_infrastructure
+    domain: fine_tuning
+    papers:
+      - arxiv_id: "2305.18290"
+        title: "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+        published: "2023-05"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: react
+    name: ReAct (Reason + Act)
+    category: agent_frameworks
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2210.03629"
+        title: "ReAct: Synergizing Reasoning and Acting in Language Models"
+        published: "2022-10"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+      - kind: tool
+        ref: github-crewai
+      - kind: tool
+        ref: github-agno
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: reflexion
+    name: Reflexion (self-reflection loops)
+    category: agent_frameworks
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2303.11366"
+        title: "Reflexion: Language Agents with Verbal Reinforcement Learning"
+        published: "2023-03"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: llm-tool-use
+    name: LLM Tool Use / Function Calling
+    category: agent_frameworks
+    domain: agent_architecture
+    aliases: ["function calling", "tool calling"]
+    papers:
+      - arxiv_id: "2302.04761"
+        title: "Toolformer: Language Models Can Teach Themselves to Use Tools"
+        published: "2023-02"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+      - kind: tool
+        ref: github-pydantic-ai
+      - kind: tool
+        ref: github-autogen
+    open_code: false
+    onprem_impact: improves_quality
+    notes: "Canonical paper has no official public code; adoption evidence is the impls."
+
+  - id: rag
+    name: Retrieval-Augmented Generation
+    category: ai_infrastructure
+    domain: rag
+    aliases: ["RAG"]
+    papers:
+      - arxiv_id: "2005.11401"
+        title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"
+        published: "2020-05"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+      - kind: tool
+        ref: github-crewai
+    open_code: true
+    onprem_impact: improves_quality
