@@ -15,12 +15,14 @@ from mcp.server.fastmcp import FastMCP
 
 from radar.mcp_server.model_queries import ModelQueryService
 from radar.mcp_server.queries import RadarQueryService
+from radar.mcp_server.technique_queries import TechniqueQueryService
 
 
 def build_mcp_server(root: Path) -> FastMCP:
     """Build a FastMCP server backed by the radar state under ``root``."""
     service = RadarQueryService(root)
     models = ModelQueryService(root)
+    techniques = TechniqueQueryService(root)
     mcp = FastMCP("onprem-ai-adoption-radar")
 
     @mcp.tool()
@@ -112,6 +114,27 @@ def build_mcp_server(root: Path) -> FastMCP:
     def fit_report(device: str | dict, context_tokens: int = 4096) -> list[dict]:
         """Per-model fit verdicts for a device (preset id or custom spec)."""
         return models.device_fit_report(device, context_tokens)
+
+    @mcp.tool()
+    def list_techniques(
+        ring: str | None = None,
+        domain: str | None = None,
+        category: str | None = None,
+        detail: str = "compact",
+    ) -> list[dict]:
+        """Research techniques with rings (compact rows; detail='full' for everything)."""
+        return techniques.list_techniques(ring=ring, domain=domain,
+                                          category=category, detail=detail)
+
+    @mcp.tool()
+    def get_technique(technique_id: str) -> dict | None:
+        """One technique: score breakdown, papers, implementations, history, momentum."""
+        return techniques.get_technique(technique_id)
+
+    @mcp.tool()
+    def technique_movers() -> list[dict]:
+        """Recent technique ring changes, newest first."""
+        return techniques.technique_movers()
 
     return mcp
 

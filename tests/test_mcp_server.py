@@ -88,3 +88,52 @@ def test_server_registers_device_tools(tmp_path: Path):
     _seed_models(tmp_path)
     names = {t.name for t in asyncio.run(build_mcp_server(tmp_path).list_tools())}
     assert {"list_devices", "can_run", "fit_report"} <= names
+
+
+def _seed_techniques(root: Path) -> None:
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry
+    from radar.storage.run_store import RunStore
+
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    entry = TechniqueEntry(
+        id="speculative-decoding", name="Speculative Decoding",
+        category=Category.MODEL_SERVING, domain=TechniqueDomain.INFERENCE,
+        onprem_impact=OnPremImpact.REDUCES_LATENCY, ring=Ring.ADOPT, score=4.3,
+        citation_count=1697,
+    )
+    store = RunStore(root / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+
+
+def test_server_registers_technique_tools(tmp_path: Path):
+    _seed_techniques(tmp_path)
+    server = build_mcp_server(tmp_path)
+
+    names = {t.name for t in asyncio.run(server.list_tools())}
+
+    assert {"list_techniques", "get_technique", "technique_movers"} <= names
+
+
+def test_list_techniques_tool_returns_compact_rows(tmp_path: Path):
+    _seed_techniques(tmp_path)
+    server = build_mcp_server(tmp_path)
+
+    result = asyncio.run(server.call_tool("list_techniques", {"ring": "adopt"}))
+    payload = result[1].get("result", result[1])
+
+    assert any(item["id"] == "speculative-decoding" for item in payload)
+
+
+def test_get_technique_tool_full_payload(tmp_path: Path):
+    _seed_techniques(tmp_path)
+    server = build_mcp_server(tmp_path)
+
+    result = asyncio.run(server.call_tool("get_technique",
+                                          {"technique_id": "speculative-decoding"}))
+    payload = result[1].get("result", result[1])
+
+    assert payload["citation_count"] == 1697
+    assert "momentum" in payload
