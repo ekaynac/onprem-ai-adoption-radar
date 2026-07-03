@@ -63,7 +63,10 @@ def score_technique_entries(
             entry.citation_source, len(entry.resolved_implementations),
         )
         breakdown = score_technique(entry, momentum)
-        ring = technique_ring(breakdown, len(entry.resolved_implementations))
+        ring = technique_ring(
+            breakdown, len(entry.resolved_implementations),
+            superseded=entry.superseded_by is not None,
+        )
         scored.append(entry.model_copy(update={
             "score": breakdown.average, "score_breakdown": breakdown, "ring": ring,
         }))

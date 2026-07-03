@@ -97,3 +97,17 @@ def test_new_impl_wins_over_negative_velocity():
 
     assert signal.score == 5
     assert signal.direction == "rising"
+
+
+def test_lost_impl_with_flat_growth_falls_to_2():
+    signal = momentum_signal("t", [_row(100, impls=3)], 100, "s2", impl_count=2)
+
+    assert signal.score == 2
+    assert signal.direction == "falling"
+
+
+def test_lost_impl_with_rising_citations_still_falls():
+    signal = momentum_signal("t", [_row(100, impls=3)], 120, "s2", impl_count=2)
+
+    assert signal.score == 2
+    assert signal.direction == "falling"
