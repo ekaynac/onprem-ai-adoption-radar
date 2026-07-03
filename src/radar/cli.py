@@ -29,6 +29,8 @@ seed_app = typer.Typer(help="Manage signal sources (seeds).", no_args_is_help=Tr
 app.add_typer(seed_app, name="seed")
 models_app = typer.Typer(help="Local-model radar (catalog + specs).", no_args_is_help=True)
 app.add_typer(models_app, name="models")
+research_app = typer.Typer(help="Academic research radar (techniques).", no_args_is_help=True)
+app.add_typer(research_app, name="research")
 console = Console()
 
 
@@ -491,6 +493,145 @@ def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> N
             f"min~{min_mem:<9} {arrow} {m.family}",
             highlight=False,
         )
+
+
+@research_app.command("scan")
+def research_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+    """Score seeded techniques against the radar's own catalogs + citations."""
+    import asyncio
+    import os
+
+    import httpx
+
+    from radar.research_radar.pipeline import momentum_for, run_research_scan
+    from radar.research_radar.reports import build_technique_mover_lines, render_technique_report
+    from radar.storage.run_store import RunStore
+
+    seed_path = root / "config" / "technique-seed.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "technique-seed.yaml"
+    model_seed_path = root / "config" / "model-seed.yaml"
+    if not model_seed_path.exists():
+        model_seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+
+    run_store = RunStore(root / "data" / "runs")
+    run_id = run_store.create_run()
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await run_research_scan(
+                seed_path=seed_path,
+                config_path=root / "data" / "config.yaml",
+                db_path=root / "data" / "radar.db",
+                model_seed_path=model_seed_path,
+                model_history_path=root / "data" / "model-history.jsonl",
+                history_path=root / "data" / "technique-history.jsonl",
+                client=client,
+                contact_email=os.environ.get("RADAR_CONTACT_EMAIL"),
+                run_id=run_id,
+            )
+
+    entries, events = asyncio.run(_run())
+    momentums = momentum_for(entries, root / "data" / "radar.db")
+    report = render_technique_report(
+        entries, build_technique_mover_lines(events, list(momentums.values())),
+        "Academic Research Radar",
+    )
+    run_store.save_stage(run_id, "technique_cards", [e.model_dump(mode="json") for e in entries])
+    run_store.save_report(run_id, report)
+    run_store.update_meta(run_id, {"kind": "research", "technique_count": len(entries)})
+    warned = sum(1 for e in entries if e.warnings)
+    suffix = f" ({warned} with warnings)" if warned else ""
+    console.print(f"Scanned {len(entries)} technique(s) → run {run_id}{suffix}")
+
+
+@research_app.command("list")
+def research_list(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    ring: str = typer.Option("", help="Filter by ring: adopt|pilot|watch|avoid."),
+    domain: str = typer.Option("", help="Filter by domain, e.g. inference."),
+    category: str = typer.Option("", help="Filter by radar category."),
+) -> None:
+    """List techniques from the latest research scan."""
+    entries = _latest_technique_entries(root)
+    if entries is None:
+        console.print(
+            "[yellow]No research scan yet. Run [bold]radar research scan[/bold] first.[/yellow]"
+        )
+        return
+    if ring:
+        entries = [e for e in entries if e.ring and e.ring.value == ring.lower()]
+    if domain:
+        entries = [e for e in entries if e.domain.value == domain.lower()]
+    if category:
+        entries = [e for e in entries if e.category.value == category.lower()]
+    console.print(f"{len(entries)} technique(s):")
+    for e in entries:
+        ring_label = e.ring.value if e.ring else "-"
+        citations = str(e.citation_count) if e.citation_count is not None else "?"
+        console.print(
+            f"  {e.id:<26} {ring_label:<7} {e.domain.value:<18} "
+            f"impls={len(e.resolved_implementations):<3} citations={citations}",
+            highlight=False, soft_wrap=True,
+        )
+
+
+@research_app.command("show")
+def research_show(
+    technique_id: str = typer.Argument(..., help="Technique id, e.g. speculative-decoding."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """One technique: score breakdown, papers, implementations, ring history."""
+    from radar.research_radar.history import load_technique_events
+
+    entries = _latest_technique_entries(root)
+    if entries is None:
+        console.print(
+            "[yellow]No research scan yet. Run [bold]radar research scan[/bold] first.[/yellow]"
+        )
+        return
+    matches = [e for e in entries if e.id == technique_id]
+    if not matches:
+        console.print(f"[red]Unknown technique id:[/red] {technique_id}")
+        raise typer.Exit(code=1)
+    entry = matches[0]
+    ring = entry.ring.value if entry.ring else "-"
+    console.print(f"[bold]{entry.name}[/bold] ({entry.domain.value}) · ring: {ring}")
+    if entry.score_breakdown is not None:
+        b = entry.score_breakdown
+        console.print(
+            f"  breadth={b.implementation_breadth} maturity={b.implementation_maturity} "
+            f"validation={b.validation} reproducibility={b.reproducibility} "
+            f"momentum={b.momentum} onprem={b.onprem_impact} avg={b.average}"
+        )
+    for paper in entry.papers:
+        console.print(f"  paper [{paper.role.value}] {paper.arxiv_id}: {paper.title}")
+    for impl in entry.resolved_implementations:
+        impl_ring = impl.ring.value if impl.ring else "unringed"
+        console.print(f"  impl [{impl.kind.value}] {impl.ref} ({impl_ring})")
+    for warning in entry.warnings:
+        console.print(f"  [yellow]warning:[/yellow] {warning}")
+    events = [e for e in load_technique_events(root / "data" / "technique-history.jsonl")
+              if e.technique_id == technique_id]
+    for event in events:
+        console.print(
+            f"  {event.observed_at.date()} {event.change_type.value} → {event.ring.value}"
+        )
+
+
+def _latest_technique_entries(root: Path):
+    import json as _json
+
+    from radar.research_radar.entities import TechniqueEntry as _TE
+    from radar.storage.run_store import RunStore
+
+    run_store = RunStore(root / "data" / "runs")
+    for rid in reversed(run_store.list_runs()):
+        if run_store.read_meta(rid).get("kind") == "research":
+            cards_path = run_store._run_dir(rid) / "technique_cards.json"
+            payload = _json.loads(cards_path.read_text(encoding="utf-8"))
+            return [_TE.model_validate(item) for item in payload]
+    return None
 
 
 @app.command()
