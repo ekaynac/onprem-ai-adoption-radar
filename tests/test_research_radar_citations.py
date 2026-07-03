@@ -135,3 +135,19 @@ async def test_empty_input_makes_no_requests():
     assert records == {}
     assert client.post_urls == []
     assert client.get_urls == []
+
+
+@pytest.mark.asyncio
+async def test_openalex_keeps_earlier_chunks_when_later_chunk_fails():
+    """>50 ids = 2 chunks; the second chunk's failure must not discard the first."""
+    ids = [f"24{i:02d}.{i:05d}" for i in range(51)]
+    ok_first_chunk = _Response({"results": [
+        {"doi": "https://doi.org/10.48550/arxiv." + ids[0], "cited_by_count": 7,
+         "primary_location": {"source": {"display_name": "arXiv (Cornell University)"}}},
+    ]})
+    client = _Client(post_responses=[], get_responses=[ok_first_chunk])  # 2nd get raises
+
+    records = await fetch_citations(ids, client)
+
+    assert len(client.get_urls) == 2  # both chunks attempted
+    assert records[ids[0]].citation_count == 7

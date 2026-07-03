@@ -94,30 +94,42 @@ async def _from_openalex(
     records: dict[str, CitationRecord] = {}
     for start in range(0, len(arxiv_ids), OPENALEX_BATCH_SIZE):
         chunk = arxiv_ids[start:start + OPENALEX_BATCH_SIZE]
-        dois = "|".join(f"doi:10.48550/arXiv.{arxiv_id}" for arxiv_id in chunk)
-        params: dict[str, str] = {
-            "filter": dois,
-            "select": "doi,cited_by_count,primary_location",
-            "per-page": str(OPENALEX_BATCH_SIZE),
-        }
-        if contact_email:
-            params["mailto"] = contact_email
-        response = await get_with_retry(
-            client, OPENALEX_WORKS_URL, label="openalex", params=params,
+        try:
+            records.update(await _openalex_chunk(chunk, client, contact_email))
+        except Exception as exc:  # keep earlier chunks: OpenAlex is the last fallback
+            logger.warning("OpenAlex chunk failed (%d ids): %s", len(chunk), exc)
+    return records
+
+
+async def _openalex_chunk(
+    chunk: list[str], client: Any, contact_email: str | None,
+) -> dict[str, CitationRecord]:
+    """Fetch and parse a single OpenAlex batch (up to 50 ids)."""
+    records: dict[str, CitationRecord] = {}
+    dois = "|".join(f"doi:10.48550/arXiv.{arxiv_id}" for arxiv_id in chunk)
+    params: dict[str, str] = {
+        "filter": dois,
+        "select": "doi,cited_by_count,primary_location",
+        "per-page": str(OPENALEX_BATCH_SIZE),
+    }
+    if contact_email:
+        params["mailto"] = contact_email
+    response = await get_with_retry(
+        client, OPENALEX_WORKS_URL, label="openalex", params=params,
+    )
+    for item in response.json().get("results") or []:
+        arxiv_id = _arxiv_id_from_doi(str(item.get("doi") or ""))
+        if arxiv_id is None:
+            continue
+        source = (item.get("primary_location") or {}).get("source") or {}
+        venue = (source.get("display_name") or "").strip() or None
+        records[arxiv_id] = CitationRecord(
+            arxiv_id=arxiv_id,
+            citation_count=int(item.get("cited_by_count") or 0),
+            venue=venue,
+            peer_reviewed=_is_peer_reviewed(venue),
+            source="openalex",
         )
-        for item in response.json().get("results") or []:
-            arxiv_id = _arxiv_id_from_doi(str(item.get("doi") or ""))
-            if arxiv_id is None:
-                continue
-            source = (item.get("primary_location") or {}).get("source") or {}
-            venue = (source.get("display_name") or "").strip() or None
-            records[arxiv_id] = CitationRecord(
-                arxiv_id=arxiv_id,
-                citation_count=int(item.get("cited_by_count") or 0),
-                venue=venue,
-                peer_reviewed=_is_peer_reviewed(venue),
-                source="openalex",
-            )
     return records
 
 
