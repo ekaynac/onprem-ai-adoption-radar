@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from collections.abc import Awaitable, Callable
 from typing import Any, Protocol
 
 
@@ -24,12 +25,16 @@ RETRY_BASE_SECONDS = 0.5
 RETRY_MAX_SLEEP_SECONDS = 5.0
 
 
-class _AsyncClient(Protocol):
+class _AsyncGetClient(Protocol):
     async def get(self, url: str, **kwargs: Any) -> Any: ...
 
 
+class _AsyncPostClient(Protocol):
+    async def post(self, url: str, **kwargs: Any) -> Any: ...
+
+
 async def get_with_retry(
-    client: _AsyncClient,
+    client: _AsyncGetClient,
     url: str,
     *,
     label: str = "request",
@@ -40,8 +45,23 @@ async def get_with_retry(
     ``label`` only colors the retry log line. Extra kwargs (``params``,
     ``follow_redirects``, ...) are forwarded verbatim to ``client.get``.
     """
+    return await _retry_loop(lambda: client.get(url, **kwargs), label)
+
+
+async def post_with_retry(
+    client: _AsyncPostClient,
+    url: str,
+    *,
+    label: str = "request",
+    **kwargs: Any,
+) -> Any:
+    """POST ``url`` (passing ``kwargs`` through), retrying 429/5xx before raising."""
+    return await _retry_loop(lambda: client.post(url, **kwargs), label)
+
+
+async def _retry_loop(send: Callable[[], Awaitable[Any]], label: str) -> Any:
     for attempt in range(MAX_RETRIES + 1):
-        response = await client.get(url, **kwargs)
+        response = await send()
         status = getattr(response, "status_code", 200)
         if status not in RETRYABLE_STATUS or attempt == MAX_RETRIES:
             response.raise_for_status()
