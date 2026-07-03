@@ -145,3 +145,11 @@ def test_ring_pilot_and_watch_thresholds():
     assert technique_ring(_score(3.0), resolved_count=2) == Ring.PILOT
     assert technique_ring(_score(2.9), resolved_count=2) == Ring.WATCH
     assert technique_ring(_score(1.9), resolved_count=2) == Ring.AVOID
+
+
+def test_ring_superseded_capped_at_watch_even_when_adopt_worthy():
+    assert technique_ring(_score(4.8, maturity=5), resolved_count=3, superseded=True) == Ring.WATCH
+
+
+def test_ring_superseded_avoid_still_reachable():
+    assert technique_ring(_score(1.5), resolved_count=3, superseded=True) == Ring.AVOID

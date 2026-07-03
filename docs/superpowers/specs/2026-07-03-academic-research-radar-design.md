@@ -131,7 +131,7 @@ the research scan).
 | `implementation_maturity` | offline, own catalog | ≥2 adopt-ring impls→5, 1 adopt→4, best is pilot→3, watch only→2, none/unringed→1 |
 | `validation` | citations + venue (enriched) | peer-reviewed + citations ≥500→5; ≥100→4; ≥25 or peer-reviewed→3; preprint <25→2; no data→**neutral 2**; `superseded_by` set→**forced 1** |
 | `reproducibility` | seed + impls | `open_code` and ≥1 resolved tool impl→5; `open_code` only→4; impl only→3; neither→1 |
-| `momentum` | technique-metrics store | new resolved impl since last scan→5; citation velocity above threshold→4; steady→3; velocity negative→2; velocity negative *and* a previously-resolved impl gone→1 (defaults; constants tunable) |
+| `momentum` | technique-metrics store | new resolved impl since last scan→5; citation velocity above threshold→4; steady→3; velocity negative→2; a previously-resolved impl gone→2 (falling) even when citations are flat or rising, →1 when citations are also falling (defaults; constants tunable) |
 | `onprem_impact` | curated seed enum | `reduces_memory`→5, `reduces_latency`→5, `enables_scale`→4, `improves_safety`→4, `improves_quality`→3 |
 
 Exact citation thresholds and the maturity weighting live as module constants
@@ -143,9 +143,12 @@ Ring gate (`technique_ring`, mirrors `model_ring`'s absolute-gates style):
   adopt what you cannot run on-prem, regardless of citations; AVOID remains
   reachable below the cap). Every entry in the tool/model catalogs is
   on-prem-runnable by construction, so any resolved link satisfies the cap.
+- **`superseded_by` set → cannot rank above WATCH** (a technique with a named
+  successor is never an adopt/pilot call, however broadly implemented; the
+  card names the successor). Combined with the forced `validation=1`, heavily
+  superseded techniques sink toward AVOID, which stays reachable below the cap.
 - `average ≥ 4.0` **and** `implementation_maturity ≥ 4` → **ADOPT**.
-- `average < 2.0` → **AVOID** (superseded techniques land here via the
-  forced `validation=1` plus low momentum; the card names the successor).
+- `average < 2.0` → **AVOID**.
 - `average ≥ 3.0` → **PILOT**, else **WATCH**.
 
 Closed loop: `implementation_maturity` reads the **latest tool decision cards
@@ -198,8 +201,12 @@ writing (research step), not assumed.
   ring, name, domain, breadth, maturity, citations, momentum.
 - `radar research show <id>` — one technique: score breakdown, papers,
   resolved implementations with their rings, warnings, ring history.
-- Report integration: a "Research" section in `radar report` output listing
-  ring counts + movers, same shape as the Models section.
+- Report artifact: each research scan saves a markdown report (movers +
+  technique table) into its run directory via the run store. (An earlier
+  draft said "a Research section in `radar report`, same shape as the Models
+  section" — that premise was wrong: `radar report` renders tool cards only
+  and has no Models section either. Dashboard/static-site Research sections
+  are sub-project 2.)
 
 ## 6. Error handling
 
@@ -247,6 +254,13 @@ implementations → low breadth/maturity → WATCH by construction.
   research→production timeline per technique rendered from paper dates,
   implementation appearance in metrics, and `technique-history.jsonl`; MCP
   `list_techniques` / `get_technique` / `technique_movers`; change feeds.
+  Known items to address in this sub-project: CI wiring for
+  `radar research scan` in publish.yml (commit `technique-history.jsonl`
+  like the model history); the citation-velocity limitation that `radar.db`
+  is not persisted across CI runs (published momentum would always read
+  "first scan" — needs a persistence decision); and the pre-existing
+  scan-health panel reading the latest run of *any* kind (should filter to
+  tool-scan runs now that a third run kind exists).
 - **Cross-linking**: tool/model cards show canonical papers + citation
   velocity + "implements N techniques (rings)"; research pedigree becomes an
   evidence line on tool cards (never a hard score input without its own

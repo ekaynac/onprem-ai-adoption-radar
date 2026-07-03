@@ -41,12 +41,19 @@ def momentum_signal(
             citation_growth_pct=growth,
             note=f"+{impl_delta} tracked implementation(s) since last scan.",
         )
-    if growth is not None and growth < 0:
-        lost = impl_delta is not None and impl_delta < 0
+    if impl_delta is not None and impl_delta < 0:
+        falling_too = growth is not None and growth < 0
         return MomentumSignal(
-            technique_id=technique_id, score=1 if lost else 2, direction="falling",
+            technique_id=technique_id, score=1 if falling_too else 2, direction="falling",
             citation_growth_pct=growth,
-            note="Citations falling" + (" and an implementation dropped." if lost else "."),
+            note="Tracked implementation dropped"
+            + (" and citations falling." if falling_too else "."),
+        )
+    if growth is not None and growth < 0:
+        return MomentumSignal(
+            technique_id=technique_id, score=2, direction="falling",
+            citation_growth_pct=growth,
+            note="Citations falling.",
         )
     if growth is not None and growth >= CITATION_RISING_PCT:
         return MomentumSignal(

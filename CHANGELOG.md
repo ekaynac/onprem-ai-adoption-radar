@@ -26,6 +26,17 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Academic research radar (core)** — research techniques are now a third
+  ringed decision surface alongside tools and models. A curated
+  `config/technique-seed.yaml` (15 techniques, live-verified arXiv ids) is
+  scored on six deterministic dimensions; the key two are **closed-loop**:
+  implementation breadth and maturity are computed offline from the radar's
+  own tool cards and model history, so research verdicts move when tool
+  verdicts move. Citations enrich best-effort (Semantic Scholar batch →
+  OpenAlex fallback, same-source-only velocity); zero-implementation or
+  superseded techniques cannot rank above `watch`. New CLI:
+  `radar research scan | list | show`, per-scan metrics in `radar.db`, and an
+  append-only `data/technique-history.jsonl` ring timeline.
 - **RSS 2.0 change feed** — the static site now also publishes `changes.rss`
   alongside the existing `changes.xml` (Atom) and `changes.json`, built from the
   same ring-change timeline (newest-first, capped at `_FEED_LIMIT`). Each

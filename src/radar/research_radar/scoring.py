@@ -48,12 +48,13 @@ def score_technique(entry: TechniqueEntry, momentum: MomentumSignal) -> Techniqu
     )
 
 
-def technique_ring(score: TechniqueScore, resolved_count: int) -> Ring:
-    """Absolute gates. The zero-implementation cap comes after AVOID on purpose:
-    you cannot adopt what you cannot run on-prem, but AVOID stays reachable."""
+def technique_ring(score: TechniqueScore, resolved_count: int, superseded: bool = False) -> Ring:
+    """Absolute gates. The WATCH caps come after AVOID on purpose: you cannot
+    adopt what you cannot run on-prem — or what has a named successor — but
+    AVOID stays reachable below both caps."""
     if score.average < 2.0:
         return Ring.AVOID
-    if resolved_count == 0:
+    if superseded or resolved_count == 0:
         return Ring.WATCH
     if score.average >= 4.0 and score.implementation_maturity >= 4:
         return Ring.ADOPT
