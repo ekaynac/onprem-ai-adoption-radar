@@ -99,7 +99,7 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | `radar seed add --id … --type … --project … --category … --url …` | Add a new source. |
 | `radar seed list` | List sources with type, category, flags, and dead-feed (stale) status. |
 | `radar research scan` | Score seeded research techniques: closed-loop vs the radar's own tool/model rings + citations (Semantic Scholar/OpenAlex, best-effort). |
-| `radar research list [--ring R] [--domain D]` | List techniques from the latest research scan. |
+| `radar research list [--ring R] [--domain D] [--category C]` | List techniques from the latest research scan. |
 | `radar research show <id>` | One technique: score breakdown, papers, implementations, ring history. |
 | `radar export --out _site` | Render a self-contained static HTML snapshot (+ change feeds). |
 | `radar serve [--port 8765]` | Run the local dashboard. |
