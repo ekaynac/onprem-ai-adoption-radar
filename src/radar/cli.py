@@ -505,6 +505,7 @@ def research_scan(root: Path = typer.Option(Path("."), help="Project root.")) ->
 
     from radar.research_radar.pipeline import momentum_for, run_research_scan
     from radar.research_radar.reports import build_technique_mover_lines, render_technique_report
+    from radar.research_radar.seed import TechniqueSeedError, load_technique_seed
     from radar.storage.run_store import RunStore
 
     seed_path = root / "config" / "technique-seed.yaml"
@@ -513,6 +514,12 @@ def research_scan(root: Path = typer.Option(Path("."), help="Project root.")) ->
     model_seed_path = root / "config" / "model-seed.yaml"
     if not model_seed_path.exists():
         model_seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+
+    try:
+        load_technique_seed(seed_path)
+    except TechniqueSeedError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
 
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
