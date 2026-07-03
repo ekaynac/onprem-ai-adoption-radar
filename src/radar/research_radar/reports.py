@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Any
+
 from radar.research_radar.entities import TechniqueEntry
 from radar.research_radar.history import TechniqueHistoryEvent
 from radar.research_radar.momentum import MomentumSignal
@@ -58,3 +61,50 @@ def render_technique_report(
         )
     out.append("")
     return "\n".join(out)
+
+
+def _feed_event_title(ev: Any) -> str:
+    """Format a technique ring-change event as a feed title line."""
+    prev = ev.previous_ring.value if ev.previous_ring else None
+    if prev:
+        return f"{ev.technique_id}: {prev} → {ev.ring.value} ({ev.change_type.value})"
+    return f"{ev.technique_id}: {ev.change_type.value} ({ev.ring.value})"
+
+
+def technique_events_to_feed_json(events: list[Any], site_title: str) -> dict[str, Any]:
+    """Convert technique events to JSON Feed 1.1 format (newest-first)."""
+    items = []
+    for ev in sorted(events, key=lambda e: e.observed_at, reverse=True):
+        items.append({
+            "id": f"urn:radar-technique:{ev.technique_id}:{ev.run_id}",
+            "title": _feed_event_title(ev),
+            "content_text": "; ".join(ev.reasons) or _feed_event_title(ev),
+            "date_published": ev.observed_at.isoformat(),
+            "tags": [ev.domain.value, ev.ring.value],
+        })
+    return {"version": "https://jsonfeed.org/version/1.1",
+            "title": f"{site_title} — Research", "items": items}
+
+
+def technique_events_to_feed_atom(events: list[Any], site_title: str, self_url: str) -> str:
+    """Convert technique events to an Atom feed (newest-first)."""
+    rows = sorted(events, key=lambda e: e.observed_at, reverse=True)
+    updated = rows[0].observed_at.isoformat() if rows else datetime.now().astimezone().isoformat()
+    entries_xml = "".join(
+        f"<entry><title>{_xml_escape(_feed_event_title(ev))}</title>"
+        f"<id>urn:radar-technique:{ev.technique_id}:{ev.run_id}</id>"
+        f"<updated>{ev.observed_at.isoformat()}</updated>"
+        f"<summary>{_xml_escape('; '.join(ev.reasons) or _feed_event_title(ev))}</summary></entry>"
+        for ev in rows
+    )
+    return (f'<?xml version="1.0" encoding="utf-8"?>'
+            f'<feed xmlns="http://www.w3.org/2005/Atom">'
+            f"<title>{_xml_escape(site_title)} — Research</title>"
+            f'<link rel="self" href="{_xml_escape(self_url)}"/><updated>{updated}</updated>'
+            f"{entries_xml}</feed>")
+
+
+def _xml_escape(s: str) -> str:
+    """Escape string for XML text content and attributes."""
+    return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            .replace('"', "&quot;"))
