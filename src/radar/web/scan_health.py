@@ -84,5 +84,19 @@ def _int(value: Any) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) else 0
 
 
+def latest_tool_scan_meta(run_store: Any) -> dict[str, Any]:
+    """Meta of the most recent MAIN tool-scan run.
+
+    Model and research scans stamp a ``kind`` into their run meta; the main
+    tool scan does not. Without this filter, a later ``radar models scan`` or
+    ``radar research scan`` silently blanks the dashboard's scan-health panel.
+    """
+    for run_id in reversed(run_store.list_runs()):
+        meta = run_store.read_meta(run_id)
+        if "kind" not in meta:
+            return meta
+    return {}
+
+
 def _plural(count: int, noun: str) -> str:
     return f"{count} {noun}" + ("" if count == 1 else "s")

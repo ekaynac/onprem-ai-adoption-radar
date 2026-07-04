@@ -1058,6 +1058,7 @@ def export(
     from radar.storage.history_store import HistoryStore
     from radar.storage.metrics_store import MetricsStore
     from radar.storage.source_health_store import SourceHealthStore
+    from radar.web.scan_health import latest_tool_scan_meta
     from radar.web.source_health import summarize_source_health
     from radar.web.static_site import render_static_site
 
@@ -1075,8 +1076,7 @@ def export(
     metrics.initialize()
     metrics_by_project = {c.project: metrics.history_for(c.project) for c in cards}
 
-    run_ids = orchestrator.run_store.list_runs()
-    latest_scan_meta = orchestrator.run_store.read_meta(run_ids[-1]) if run_ids else {}
+    latest_scan_meta = latest_tool_scan_meta(orchestrator.run_store)
 
     # Source-health is best-effort: a missing config (e.g. a manual export
     # before init) should not block publishing the snapshot.

@@ -684,3 +684,21 @@ def test_index_shows_research_summary_and_nav(tmp_path):
 
     assert "Research: 1 techniques" in r.text
     assert 'href="/research"' in r.text
+
+
+def test_scan_health_survives_a_later_research_run(tmp_path):
+    """A models/research scan after the tool scan must not blank scan health."""
+    from radar.storage.run_store import RunStore as _RS
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    store = _RS(tmp_path / "data" / "runs")
+    tool_run = store.create_run()
+    store.update_meta(tool_run, {"collector_warnings": ["github: rate limited"]})
+    research_run = store.create_run()
+    store.save_stage(research_run, "technique_cards", [])
+    store.update_meta(research_run, {"kind": "research", "technique_count": 0})
+
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/")
+
+    assert "rate limited" in r.text

@@ -33,7 +33,7 @@ from radar.web.backer_badge import backer_badge
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
 from radar.web.research_summary import summarize_techniques
-from radar.web.scan_health import summarize_meta
+from radar.web.scan_health import latest_tool_scan_meta, summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth, summarize_source_health
 
@@ -88,8 +88,7 @@ def create_app(root: Path) -> FastAPI:
     def index(request: Request):
         db.initialize()
         cards = db.list_cards()
-        run_ids = run_store.list_runs()
-        meta = run_store.read_meta(run_ids[-1]) if run_ids else {}
+        meta = latest_tool_scan_meta(run_store)
         return TEMPLATES.TemplateResponse(
             request,
             "index.html",

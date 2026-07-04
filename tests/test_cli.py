@@ -649,3 +649,22 @@ def test_export_includes_research_pages_after_research_scan(tmp_path):
     assert (tmp_path / "_site" / "technique-history.jsonl").exists()
     assert "Technique History (JSONL)" in (
         tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+
+
+def test_export_scan_health_ignores_research_runs(tmp_path):
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    store = RunStore(tmp_path / "data" / "runs")
+    tool_run = store.create_run()
+    store.update_meta(tool_run, {"collector_warnings": ["github: rate limited"]})
+    research_run = store.create_run()
+    store.save_stage(research_run, "technique_cards", [])
+    store.update_meta(research_run, {"kind": "research", "technique_count": 0})
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0
+    assert "rate limited" in (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
