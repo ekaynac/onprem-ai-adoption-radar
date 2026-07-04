@@ -251,8 +251,10 @@ implementations → low breadth/maturity → WATCH by construction.
 
 - **Surfaces**: `/research` catalog + `/technique/{id}` pages on dashboard
   and static export (reusing the models-page shell + filter/sort scripts);
-  research→production timeline per technique rendered from paper dates,
-  implementation appearance in metrics, and `technique-history.jsonl`; MCP
+  research→production timeline per technique rendered from paper dates and
+  `technique-history.jsonl` ring events (implementation-appearance-in-metrics
+  deferred with the `radar.db` CI-persistence decision — appearance dates are
+  meaningless on the published site until metrics persist across CI runs); MCP
   `list_techniques` / `get_technique` / `technique_movers`; change feeds.
   Known items to address in this sub-project: CI wiring for
   `radar research scan` in publish.yml (commit `technique-history.jsonl`

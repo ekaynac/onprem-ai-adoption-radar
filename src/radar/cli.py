@@ -1140,6 +1140,7 @@ def export(
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
         + (f", {len(model_entries)} model pages" if model_entries else "")
+        + (f", {len(technique_entries)} technique pages" if technique_entries else "")
         + ")"
     )
 

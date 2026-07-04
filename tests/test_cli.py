@@ -649,6 +649,7 @@ def test_export_includes_research_pages_after_research_scan(tmp_path):
     assert (tmp_path / "_site" / "technique-history.jsonl").exists()
     assert "Technique History (JSONL)" in (
         tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "1 technique pages" in result.stdout
 
 
 def test_export_scan_health_ignores_research_runs(tmp_path):
