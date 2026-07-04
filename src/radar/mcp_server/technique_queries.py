@@ -14,11 +14,15 @@ from radar.storage.run_store import RunStore
 
 def _latest_technique_cards(root: Path) -> list[dict[str, Any]]:
     """Raw technique_cards.json dicts from the latest kind==research run; [] if none."""
-    run_store = RunStore(Path(root) / "data" / "runs")
+    runs_dir = Path(root) / "data" / "runs"
+    if not runs_dir.exists():
+        return []
+    run_store = RunStore(runs_dir)
     for run_id in reversed(run_store.list_runs()):
         if run_store.read_meta(run_id).get("kind") == "research":
             path = run_store._run_dir(run_id) / "technique_cards.json"
-            return json.loads(path.read_text(encoding="utf-8"))
+            if path.exists():
+                return json.loads(path.read_text(encoding="utf-8"))
     return []
 
 

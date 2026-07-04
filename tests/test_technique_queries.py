@@ -36,6 +36,18 @@ def test_latest_cards_empty_without_research_run(tmp_path):
     assert _latest_technique_cards(tmp_path) == []
 
 
+def test_latest_cards_skips_research_run_missing_its_stage(tmp_path):
+    """A crashed scan (meta written, stage missing) must not raise — fall back."""
+    _seed_research_run(tmp_path, [_entry("qlora", Ring.WATCH, TechniqueDomain.FINE_TUNING)])
+    store = RunStore(tmp_path / "data" / "runs")
+    broken_run = store.create_run()
+    store.update_meta(broken_run, {"kind": "research", "technique_count": 0})
+
+    cards = _latest_technique_cards(tmp_path)
+
+    assert [c["id"] for c in cards] == ["qlora"]
+
+
 def test_list_techniques_compact_and_filters(tmp_path):
     _seed_research_run(tmp_path, [
         _entry("speculative-decoding", Ring.ADOPT, TechniqueDomain.INFERENCE),
