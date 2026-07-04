@@ -21,11 +21,19 @@ from radar.models_radar.history import ModelHistoryEvent
 from radar.models_radar.reports import model_events_to_feed_atom, model_events_to_feed_json
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
+from radar.research_radar.entities import TechniqueEntry
+from radar.research_radar.history import TechniqueHistoryEvent
+from radar.research_radar.reports import (
+    technique_events_to_feed_atom,
+    technique_events_to_feed_json,
+)
+from radar.research_radar.timeline import build_technique_timeline
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.backer_badge import backer_badge
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
+from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth
@@ -50,6 +58,8 @@ def render_static_site(
     source_health: SourceHealth | None = None,
     model_entries: list[ModelEntry] | None = None,
     model_events: list[ModelHistoryEvent] | None = None,
+    technique_entries: list[TechniqueEntry] | None = None,
+    technique_events: list[TechniqueHistoryEvent] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -60,7 +70,10 @@ def render_static_site(
     each project page's metrics history; omitting it renders empty metric tables.
     When ``model_entries`` is provided, writes ``models.html``, per-model pages,
     and ``changes-models.xml``/``.json`` feeds (the latter only when
-    ``model_events`` is also provided).
+    ``model_events`` is also provided). When ``technique_entries`` is provided,
+    writes ``techniques.html``, per-technique pages, and
+    ``changes-research.xml``/``.json`` feeds (the latter only when
+    ``technique_events`` is also provided).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -93,16 +106,24 @@ def render_static_site(
     # (cli.py copies it there before calling us).
     model_history_available = (out_dir / "model-history.jsonl").exists()
 
+    # Technique-history download: only when the log exists in the site root
+    # (cli.py copies it there before calling us).
+    technique_history_available = (out_dir / "technique-history.jsonl").exists()
+
     downloads = {
         "History (JSONL)": "history.jsonl" if history_available else None,
         "Changes (JSON)": "changes.json",
         "Changes (Atom)": "changes.xml",
         "Changes (RSS)": "changes.rss",
         "Model History (JSONL)": "model-history.jsonl" if model_history_available else None,
+        "Technique History (JSONL)": (
+            "technique-history.jsonl" if technique_history_available else None
+        ),
     }
 
     # Summarize models for the index page banner (None when no models yet).
     models_summary = summarize_models(model_entries) if model_entries else None
+    techniques_summary = summarize_techniques(technique_entries) if technique_entries else None
 
     index = out_dir / "index.html"
     index.write_text(
@@ -115,6 +136,7 @@ def render_static_site(
             source_health=source_health,
             downloads=downloads,
             models_summary=models_summary,
+            techniques_summary=techniques_summary,
         ),
         encoding="utf-8",
     )
@@ -144,6 +166,12 @@ def render_static_site(
     if model_entries:
         _write_model_pages(
             env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp
+        )
+
+    if technique_entries:
+        _write_technique_pages(
+            env, out_dir, technique_entries, technique_events or [],
+            site_title, self_base_url, stamp,
         )
 
     return index
@@ -250,6 +278,56 @@ def _write_model_pages(
         )
         (out_dir / "changes-models.json").write_text(
             json.dumps(model_events_to_feed_json(model_events, site_title=site_title), indent=2),
+            encoding="utf-8",
+        )
+
+
+def _write_technique_pages(
+    env: Environment,
+    out_dir: Path,
+    technique_entries: list[TechniqueEntry],
+    technique_events: list[TechniqueHistoryEvent],
+    site_title: str,
+    self_base_url: str,
+    generated_at: str = "",
+) -> None:
+    """Render techniques.html, per-technique pages, and research feed files."""
+    slug_by_technique = build_slug_map([t.id for t in technique_entries])
+
+    (out_dir / "techniques.html").write_text(
+        env.get_template("static_techniques.html").render(
+            techniques=technique_entries,
+            slug_by_technique=slug_by_technique,
+            generated_at=generated_at,
+        ),
+        encoding="utf-8",
+    )
+
+    technique_template = env.get_template("static_technique.html")
+    for entry in technique_entries:
+        (out_dir / f"technique_{slug_by_technique[entry.id]}.html").write_text(
+            technique_template.render(
+                technique=entry,
+                timeline=build_technique_timeline(entry, technique_events),
+                generated_at=generated_at,
+            ),
+            encoding="utf-8",
+        )
+
+    if technique_events:
+        self_url = (
+            f"{self_base_url.rstrip('/')}/changes-research.xml"
+            if self_base_url
+            else "changes-research.xml"
+        )
+        (out_dir / "changes-research.xml").write_text(
+            technique_events_to_feed_atom(technique_events, site_title=site_title,
+                                          self_url=self_url),
+            encoding="utf-8",
+        )
+        (out_dir / "changes-research.json").write_text(
+            json.dumps(technique_events_to_feed_json(technique_events, site_title=site_title),
+                       indent=2),
             encoding="utf-8",
         )
 

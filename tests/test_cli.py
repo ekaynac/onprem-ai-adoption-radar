@@ -611,3 +611,61 @@ def test_discover_includes_hf_papers(tmp_path, monkeypatch):
     assert result.exit_code == 0, result.stdout
     proposals = load_proposals(tmp_path / "data" / "proposed-seeds.yaml")
     assert any(p.suggested_id == "github-fastserve" for p in proposals)
+
+
+def test_export_includes_research_pages_after_research_scan(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry
+    from radar.research_radar.history import TechniqueHistoryEvent, append_technique_events
+    from radar.storage.history_store import ChangeType
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    entry = TechniqueEntry(
+        id="qlora", name="QLoRA", category=Category.AI_INFRASTRUCTURE,
+        domain=TechniqueDomain.FINE_TUNING, onprem_impact=OnPremImpact.REDUCES_MEMORY,
+        ring=Ring.WATCH,
+    )
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+    append_technique_events(tmp_path / "data" / "technique-history.jsonl", [
+        TechniqueHistoryEvent(
+            technique_id="qlora", domain=TechniqueDomain.FINE_TUNING,
+            change_type=ChangeType.NEW, ring=Ring.WATCH, run_id=run_id,
+            observed_at=datetime(2026, 7, 3, 10, 0, tzinfo=UTC),
+        ),
+    ])
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0
+    assert (tmp_path / "_site" / "techniques.html").exists()
+    assert (tmp_path / "_site" / "technique-history.jsonl").exists()
+    assert "Technique History (JSONL)" in (
+        tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "1 technique pages" in result.stdout
+
+
+def test_export_scan_health_ignores_research_runs(tmp_path):
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    store = RunStore(tmp_path / "data" / "runs")
+    tool_run = store.create_run()
+    store.update_meta(tool_run, {"collector_warnings": ["github: rate limited"]})
+    research_run = store.create_run()
+    store.save_stage(research_run, "technique_cards", [])
+    store.update_meta(research_run, {"kind": "research", "technique_count": 0})
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0
+    assert "rate limited" in (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")

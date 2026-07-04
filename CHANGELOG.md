@@ -26,6 +26,16 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Academic research radar (surfaces)** — the technique radar is now visible
+  everywhere the models radar is: a `/research` catalog page + per-technique
+  pages (with a research→production timeline merging paper dates and ring
+  history) on both the live dashboard and the static site, a Research summary
+  on the index, MCP tools (`list_techniques`, `get_technique`,
+  `technique_movers`), Atom/JSON research change feeds
+  (`changes-research.xml`/`.json`), a Technique History (JSONL) download, and
+  a daily `radar research scan` in the publish workflow. Also fixes the
+  scan-health panel to read the latest *tool* scan instead of the latest run
+  of any kind.
 - **Academic research radar (core)** — research techniques are now a third
   ringed decision surface alongside tools and models. A curated
   `config/technique-seed.yaml` (15 techniques, live-verified arXiv ids) is

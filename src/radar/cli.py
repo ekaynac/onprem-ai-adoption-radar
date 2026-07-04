@@ -257,6 +257,9 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     entries = score_entries(entries)
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
+    # Stamp the kind up front: a crashed scan must never masquerade as a tool run
+    # (latest_tool_scan_meta filters on the absence of "kind").
+    run_store.update_meta(run_id, {"kind": "models"})
     observed_at = datetime.now(UTC)
     persist_model_scan(
         entries, run_id, observed_at,
@@ -523,6 +526,9 @@ def research_scan(root: Path = typer.Option(Path("."), help="Project root.")) ->
 
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
+    # Stamp the kind up front: a crashed scan must never masquerade as a tool run
+    # (latest_tool_scan_meta filters on the absence of "kind").
+    run_store.update_meta(run_id, {"kind": "research"})
 
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
@@ -627,18 +633,13 @@ def research_show(
 
 
 def _latest_technique_entries(root: Path):
-    import json as _json
-
+    from radar.mcp_server.technique_queries import _latest_technique_cards
     from radar.research_radar.entities import TechniqueEntry as _TE
-    from radar.storage.run_store import RunStore
 
-    run_store = RunStore(root / "data" / "runs")
-    for rid in reversed(run_store.list_runs()):
-        if run_store.read_meta(rid).get("kind") == "research":
-            cards_path = run_store._run_dir(rid) / "technique_cards.json"
-            payload = _json.loads(cards_path.read_text(encoding="utf-8"))
-            return [_TE.model_validate(item) for item in payload]
-    return None
+    payload = _latest_technique_cards(root)
+    if not payload:
+        return None
+    return [_TE.model_validate(item) for item in payload]
 
 
 @app.command()
@@ -1063,6 +1064,7 @@ def export(
     from radar.storage.history_store import HistoryStore
     from radar.storage.metrics_store import MetricsStore
     from radar.storage.source_health_store import SourceHealthStore
+    from radar.web.scan_health import latest_tool_scan_meta
     from radar.web.source_health import summarize_source_health
     from radar.web.static_site import render_static_site
 
@@ -1080,8 +1082,7 @@ def export(
     metrics.initialize()
     metrics_by_project = {c.project: metrics.history_for(c.project) for c in cards}
 
-    run_ids = orchestrator.run_store.list_runs()
-    latest_scan_meta = orchestrator.run_store.read_meta(run_ids[-1]) if run_ids else {}
+    latest_scan_meta = latest_tool_scan_meta(orchestrator.run_store)
 
     # Source-health is best-effort: a missing config (e.g. a manual export
     # before init) should not block publishing the snapshot.
@@ -1109,6 +1110,18 @@ def export(
     if model_history_src.exists():
         shutil.copy2(model_history_src, out / "model-history.jsonl")
 
+    # Technique entries + events (optional: only present after a `radar research scan`).
+    from radar.mcp_server.technique_queries import _latest_technique_cards
+    from radar.research_radar.entities import TechniqueEntry
+    from radar.research_radar.history import load_technique_events as _load_tech_events
+
+    technique_entries = [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+    technique_events = _load_tech_events(root / "data" / "technique-history.jsonl")
+
+    technique_history_src = root / "data" / "technique-history.jsonl"
+    if technique_history_src.exists():
+        shutil.copy2(technique_history_src, out / "technique-history.jsonl")
+
     index = render_static_site(
         cards,
         out,
@@ -1121,10 +1134,13 @@ def export(
         source_health=source_health_view,
         model_entries=model_entries or None,
         model_events=model_events or None,
+        technique_entries=technique_entries or None,
+        technique_events=technique_events or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
         + (f", {len(model_entries)} model pages" if model_entries else "")
+        + (f", {len(technique_entries)} technique pages" if technique_entries else "")
         + ")"
     )
 

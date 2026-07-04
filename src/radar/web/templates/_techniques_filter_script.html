@@ -1,0 +1,23 @@
+{# Dependency-free filter for #techniques-table. Matches on data-* attributes. #}
+<script>
+  function techniquesFilter() {
+    var text = (document.getElementById('tfilter-text').value || '').toLowerCase();
+    var domain = document.getElementById('tfilter-domain').value || '';
+    var ring = document.getElementById('tfilter-ring').value || '';
+    var cat = document.getElementById('tfilter-category').value || '';
+    var rows = document.querySelectorAll('#techniques-table tbody tr[data-technique]');
+    var shown = 0;
+    rows.forEach(function (row) {
+      var hay = (row.getAttribute('data-technique') + ' ' +
+                 row.getAttribute('data-domain')).toLowerCase();
+      var ok = (!text || hay.indexOf(text) !== -1)
+        && (!domain || row.getAttribute('data-domain') === domain)
+        && (!ring || row.getAttribute('data-ring') === ring)
+        && (!cat || row.getAttribute('data-category') === cat);
+      row.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    var none = document.getElementById('techniques-no-matches');
+    if (none) none.style.display = shown ? 'none' : '';
+  }
+</script>

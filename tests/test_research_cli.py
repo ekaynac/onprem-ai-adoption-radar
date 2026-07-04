@@ -58,6 +58,28 @@ def test_research_scan_offline_writes_run_and_history(tmp_path):
     assert (runs[0] / "technique_cards.json").exists()
 
 
+def test_crashed_research_scan_run_still_carries_kind(tmp_path, monkeypatch):
+    """A scan that dies mid-way must not leave a kind-less run that masks scan health."""
+    import radar.research_radar.pipeline as pipeline_mod
+
+    async def _boom(**kwargs):
+        raise RuntimeError("simulated mid-scan crash")
+
+    monkeypatch.setattr(pipeline_mod, "run_research_scan", _boom)
+    runner = CliRunner()
+    root = _project(tmp_path)
+
+    result = runner.invoke(app, ["research", "scan", "--root", str(root)])
+
+    assert result.exit_code != 0
+    from radar.storage.run_store import RunStore
+
+    store = RunStore(root / "data" / "runs")
+    run_ids = store.list_runs()
+    assert len(run_ids) == 1
+    assert store.read_meta(run_ids[0]).get("kind") == "research"
+
+
 def test_research_list_shows_ring_and_domain(tmp_path):
     runner = CliRunner()
     root = _project(tmp_path)

@@ -601,3 +601,104 @@ def test_models_page_is_styled_and_filterable(tmp_path):
     # Sortable headers + sort script on the live page too
     assert "function modelsSort" in r.text
     assert 'data-key="min-memory-gb" data-type="num"' in r.text
+
+
+def _seed_techniques_run(root: Path) -> None:
+    from radar.models import Category as _Cat
+    from radar.models import Ring as _Ring
+    from radar.research_radar.entities import (
+        OnPremImpact as _Imp,
+    )
+    from radar.research_radar.entities import (
+        PaperLink as _PL,
+    )
+    from radar.research_radar.entities import (
+        TechniqueDomain as _Dom,
+    )
+    from radar.research_radar.entities import (
+        TechniqueEntry as _TE,
+    )
+    from radar.storage.run_store import RunStore as _RS
+
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    entry = _TE(
+        id="speculative-decoding", name="Speculative Decoding",
+        category=_Cat.MODEL_SERVING, domain=_Dom.INFERENCE,
+        onprem_impact=_Imp.REDUCES_LATENCY, ring=_Ring.ADOPT, score=4.3,
+        citation_count=1697,
+        papers=[_PL(arxiv_id="2211.17192", title="Fast Inference", published="2022-11")],
+    )
+    store = _RS(root / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+
+
+def test_research_route_lists_techniques(tmp_path):
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/research")
+
+    assert r.status_code == 200
+    assert "Speculative Decoding" in r.text
+    assert "inference" in r.text
+    assert 'href="/technique/speculative-decoding"' in r.text
+
+
+def test_research_route_empty_without_scan(tmp_path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/research")
+
+    assert r.status_code == 200
+    assert "No research scan yet" in r.text
+
+
+def test_technique_detail_route_shows_timeline_and_papers(tmp_path):
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/technique/speculative-decoding")
+
+    assert r.status_code == 200
+    assert "2211.17192" in r.text
+    assert "canonical paper" in r.text
+    assert 'href="/research"' in r.text  # live back-link, not techniques.html
+
+
+def test_technique_detail_unknown_returns_404(tmp_path):
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    assert client.get("/technique/nope").status_code == 404
+
+
+def test_index_shows_research_summary_and_nav(tmp_path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/")
+
+    assert "Research: 1 techniques" in r.text
+    assert 'href="/research"' in r.text
+
+
+def test_scan_health_survives_a_later_research_run(tmp_path):
+    """A models/research scan after the tool scan must not blank scan health."""
+    from radar.storage.run_store import RunStore as _RS
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    store = _RS(tmp_path / "data" / "runs")
+    tool_run = store.create_run()
+    store.update_meta(tool_run, {"collector_warnings": ["github: rate limited"]})
+    research_run = store.create_run()
+    store.save_stage(research_run, "technique_cards", [])
+    store.update_meta(research_run, {"kind": "research", "technique_count": 0})
+
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/")
+
+    assert "rate limited" in r.text

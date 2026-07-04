@@ -1,0 +1,13 @@
+{# Research summary. Context: techniques_summary (TechniquesSummary) | None. #}
+{% if techniques_summary and techniques_summary.has_techniques %}
+<div class="scan-health">
+  <details>
+    <summary>🎓 {{ techniques_summary.one_line }}</summary>
+    <ul>
+      {% for ring, n in techniques_summary.by_ring.items() %}<li>{{ ring }}: {{ n }}</li>{% endfor %}
+      {% for domain, n in techniques_summary.by_domain.items() %}<li>{{ domain }}: {{ n }}</li>{% endfor %}
+    </ul>
+    <p><a href="{{ research_href|default('techniques.html') }}">Browse research →</a></p>
+  </details>
+</div>
+{% endif %}

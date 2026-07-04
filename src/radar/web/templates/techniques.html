@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Research · Techniques</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
+  </head>
+  <body>
+    {% set page_title = "Research Techniques" %}
+    {% set tagline = "Research with rings — scored by which tracked tools already run it, plus citations." %}
+    {% set nav = {"Radar": "/", "Models": "/models", "History": "/history"} %}
+    {% include "_hero.html" %}
+    <main class="container">
+      {% if not techniques %}<p>No research scan yet.</p>{% endif %}
+      {% include "_techniques_filter_bar.html" %}
+      <table id="techniques-table">
+        <thead>
+          <tr>
+            <th data-key="technique" data-type="str" onclick="techniquesSort(this)">Technique</th>
+            <th data-key="domain" data-type="str" onclick="techniquesSort(this)">Domain</th>
+            <th data-key="ring" data-type="str" onclick="techniquesSort(this)">Ring</th>
+            <th data-key="category" data-type="str" onclick="techniquesSort(this)">Category</th>
+            <th data-key="impls" data-type="num" onclick="techniquesSort(this)">Impls</th>
+            <th data-key="citations" data-type="num" onclick="techniquesSort(this)">Citations</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in techniques %}
+          <tr data-technique="{{ t.name }}" data-domain="{{ t.domain.value }}"
+              data-ring="{{ t.ring.value if t.ring else '' }}" data-category="{{ t.category.value }}"
+              data-impls="{{ t.resolved_implementations | length }}"
+              data-citations="{{ t.citation_count or 0 }}">
+            <td><a href="/technique/{{ t.id }}">{{ t.name }}</a></td>
+            <td>{{ t.domain.value }}</td>
+            <td>{{ t.ring.value if t.ring else '-' }}</td>
+            <td>{{ t.category.value }}</td>
+            <td>{{ t.resolved_implementations | length }}</td>
+            <td>{{ t.citation_count if t.citation_count is not none else '?' }}</td>
+          </tr>
+          {% endfor %}
+          <tr id="techniques-no-matches" style="display:none;"><td colspan="6">No techniques match.</td></tr>
+        </tbody>
+      </table>
+      {% include "_techniques_filter_script.html" %}
+      {% include "_techniques_sort_script.html" %}
+    </main>
+    {% include "_footer.html" %}
+  </body>
+</html>
