@@ -44,6 +44,7 @@ jobs:
           uv run radar init --root .
           uv run radar scan --root . --days 7
           uv run radar models scan --root .
+          uv run radar research scan --root .
 
       # Quality gate: fail the run if scoring collapsed (rings stopped
       # discriminating). Runs on the persisted scan, before publishing.
@@ -77,6 +78,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f data/history.jsonl || true
           git add -f data/model-history.jsonl || true
+          git add -f data/technique-history.jsonl || true
           git commit --allow-empty -m "chore: radar history $(date -u +%F) [skip ci]"
           git push
 
