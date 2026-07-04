@@ -257,6 +257,9 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     entries = score_entries(entries)
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
+    # Stamp the kind up front: a crashed scan must never masquerade as a tool run
+    # (latest_tool_scan_meta filters on the absence of "kind").
+    run_store.update_meta(run_id, {"kind": "models"})
     observed_at = datetime.now(UTC)
     persist_model_scan(
         entries, run_id, observed_at,
@@ -523,6 +526,9 @@ def research_scan(root: Path = typer.Option(Path("."), help="Project root.")) ->
 
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
+    # Stamp the kind up front: a crashed scan must never masquerade as a tool run
+    # (latest_tool_scan_meta filters on the absence of "kind").
+    run_store.update_meta(run_id, {"kind": "research"})
 
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
