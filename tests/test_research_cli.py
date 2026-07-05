@@ -274,3 +274,7 @@ techniques:
 
     assert result.exit_code == 1
     assert "Traceback" not in result.output
+    # An uncaught TechniqueSeedError also exits 1 under CliRunner but prints
+    # nothing — the caught path is distinguished by the printed error message.
+    assert "Duplicate technique ids" in result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)
