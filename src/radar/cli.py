@@ -676,13 +676,10 @@ def research_discover(
 
 
 def _latest_technique_entries(root: Path):
-    from radar.mcp_server.technique_queries import _latest_technique_cards
-    from radar.research_radar.entities import TechniqueEntry as _TE
+    from radar.mcp_server.technique_queries import load_technique_entries
 
-    payload = _latest_technique_cards(root)
-    if not payload:
-        return None
-    return [_TE.model_validate(item) for item in payload]
+    entries = load_technique_entries(root)
+    return entries or None
 
 
 @app.command()
@@ -1154,11 +1151,11 @@ def export(
         shutil.copy2(model_history_src, out / "model-history.jsonl")
 
     # Technique entries + events (optional: only present after a `radar research scan`).
-    from radar.mcp_server.technique_queries import _latest_technique_cards
-    from radar.research_radar.entities import ImplKind, TechniqueEntry
+    from radar.mcp_server.technique_queries import load_technique_entries
+    from radar.research_radar.entities import ImplKind
     from radar.research_radar.history import load_technique_events as _load_tech_events
 
-    technique_entries = [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+    technique_entries = load_technique_entries(root)
     technique_events = _load_tech_events(root / "data" / "technique-history.jsonl")
 
     technique_history_src = root / "data" / "technique-history.jsonl"

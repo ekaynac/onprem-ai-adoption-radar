@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from radar.mcp_server.model_queries import _latest_model_cards
-from radar.mcp_server.technique_queries import _latest_technique_cards
+from radar.mcp_server.technique_queries import load_technique_entries
 from radar.models import Category, SourceType
 from radar.models_radar.entities import ModelEntry
 from radar.reports.comparison import ComparisonError, build_comparison
@@ -85,14 +85,11 @@ def create_app(root: Path) -> FastAPI:
 
     def _technique_entries() -> list[TechniqueEntry]:
         """Load technique entries from the latest research run; empty list if none."""
-        return [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+        return load_technique_entries(root)
 
     def _technique_hrefs() -> dict[str, str]:
         """Map technique id -> live href, shared by project/model pedigree sections."""
-        try:
-            return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
-        except Exception:
-            return {}
+        return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
 
     def _project_pedigree(project: str) -> list[TechniquePedigree]:
         """Techniques implemented by this project's sources; [] on any gap."""

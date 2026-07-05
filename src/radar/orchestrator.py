@@ -315,17 +315,14 @@ class RadarOrchestrator:
         """Append a research-pedigree evidence line per card. Best-effort:
         no research run (or any failure) leaves the cards untouched."""
         try:
-            from radar.mcp_server.technique_queries import _latest_technique_cards
-            from radar.research_radar.entities import TechniqueEntry
+            from radar.mcp_server.technique_queries import load_technique_entries
             from radar.research_radar.pedigree import (
                 build_pedigree_index,
                 pedigree_for_refs,
                 pedigree_note,
             )
 
-            entries = [
-                TechniqueEntry.model_validate(c) for c in _latest_technique_cards(self.root)
-            ]
+            entries = load_technique_entries(self.root)
             if not entries:
                 return cards
             index = build_pedigree_index(entries)
