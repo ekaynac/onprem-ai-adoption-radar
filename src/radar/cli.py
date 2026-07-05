@@ -841,7 +841,7 @@ def trending_promote(
         momentum_stats,
         source_to_yaml_block,
     )
-    from radar.discovery.trending_entities import TrendingObservation
+    from radar.discovery.trending_entities import Lane, TrendingObservation
     from radar.discovery.trending_sweep import _tracked_repos as _tracked_source_repos
     from radar.models import SourceConfig
     from radar.storage.autopilot_log import AutopilotEntry, append_autopilot
@@ -871,20 +871,22 @@ def trending_promote(
     ]
 
     def _velocity(rows: list[TrendingObservation]) -> float:
-        stats = momentum_stats(rows)
+        stats = momentum_stats([r for r in rows if r.lane == Lane.ONPREM])
         return stats.avg_velocity if stats else 0.0
 
     candidates.sort(key=lambda rr: _velocity(rr[1]), reverse=True)
 
     collected: list[tuple[SourceConfig, list[TrendingObservation]]] = []
     working_ids = set(existing_ids)
+    working_projects = {p.lower() for p in existing_projects}
     for repo, rows in candidates:
         if len(collected) >= limit:
             break
         source = build_source(repo, rows, existing_ids=working_ids)
-        if source is None:
+        if source is None or source.project.lower() in working_projects:
             continue
         working_ids.add(source.id)
+        working_projects.add(source.project.lower())
         collected.append((source, rows))
 
     if not collected:

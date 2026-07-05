@@ -57,6 +57,16 @@ def test_sustained_requires_days_span_and_rate_or_growth():
     assert has_sustained_momentum(flat) is False  # <30/day and <25% growth
 
 
+def test_momentum_must_be_onprem_lane_evidence():
+    rows = [
+        _obs("x/y", 100, 1, lane=Lane.BROADER),
+        _obs("x/y", 900, 4, lane=Lane.BROADER),
+        _obs("x/y", 1200, 6, lane=Lane.ONPREM),  # flips onprem only on the latest day
+    ]
+    assert is_promotable_source("x/y", rows, tracked_repos=set(),
+                                existing_ids=set(), existing_projects=set()) is False
+
+
 # ── classifier ──────────────────────────────────────────────────────────────
 
 def test_classify_by_topic_then_description():
@@ -129,6 +139,18 @@ def test_is_promotable_rejects_tracked_and_dupes():
     assert is_promotable_source("acme/rocket", rows, tracked_repos=set(),
                                 existing_ids={"github-rocket"},
                                 existing_projects=set()) is False
+
+
+def test_is_promotable_rejects_denylisted_org():
+    rows = _sustained("awesome/rocket")  # org "awesome" is in ORG_DENYLIST
+    assert is_promotable_source("awesome/rocket", rows, tracked_repos=set(),
+                                existing_ids=set(), existing_projects=set()) is False
+
+
+def test_is_promotable_rejects_awesome_lists():
+    rows = _sustained("someorg/awesome-ai-agents", topics=["ai-agents", "awesome-list"])
+    assert is_promotable_source("someorg/awesome-ai-agents", rows, tracked_repos=set(),
+                                existing_ids=set(), existing_projects=set()) is False
 
 
 # ── builder + serializer ────────────────────────────────────────────────────

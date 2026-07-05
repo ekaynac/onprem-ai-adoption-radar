@@ -28,6 +28,8 @@ LICENSE_ALLOWLIST: frozenset[str] = frozenset(
 )
 ORG_DENYLIST: frozenset[str] = frozenset({"awesome", "collections"})
 REPO_DENYLIST: frozenset[str] = frozenset()
+NAME_DENY_PREFIXES = ("awesome-", "awesome_")
+TOPIC_DENYLIST: frozenset[str] = frozenset({"awesome", "awesome-list", "cheatsheet", "roadmap"})
 
 # topic/keyword → category, first match wins (topics first, then description).
 _CATEGORY_KEYWORDS: list[tuple[str, Category]] = [
@@ -124,16 +126,21 @@ def is_promotable_source(
     if latest.license is None or latest.license.lower() not in LICENSE_ALLOWLIST:
         return False
     org = repo.split("/")[0].lower()
+    name = repo.split("/")[-1]
     if org in ORG_DENYLIST or repo.lower() in REPO_DENYLIST:
         return False
-    if not has_sustained_momentum(rows):
+    if name.lower().startswith(NAME_DENY_PREFIXES):
+        return False
+    if any(t.lower() in TOPIC_DENYLIST for t in latest.topics):
+        return False
+    onprem_rows = [r for r in rows if r.lane == Lane.ONPREM]
+    if not has_sustained_momentum(onprem_rows):
         return False
     if classify_category(latest.topics, latest.description) is None:
         return False
-    name = repo.split("/")[-1]
     return (
         f"github-{project_slug(name)}" not in existing_ids
-        and name not in existing_projects
+        and name.lower() not in {p.lower() for p in existing_projects}
     )
 
 
@@ -170,7 +177,7 @@ def _yaml_str(s: str) -> str:
 
 def source_to_yaml_block(source: SourceConfig) -> str:
     """Render one SourceConfig as a hand-authored-style YAML list item."""
-    tags = ", ".join(source.tags)
+    tags = ", ".join(_yaml_str(t) for t in source.tags)
     lines = [
         f"  - id: {_yaml_str(source.id)}",
         f"    type: {source.type.value}",
