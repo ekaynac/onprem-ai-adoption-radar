@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,11 @@ from radar.research_radar.resolve import (
 )
 from radar.research_radar.scoring import score_technique, technique_ring
 from radar.research_radar.seed import load_technique_seed
+from radar.storage.technique_metrics_log import append_metrics, load_metrics
 from radar.storage.technique_metrics_store import TechniqueMetrics, TechniqueMetricsStore
+
+
+logger = logging.getLogger(__name__)
 
 
 def assemble_entries(
@@ -79,19 +84,23 @@ def persist_technique_scan(
     observed_at: datetime,
     db_path: Path,
     history_path: Path,
+    metrics_log_path: Path | None = None,
 ) -> list[TechniqueHistoryEvent]:
-    """Diff rings vs the log, append new events, record per-scan metrics."""
+    """Diff rings vs the log, append new events, record + dual-write per-scan metrics."""
     previous = _latest_rings(history_path)
     events = diff_technique_rings(entries, previous, run_id, observed_at)
     append_technique_events(history_path, events)
     store = TechniqueMetricsStore(db_path)
     store.initialize()
-    store.record([TechniqueMetrics(
+    rows = [TechniqueMetrics(
         technique_id=entry.id, run_id=run_id, observed_at=observed_at,
         citation_count=entry.citation_count, citation_source=entry.citation_source,
         resolved_impls=len(entry.resolved_implementations),
         ring=(entry.ring.value if entry.ring else None),
-    ) for entry in entries])
+    ) for entry in entries]
+    store.record(rows)
+    if metrics_log_path is not None:
+        append_metrics(metrics_log_path, rows)
     return events
 
 
@@ -121,6 +130,7 @@ async def run_research_scan(
     client: Any,
     contact_email: str | None = None,
     run_id: str | None = None,
+    metrics_log_path: Path | None = None,
 ) -> tuple[list[TechniqueEntry], list[TechniqueHistoryEvent]]:
     """Full scan. Only the seed load may raise; everything else degrades."""
     seeds = load_technique_seed(seed_path)  # fails loud before any network
@@ -133,12 +143,21 @@ async def run_research_scan(
     citations = await fetch_citations(arxiv_ids, client, contact_email)
     store = TechniqueMetricsStore(db_path)
     store.initialize()
+    if metrics_log_path is not None and store.is_empty():
+        rehydrated = load_metrics(metrics_log_path)
+        if rehydrated:
+            store.record(rehydrated)
+            logger.warning(
+                "Rehydrated %d technique metric rows from %s (fresh database)",
+                len(rehydrated), metrics_log_path,
+            )
     entries = assemble_entries(seeds, context, citations, store)
     entries = score_technique_entries(entries, store)
     observed_at = datetime.now(UTC)
     resolved_run_id = run_id or observed_at.strftime("research-%Y%m%d-%H%M%S")
     events = persist_technique_scan(
         entries, resolved_run_id, observed_at, db_path, history_path,
+        metrics_log_path=metrics_log_path,
     )
     return entries, events
 

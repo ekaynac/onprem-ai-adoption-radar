@@ -218,3 +218,12 @@ def test_research_discover_no_candidates_message(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert "No technique candidates" in result.stdout
+
+
+def test_research_scan_writes_metrics_log(tmp_path):
+    runner = CliRunner()
+    root = _project(tmp_path)
+
+    runner.invoke(app, ["research", "scan", "--root", str(root)])
+
+    assert (root / "data" / "technique-metrics.jsonl").exists()

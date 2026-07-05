@@ -180,3 +180,91 @@ async def test_run_research_scan_offline_is_deterministic(tmp_path):
     assert all(e.ring == Ring.WATCH for e in entries_a)
     assert events_b == []  # second scan: nothing changed
     assert all(any("citations unknown" in w for w in e.warnings) for e in entries_a)
+
+
+@pytest.mark.asyncio
+async def test_rehydration_restores_velocity_after_db_loss(tmp_path):
+    """Fresh DB + metrics log == warm DB: momentum sees the prior scan."""
+    from radar.storage.technique_metrics_log import load_metrics
+    from radar.storage.technique_metrics_store import TechniqueMetricsStore
+
+    class _DownClient:
+        async def post(self, url, **kwargs):
+            raise RuntimeError("offline")
+
+        async def get(self, url, **kwargs):
+            raise RuntimeError("offline")
+
+    seed_path = tmp_path / "technique-seed.yaml"
+    seed_path.write_text(SEED_YAML, encoding="utf-8")
+    log_path = tmp_path / "technique-metrics.jsonl"
+
+    async def _scan(db_name: str):
+        return await run_research_scan(
+            seed_path=seed_path,
+            config_path=tmp_path / "missing-config.yaml",
+            db_path=tmp_path / db_name,
+            model_seed_path=tmp_path / "missing-model-seed.yaml",
+            model_history_path=tmp_path / "model-history.jsonl",
+            history_path=tmp_path / "technique-history.jsonl",
+            client=_DownClient(),
+            metrics_log_path=log_path,
+        )
+
+    await _scan("radar.db")                      # scan 1: writes rows to db + log
+    assert len(load_metrics(log_path)) > 0       # dual-write happened
+
+    _entries, _ = await _scan("fresh-radar.db")  # scan 2: NEW empty db, log present
+
+    fresh_store = TechniqueMetricsStore(tmp_path / "fresh-radar.db")
+    fresh_store.initialize()
+    rows = fresh_store.history_for("qlora")
+    assert len(rows) >= 2                        # rehydrated scan-1 row + scan-2 row
+
+
+@pytest.mark.asyncio
+async def test_warm_store_is_never_rehydrated(tmp_path):
+    """A non-empty store ignores the log entirely (no duplicate rows)."""
+    from datetime import UTC as _UTC
+    from datetime import datetime as _dt
+
+    from radar.storage.technique_metrics_log import append_metrics
+    from radar.storage.technique_metrics_store import (
+        TechniqueMetrics,
+        TechniqueMetricsStore,
+    )
+
+    class _DownClient:
+        async def post(self, url, **kwargs):
+            raise RuntimeError("offline")
+
+        async def get(self, url, **kwargs):
+            raise RuntimeError("offline")
+
+    seed_path = tmp_path / "technique-seed.yaml"
+    seed_path.write_text(SEED_YAML, encoding="utf-8")
+    db_path = tmp_path / "radar.db"
+    store = TechniqueMetricsStore(db_path)
+    store.initialize()
+    store.record([TechniqueMetrics(
+        technique_id="qlora", run_id="warm-run",
+        observed_at=_dt(2026, 7, 1, tzinfo=_UTC), citation_count=1,
+        citation_source="s2", resolved_impls=0,
+    )])
+    log_path = tmp_path / "technique-metrics.jsonl"
+    append_metrics(log_path, [TechniqueMetrics(
+        technique_id="qlora", run_id="log-only-run",
+        observed_at=_dt(2026, 6, 1, tzinfo=_UTC), citation_count=99,
+        citation_source="s2", resolved_impls=0,
+    )])
+
+    await run_research_scan(
+        seed_path=seed_path, config_path=tmp_path / "missing-config.yaml",
+        db_path=db_path, model_seed_path=tmp_path / "missing-model-seed.yaml",
+        model_history_path=tmp_path / "model-history.jsonl",
+        history_path=tmp_path / "technique-history.jsonl",
+        client=_DownClient(), metrics_log_path=log_path,
+    )
+
+    runs = {r.run_id for r in TechniqueMetricsStore(db_path).history_for("qlora")}
+    assert "log-only-run" not in runs  # warm store untouched by the log

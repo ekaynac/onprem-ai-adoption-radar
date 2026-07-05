@@ -542,6 +542,7 @@ def research_scan(root: Path = typer.Option(Path("."), help="Project root.")) ->
                 client=client,
                 contact_email=os.environ.get("RADAR_CONTACT_EMAIL"),
                 run_id=run_id,
+                metrics_log_path=root / "data" / "technique-metrics.jsonl",
             )
 
     entries, events = asyncio.run(_run())
