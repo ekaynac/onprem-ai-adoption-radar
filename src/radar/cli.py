@@ -826,6 +826,120 @@ def trending_list(
         )
 
 
+@trending_app.command("promote")
+def trending_promote(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    limit: int = typer.Option(3, help="Max sources to auto-add per run."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would be added; do not write."),
+) -> None:
+    """Auto-add sustained-momentum strict-lane repos into config/seed-sources.yaml."""
+    from datetime import UTC, datetime
+
+    from radar.discovery.source_promotion import (
+        build_source,
+        is_promotable_source,
+        momentum_stats,
+        source_to_yaml_block,
+    )
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+    from radar.discovery.trending_sweep import _tracked_repos as _tracked_source_repos
+    from radar.models import SourceConfig
+    from radar.storage.autopilot_log import AutopilotEntry, append_autopilot
+    from radar.storage.config import ConfigError, load_config
+    from radar.storage.trending_observations_log import load_observations
+
+    seed_path = root / "config" / "seed-sources.yaml"
+    try:
+        config = load_config(seed_path)
+    except ConfigError as exc:
+        console.print(f"[red]No source config to promote into: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    observations = load_observations(root / "data" / "trending-observations.jsonl")
+    by_repo: dict[str, list[TrendingObservation]] = {}
+    for obs in observations:
+        by_repo.setdefault(obs.repo, []).append(obs)
+
+    tracked_repos = _tracked_source_repos(config.sources)
+    existing_ids = {s.id for s in config.sources}
+    existing_projects = {s.project for s in config.sources}
+
+    candidates = [
+        (repo, rows) for repo, rows in by_repo.items()
+        if is_promotable_source(repo, rows, tracked_repos=tracked_repos,
+                                existing_ids=existing_ids, existing_projects=existing_projects)
+    ]
+
+    def _velocity(rows: list[TrendingObservation]) -> float:
+        stats = momentum_stats([r for r in rows if r.lane == Lane.ONPREM])
+        return stats.avg_velocity if stats else 0.0
+
+    candidates.sort(key=lambda rr: _velocity(rr[1]), reverse=True)
+
+    collected: list[tuple[SourceConfig, list[TrendingObservation]]] = []
+    working_ids = set(existing_ids)
+    working_projects = {p.lower() for p in existing_projects}
+    for repo, rows in candidates:
+        if len(collected) >= limit:
+            break
+        source = build_source(repo, rows, existing_ids=working_ids)
+        if source is None or source.project.lower() in working_projects:
+            continue
+        working_ids.add(source.id)
+        working_projects.add(source.project.lower())
+        collected.append((source, rows))
+
+    if not collected:
+        console.print("No sources qualified.")
+        return
+
+    if dry_run:
+        from rich.table import Table
+
+        table = Table(title="Would auto-add (dry run)")
+        for col in ("id", "category", "stars", "velocity/day", "repo"):
+            table.add_column(col)
+        for source, rows in collected:
+            latest = max(rows, key=lambda r: r.observed_at)
+            table.add_row(source.id, source.category.value, str(latest.stars),
+                          f"{_velocity(rows):.1f}", latest.repo)
+        console.print(table)
+        return
+
+    from radar.discovery.source_promotion import splice_into_sources
+
+    old_text = seed_path.read_text(encoding="utf-8")
+    block_text = "".join(source_to_yaml_block(s) for s, _ in collected)
+    new_text = splice_into_sources(old_text, block_text)
+
+    tmp = seed_path.with_suffix(".promote.tmp")
+    tmp.write_text(new_text, encoding="utf-8")
+    try:
+        loaded = load_config(tmp)
+    except ConfigError as exc:
+        tmp.unlink(missing_ok=True)
+        console.print(f"[red]Validation failed: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
+    loaded_ids = [s.id for s in loaded.sources]
+    if len(loaded_ids) != len(set(loaded_ids)):
+        tmp.unlink(missing_ok=True)
+        console.print("[red]Validation failed: duplicate source ids after append[/red]")
+        raise typer.Exit(code=1)
+    tmp.replace(seed_path)
+
+    now = datetime.now(UTC)
+    append_autopilot(root / "data" / "autopilot-log.jsonl", [
+        AutopilotEntry(
+            repo=max(rows, key=lambda r: r.observed_at).repo, source_id=source.id,
+            category=source.category.value,
+            stars=max(rows, key=lambda r: r.observed_at).stars,
+            avg_velocity=_velocity(rows), added_at=now,
+        )
+        for source, rows in collected
+    ])
+    console.print(f"Promoted {len(collected)} source(s) into {seed_path.relative_to(root)}")
+
+
 @app.command()
 def discover(
     category: str = typer.Option("", help="Limit discovery to one category."),

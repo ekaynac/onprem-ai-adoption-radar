@@ -46,7 +46,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - ⬇️ **Downloadable data** — the full append-only timeline (`history.jsonl`) and change feeds (Atom/RSS/JSON) are published next to the site and served by the dashboard at `/history.jsonl`.
 - 🎨 **Fun lane** — playful local-AI projects (image gen, voice, LLM toys) tracked in their own category.
 - 🎓 **Research technique radar** — curated academic techniques (speculative decoding, PagedAttention, LoRA, ReAct…) get their own deterministic rings, scored by *which tracked tools already implement them* plus citation evidence — research verdicts move when tool verdicts move. Browsable at `/research` (dashboard + static site) with per-technique pages showing a research→production timeline, queryable over MCP (`list_techniques`/`get_technique`/`technique_movers`), and published as Atom/JSON change feeds. Tool and model pages cross-link back: each shows the research techniques it implements, and tool cards carry an "Implements N tracked research techniques" evidence line.
-- 📈 **Trending radar** — a daily two-lane GitHub sweep (strict on-prem identity + broader AI heat) appends to a committed observation log, so the radar computes real star *velocity* and flags newly-created repos — the foundation for self-growing catalogs and a githubsignals-style trending feed.
+- 📈 **Trending radar** — a daily two-lane GitHub sweep (strict on-prem identity + broader AI heat) appends to a committed observation log, so the radar computes real star *velocity* and flags newly-created repos — the foundation for self-growing catalogs and a githubsignals-style trending feed. A weekly **source autopilot** then auto-adds the strict-lane repos that clear every gate (sustained star momentum, size + permissive-license floors, a confident category, denylists) straight into the tracked catalog — the radar growing itself, with `auto-added` provenance and a committed audit log.
 
 Everything new degrades gracefully and stays off the critical path: enrichment (OSV/HN/downloads) and webhooks are best-effort and never fail a scan, and the default scoring path remains fully deterministic and offline.
 
@@ -105,6 +105,7 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | `radar research track-record` | Paper→radar lag per technique (median + per-row; predictive hit-rate accrues with history). |
 | `radar trending scan` | Sweep GitHub for trending/new repos (two lanes) and append to the observation log. |
 | `radar trending list [--lane L] [--new]` | List trending repos with star velocity + NEW badges from the observation log. |
+| `radar trending promote [--limit N] [--dry-run]` | Auto-add sustained-momentum strict-lane repos (all gates passed) into `config/seed-sources.yaml`, tagged `auto-added`. |
 | `radar research discover [--source all\|hf\|arxiv]` | Propose technique candidates from HF daily papers and a recent arXiv category sweep, ranked by citations/day, to `data/proposed-technique-seeds.yaml` (human-reviewed, never auto-added). |
 | `radar export --out _site` | Render a self-contained static HTML snapshot (+ change feeds). |
 | `radar serve [--port 8765]` | Run the local dashboard. |
