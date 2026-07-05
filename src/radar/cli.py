@@ -1138,9 +1138,13 @@ def export(
         technique_slugs = build_slug_map([t.id for t in technique_entries])
         technique_hrefs = {tid: f"technique_{slug}.html" for tid, slug in technique_slugs.items()}
         pedigree_index = build_pedigree_index(technique_entries)
-        export_config = load_config(root / "data" / "config.yaml")
+        try:
+            export_config = load_config(root / "data" / "config.yaml")
+            sources = export_config.sources
+        except Exception:
+            sources = []
         ids_by_project: dict[str, list[str]] = {}
-        for source in export_config.sources:
+        for source in sources:
             ids_by_project.setdefault(source.project, []).append(source.id)
         pedigree_by_project = {
             project: items for project, ids in ids_by_project.items()
