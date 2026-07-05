@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import (
@@ -300,7 +301,7 @@ def create_app(root: Path) -> FastAPI:
         impl_hrefs: dict[str, str] = {}
         for impl in entry.resolved_implementations:
             if impl.kind == ImplKind.TOOL and impl.ref in project_by_id:
-                impl_hrefs[impl.ref] = f"/project/{project_by_id[impl.ref]}"
+                impl_hrefs[impl.ref] = f"/project/{quote(project_by_id[impl.ref], safe='')}"
             elif impl.kind == ImplKind.MODEL:
                 impl_hrefs[impl.ref] = f"/model/{impl.ref}"
         return TEMPLATES.TemplateResponse(

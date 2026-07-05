@@ -847,3 +847,32 @@ def test_technique_page_unresolvable_impl_stays_plain(tmp_path: Path):
 
     assert "github-gone" in text
     assert 'href="/project/' not in text
+
+
+def test_technique_page_tool_link_urlencodes_project_name(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("NVIDIA Blackwell / GB200", Ring.ADOPT)])
+    # Write config with properly quoted project name in YAML
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+sources:
+  - id: manual-nvidia-blackwell
+    type: github_repo
+    project: "NVIDIA Blackwell / GB200"
+    category: model_serving
+    url: https://github.com/vllm-project/vllm
+""",
+        encoding="utf-8",
+    )
+    _seed_pedigree_research_run(tmp_path, "manual-nvidia-blackwell")
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/technique/spec-dec").text
+
+    encoded = "/project/NVIDIA%20Blackwell%20%2F%20GB200"
+    assert f'href="{encoded}"' in text
+    # Verify the href generates and does not cause a 500 error
+    # (Starlette router does not decode %2F in path params for security)
+    assert client.get(encoded).status_code != 500
