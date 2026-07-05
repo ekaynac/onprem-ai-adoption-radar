@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import ValidationError
 
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 
@@ -19,7 +20,7 @@ def test_observation_round_trips_and_is_frozen():
 
     dumped = obs.model_dump_json()
     assert TrendingObservation.model_validate_json(dumped) == obs
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(ValidationError):
         obs.stars = 5  # type: ignore[misc]
 
 
@@ -30,7 +31,7 @@ def test_observation_rejects_unknown_fields_and_defaults():
         repo_created_at=datetime(2026, 7, 1, tzinfo=UTC),
     )
     assert obs.description == "" and obs.topics == [] and obs.license is None
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(ValidationError):
         TrendingObservation(
             repo="a/b", lane=Lane.ONPREM, stars=1,
             observed_at=datetime(2026, 7, 5, tzinfo=UTC),
