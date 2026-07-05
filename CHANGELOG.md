@@ -26,6 +26,13 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Trending radar engine** — a daily two-lane GitHub sweep (`radar trending
+  scan`) appends repo observations to an append-only
+  `data/trending-observations.jsonl` committed by CI; `radar trending list`
+  derives star velocity and newly-created-repo flags from it. The strict
+  `onprem` lane matches the radar's identity; the `broader` lane catches
+  general AI heat. This is the engine the source autopilot and the trending
+  surfaces (both coming next) build on.
 - **Discovery extras + research-data hardening** — `radar research discover`
   gains an arXiv category sweep (`--source all|hf|arxiv`, keyword-gated like
   the HF source) and ranks all candidates by a deterministic citations/day
