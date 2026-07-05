@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -40,6 +41,9 @@ from radar.storage.metrics_store import MetricsStore
 from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
 from radar.storage.source_health_store import SourceHealthStore
+
+
+logger = logging.getLogger(__name__)
 
 
 def _backers_by_project(config: Config) -> dict[str, Backer]:
@@ -115,6 +119,7 @@ class RadarOrchestrator:
             weights=weights,
             backer_by_project=_backers_by_project(config),
         )
+        cards = self._attach_pedigree(cards, config)
         if profile:
             self.run_store.update_meta(run_id, {"profile": profile})
         filtered_cards = apply_category_quotas(cards, config.quotas)
@@ -305,6 +310,44 @@ class RadarOrchestrator:
         events = deltas_to_events(persistable, run_id=run_id, observed_at=datetime.now(UTC))
         self.history.add_events(events)
         append_events(self.history_log, events)
+
+    def _attach_pedigree(self, cards: list[DecisionCard], config: Config) -> list[DecisionCard]:
+        """Append a research-pedigree evidence line per card. Best-effort:
+        no research run (or any failure) leaves the cards untouched."""
+        try:
+            from radar.mcp_server.technique_queries import _latest_technique_cards
+            from radar.research_radar.entities import TechniqueEntry
+            from radar.research_radar.pedigree import (
+                build_pedigree_index,
+                pedigree_for_refs,
+                pedigree_note,
+            )
+
+            entries = [
+                TechniqueEntry.model_validate(c) for c in _latest_technique_cards(self.root)
+            ]
+            if not entries:
+                return cards
+            index = build_pedigree_index(entries)
+            ids_by_project: dict[str, list[str]] = {}
+            for source in config.sources:
+                ids_by_project.setdefault(source.project, []).append(source.id)
+            updated: list[DecisionCard] = []
+            for card in cards:
+                items = pedigree_for_refs(
+                    index.by_tool_ref, ids_by_project.get(card.project, [])
+                )
+                note = pedigree_note(items)
+                if note is None:
+                    updated.append(card)
+                else:
+                    updated.append(card.model_copy(
+                        update={"evidence_notes": [*card.evidence_notes, note]}
+                    ))
+            return updated
+        except Exception as exc:  # pedigree must never fail a scan
+            logger.warning("Research pedigree unavailable: %s", exc)
+            return cards
 
     def _compute_momentums(self, cards: list[DecisionCard]) -> dict:
         """Direction of travel per project from metrics + ring history."""
