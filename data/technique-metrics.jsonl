@@ -1,0 +1,15 @@
+{"technique_id": "awq", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 1500, "citation_source": "s2", "resolved_impls": 2, "ring": "pilot"}
+{"technique_id": "dpo", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 9469, "citation_source": "s2", "resolved_impls": 0, "ring": "watch"}
+{"technique_id": "flash-attention", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 4658, "citation_source": "s2", "resolved_impls": 3, "ring": "pilot"}
+{"technique_id": "gptq", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 2210, "citation_source": "s2", "resolved_impls": 1, "ring": "pilot"}
+{"technique_id": "llm-tool-use", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 4497, "citation_source": "s2", "resolved_impls": 3, "ring": "pilot"}
+{"technique_id": "lora", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 20533, "citation_source": "s2", "resolved_impls": 2, "ring": "adopt"}
+{"technique_id": "medusa-decoding", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 782, "citation_source": "s2", "resolved_impls": 1, "ring": "pilot"}
+{"technique_id": "mixture-of-experts", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 4202, "citation_source": "s2", "resolved_impls": 2, "ring": "adopt"}
+{"technique_id": "paged-attention", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 6828, "citation_source": "s2", "resolved_impls": 3, "ring": "pilot"}
+{"technique_id": "qlora", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 4934, "citation_source": "s2", "resolved_impls": 0, "ring": "watch"}
+{"technique_id": "rag", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 15467, "citation_source": "s2", "resolved_impls": 2, "ring": "pilot"}
+{"technique_id": "react", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 7614, "citation_source": "s2", "resolved_impls": 3, "ring": "pilot"}
+{"technique_id": "reflexion", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 4155, "citation_source": "s2", "resolved_impls": 1, "ring": "pilot"}
+{"technique_id": "speculative-decoding", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 1701, "citation_source": "s2", "resolved_impls": 4, "ring": "adopt"}
+{"technique_id": "structured-generation", "run_id": "run-20260705T142539Z-c952fe61", "observed_at": "2026-07-05T14:25:40.706348Z", "citation_count": 161, "citation_source": "s2", "resolved_impls": 2, "ring": "pilot"}
