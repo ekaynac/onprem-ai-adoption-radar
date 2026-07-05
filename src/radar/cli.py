@@ -636,39 +636,63 @@ def research_show(
 @research_app.command("discover")
 def research_discover(
     root: Path = typer.Option(Path("."), help="Project root."),
+    source: str = typer.Option("all", help="Candidate source: all | hf | arxiv."),
+    days: int = typer.Option(7, help="arXiv sweep window in days."),
     min_upvotes: int = typer.Option(10, help="Minimum HF daily-papers upvotes."),
     limit: int = typer.Option(20, help="Maximum proposals to write."),
 ) -> None:
-    """Propose technique candidates from HF daily papers (human-reviewed file)."""
+    """Propose technique candidates (HF daily papers + arXiv sweep, human-reviewed)."""
     import asyncio
+    import os
+    from datetime import UTC, datetime, timedelta
 
     import httpx
 
-    from radar.discovery import hf_technique_candidates
+    from radar.discovery import (
+        arxiv_technique_candidates,
+        hf_technique_candidates,
+        technique_candidate_velocity,
+    )
     from radar.discovery.technique_proposals import write_technique_proposals
     from radar.research_radar.seed import TechniqueSeedError, load_technique_seed
 
+    if source not in {"all", "hf", "arxiv"}:
+        console.print(f"[red]Unknown --source: {source} (use all | hf | arxiv)[/red]")
+        raise typer.Exit(code=1)
     seed_path = root / "config" / "technique-seed.yaml"
     if not seed_path.exists():
         seed_path = Path(__file__).resolve().parents[2] / "config" / "technique-seed.yaml"
-
     try:
         seeds = load_technique_seed(seed_path)
     except TechniqueSeedError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
 
+    now = datetime.now(UTC)
+
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            return await hf_technique_candidates.discover_technique_candidates(
-                seeds, client, min_upvotes=min_upvotes, limit=limit,
+            gathered = []
+            if source in {"all", "hf"}:
+                gathered.extend(await hf_technique_candidates.discover_technique_candidates(
+                    seeds, client, min_upvotes=min_upvotes, limit=limit,
+                ))
+            if source in {"all", "arxiv"}:
+                arxiv_found = await arxiv_technique_candidates.discover_arxiv_candidates(
+                    seeds, client, since=now - timedelta(days=days), limit=limit,
+                )
+                seen = {p.arxiv_id for p in gathered}  # HF entries win duplicates
+                gathered.extend(p for p in arxiv_found if p.arxiv_id not in seen)
+            return await technique_candidate_velocity.enrich_proposals_with_velocity(
+                gathered, client, now=now,
+                contact_email=os.environ.get("RADAR_CONTACT_EMAIL"),
             )
 
-    proposals = asyncio.run(_run())
+    proposals = technique_candidate_velocity.rank_proposals(asyncio.run(_run()))[:limit]
     out_path = root / "data" / "proposed-technique-seeds.yaml"
     write_technique_proposals(out_path, proposals)
     if not proposals:
-        console.print("No technique candidates found (or HF API unavailable).")
+        console.print("No technique candidates found (or sources unavailable).")
         return
     console.print(
         f"{len(proposals)} technique candidate(s) → {out_path.relative_to(root)}"
