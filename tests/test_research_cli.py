@@ -227,3 +227,50 @@ def test_research_scan_writes_metrics_log(tmp_path):
     runner.invoke(app, ["research", "scan", "--root", str(root)])
 
     assert (root / "data" / "technique-metrics.jsonl").exists()
+
+
+def test_research_discover_empty_run_clears_stale_proposals(tmp_path, monkeypatch):
+    from radar.discovery.technique_proposals import load_technique_proposals
+
+    async def _none(seeds, client, min_upvotes=10, limit=20):
+        return []
+
+    monkeypatch.setattr(
+        "radar.discovery.hf_technique_candidates.discover_technique_candidates", _none,
+    )
+    runner = CliRunner()
+    root = _project(tmp_path)
+    stale = root / "data" / "proposed-technique-seeds.yaml"
+    stale.write_text("proposals:\n  - suggested_id: old\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root)])
+
+    assert result.exit_code == 0
+    assert load_technique_proposals(stale) == []
+
+
+def test_research_discover_bad_seed_exits_clean(tmp_path):
+    runner = CliRunner()
+    root = _project(tmp_path)
+    seed = root / "config" / "technique-seed.yaml"
+    seed.write_text(
+        """
+techniques:
+  - id: qlora
+    name: QLoRA
+    category: ai_infrastructure
+    domain: fine_tuning
+    onprem_impact: reduces_memory
+  - id: qlora
+    name: QLoRA Again
+    category: ai_infrastructure
+    domain: fine_tuning
+    onprem_impact: reduces_memory
+""",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root)])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output

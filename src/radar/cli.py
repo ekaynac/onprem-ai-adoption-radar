@@ -646,12 +646,17 @@ def research_discover(
 
     from radar.discovery import hf_technique_candidates
     from radar.discovery.technique_proposals import write_technique_proposals
-    from radar.research_radar.seed import load_technique_seed
+    from radar.research_radar.seed import TechniqueSeedError, load_technique_seed
 
     seed_path = root / "config" / "technique-seed.yaml"
     if not seed_path.exists():
         seed_path = Path(__file__).resolve().parents[2] / "config" / "technique-seed.yaml"
-    seeds = load_technique_seed(seed_path)
+
+    try:
+        seeds = load_technique_seed(seed_path)
+    except TechniqueSeedError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
 
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
@@ -660,11 +665,11 @@ def research_discover(
             )
 
     proposals = asyncio.run(_run())
+    out_path = root / "data" / "proposed-technique-seeds.yaml"
+    write_technique_proposals(out_path, proposals)
     if not proposals:
         console.print("No technique candidates found (or HF API unavailable).")
         return
-    out_path = root / "data" / "proposed-technique-seeds.yaml"
-    write_technique_proposals(out_path, proposals)
     console.print(
         f"{len(proposals)} technique candidate(s) → {out_path.relative_to(root)}"
     )
