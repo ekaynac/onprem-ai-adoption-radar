@@ -260,3 +260,744 @@ techniques:
         ref: github-crewai
     open_code: true
     onprem_impact: improves_quality
+
+  # ── Seed expansion batch (2026-07-05): inference/serving ──────────────────
+  - id: chunked-prefill
+    name: Chunked Prefill (Sarathi)
+    category: model_serving
+    domain: inference
+    aliases: ["Sarathi", "Sarathi-Serve", "piggybacked chunked prefill"]
+    papers:
+      - arxiv_id: "2308.16369"
+        title: "SARATHI: Efficient LLM Inference by Piggybacking Decodes with Chunked Prefills"
+        published: "2023-08"
+      - arxiv_id: "2403.02310"
+        title: "Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve"
+        role: followup
+        published: "2024-03"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-sglang
+    open_code: true
+    onprem_impact: reduces_latency
+
+  - id: disaggregated-prefill-decode
+    name: Disaggregated Prefill/Decode Serving (DistServe)
+    category: model_serving
+    domain: inference
+    aliases: ["DistServe", "prefill-decode disaggregation"]
+    papers:
+      - arxiv_id: "2401.09670"
+        title: "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving"
+        published: "2024-01"
+    implementations:
+      - kind: tool
+        ref: github-nvidia-dynamo
+      - kind: tool
+        ref: github-llm-d
+    open_code: true
+    onprem_impact: enables_scale
+
+  - id: kv-cache-quantization
+    name: KV-Cache Quantization (KIVI)
+    category: model_serving
+    domain: inference
+    aliases: ["KIVI", "2-bit KV cache quantization"]
+    papers:
+      - arxiv_id: "2402.02750"
+        title: "KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache"
+        published: "2024-02"
+    implementations:
+      - kind: tool
+        ref: github-lmdeploy
+      - kind: tool
+        ref: github-vllm
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: eagle-speculative-decoding
+    name: EAGLE (Feature-Level Speculative Decoding)
+    category: model_serving
+    domain: inference
+    aliases: ["EAGLE", "EAGLE-2"]
+    papers:
+      - arxiv_id: "2401.15077"
+        title: "EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty"
+        published: "2024-01"
+      - arxiv_id: "2406.16858"
+        title: "EAGLE-2: Faster Inference of Language Models with Dynamic Draft Trees"
+        role: followup
+        published: "2024-06"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-sglang
+    open_code: true
+    onprem_impact: reduces_latency
+
+  - id: radix-attention-prefix-caching
+    name: RadixAttention (Automatic Prefix Caching)
+    category: model_serving
+    domain: inference
+    aliases: ["prefix caching", "automatic prefix caching"]
+    papers:
+      - arxiv_id: "2312.07104"
+        title: "SGLang: Efficient Execution of Structured Language Model Programs"
+        published: "2023-12"
+    implementations:
+      - kind: tool
+        ref: github-sglang
+      - kind: tool
+        ref: github-vllm
+    open_code: true
+    onprem_impact: reduces_latency
+
+  - id: smoothquant
+    name: SmoothQuant
+    category: model_serving
+    domain: inference
+    papers:
+      - arxiv_id: "2211.10438"
+        title: "SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models"
+        published: "2022-11"
+    implementations:
+      - kind: tool
+        ref: github-tensorrt-llm
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: fp8-quantization
+    name: FP8 Quantization Formats
+    category: model_serving
+    domain: inference
+    aliases: ["FP8", "E4M3/E5M2"]
+    papers:
+      - arxiv_id: "2209.05433"
+        title: "FP8 Formats for Deep Learning"
+        published: "2022-09"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-tensorrt-llm
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: tensor-parallelism
+    name: Tensor/Model Parallelism (Megatron-LM)
+    category: ai_infrastructure
+    domain: inference
+    aliases: ["Megatron-LM", "tensor parallelism", "model parallelism"]
+    papers:
+      - arxiv_id: "1909.08053"
+        title: "Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism"
+        published: "2019-09"
+    implementations:
+      - kind: tool
+        ref: github-megatron-lm
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-tensorrt-llm
+    open_code: true
+    onprem_impact: enables_scale
+
+  - id: multi-head-latent-attention
+    name: Multi-Head Latent Attention (MLA)
+    category: model_serving
+    domain: inference
+    aliases: ["MLA", "DeepSeek-V2 attention"]
+    papers:
+      - arxiv_id: "2405.04434"
+        title: "DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model"
+        published: "2024-05"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-sglang
+      - kind: model
+        ref: deepseek-v3
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: grouped-query-attention
+    name: Grouped-Query Attention (GQA)
+    category: model_serving
+    domain: inference
+    aliases: ["GQA"]
+    papers:
+      - arxiv_id: "2305.13245"
+        title: "GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints"
+        published: "2023-05"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-llama-cpp
+      - kind: model
+        ref: llama-3.3-70b
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: sliding-window-attention
+    name: Sliding-Window Attention
+    category: model_serving
+    domain: inference
+    aliases: ["local attention", "windowed attention"]
+    papers:
+      - arxiv_id: "2004.05150"
+        title: "Longformer: The Long-Document Transformer"
+        published: "2020-04"
+      - arxiv_id: "2310.06825"
+        title: "Mistral 7B"
+        role: followup
+        published: "2023-10"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-llama-cpp
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: yarn-context-extension
+    name: YaRN (Context Window Extension)
+    category: model_serving
+    domain: inference
+    aliases: ["YaRN", "RoPE scaling"]
+    papers:
+      - arxiv_id: "2309.00071"
+        title: "YaRN: Efficient Context Window Extension of Large Language Models"
+        published: "2023-09"
+    implementations:
+      - kind: tool
+        ref: github-vllm
+      - kind: tool
+        ref: github-llama-cpp
+    open_code: true
+    onprem_impact: enables_scale
+
+  - id: bitnet-1bit-llms
+    name: BitNet (1-bit LLMs)
+    category: model_serving
+    domain: inference
+    aliases: ["1-bit LLMs", "BitNet b1.58"]
+    papers:
+      - arxiv_id: "2310.11453"
+        title: "BitNet: Scaling 1-bit Transformers for Large Language Models"
+        published: "2023-10"
+      - arxiv_id: "2402.17764"
+        title: "The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits"
+        role: followup
+        published: "2024-02"
+    implementations:
+      - kind: tool
+        ref: github-llama-cpp
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: sparsegpt-pruning
+    name: SparseGPT (One-Shot Pruning)
+    category: model_serving
+    domain: inference
+    aliases: ["SparseGPT"]
+    papers:
+      - arxiv_id: "2301.00774"
+        title: "SparseGPT: Massive Language Models Can Be Accurately Pruned in One-Shot"
+        published: "2023-01"
+    open_code: true
+    onprem_impact: reduces_memory
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  # ── Seed expansion batch (2026-07-05): fine-tuning/alignment ──────────────
+  - id: dora
+    name: DoRA (Weight-Decomposed Low-Rank Adaptation)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["Weight-Decomposed LoRA"]
+    papers:
+      - arxiv_id: "2402.09353"
+        title: "DoRA: Weight-Decomposed Low-Rank Adaptation"
+        published: "2024-02"
+    open_code: true
+    onprem_impact: reduces_memory
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: orpo
+    name: ORPO (Monolithic Preference Optimization)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["Odds Ratio Preference Optimization"]
+    papers:
+      - arxiv_id: "2403.07691"
+        title: "ORPO: Monolithic Preference Optimization without Reference Model"
+        published: "2024-03"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: kto
+    name: KTO (Kahneman-Tversky Optimization)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["Kahneman-Tversky Optimization"]
+    papers:
+      - arxiv_id: "2402.01306"
+        title: "KTO: Model Alignment as Prospect Theoretic Optimization"
+        published: "2024-02"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: simpo
+    name: SimPO (Simple Preference Optimization)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["Reference-Free Preference Optimization"]
+    papers:
+      - arxiv_id: "2405.14734"
+        title: "SimPO: Simple Preference Optimization with a Reference-Free Reward"
+        published: "2024-05"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: rlhf
+    name: RLHF (Reinforcement Learning from Human Feedback)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["InstructGPT", "RLHF"]
+    papers:
+      - arxiv_id: "2203.02155"
+        title: "Training language models to follow instructions with human feedback"
+        published: "2022-03"
+    open_code: false
+    onprem_impact: improves_quality
+    notes: "OpenAI did not release official training code; adoption evidence lives in downstream open RLHF stacks."
+
+  - id: constitutional-ai
+    name: Constitutional AI (RLAIF)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["CAI", "RLAIF"]
+    papers:
+      - arxiv_id: "2212.08073"
+        title: "Constitutional AI: Harmlessness from AI Feedback"
+        published: "2022-12"
+    open_code: false
+    onprem_impact: improves_safety
+    notes: "Anthropic did not release official training code; adoption evidence lives in open RLAIF reproductions."
+
+  - id: grpo
+    name: GRPO (Group Relative Policy Optimization)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["Group Relative Policy Optimization"]
+    papers:
+      - arxiv_id: "2402.03300"
+        title: "DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models"
+        published: "2024-02"
+      - arxiv_id: "2501.12948"
+        title: "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning"
+        role: followup
+        published: "2025-01"
+    implementations:
+      - kind: model
+        ref: deepseek-r1
+    open_code: true
+    onprem_impact: reduces_memory
+
+  - id: ties-merging
+    name: TIES-Merging (Model Merging)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["TIES", "model merging", "trim elect sign merge"]
+    papers:
+      - arxiv_id: "2306.01708"
+        title: "TIES-Merging: Resolving Interference When Merging Models"
+        published: "2023-06"
+    open_code: true
+    onprem_impact: enables_scale
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: instruction-tuning-flan
+    name: Instruction Tuning (FLAN)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["FLAN", "instruction fine-tuning"]
+    papers:
+      - arxiv_id: "2109.01652"
+        title: "Finetuned Language Models Are Zero-Shot Learners"
+        published: "2021-09"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: llm-knowledge-distillation
+    name: LLM Knowledge Distillation (MiniLLM)
+    category: ai_infrastructure
+    domain: fine_tuning
+    aliases: ["MiniLLM", "knowledge distillation"]
+    papers:
+      - arxiv_id: "2306.08543"
+        title: "MiniLLM: Knowledge Distillation of Large Language Models"
+        published: "2023-06"
+    open_code: true
+    onprem_impact: reduces_memory
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  # ── Seed expansion batch (2026-07-05): RAG + agent architecture ───────────
+  - id: graphrag
+    name: GraphRAG
+    category: ai_infrastructure
+    domain: rag
+    aliases: ["graph-based RAG"]
+    papers:
+      - arxiv_id: "2404.16130"
+        title: "From Local to Global: A Graph RAG Approach to Query-Focused Summarization"
+        published: "2024-04"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: self-rag
+    name: Self-RAG
+    category: ai_infrastructure
+    domain: rag
+    papers:
+      - arxiv_id: "2310.11511"
+        title: "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection"
+        published: "2023-10"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: hyde
+    name: HyDE (Hypothetical Document Embeddings)
+    category: ai_infrastructure
+    domain: rag
+    aliases: ["Hypothetical Document Embeddings"]
+    papers:
+      - arxiv_id: "2212.10496"
+        title: "Precise Zero-Shot Dense Retrieval without Relevance Labels"
+        published: "2022-12"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: raptor
+    name: RAPTOR (Recursive Abstractive Tree Retrieval)
+    category: ai_infrastructure
+    domain: rag
+    papers:
+      - arxiv_id: "2401.18059"
+        title: "RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval"
+        published: "2024-01"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: corrective-rag
+    name: Corrective RAG (CRAG)
+    category: ai_infrastructure
+    domain: rag
+    aliases: ["CRAG"]
+    papers:
+      - arxiv_id: "2401.15884"
+        title: "Corrective Retrieval Augmented Generation"
+        published: "2024-01"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: colbert
+    name: ColBERT (Late Interaction Retrieval)
+    category: ai_infrastructure
+    domain: rag
+    aliases: ["late interaction retrieval"]
+    papers:
+      - arxiv_id: "2004.12832"
+        title: "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT"
+        published: "2020-04"
+    open_code: true
+    onprem_impact: reduces_latency
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: chain-of-thought
+    name: Chain-of-Thought Prompting
+    category: agent_frameworks
+    domain: agent_architecture
+    aliases: ["CoT prompting", "CoT"]
+    papers:
+      - arxiv_id: "2201.11903"
+        title: "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models"
+        published: "2022-01"
+    open_code: false
+    onprem_impact: improves_quality
+    notes: "Prompting technique with no official code release."
+
+  - id: self-consistency
+    name: Self-Consistency Decoding
+    category: agent_frameworks
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2203.11171"
+        title: "Self-Consistency Improves Chain of Thought Reasoning in Language Models"
+        published: "2022-03"
+    open_code: false
+    onprem_impact: improves_quality
+    notes: "Prompting technique with no official code release."
+
+  - id: tree-of-thoughts
+    name: Tree of Thoughts
+    category: agent_frameworks
+    domain: agent_architecture
+    aliases: ["ToT"]
+    papers:
+      - arxiv_id: "2305.10601"
+        title: "Tree of Thoughts: Deliberate Problem Solving with Large Language Models"
+        published: "2023-05"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: memgpt
+    name: MemGPT (LLM Memory Management)
+    category: agent_frameworks
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2310.08560"
+        title: "MemGPT: Towards LLMs as Operating Systems"
+        published: "2023-10"
+    open_code: true
+    onprem_impact: enables_scale
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: voyager
+    name: Voyager (Skill Library Agents)
+    category: general_agents
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2305.16291"
+        title: "Voyager: An Open-Ended Embodied Agent with Large Language Models"
+        published: "2023-05"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: swe-agent
+    name: SWE-agent (Agent-Computer Interfaces)
+    category: coding_agents
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2405.15793"
+        title: "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering"
+        published: "2024-05"
+    implementations:
+      - kind: tool
+        ref: github-openhands
+      - kind: tool
+        ref: github-cline
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: multi-agent-debate
+    name: Multi-Agent Debate
+    category: agent_frameworks
+    domain: agent_architecture
+    aliases: ["LLM debate", "multiagent debate"]
+    papers:
+      - arxiv_id: "2305.14325"
+        title: "Improving Factuality and Reasoning in Language Models through Multiagent Debate"
+        published: "2023-05"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: lats
+    name: LATS (Language Agent Tree Search)
+    category: agent_frameworks
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2310.04406"
+        title: "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models"
+        published: "2023-10"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: plan-and-solve
+    name: Plan-and-Solve Prompting
+    category: agent_frameworks
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2305.04091"
+        title: "Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning by Large Language Models"
+        published: "2023-05"
+    implementations:
+      - kind: tool
+        ref: github-langgraph
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: webvoyager
+    name: WebVoyager (Web Agents)
+    category: general_agents
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2401.13919"
+        title: "WebVoyager: Building an End-to-End Web Agent with Large Multimodal Models"
+        published: "2024-01"
+    implementations:
+      - kind: tool
+        ref: github-browser-use
+    open_code: true
+    onprem_impact: improves_quality
+
+  - id: self-refine
+    name: Self-Refine (Iterative Self-Feedback)
+    category: agent_frameworks
+    domain: agent_architecture
+    papers:
+      - arxiv_id: "2303.17651"
+        title: "Self-Refine: Iterative Refinement with Self-Feedback"
+        published: "2023-03"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  # ── Seed expansion batch (2026-07-05): safety, orchestration, embodied ────
+  - id: llm-vulnerability-scanning
+    name: LLM Vulnerability Scanning (garak)
+    category: sandbox_governance
+    domain: safety_sandboxing
+    aliases: ["LLM red-teaming scanner", "security probing"]
+    papers:
+      - arxiv_id: "2406.11036"
+        title: "garak: A Framework for Security Probing Large Language Models"
+        published: "2024-06"
+    implementations:
+      - kind: tool
+        ref: github-garak
+    open_code: true
+    onprem_impact: improves_safety
+
+  - id: programmable-guardrails
+    name: Programmable Guardrails (NeMo Guardrails)
+    category: sandbox_governance
+    domain: safety_sandboxing
+    aliases: ["programmable rails", "Colang guardrails"]
+    papers:
+      - arxiv_id: "2310.10501"
+        title: "NeMo Guardrails: A Toolkit for Controllable and Safe LLM Applications with Programmable Rails"
+        published: "2023-10"
+    implementations:
+      - kind: tool
+        ref: github-guardrails
+    open_code: true
+    onprem_impact: improves_safety
+
+  - id: llm-io-safeguards
+    name: LLM Input/Output Safeguards (Llama Guard)
+    category: sandbox_governance
+    domain: safety_sandboxing
+    aliases: ["LLM-based content moderation"]
+    papers:
+      - arxiv_id: "2312.06674"
+        title: "Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations"
+        published: "2023-12"
+    open_code: true
+    onprem_impact: improves_safety
+    notes: "No tracked implementation in the source catalog yet — WATCH by construction."
+
+  - id: llm-watermarking
+    name: LLM Text Watermarking
+    category: sandbox_governance
+    domain: safety_sandboxing
+    aliases: ["generative text watermark", "Kirchenbauer watermark"]
+    papers:
+      - arxiv_id: "2301.10226"
+        title: "A Watermark for Large Language Models"
+        published: "2023-01"
+    open_code: true
+    onprem_impact: improves_safety
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
+
+  - id: adversarial-robustness-testing
+    name: Adversarial Robustness Testing (Universal Jailbreak Suffixes)
+    category: sandbox_governance
+    domain: safety_sandboxing
+    aliases: ["GCG attack", "greedy coordinate gradient", "universal adversarial suffixes"]
+    papers:
+      - arxiv_id: "2307.15043"
+        title: "Universal and Transferable Adversarial Attacks on Aligned Language Models"
+        published: "2023-07"
+    open_code: true
+    onprem_impact: improves_safety
+    notes: "Attack-side research underpinning adversarial-robustness defenses and evals."
+
+  - id: distributed-task-orchestration
+    name: Distributed Task Orchestration (Ray)
+    category: ai_infrastructure
+    domain: orchestration
+    aliases: ["distributed task scheduling", "actor-based orchestration"]
+    papers:
+      - arxiv_id: "1712.05889"
+        title: "Ray: A Distributed Framework for Emerging AI Applications"
+        published: "2017-12"
+    implementations:
+      - kind: tool
+        ref: github-ray
+    open_code: true
+    onprem_impact: enables_scale
+
+  - id: openvla
+    name: OpenVLA (Vision-Language-Action Models)
+    category: physical_ai_infrastructure
+    domain: embodied
+    aliases: ["VLA model", "vision-language-action policy"]
+    papers:
+      - arxiv_id: "2406.09246"
+        title: "OpenVLA: An Open-Source Vision-Language-Action Model"
+        published: "2024-06"
+    open_code: true
+    onprem_impact: improves_quality
+    notes: "No tracked implementation in the source catalog yet — WATCH by construction."
+
+  - id: action-chunking-aloha
+    name: Action Chunking with Transformers (ACT / ALOHA)
+    category: physical_ai_infrastructure
+    domain: embodied
+    aliases: ["ACT", "ALOHA low-cost bimanual manipulation"]
+    papers:
+      - arxiv_id: "2304.13705"
+        title: "Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware"
+        published: "2023-04"
+    open_code: true
+    onprem_impact: enables_scale
+    notes: "No tracked implementation in the source catalog yet — WATCH by construction."
+
+  - id: domain-randomization
+    name: Domain Randomization (Sim-to-Real Transfer)
+    category: physical_ai_infrastructure
+    domain: embodied
+    aliases: ["sim-to-real transfer"]
+    papers:
+      - arxiv_id: "1703.06907"
+        title: "Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World"
+        published: "2017-03"
+    open_code: false
+    onprem_impact: improves_quality
+    notes: "No tracked implementation yet — WATCH by construction until one lands."
