@@ -26,6 +26,13 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Research pedigree cross-linking** — the three radars now reference each
+  other: tool decision cards carry an "Implements N tracked research
+  techniques" evidence line (best-effort, never affects scoring), project and
+  model pages show the techniques they implement (with rings + citations,
+  linked to the technique pages), technique pages link implementations back to
+  project/model pages, and MCP `get_project`/`get_model` payloads gain a
+  `techniques` list.
 - **Academic research radar (surfaces)** — the technique radar is now visible
   everywhere the models radar is: a `/research` catalog page + per-technique
   pages (with a research→production timeline merging paper dates and ring

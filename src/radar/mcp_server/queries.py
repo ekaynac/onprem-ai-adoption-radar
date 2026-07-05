@@ -85,6 +85,7 @@ class RadarQueryService:
         events = self.history.history_for(project)
         detail = self._card_dict(card)
         detail["history"] = [self._event_dict(e) for e in events]
+        detail["techniques"] = self._project_techniques(card.project)
         return detail
 
     def compare(
@@ -116,6 +117,27 @@ class RadarQueryService:
                 {"label": row.label, "values": row.values} for row in comparison.rows
             ],
         }
+
+    def _project_techniques(self, project: str) -> list[dict[str, Any]]:
+        """Techniques implemented by this project's sources (best-effort, [] on any gap)."""
+        try:
+            from radar.mcp_server.technique_queries import _latest_technique_cards
+            from radar.research_radar.entities import TechniqueEntry
+            from radar.research_radar.pedigree import build_pedigree_index, pedigree_for_refs
+            from radar.storage.config import load_config
+
+            entries = [TechniqueEntry.model_validate(c)
+                       for c in _latest_technique_cards(self.root)]
+            if not entries:
+                return []
+            config = load_config(self.root / "data" / "config.yaml")
+            refs = [s.id for s in config.sources if s.project == project]
+            items = pedigree_for_refs(build_pedigree_index(entries).by_tool_ref, refs)
+            return [{"id": t.technique_id, "name": t.name,
+                     "ring": t.ring.value if t.ring else None,
+                     "citation_count": t.citation_count} for t in items]
+        except Exception:
+            return []
 
     def sandbox_plan(self, project: str) -> dict[str, Any] | None:
         """Return a disposable trial plan for a project, or None if unknown."""
