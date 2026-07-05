@@ -77,11 +77,10 @@ def render_static_site(
     ``model_events`` is also provided). When ``technique_entries`` is provided,
     writes ``techniques.html``, per-technique pages, and
     ``changes-research.xml``/``.json`` feeds (the latter only when
-    ``technique_events`` is also provided). ``pedigree_by_project`` (optional)
-    supplies each project page's "Research techniques" section; ``technique_hrefs``
-    maps technique id to its href and must cover every id referenced by
-    ``pedigree_by_project``/``pedigree_by_model``. ``pedigree_by_model`` is
-    unused here — reserved for the model-detail pages (a later task).
+    ``technique_events`` is also provided). ``pedigree_by_project`` and
+    ``pedigree_by_model`` (optional) supply the project/model pages' "Research
+    techniques" section; ``technique_hrefs`` maps technique id to its href and
+    must cover every id referenced by either.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -174,7 +173,8 @@ def render_static_site(
 
     if model_entries:
         _write_model_pages(
-            env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp
+            env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp,
+            pedigree_by_model=pedigree_by_model or {}, technique_hrefs=technique_hrefs or {},
         )
 
     if technique_entries:
@@ -256,6 +256,8 @@ def _write_model_pages(
     site_title: str,
     self_base_url: str,
     generated_at: str = "",
+    pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
+    technique_hrefs: dict[str, str] | None = None,
 ) -> None:
     """Render models.html, per-model pages, and model feed files."""
     slug_by_model = build_slug_map([m.id for m in model_entries])
@@ -274,7 +276,11 @@ def _write_model_pages(
     for entry in model_entries:
         (out_dir / f"model_{slug_by_model[entry.id]}.html").write_text(
             model_template.render(
-                model=entry, fit_by_tier=fit_by_tier(entry), generated_at=generated_at
+                model=entry,
+                fit_by_tier=fit_by_tier(entry),
+                generated_at=generated_at,
+                pedigree=(pedigree_by_model or {}).get(entry.id) or None,
+                technique_hrefs=technique_hrefs or {},
             ),
             encoding="utf-8",
         )

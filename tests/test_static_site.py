@@ -453,3 +453,26 @@ def test_static_project_page_shows_pedigree_with_static_links(tmp_path):
     assert "Research techniques" in page
     assert 'href="technique_spec-dec.html"' in page
     assert "1697 citations" in page
+
+
+def test_static_model_page_shows_pedigree(tmp_path):
+    from radar.models import Ring
+    from radar.models_radar.entities import ModelEntry
+    from radar.research_radar.pedigree import TechniquePedigree
+
+    entry = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 5, tzinfo=UTC),
+        model_entries=[entry],
+        pedigree_by_model={entry.id: [TechniquePedigree(
+            technique_id="spec-dec", name="Speculative Decoding",
+            ring=Ring.ADOPT, citation_count=1697,
+        )]},
+        technique_hrefs={"spec-dec": "technique_spec-dec.html"},
+    )
+
+    page_name = next(p.name for p in (tmp_path / "_site").iterdir()
+                     if p.name.startswith("model_"))
+    page = (tmp_path / "_site" / page_name).read_text(encoding="utf-8")
+    assert "Research techniques" in page
+    assert 'href="technique_spec-dec.html"' in page

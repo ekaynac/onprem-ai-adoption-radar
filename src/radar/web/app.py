@@ -86,6 +86,10 @@ def create_app(root: Path) -> FastAPI:
         """Load technique entries from the latest research run; empty list if none."""
         return [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
 
+    def _technique_hrefs() -> dict[str, str]:
+        """Map technique id -> live href, shared by project/model pedigree sections."""
+        return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
+
     def _project_pedigree(project: str) -> list[TechniquePedigree]:
         """Techniques implemented by this project's sources; [] on any gap."""
         try:
@@ -95,6 +99,16 @@ def create_app(root: Path) -> FastAPI:
             config = load_config(root / "data" / "config.yaml")
             refs = [s.id for s in config.sources if s.project == project]
             return pedigree_for_refs(build_pedigree_index(entries).by_tool_ref, refs)
+        except Exception:
+            return []
+
+    def _model_pedigree(model_id: str) -> list[TechniquePedigree]:
+        """Techniques implemented by this model; [] on any gap."""
+        try:
+            entries = _technique_entries()
+            if not entries:
+                return []
+            return pedigree_for_refs(build_pedigree_index(entries).by_model_ref, [model_id])
         except Exception:
             return []
 
@@ -155,7 +169,6 @@ def create_app(root: Path) -> FastAPI:
         metrics.initialize()
         events = history.history_for(card.project)
         metric_rows = list(reversed(metrics.history_for(card.project)))  # newest-first
-        entries = _technique_entries()
         return TEMPLATES.TemplateResponse(
             request,
             "project.html",
@@ -165,7 +178,7 @@ def create_app(root: Path) -> FastAPI:
                 "metrics": metric_rows,
                 "links": live_links,
                 "pedigree": _project_pedigree(card.project) or None,
-                "technique_hrefs": {t.id: f"/technique/{t.id}" for t in entries},
+                "technique_hrefs": _technique_hrefs(),
             },
         )
 
@@ -254,7 +267,14 @@ def create_app(root: Path) -> FastAPI:
         if entry is None:
             return HTMLResponse("Model not found", status_code=404)
         return TEMPLATES.TemplateResponse(
-            request, "model.html", {"model": entry, "fit_by_tier": fit_by_tier(entry)}
+            request,
+            "model.html",
+            {
+                "model": entry,
+                "fit_by_tier": fit_by_tier(entry),
+                "pedigree": _model_pedigree(model_id) or None,
+                "technique_hrefs": _technique_hrefs(),
+            },
         )
 
     @app.get("/research", response_class=HTMLResponse)

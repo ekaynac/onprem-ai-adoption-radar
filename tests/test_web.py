@@ -783,3 +783,44 @@ def test_project_page_without_research_run_has_no_pedigree_section(tmp_path: Pat
     text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
 
     assert "Research techniques" not in text
+
+
+def _seed_pedigree_research_run_for_model(root: Path, model_ref: str) -> None:
+    from radar.research_radar.entities import (
+        ImplKind as _IK,
+    )
+    from radar.research_radar.entities import (
+        OnPremImpact as _Imp,
+    )
+    from radar.research_radar.entities import (
+        ResolvedImplementation as _RI,
+    )
+    from radar.research_radar.entities import (
+        TechniqueDomain as _Dom,
+    )
+    from radar.research_radar.entities import (
+        TechniqueEntry as _TE,
+    )
+    from radar.storage.run_store import RunStore as _RS
+
+    entry = _TE(
+        id="spec-dec", name="Speculative Decoding", category=Category.MODEL_SERVING,
+        domain=_Dom.INFERENCE, onprem_impact=_Imp.REDUCES_LATENCY, ring=Ring.ADOPT,
+        citation_count=1697,
+        resolved_implementations=[_RI(kind=_IK.MODEL, ref=model_ref, ring=None)],
+    )
+    store = _RS(root / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+
+
+def test_model_page_shows_research_pedigree(tmp_path: Path):
+    _seed_models(tmp_path)
+    _seed_pedigree_research_run_for_model(tmp_path, "qwen3-8b")
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+
+    assert "Research techniques" in text
+    assert "Speculative Decoding" in text
+    assert 'href="/technique/spec-dec"' in text
