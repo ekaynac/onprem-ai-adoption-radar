@@ -121,13 +121,11 @@ class RadarQueryService:
     def _project_techniques(self, project: str) -> list[dict[str, Any]]:
         """Techniques implemented by this project's sources (best-effort, [] on any gap)."""
         try:
-            from radar.mcp_server.technique_queries import _latest_technique_cards
-            from radar.research_radar.entities import TechniqueEntry
+            from radar.mcp_server.technique_queries import load_technique_entries
             from radar.research_radar.pedigree import build_pedigree_index, pedigree_for_refs
             from radar.storage.config import load_config
 
-            entries = [TechniqueEntry.model_validate(c)
-                       for c in _latest_technique_cards(self.root)]
+            entries = load_technique_entries(self.root)
             if not entries:
                 return []
             config = load_config(self.root / "data" / "config.yaml")

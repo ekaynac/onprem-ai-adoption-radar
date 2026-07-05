@@ -128,3 +128,26 @@ def test_cli_research_list_still_works_after_refactor(tmp_path):
 
     assert result.exit_code == 0
     assert "qlora" in result.stdout
+
+
+def test_load_technique_entries_guards_corrupt_run(tmp_path):
+    from radar.mcp_server.technique_queries import load_technique_entries
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [{"bogus": True}])
+
+    assert load_technique_entries(tmp_path) == []
+
+
+def test_load_technique_entries_returns_validated_entries(tmp_path):
+    from radar.mcp_server.technique_queries import load_technique_entries
+
+    _seed_research_run(tmp_path, [_entry("qlora", Ring.WATCH, TechniqueDomain.FINE_TUNING)])
+
+    entries = load_technique_entries(tmp_path)
+
+    assert [e.id for e in entries] == ["qlora"]
+    assert entries[0].ring == Ring.WATCH

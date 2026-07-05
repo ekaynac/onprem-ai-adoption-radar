@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,9 @@ from radar.research_radar.entities import TechniqueEntry
 from radar.research_radar.history import load_technique_events
 from radar.research_radar.pipeline import momentum_for
 from radar.storage.run_store import RunStore
+
+
+logger = logging.getLogger(__name__)
 
 
 def _latest_technique_cards(root: Path) -> list[dict[str, Any]]:
@@ -26,6 +30,20 @@ def _latest_technique_cards(root: Path) -> list[dict[str, Any]]:
     return []
 
 
+def load_technique_entries(root: Path) -> list[TechniqueEntry]:
+    """Validated entries from the latest research run; [] on ANY failure.
+
+    The single guarded gateway for research-run data: a corrupt or
+    schema-drifted technique_cards.json can never break a tool, model, or web
+    surface — consumers see "no research data" instead of an exception.
+    """
+    try:
+        return [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+    except Exception as exc:
+        logger.warning("Research run unreadable under %s: %s", root, exc)
+        return []
+
+
 class TechniqueQueryService:
     """Read-only technique queries for MCP tools (and the web/CLI loaders)."""
 
@@ -35,7 +53,7 @@ class TechniqueQueryService:
         self.history_path = self.root / "data" / "technique-history.jsonl"
 
     def _entries(self) -> list[TechniqueEntry]:
-        return [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(self.root)]
+        return load_technique_entries(self.root)
 
     def list_techniques(
         self,

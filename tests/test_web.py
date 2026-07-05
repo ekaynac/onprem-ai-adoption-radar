@@ -895,3 +895,41 @@ sources:
     # project names route-miss with a plain 404 — the same pre-existing behavior
     # as index.html's |urlencode project links. The encoded href must never 500.
     assert client.get(encoded).status_code != 500
+
+
+def _seed_corrupt_research_run(root: Path) -> None:
+    from radar.storage.run_store import RunStore as _RS
+
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    store = _RS(root / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [{"bogus": True}])
+
+
+def test_index_survives_corrupt_research_run(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    _seed_corrupt_research_run(tmp_path)
+
+    response = TestClient(create_app(tmp_path)).get("/")
+
+    assert response.status_code == 200
+    assert "Research:" not in response.text  # banner absent, not broken
+
+
+def test_research_page_survives_corrupt_research_run(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    _seed_corrupt_research_run(tmp_path)
+
+    response = TestClient(create_app(tmp_path)).get("/research")
+
+    assert response.status_code == 200
+    assert "No research scan yet" in response.text
+
+
+def test_technique_page_corrupt_run_is_404_not_500(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    _seed_corrupt_research_run(tmp_path)
+
+    assert TestClient(create_app(tmp_path)).get("/technique/anything").status_code == 404

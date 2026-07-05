@@ -88,12 +88,10 @@ class ModelQueryService:
     def _model_techniques(self, model_id: str) -> list[dict[str, Any]]:
         """Techniques this model implements (best-effort, [] on any gap)."""
         try:
-            from radar.mcp_server.technique_queries import _latest_technique_cards
-            from radar.research_radar.entities import TechniqueEntry
+            from radar.mcp_server.technique_queries import load_technique_entries
             from radar.research_radar.pedigree import build_pedigree_index, pedigree_for_refs
 
-            entries = [TechniqueEntry.model_validate(c)
-                       for c in _latest_technique_cards(self.root)]
+            entries = load_technique_entries(self.root)
             if not entries:
                 return []
             items = pedigree_for_refs(build_pedigree_index(entries).by_model_ref, [model_id])

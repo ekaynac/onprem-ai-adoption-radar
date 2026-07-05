@@ -700,3 +700,21 @@ def test_export_survives_research_run_without_config(tmp_path):
     # Export succeeds despite missing config.yaml: pedigree maps degrade to empty.
     assert result.exit_code == 0, result.stdout
     assert (tmp_path / "_site" / "techniques.html").exists()
+
+
+def test_export_survives_corrupt_research_run(tmp_path):
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [{"bogus": True}])
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0
+    assert (tmp_path / "_site" / "index.html").exists()
+    assert not (tmp_path / "_site" / "techniques.html").exists()

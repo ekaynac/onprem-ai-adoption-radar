@@ -176,22 +176,38 @@ def test_research_scan_bad_seed_fails_clean_without_orphan_run_dir(tmp_path):
     assert not runs_dir.exists() or list(runs_dir.iterdir()) == []
 
 
+def _patch_discover_network(monkeypatch, hf_result=None, arxiv_result=None):
+    async def _hf(seeds, client, min_upvotes=10, limit=20):
+        return list(hf_result or [])
+
+    async def _arxiv(seeds, client, since, limit=20):
+        return list(arxiv_result or [])
+
+    async def _identity_enrich(proposals, client, now, contact_email=None):
+        return proposals
+
+    monkeypatch.setattr(
+        "radar.discovery.hf_technique_candidates.discover_technique_candidates", _hf)
+    monkeypatch.setattr(
+        "radar.discovery.arxiv_technique_candidates.discover_arxiv_candidates", _arxiv)
+    monkeypatch.setattr(
+        "radar.discovery.technique_candidate_velocity.enrich_proposals_with_velocity",
+        _identity_enrich)
+
+
 def test_research_discover_writes_proposals(tmp_path, monkeypatch):
     from radar.discovery.technique_proposals import TechniqueProposal, load_technique_proposals
     from radar.models import Category as _Cat
     from radar.research_radar.entities import TechniqueDomain as _Dom
 
-    async def _fake_discover(seeds, client, min_upvotes=10, limit=20):
-        return [TechniqueProposal(
+    _patch_discover_network(
+        monkeypatch,
+        hf_result=[TechniqueProposal(
             suggested_id="test-time-scaling", name="Test-Time Scaling",
             arxiv_id="2502.12345", published="2025-02-18", upvotes=142,
             suggested_domain=_Dom.INFERENCE, suggested_category=_Cat.MODEL_SERVING,
             matched_keyword="inference",
-        )]
-
-    monkeypatch.setattr(
-        "radar.discovery.hf_technique_candidates.discover_technique_candidates",
-        _fake_discover,
+        )],
     )
     runner = CliRunner()
     root = _project(tmp_path)
@@ -205,12 +221,7 @@ def test_research_discover_writes_proposals(tmp_path, monkeypatch):
 
 
 def test_research_discover_no_candidates_message(tmp_path, monkeypatch):
-    async def _none(seeds, client, min_upvotes=10, limit=20):
-        return []
-
-    monkeypatch.setattr(
-        "radar.discovery.hf_technique_candidates.discover_technique_candidates", _none,
-    )
+    _patch_discover_network(monkeypatch)
     runner = CliRunner()
     root = _project(tmp_path)
 
@@ -232,12 +243,7 @@ def test_research_scan_writes_metrics_log(tmp_path):
 def test_research_discover_empty_run_clears_stale_proposals(tmp_path, monkeypatch):
     from radar.discovery.technique_proposals import load_technique_proposals
 
-    async def _none(seeds, client, min_upvotes=10, limit=20):
-        return []
-
-    monkeypatch.setattr(
-        "radar.discovery.hf_technique_candidates.discover_technique_candidates", _none,
-    )
+    _patch_discover_network(monkeypatch)
     runner = CliRunner()
     root = _project(tmp_path)
     stale = root / "data" / "proposed-technique-seeds.yaml"
@@ -247,6 +253,77 @@ def test_research_discover_empty_run_clears_stale_proposals(tmp_path, monkeypatc
 
     assert result.exit_code == 0
     assert load_technique_proposals(stale) == []
+
+
+def test_research_discover_merges_sources_hf_wins_dupes(tmp_path, monkeypatch):
+    from radar.discovery.technique_proposals import TechniqueProposal, load_technique_proposals
+    from radar.models import Category as _Cat
+    from radar.research_radar.entities import TechniqueDomain as _Dom
+
+    def _p(arxiv_id, via, upvotes=0):
+        return TechniqueProposal(
+            suggested_id=f"t-{arxiv_id.replace('.', '-')}", name="T", arxiv_id=arxiv_id,
+            upvotes=upvotes, suggested_domain=_Dom.INFERENCE,
+            suggested_category=_Cat.MODEL_SERVING, matched_keyword="inference",
+            discovered_via=via,
+        )
+
+    _patch_discover_network(
+        monkeypatch,
+        hf_result=[_p("2607.00001", "hf-daily-papers", upvotes=40)],
+        arxiv_result=[_p("2607.00001", "arxiv-sweep"), _p("2607.00002", "arxiv-sweep")],
+    )
+    runner = CliRunner()
+    root = _project(tmp_path)
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root)])
+
+    assert result.exit_code == 0
+    proposals = load_technique_proposals(root / "data" / "proposed-technique-seeds.yaml")
+    assert len(proposals) == 2
+    merged = {p.arxiv_id: p for p in proposals}
+    assert merged["2607.00001"].discovered_via == "hf-daily-papers"  # HF wins the dupe
+    assert merged["2607.00002"].discovered_via == "arxiv-sweep"
+
+
+def test_research_discover_source_hf_skips_arxiv(tmp_path, monkeypatch):
+    calls = {"arxiv": 0}
+
+    async def _hf(seeds, client, min_upvotes=10, limit=20):
+        return []
+
+    async def _arxiv(seeds, client, since, limit=20):
+        calls["arxiv"] += 1
+        return []
+
+    async def _identity_enrich(proposals, client, now, contact_email=None):
+        return proposals
+
+    monkeypatch.setattr(
+        "radar.discovery.hf_technique_candidates.discover_technique_candidates", _hf)
+    monkeypatch.setattr(
+        "radar.discovery.arxiv_technique_candidates.discover_arxiv_candidates", _arxiv)
+    monkeypatch.setattr(
+        "radar.discovery.technique_candidate_velocity.enrich_proposals_with_velocity",
+        _identity_enrich)
+    runner = CliRunner()
+    root = _project(tmp_path)
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root),
+                                 "--source", "hf"])
+
+    assert result.exit_code == 0
+    assert calls["arxiv"] == 0
+
+
+def test_research_discover_rejects_unknown_source(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(_project(tmp_path)),
+                                 "--source", "bogus"])
+
+    assert result.exit_code == 1
+    assert "Unknown --source" in result.output
 
 
 def test_research_discover_bad_seed_exits_clean(tmp_path):
@@ -278,3 +355,25 @@ techniques:
     # nothing — the caught path is distinguished by the printed error message.
     assert "Duplicate technique ids" in result.output
     assert result.exception is None or isinstance(result.exception, SystemExit)
+
+
+def test_research_track_record_prints_rows_and_caveat(tmp_path):
+    runner = CliRunner()
+    root = _project(tmp_path)
+    runner.invoke(app, ["research", "scan", "--root", str(root)])
+
+    result = runner.invoke(app, ["research", "track-record", "--root", str(root)])
+
+    assert result.exit_code == 0
+    assert "qlora" in result.stdout
+    assert "hit-rate" in result.stdout  # honest caveat present
+
+
+def test_research_track_record_without_scan_prompts(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["research", "track-record",
+                                 "--root", str(_project(tmp_path))])
+
+    assert result.exit_code == 0
+    assert "radar research scan" in result.stdout

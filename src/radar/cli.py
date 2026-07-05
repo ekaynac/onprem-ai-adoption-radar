@@ -636,53 +636,111 @@ def research_show(
 @research_app.command("discover")
 def research_discover(
     root: Path = typer.Option(Path("."), help="Project root."),
+    source: str = typer.Option("all", help="Candidate source: all | hf | arxiv."),
+    days: int = typer.Option(7, help="arXiv sweep window in days."),
     min_upvotes: int = typer.Option(10, help="Minimum HF daily-papers upvotes."),
     limit: int = typer.Option(20, help="Maximum proposals to write."),
 ) -> None:
-    """Propose technique candidates from HF daily papers (human-reviewed file)."""
+    """Propose technique candidates (HF daily papers + arXiv sweep, human-reviewed)."""
     import asyncio
+    import os
+    from datetime import UTC, datetime, timedelta
 
     import httpx
 
-    from radar.discovery import hf_technique_candidates
+    from radar.discovery import (
+        arxiv_technique_candidates,
+        hf_technique_candidates,
+        technique_candidate_velocity,
+    )
     from radar.discovery.technique_proposals import write_technique_proposals
     from radar.research_radar.seed import TechniqueSeedError, load_technique_seed
 
+    if source not in {"all", "hf", "arxiv"}:
+        console.print(f"[red]Unknown --source: {source} (use all | hf | arxiv)[/red]")
+        raise typer.Exit(code=1)
     seed_path = root / "config" / "technique-seed.yaml"
     if not seed_path.exists():
         seed_path = Path(__file__).resolve().parents[2] / "config" / "technique-seed.yaml"
-
     try:
         seeds = load_technique_seed(seed_path)
     except TechniqueSeedError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
 
+    now = datetime.now(UTC)
+
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            return await hf_technique_candidates.discover_technique_candidates(
-                seeds, client, min_upvotes=min_upvotes, limit=limit,
+            gathered = []
+            if source in {"all", "hf"}:
+                gathered.extend(await hf_technique_candidates.discover_technique_candidates(
+                    seeds, client, min_upvotes=min_upvotes, limit=limit,
+                ))
+            if source in {"all", "arxiv"}:
+                arxiv_found = await arxiv_technique_candidates.discover_arxiv_candidates(
+                    seeds, client, since=now - timedelta(days=days), limit=limit,
+                )
+                seen = {p.arxiv_id for p in gathered}  # HF entries win duplicates
+                gathered.extend(p for p in arxiv_found if p.arxiv_id not in seen)
+            return await technique_candidate_velocity.enrich_proposals_with_velocity(
+                gathered, client, now=now,
+                contact_email=os.environ.get("RADAR_CONTACT_EMAIL"),
             )
 
-    proposals = asyncio.run(_run())
+    proposals = technique_candidate_velocity.rank_proposals(asyncio.run(_run()))[:limit]
     out_path = root / "data" / "proposed-technique-seeds.yaml"
     write_technique_proposals(out_path, proposals)
     if not proposals:
-        console.print("No technique candidates found (or HF API unavailable).")
+        console.print("No technique candidates found (or sources unavailable).")
         return
     console.print(
         f"{len(proposals)} technique candidate(s) → {out_path.relative_to(root)}"
     )
 
 
-def _latest_technique_entries(root: Path):
-    from radar.mcp_server.technique_queries import _latest_technique_cards
-    from radar.research_radar.entities import TechniqueEntry as _TE
+@research_app.command("track-record")
+def research_track_record(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Paper-to-radar lag per technique (predictive hit-rate needs more history)."""
+    import statistics
 
-    payload = _latest_technique_cards(root)
-    if not payload:
-        return None
-    return [_TE.model_validate(item) for item in payload]
+    from radar.research_radar.history import load_technique_events
+    from radar.research_radar.track_record import build_track_record
+
+    entries = _latest_technique_entries(root)
+    if entries is None:
+        console.print(
+            "[yellow]No research scan yet. Run [bold]radar research scan[/bold] "
+            "first.[/yellow]"
+        )
+        return
+    events = load_technique_events(root / "data" / "technique-history.jsonl")
+    rows = build_track_record(entries, events)
+    console.print(f"{len(rows)} technique(s) with a flag date:")
+    for row in rows:
+        lag = f"{row.lag_days}d" if row.lag_days is not None else "?"
+        console.print(
+            f"  {row.technique_id:<32} paper={row.paper_published or '?':<10} "
+            f"flagged={row.first_flagged}  lag={lag:<7} "
+            f"{row.ring or '-':<6} impls={row.implementations}",
+            highlight=False, soft_wrap=True,
+        )
+    lags = [r.lag_days for r in rows if r.lag_days is not None]
+    if lags:
+        console.print(f"Median paper→radar lag: {int(statistics.median(lags))} days")
+    console.print(
+        "Note: flag-to-implementation hit-rate needs accumulated implementation "
+        "history and is not computed yet."
+    )
+
+
+def _latest_technique_entries(root: Path):
+    from radar.mcp_server.technique_queries import load_technique_entries
+
+    entries = load_technique_entries(root)
+    return entries or None
 
 
 @app.command()
@@ -1154,11 +1212,11 @@ def export(
         shutil.copy2(model_history_src, out / "model-history.jsonl")
 
     # Technique entries + events (optional: only present after a `radar research scan`).
-    from radar.mcp_server.technique_queries import _latest_technique_cards
-    from radar.research_radar.entities import ImplKind, TechniqueEntry
+    from radar.mcp_server.technique_queries import load_technique_entries
+    from radar.research_radar.entities import ImplKind
     from radar.research_radar.history import load_technique_events as _load_tech_events
 
-    technique_entries = [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+    technique_entries = load_technique_entries(root)
     technique_events = _load_tech_events(root / "data" / "technique-history.jsonl")
 
     technique_history_src = root / "data" / "technique-history.jsonl"
