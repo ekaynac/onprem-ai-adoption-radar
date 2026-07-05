@@ -26,6 +26,16 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Source autopilot** — `radar trending promote` auto-adds sustained-momentum
+  strict-lane trending repos into `config/seed-sources.yaml` behind hard code
+  gates (≥3 observation days over ≥5, ≥30 stars/day or ≥25% growth, ≥800
+  stars, permissive-license allowlist, a confident deterministic category,
+  org/repo denylists, weekly quota, validate-or-abort write). Fully offline —
+  it reads the committed observation store (license/stars/topics already
+  captured there). Every add is tagged `auto-added` and logged to
+  `data/autopilot-log.jsonl`; a weekly `source-autopilot.yml` runs it and
+  refreshes the live site. The broader lane never promotes; techniques stay
+  human-gated.
 - **Trending radar engine** — a daily two-lane GitHub sweep (`radar trending
   scan`) appends repo observations to an append-only
   `data/trending-observations.jsonl` committed by CI; `radar trending list`
