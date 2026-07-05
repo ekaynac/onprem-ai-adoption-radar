@@ -246,3 +246,90 @@ def test_history_accumulates_across_scans(tmp_path: Path):
     assert len(events) == 1
     summaries = history.summaries()
     assert summaries[0].change_count == 1
+
+
+def _seed_research_run_for_pedigree(root: Path, source_id: str) -> None:
+    from radar.models import Category as _Cat
+    from radar.models import Ring as _Ring
+    from radar.research_radar.entities import (
+        ImplKind as _IK,
+    )
+    from radar.research_radar.entities import (
+        OnPremImpact as _Imp,
+    )
+    from radar.research_radar.entities import (
+        ResolvedImplementation as _RI,
+    )
+    from radar.research_radar.entities import (
+        TechniqueDomain as _Dom,
+    )
+    from radar.research_radar.entities import (
+        TechniqueEntry as _TE,
+    )
+    from radar.storage.run_store import RunStore as _RS
+
+    entry = _TE(
+        id="spec-dec", name="Speculative Decoding", category=_Cat.MODEL_SERVING,
+        domain=_Dom.INFERENCE, onprem_impact=_Imp.REDUCES_LATENCY, ring=_Ring.ADOPT,
+        citation_count=1697,
+        resolved_implementations=[_RI(kind=_IK.TOOL, ref=source_id, ring=None)],
+    )
+    store = _RS(root / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"technique_count": 1})
+
+
+def test_scan_attaches_pedigree_evidence_note(tmp_path: Path):
+    initialize_project(tmp_path)
+    config_path = tmp_path / "data" / "config.yaml"
+    config_path.write_text(
+        """
+version: "1.0"
+sources:
+  - id: mcp-docs
+    type: manual
+    enabled: true
+    project: Model Context Protocol
+    category: mcp_tooling
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+    tags: [mcp, protocol]
+scoring:
+  default_ring: watch
+""",
+        encoding="utf-8",
+    )
+    _seed_research_run_for_pedigree(tmp_path, "mcp-docs")
+
+    result = RadarOrchestrator(root=tmp_path).scan(days=2)
+
+    card = result.cards[0]
+    assert any("Implements 1 tracked research technique" in n for n in card.evidence_notes)
+    assert any("Speculative Decoding" in n for n in card.evidence_notes)
+
+
+def test_scan_without_research_run_has_no_pedigree_note(tmp_path: Path):
+    initialize_project(tmp_path)
+    config_path = tmp_path / "data" / "config.yaml"
+    config_path.write_text(
+        """
+version: "1.0"
+sources:
+  - id: mcp-docs
+    type: manual
+    enabled: true
+    project: Model Context Protocol
+    category: mcp_tooling
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+    tags: [mcp]
+scoring:
+  default_ring: watch
+""",
+        encoding="utf-8",
+    )
+
+    result = RadarOrchestrator(root=tmp_path).scan(days=2)
+
+    assert not any("tracked research technique" in n
+                   for n in result.cards[0].evidence_notes)

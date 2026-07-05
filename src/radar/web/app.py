@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import (
@@ -19,8 +20,13 @@ from radar.mcp_server.technique_queries import _latest_technique_cards
 from radar.models import Category, SourceType
 from radar.models_radar.entities import ModelEntry
 from radar.reports.comparison import ComparisonError, build_comparison
-from radar.research_radar.entities import TechniqueEntry
+from radar.research_radar.entities import ImplKind, TechniqueEntry
 from radar.research_radar.history import load_technique_events
+from radar.research_radar.pedigree import (
+    TechniquePedigree,
+    build_pedigree_index,
+    pedigree_for_refs,
+)
 from radar.research_radar.timeline import build_technique_timeline
 from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
@@ -80,6 +86,35 @@ def create_app(root: Path) -> FastAPI:
     def _technique_entries() -> list[TechniqueEntry]:
         """Load technique entries from the latest research run; empty list if none."""
         return [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
+
+    def _technique_hrefs() -> dict[str, str]:
+        """Map technique id -> live href, shared by project/model pedigree sections."""
+        try:
+            return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
+        except Exception:
+            return {}
+
+    def _project_pedigree(project: str) -> list[TechniquePedigree]:
+        """Techniques implemented by this project's sources; [] on any gap."""
+        try:
+            entries = _technique_entries()
+            if not entries:
+                return []
+            config = load_config(root / "data" / "config.yaml")
+            refs = [s.id for s in config.sources if s.project == project]
+            return pedigree_for_refs(build_pedigree_index(entries).by_tool_ref, refs)
+        except Exception:
+            return []
+
+    def _model_pedigree(model_id: str) -> list[TechniquePedigree]:
+        """Techniques implemented by this model; [] on any gap."""
+        try:
+            entries = _technique_entries()
+            if not entries:
+                return []
+            return pedigree_for_refs(build_pedigree_index(entries).by_model_ref, [model_id])
+        except Exception:
+            return []
 
     # Nav targets for the project-detail partial (live = server routes).
     live_links = {"home": "/", "compare": "/compare", "history": "/history"}
@@ -146,6 +181,8 @@ def create_app(root: Path) -> FastAPI:
                 "events": events,
                 "metrics": metric_rows,
                 "links": live_links,
+                "pedigree": _project_pedigree(card.project) or None,
+                "technique_hrefs": _technique_hrefs(),
             },
         )
 
@@ -234,7 +271,14 @@ def create_app(root: Path) -> FastAPI:
         if entry is None:
             return HTMLResponse("Model not found", status_code=404)
         return TEMPLATES.TemplateResponse(
-            request, "model.html", {"model": entry, "fit_by_tier": fit_by_tier(entry)}
+            request,
+            "model.html",
+            {
+                "model": entry,
+                "fit_by_tier": fit_by_tier(entry),
+                "pedigree": _model_pedigree(model_id) or None,
+                "technique_hrefs": _technique_hrefs(),
+            },
         )
 
     @app.get("/research", response_class=HTMLResponse)
@@ -250,9 +294,26 @@ def create_app(root: Path) -> FastAPI:
         if entry is None:
             return HTMLResponse("Technique not found", status_code=404)
         events = load_technique_events(root / "data" / "technique-history.jsonl")
+        try:
+            config = load_config(root / "data" / "config.yaml")
+            project_by_id = {s.id: s.project for s in config.sources}
+        except Exception:
+            # No/invalid config → tool refs can't be resolved to a project name;
+            # they stay plain text in the template.
+            project_by_id = {}
+        impl_hrefs: dict[str, str] = {}
+        for impl in entry.resolved_implementations:
+            if impl.kind == ImplKind.TOOL and impl.ref in project_by_id:
+                impl_hrefs[impl.ref] = f"/project/{quote(project_by_id[impl.ref], safe='')}"
+            elif impl.kind == ImplKind.MODEL:
+                impl_hrefs[impl.ref] = f"/model/{impl.ref}"
         return TEMPLATES.TemplateResponse(
             request, "technique.html",
-            {"technique": entry, "timeline": build_technique_timeline(entry, events)},
+            {
+                "technique": entry,
+                "timeline": build_technique_timeline(entry, events),
+                "impl_hrefs": impl_hrefs,
+            },
         )
 
     @app.post("/sources")

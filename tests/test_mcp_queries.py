@@ -246,6 +246,62 @@ def test_compare_unknown_project_returns_error(tmp_path: Path):
     assert "Ghost" in result["error"]
 
 
+def _seed_pedigree_research_run(tmp_path: Path) -> None:
+    """Seed a research run (spec-dec -> tool ref) plus a config.yaml mapping
+    that tool ref's source id to the "vLLM" project seeded by ``_seed``."""
+    from radar.research_radar.entities import (
+        ImplKind,
+        OnPremImpact,
+        ResolvedImplementation,
+        TechniqueDomain,
+        TechniqueEntry,
+    )
+    from radar.storage.run_store import RunStore
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+sources:
+  - id: github-vllm
+    type: github_repo
+    project: vLLM
+    category: model_serving
+    url: https://github.com/vllm-project/vllm
+""",
+        encoding="utf-8",
+    )
+    entry = TechniqueEntry(
+        id="spec-dec", name="Speculative Decoding", category=Category.MODEL_SERVING,
+        domain=TechniqueDomain.INFERENCE, onprem_impact=OnPremImpact.REDUCES_LATENCY,
+        ring=Ring.ADOPT, citation_count=1697,
+        resolved_implementations=[ResolvedImplementation(kind=ImplKind.TOOL, ref="github-vllm")],
+    )
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+
+
+def test_get_project_includes_techniques(tmp_path: Path):
+    _seed(tmp_path)
+    _seed_pedigree_research_run(tmp_path)
+    svc = RadarQueryService(tmp_path)
+
+    payload = svc.get_project("vLLM")
+
+    assert payload["techniques"] == [{
+        "id": "spec-dec", "name": "Speculative Decoding",
+        "ring": "adopt", "citation_count": 1697,
+    }]
+
+
+def test_get_project_without_research_run_has_empty_techniques(tmp_path: Path):
+    _seed(tmp_path)
+    svc = RadarQueryService(tmp_path)
+
+    assert svc.get_project("vLLM")["techniques"] == []
+
+
 def _rich_card() -> DecisionCard:
     return DecisionCard(
         project="vLLM",

@@ -431,3 +431,67 @@ def test_static_site_backcompat_without_techniques(tmp_path):
     assert not (site / "techniques.html").exists()
     assert not (site / "changes-research.xml").exists()
     assert (site / "index.html").exists()
+
+
+def test_static_project_page_shows_pedigree_with_static_links(tmp_path):
+    from radar.models import Ring
+    from radar.research_radar.pedigree import TechniquePedigree
+
+    card = _card("vLLM", Ring.ADOPT)
+    pedigree_by_project = {"vLLM": [TechniquePedigree(
+        technique_id="spec-dec", name="Speculative Decoding",
+        ring=Ring.ADOPT, citation_count=1697,
+    )]}
+
+    render_static_site(
+        [card], tmp_path / "_site", datetime(2026, 7, 5, tzinfo=UTC),
+        pedigree_by_project=pedigree_by_project,
+        technique_hrefs={"spec-dec": "technique_spec-dec.html"},
+    )
+
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "Research techniques" in page
+    assert 'href="technique_spec-dec.html"' in page
+    assert "1697 citations" in page
+
+
+def test_static_model_page_shows_pedigree(tmp_path):
+    from radar.models import Ring
+    from radar.models_radar.entities import ModelEntry
+    from radar.research_radar.pedigree import TechniquePedigree
+
+    entry = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 5, tzinfo=UTC),
+        model_entries=[entry],
+        pedigree_by_model={entry.id: [TechniquePedigree(
+            technique_id="spec-dec", name="Speculative Decoding",
+            ring=Ring.ADOPT, citation_count=1697,
+        )]},
+        technique_hrefs={"spec-dec": "technique_spec-dec.html"},
+    )
+
+    page_name = next(p.name for p in (tmp_path / "_site").iterdir()
+                     if p.name.startswith("model_"))
+    page = (tmp_path / "_site" / page_name).read_text(encoding="utf-8")
+    assert "Research techniques" in page
+    assert 'href="technique_spec-dec.html"' in page
+
+
+def test_static_technique_page_links_impls_only_when_targets_exist(tmp_path):
+    from radar.research_radar.entities import ImplKind, ResolvedImplementation
+
+    entry = _technique_entry()
+    entry = entry.model_copy(update={"resolved_implementations": [
+        ResolvedImplementation(kind=ImplKind.TOOL, ref="github-vllm", ring=None),
+    ]})
+
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 5, tzinfo=UTC),
+        technique_entries=[entry],
+        impl_hrefs={"github-vllm": "project_vllm.html"},
+    )
+
+    page = (tmp_path / "_site" / "technique_speculative-decoding.html").read_text(
+        encoding="utf-8")
+    assert 'href="project_vllm.html"' in page

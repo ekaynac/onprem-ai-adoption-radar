@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from radar.mcp_server.model_queries import ModelQueryService
-from radar.models import Ring
+from radar.models import Category, Ring
 from radar.models_radar.entities import (
     HardwareTier,
     Modality,
@@ -102,3 +102,44 @@ def test_can_run_and_fit_report(tmp_path: Path):
     # custom device dict
     custom = svc.device_fit_report({"kind": "gpu", "total_memory_gb": 8})
     assert all("verdict" in r for r in custom)
+
+
+def _seed_model_pedigree_run(tmp_path: Path, model_ref: str) -> None:
+    """Seed a research run with one technique implemented by ``model_ref``."""
+    from radar.research_radar.entities import (
+        ImplKind,
+        OnPremImpact,
+        ResolvedImplementation,
+        TechniqueDomain,
+        TechniqueEntry,
+    )
+    from radar.storage.run_store import RunStore
+
+    entry = TechniqueEntry(
+        id="spec-dec", name="Speculative Decoding", category=Category.MODEL_SERVING,
+        domain=TechniqueDomain.INFERENCE, onprem_impact=OnPremImpact.REDUCES_LATENCY,
+        ring=Ring.ADOPT, citation_count=1697,
+        resolved_implementations=[ResolvedImplementation(kind=ImplKind.MODEL, ref=model_ref)],
+    )
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+
+
+def test_get_model_includes_techniques(tmp_path: Path):
+    _seed(tmp_path)
+    _seed_model_pedigree_run(tmp_path, "qwen3-8b")
+    svc = ModelQueryService(tmp_path)
+
+    payload = svc.get_model("qwen3-8b")
+
+    assert payload["techniques"][0]["id"] == "spec-dec"
+    assert payload["techniques"][0]["ring"] == "adopt"
+
+
+def test_get_model_without_research_run_has_empty_techniques(tmp_path: Path):
+    _seed(tmp_path)
+    svc = ModelQueryService(tmp_path)
+
+    assert svc.get_model("qwen3-8b")["techniques"] == []

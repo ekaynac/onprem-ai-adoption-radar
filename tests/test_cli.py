@@ -669,3 +669,34 @@ def test_export_scan_health_ignores_research_runs(tmp_path):
 
     assert result.exit_code == 0
     assert "rate limited" in (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+
+
+def test_export_survives_research_run_without_config(tmp_path):
+    """Regression: export should degrade gracefully when config.yaml is missing during pedigree building."""
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry
+    from radar.storage.database import RadarDatabase
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    # Seed research run only — no init, no data/config.yaml
+    # Create minimal database to satisfy export prerequisites.
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    entry = TechniqueEntry(
+        id="test-technique", name="Test Technique", category=Category.AI_INFRASTRUCTURE,
+        domain=TechniqueDomain.FINE_TUNING, onprem_impact=OnPremImpact.REDUCES_MEMORY,
+        ring=Ring.WATCH,
+    )
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    # Export succeeds despite missing config.yaml: pedigree maps degrade to empty.
+    assert result.exit_code == 0, result.stdout
+    assert (tmp_path / "_site" / "techniques.html").exists()

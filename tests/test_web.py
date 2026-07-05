@@ -702,3 +702,196 @@ def test_scan_health_survives_a_later_research_run(tmp_path):
     r = client.get("/")
 
     assert "rate limited" in r.text
+
+
+def _card(project: str, ring: Ring) -> DecisionCard:
+    return DecisionCard(
+        project=project, category=Category.MODEL_SERVING, ring=ring,
+        summary=f"{project} summary", workflow_fit={}, risk_level="low",
+    )
+
+
+def _seed_pedigree_research_run(root: Path, tool_ref: str) -> None:
+    from radar.models import Category as _Cat
+    from radar.models import Ring as _Ring
+    from radar.research_radar.entities import (
+        ImplKind as _IK,
+    )
+    from radar.research_radar.entities import (
+        OnPremImpact as _Imp,
+    )
+    from radar.research_radar.entities import (
+        ResolvedImplementation as _RI,
+    )
+    from radar.research_radar.entities import (
+        TechniqueDomain as _Dom,
+    )
+    from radar.research_radar.entities import (
+        TechniqueEntry as _TE,
+    )
+    from radar.storage.run_store import RunStore as _RS
+
+    entry = _TE(
+        id="spec-dec", name="Speculative Decoding", category=_Cat.MODEL_SERVING,
+        domain=_Dom.INFERENCE, onprem_impact=_Imp.REDUCES_LATENCY, ring=_Ring.ADOPT,
+        citation_count=1697,
+        resolved_implementations=[
+            _RI(kind=_IK.TOOL, ref=tool_ref, ring=None),
+            _RI(kind=_IK.MODEL, ref="llama-3.3-70b", ring=None),
+        ],
+    )
+    store = _RS(root / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+
+
+def _write_pedigree_config(root: Path, source_id: str, project: str) -> None:
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    (root / "data" / "config.yaml").write_text(
+        f"""
+sources:
+  - id: {source_id}
+    type: github_repo
+    project: {project}
+    category: model_serving
+    url: https://github.com/vllm-project/vllm
+""",
+        encoding="utf-8",
+    )
+
+
+def test_project_page_shows_research_pedigree(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+    _write_pedigree_config(tmp_path, "github-vllm", "vLLM")
+    _seed_pedigree_research_run(tmp_path, "github-vllm")
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+
+    assert "Research techniques" in text
+    assert "Speculative Decoding" in text
+    assert 'href="/technique/spec-dec"' in text
+
+
+def test_project_page_without_research_run_has_no_pedigree_section(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+
+    assert "Research techniques" not in text
+
+
+def test_project_page_survives_corrupt_research_run(tmp_path: Path):
+    """A schema-drifted research run must never 500 the project page."""
+    from radar.storage.run_store import RunStore as _RS
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+    store = _RS(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [{"bogus": True}])
+
+    response = TestClient(create_app(tmp_path)).get("/project/vLLM")
+
+    assert response.status_code == 200
+    assert "Research techniques" not in response.text
+
+
+def _seed_pedigree_research_run_for_model(root: Path, model_ref: str) -> None:
+    from radar.research_radar.entities import (
+        ImplKind as _IK,
+    )
+    from radar.research_radar.entities import (
+        OnPremImpact as _Imp,
+    )
+    from radar.research_radar.entities import (
+        ResolvedImplementation as _RI,
+    )
+    from radar.research_radar.entities import (
+        TechniqueDomain as _Dom,
+    )
+    from radar.research_radar.entities import (
+        TechniqueEntry as _TE,
+    )
+    from radar.storage.run_store import RunStore as _RS
+
+    entry = _TE(
+        id="spec-dec", name="Speculative Decoding", category=Category.MODEL_SERVING,
+        domain=_Dom.INFERENCE, onprem_impact=_Imp.REDUCES_LATENCY, ring=Ring.ADOPT,
+        citation_count=1697,
+        resolved_implementations=[_RI(kind=_IK.MODEL, ref=model_ref, ring=None)],
+    )
+    store = _RS(root / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+
+
+def test_model_page_shows_research_pedigree(tmp_path: Path):
+    _seed_models(tmp_path)
+    _seed_pedigree_research_run_for_model(tmp_path, "qwen3-8b")
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+
+    assert "Research techniques" in text
+    assert "Speculative Decoding" in text
+    assert 'href="/technique/spec-dec"' in text
+
+
+def test_technique_page_links_implementations(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+    _write_pedigree_config(tmp_path, "github-vllm", "vLLM")
+    _seed_pedigree_research_run(tmp_path, "github-vllm")
+
+    text = TestClient(create_app(tmp_path)).get("/technique/spec-dec").text
+
+    assert 'href="/project/vLLM"' in text          # tool impl linked
+    assert 'href="/model/llama-3.3-70b"' in text   # model impl linked
+
+
+def test_technique_page_unresolvable_impl_stays_plain(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    _seed_pedigree_research_run(tmp_path, "github-gone")  # no config → no id→project map
+
+    text = TestClient(create_app(tmp_path)).get("/technique/spec-dec").text
+
+    assert "github-gone" in text
+    assert 'href="/project/' not in text
+
+
+def test_technique_page_tool_link_urlencodes_project_name(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("NVIDIA Blackwell / GB200", Ring.ADOPT)])
+    # Write config with properly quoted project name in YAML
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+sources:
+  - id: manual-nvidia-blackwell
+    type: github_repo
+    project: "NVIDIA Blackwell / GB200"
+    category: model_serving
+    url: https://github.com/vllm-project/vllm
+""",
+        encoding="utf-8",
+    )
+    _seed_pedigree_research_run(tmp_path, "manual-nvidia-blackwell")
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/technique/spec-dec").text
+
+    encoded = "/project/NVIDIA%20Blackwell%20%2F%20GB200"
+    assert f'href="{encoded}"' in text
+    # ASGI decodes %2F back to a literal "/" before route matching, so slashed
+    # project names route-miss with a plain 404 — the same pre-existing behavior
+    # as index.html's |urlencode project links. The encoded href must never 500.
+    assert client.get(encoded).status_code != 500

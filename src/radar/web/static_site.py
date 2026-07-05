@@ -23,6 +23,7 @@ from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
 from radar.research_radar.entities import TechniqueEntry
 from radar.research_radar.history import TechniqueHistoryEvent
+from radar.research_radar.pedigree import TechniquePedigree
 from radar.research_radar.reports import (
     technique_events_to_feed_atom,
     technique_events_to_feed_json,
@@ -60,6 +61,10 @@ def render_static_site(
     model_events: list[ModelHistoryEvent] | None = None,
     technique_entries: list[TechniqueEntry] | None = None,
     technique_events: list[TechniqueHistoryEvent] | None = None,
+    pedigree_by_project: dict[str, list[TechniquePedigree]] | None = None,
+    pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
+    technique_hrefs: dict[str, str] | None = None,
+    impl_hrefs: dict[str, str] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -73,7 +78,12 @@ def render_static_site(
     ``model_events`` is also provided). When ``technique_entries`` is provided,
     writes ``techniques.html``, per-technique pages, and
     ``changes-research.xml``/``.json`` feeds (the latter only when
-    ``technique_events`` is also provided).
+    ``technique_events`` is also provided). ``pedigree_by_project`` and
+    ``pedigree_by_model`` (optional) supply the project/model pages' "Research
+    techniques" section; ``technique_hrefs`` maps technique id to its href and
+    must cover every id referenced by either. ``impl_hrefs`` (optional) maps a
+    technique's resolved-implementation ref to its project/model page href,
+    driving the technique pages' "Implementations" links.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -159,19 +169,22 @@ def render_static_site(
     )
 
     _write_project_pages(
-        env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {}
+        env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {},
+        pedigree_by_project=pedigree_by_project or {}, technique_hrefs=technique_hrefs or {},
     )
     _write_feeds(out_dir, timelines or [], site_title, self_base_url)
 
     if model_entries:
         _write_model_pages(
-            env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp
+            env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp,
+            pedigree_by_model=pedigree_by_model or {}, technique_hrefs=technique_hrefs or {},
         )
 
     if technique_entries:
         _write_technique_pages(
             env, out_dir, technique_entries, technique_events or [],
             site_title, self_base_url, stamp,
+            impl_hrefs=impl_hrefs,
         )
 
     return index
@@ -184,6 +197,8 @@ def _write_project_pages(
     slug_by_project: dict[str, str],
     timelines: list[dict[str, Any]],
     metrics_by_project: dict[str, list[ProjectMetrics]],
+    pedigree_by_project: dict[str, list[TechniquePedigree]],
+    technique_hrefs: dict[str, str],
 ) -> None:
     """Render one self-contained project_<slug>.html per card."""
     events_by_project: dict[str, list[ProjectHistoryEvent]] = {
@@ -200,6 +215,8 @@ def _write_project_pages(
                 events=events_by_project.get(card.project, []),
                 metrics=metrics,
                 links=links,
+                pedigree=(pedigree_by_project.get(card.project) or None),
+                technique_hrefs=technique_hrefs,
             ),
             encoding="utf-8",
         )
@@ -243,6 +260,8 @@ def _write_model_pages(
     site_title: str,
     self_base_url: str,
     generated_at: str = "",
+    pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
+    technique_hrefs: dict[str, str] | None = None,
 ) -> None:
     """Render models.html, per-model pages, and model feed files."""
     slug_by_model = build_slug_map([m.id for m in model_entries])
@@ -261,7 +280,11 @@ def _write_model_pages(
     for entry in model_entries:
         (out_dir / f"model_{slug_by_model[entry.id]}.html").write_text(
             model_template.render(
-                model=entry, fit_by_tier=fit_by_tier(entry), generated_at=generated_at
+                model=entry,
+                fit_by_tier=fit_by_tier(entry),
+                generated_at=generated_at,
+                pedigree=(pedigree_by_model or {}).get(entry.id) or None,
+                technique_hrefs=technique_hrefs or {},
             ),
             encoding="utf-8",
         )
@@ -290,6 +313,7 @@ def _write_technique_pages(
     site_title: str,
     self_base_url: str,
     generated_at: str = "",
+    impl_hrefs: dict[str, str] | None = None,
 ) -> None:
     """Render techniques.html, per-technique pages, and research feed files."""
     slug_by_technique = build_slug_map([t.id for t in technique_entries])
@@ -310,6 +334,7 @@ def _write_technique_pages(
                 technique=entry,
                 timeline=build_technique_timeline(entry, technique_events),
                 generated_at=generated_at,
+                impl_hrefs=impl_hrefs or {},
             ),
             encoding="utf-8",
         )

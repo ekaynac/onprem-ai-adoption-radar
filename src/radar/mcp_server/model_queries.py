@@ -82,7 +82,26 @@ class ModelQueryService:
         mom = compute_model_momentum(model_id, store.history_for(model_id), events)
         data["momentum"] = {"direction": mom.direction,
                             "downloads_growth_pct": mom.downloads_growth_pct}
+        data["techniques"] = self._model_techniques(model_id)
         return data
+
+    def _model_techniques(self, model_id: str) -> list[dict[str, Any]]:
+        """Techniques this model implements (best-effort, [] on any gap)."""
+        try:
+            from radar.mcp_server.technique_queries import _latest_technique_cards
+            from radar.research_radar.entities import TechniqueEntry
+            from radar.research_radar.pedigree import build_pedigree_index, pedigree_for_refs
+
+            entries = [TechniqueEntry.model_validate(c)
+                       for c in _latest_technique_cards(self.root)]
+            if not entries:
+                return []
+            items = pedigree_for_refs(build_pedigree_index(entries).by_model_ref, [model_id])
+            return [{"id": t.technique_id, "name": t.name,
+                     "ring": t.ring.value if t.ring else None,
+                     "citation_count": t.citation_count} for t in items]
+        except Exception:
+            return []
 
     def list_devices(self) -> list[dict[str, Any]]:
         return [

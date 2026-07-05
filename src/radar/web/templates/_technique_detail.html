@@ -1,4 +1,6 @@
-{# Shared technique-detail body. Context: technique (TechniqueEntry), timeline (list[TimelineItem]). #}
+{# Shared technique-detail body. Context: technique (TechniqueEntry), timeline (list[TimelineItem]),
+   impl_hrefs (dict[str, str], optional: implementation ref -> project/model href). #}
+{% set impl_hrefs = impl_hrefs | default({}) %}
 <h2>{{ technique.name }} <small>{{ technique.domain.value }}</small></h2>
 <p>Ring: <strong>{{ technique.ring.value if technique.ring else '-' }}</strong>
    · Category: {{ technique.category.value }}
@@ -34,7 +36,10 @@
 <h3>Implementations</h3>
 <ul>
   {% for impl in technique.resolved_implementations %}
-  <li>[{{ impl.kind.value }}] {{ impl.ref }} — {{ impl.ring.value if impl.ring else 'unringed' }}
+  <li>[{{ impl.kind.value }}]
+      {% if impl.ref in impl_hrefs %}<a href="{{ impl_hrefs[impl.ref] }}">{{ impl.ref }}</a>
+      {% else %}{{ impl.ref }}{% endif %}
+      — {{ impl.ring.value if impl.ring else 'unringed' }}
       {% if impl.note %}· {{ impl.note }}{% endif %}</li>
   {% endfor %}
 </ul>

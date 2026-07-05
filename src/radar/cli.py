@@ -1112,7 +1112,7 @@ def export(
 
     # Technique entries + events (optional: only present after a `radar research scan`).
     from radar.mcp_server.technique_queries import _latest_technique_cards
-    from radar.research_radar.entities import TechniqueEntry
+    from radar.research_radar.entities import ImplKind, TechniqueEntry
     from radar.research_radar.history import load_technique_events as _load_tech_events
 
     technique_entries = [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
@@ -1121,6 +1121,57 @@ def export(
     technique_history_src = root / "data" / "technique-history.jsonl"
     if technique_history_src.exists():
         shutil.copy2(technique_history_src, out / "technique-history.jsonl")
+
+    # Pedigree maps (optional: only meaningful once technique entries exist) —
+    # drive the "Research techniques" section on project + model static pages.
+    from radar.research_radar.pedigree import (
+        TechniquePedigree,
+        build_pedigree_index,
+        pedigree_for_refs,
+    )
+    from radar.web.slugs import build_slug_map
+
+    pedigree_by_project: dict[str, list[TechniquePedigree]] = {}
+    pedigree_by_model: dict[str, list[TechniquePedigree]] = {}
+    technique_hrefs: dict[str, str] = {}
+    impl_hrefs: dict[str, str] = {}
+    if technique_entries:
+        technique_slugs = build_slug_map([t.id for t in technique_entries])
+        technique_hrefs = {tid: f"technique_{slug}.html" for tid, slug in technique_slugs.items()}
+        pedigree_index = build_pedigree_index(technique_entries)
+        try:
+            export_config = load_config(root / "data" / "config.yaml")
+            sources = export_config.sources
+        except Exception:
+            sources = []
+        ids_by_project: dict[str, list[str]] = {}
+        for source in sources:
+            ids_by_project.setdefault(source.project, []).append(source.id)
+        pedigree_by_project = {
+            project: items for project, ids in ids_by_project.items()
+            if (items := pedigree_for_refs(pedigree_index.by_tool_ref, ids))
+        }
+        pedigree_by_model = {
+            ref: items for ref in pedigree_index.by_model_ref
+            if (items := pedigree_for_refs(pedigree_index.by_model_ref, [ref]))
+        }
+
+        # Implementation hrefs (optional): link each technique's implementations
+        # back to the project/model page, but only when that page exists in
+        # this export (a project card and/or a model entry with a real slug).
+        project_by_id = {s.id: s.project for s in sources}
+        card_slugs = build_slug_map([c.project for c in cards])
+        model_slugs = build_slug_map([m.id for m in model_entries]) if model_entries else {}
+        for technique in technique_entries:
+            for impl in technique.resolved_implementations:
+                if impl.ref in impl_hrefs:
+                    continue
+                if impl.kind == ImplKind.TOOL:
+                    project = project_by_id.get(impl.ref)
+                    if project in card_slugs:
+                        impl_hrefs[impl.ref] = f"project_{card_slugs[project]}.html"
+                elif impl.ref in model_slugs:
+                    impl_hrefs[impl.ref] = f"model_{model_slugs[impl.ref]}.html"
 
     index = render_static_site(
         cards,
@@ -1136,6 +1187,10 @@ def export(
         model_events=model_events or None,
         technique_entries=technique_entries or None,
         technique_events=technique_events or None,
+        pedigree_by_project=pedigree_by_project or None,
+        pedigree_by_model=pedigree_by_model or None,
+        technique_hrefs=technique_hrefs or None,
+        impl_hrefs=impl_hrefs or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
