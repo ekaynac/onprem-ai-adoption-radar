@@ -19,7 +19,7 @@ from radar.mcp_server.technique_queries import _latest_technique_cards
 from radar.models import Category, SourceType
 from radar.models_radar.entities import ModelEntry
 from radar.reports.comparison import ComparisonError, build_comparison
-from radar.research_radar.entities import TechniqueEntry
+from radar.research_radar.entities import ImplKind, TechniqueEntry
 from radar.research_radar.history import load_technique_events
 from radar.research_radar.pedigree import (
     TechniquePedigree,
@@ -290,9 +290,26 @@ def create_app(root: Path) -> FastAPI:
         if entry is None:
             return HTMLResponse("Technique not found", status_code=404)
         events = load_technique_events(root / "data" / "technique-history.jsonl")
+        try:
+            config = load_config(root / "data" / "config.yaml")
+            project_by_id = {s.id: s.project for s in config.sources}
+        except Exception:
+            # No/invalid config → tool refs can't be resolved to a project name;
+            # they stay plain text in the template.
+            project_by_id = {}
+        impl_hrefs: dict[str, str] = {}
+        for impl in entry.resolved_implementations:
+            if impl.kind == ImplKind.TOOL and impl.ref in project_by_id:
+                impl_hrefs[impl.ref] = f"/project/{project_by_id[impl.ref]}"
+            elif impl.kind == ImplKind.MODEL:
+                impl_hrefs[impl.ref] = f"/model/{impl.ref}"
         return TEMPLATES.TemplateResponse(
             request, "technique.html",
-            {"technique": entry, "timeline": build_technique_timeline(entry, events)},
+            {
+                "technique": entry,
+                "timeline": build_technique_timeline(entry, events),
+                "impl_hrefs": impl_hrefs,
+            },
         )
 
     @app.post("/sources")

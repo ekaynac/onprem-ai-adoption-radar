@@ -476,3 +476,22 @@ def test_static_model_page_shows_pedigree(tmp_path):
     page = (tmp_path / "_site" / page_name).read_text(encoding="utf-8")
     assert "Research techniques" in page
     assert 'href="technique_spec-dec.html"' in page
+
+
+def test_static_technique_page_links_impls_only_when_targets_exist(tmp_path):
+    from radar.research_radar.entities import ImplKind, ResolvedImplementation
+
+    entry = _technique_entry()
+    entry = entry.model_copy(update={"resolved_implementations": [
+        ResolvedImplementation(kind=ImplKind.TOOL, ref="github-vllm", ring=None),
+    ]})
+
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 5, tzinfo=UTC),
+        technique_entries=[entry],
+        impl_hrefs={"github-vllm": "project_vllm.html"},
+    )
+
+    page = (tmp_path / "_site" / "technique_speculative-decoding.html").read_text(
+        encoding="utf-8")
+    assert 'href="project_vllm.html"' in page

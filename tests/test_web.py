@@ -824,3 +824,26 @@ def test_model_page_shows_research_pedigree(tmp_path: Path):
     assert "Research techniques" in text
     assert "Speculative Decoding" in text
     assert 'href="/technique/spec-dec"' in text
+
+
+def test_technique_page_links_implementations(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+    _write_pedigree_config(tmp_path, "github-vllm", "vLLM")
+    _seed_pedigree_research_run(tmp_path, "github-vllm")
+
+    text = TestClient(create_app(tmp_path)).get("/technique/spec-dec").text
+
+    assert 'href="/project/vLLM"' in text          # tool impl linked
+    assert 'href="/model/llama-3.3-70b"' in text   # model impl linked
+
+
+def test_technique_page_unresolvable_impl_stays_plain(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    _seed_pedigree_research_run(tmp_path, "github-gone")  # no config → no id→project map
+
+    text = TestClient(create_app(tmp_path)).get("/technique/spec-dec").text
+
+    assert "github-gone" in text
+    assert 'href="/project/' not in text

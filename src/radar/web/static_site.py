@@ -64,6 +64,7 @@ def render_static_site(
     pedigree_by_project: dict[str, list[TechniquePedigree]] | None = None,
     pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
     technique_hrefs: dict[str, str] | None = None,
+    impl_hrefs: dict[str, str] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -80,7 +81,9 @@ def render_static_site(
     ``technique_events`` is also provided). ``pedigree_by_project`` and
     ``pedigree_by_model`` (optional) supply the project/model pages' "Research
     techniques" section; ``technique_hrefs`` maps technique id to its href and
-    must cover every id referenced by either.
+    must cover every id referenced by either. ``impl_hrefs`` (optional) maps a
+    technique's resolved-implementation ref to its project/model page href,
+    driving the technique pages' "Implementations" links.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -181,6 +184,7 @@ def render_static_site(
         _write_technique_pages(
             env, out_dir, technique_entries, technique_events or [],
             site_title, self_base_url, stamp,
+            impl_hrefs=impl_hrefs,
         )
 
     return index
@@ -309,6 +313,7 @@ def _write_technique_pages(
     site_title: str,
     self_base_url: str,
     generated_at: str = "",
+    impl_hrefs: dict[str, str] | None = None,
 ) -> None:
     """Render techniques.html, per-technique pages, and research feed files."""
     slug_by_technique = build_slug_map([t.id for t in technique_entries])
@@ -329,6 +334,7 @@ def _write_technique_pages(
                 technique=entry,
                 timeline=build_technique_timeline(entry, technique_events),
                 generated_at=generated_at,
+                impl_hrefs=impl_hrefs or {},
             ),
             encoding="utf-8",
         )
