@@ -26,6 +26,15 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Discovery extras + research-data hardening** — `radar research discover`
+  gains an arXiv category sweep (`--source all|hf|arxiv`, keyword-gated like
+  the HF source) and ranks all candidates by a deterministic citations/day
+  velocity proxy (Semantic Scholar batch, best-effort); `radar research
+  track-record` reports each technique's paper→radar lag with a median
+  (flag-to-implementation hit-rate stays deferred until history accumulates).
+  All research-run reads now go through one guarded loader, so a corrupt or
+  schema-drifted research run can no longer break any dashboard page, export,
+  scan, or MCP query — it degrades to "no research data" everywhere.
 - **Technique discovery + durable citation velocity** — `radar research
   discover` proposes technique candidates from Hugging Face daily papers
   (keyword-gated by title, deduped against the seed, upvote floor) into

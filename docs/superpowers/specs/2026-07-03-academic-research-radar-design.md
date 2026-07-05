@@ -270,9 +270,12 @@ implementations → low breadth/maturity → WATCH by construction.
 - **Discovery**: `radar research discover` proposes technique candidates
   from HF daily papers + arXiv categories + citation-velocity spikes into
   `data/proposed-technique-seeds.yaml` (human-gated like tool discovery, not
-  autopilot — techniques need judgment); later a track-record view: how
-  early did the radar flag a technique vs its first mainstream
-  implementation (backtest-style, needs accumulated history first).
+  autopilot — techniques need judgment); Shipped since: the arXiv category sweep and a citations/day velocity proxy
+  on proposals (single-observation ranking — true two-observation spike
+  detection would require tracking untracked papers over time), and a
+  minimal track-record view (paper→radar lag). Still deferred:
+  flag-to-implementation hit-rate (needs months of accumulated
+  implementation history).
 
 ## Open items for plan time
 
