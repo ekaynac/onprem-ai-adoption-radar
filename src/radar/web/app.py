@@ -89,7 +89,10 @@ def create_app(root: Path) -> FastAPI:
 
     def _technique_hrefs() -> dict[str, str]:
         """Map technique id -> live href, shared by project/model pedigree sections."""
-        return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
+        try:
+            return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
+        except Exception:
+            return {}
 
     def _project_pedigree(project: str) -> list[TechniquePedigree]:
         """Techniques implemented by this project's sources; [] on any gap."""

@@ -785,6 +785,24 @@ def test_project_page_without_research_run_has_no_pedigree_section(tmp_path: Pat
     assert "Research techniques" not in text
 
 
+def test_project_page_survives_corrupt_research_run(tmp_path: Path):
+    """A schema-drifted research run must never 500 the project page."""
+    from radar.storage.run_store import RunStore as _RS
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+    store = _RS(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [{"bogus": True}])
+
+    response = TestClient(create_app(tmp_path)).get("/project/vLLM")
+
+    assert response.status_code == 200
+    assert "Research techniques" not in response.text
+
+
 def _seed_pedigree_research_run_for_model(root: Path, model_ref: str) -> None:
     from radar.research_radar.entities import (
         ImplKind as _IK,
