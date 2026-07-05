@@ -699,6 +699,43 @@ def research_discover(
     )
 
 
+@research_app.command("track-record")
+def research_track_record(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Paper-to-radar lag per technique (predictive hit-rate needs more history)."""
+    import statistics
+
+    from radar.research_radar.history import load_technique_events
+    from radar.research_radar.track_record import build_track_record
+
+    entries = _latest_technique_entries(root)
+    if entries is None:
+        console.print(
+            "[yellow]No research scan yet. Run [bold]radar research scan[/bold] "
+            "first.[/yellow]"
+        )
+        return
+    events = load_technique_events(root / "data" / "technique-history.jsonl")
+    rows = build_track_record(entries, events)
+    console.print(f"{len(rows)} technique(s) with a flag date:")
+    for row in rows:
+        lag = f"{row.lag_days}d" if row.lag_days is not None else "?"
+        console.print(
+            f"  {row.technique_id:<32} paper={row.paper_published or '?':<10} "
+            f"flagged={row.first_flagged}  lag={lag:<7} "
+            f"{row.ring or '-':<6} impls={row.implementations}",
+            highlight=False, soft_wrap=True,
+        )
+    lags = [r.lag_days for r in rows if r.lag_days is not None]
+    if lags:
+        console.print(f"Median paper→radar lag: {int(statistics.median(lags))} days")
+    console.print(
+        "Note: flag-to-implementation hit-rate needs accumulated implementation "
+        "history and is not computed yet."
+    )
+
+
 def _latest_technique_entries(root: Path):
     from radar.mcp_server.technique_queries import load_technique_entries
 

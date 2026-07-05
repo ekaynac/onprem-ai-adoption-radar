@@ -345,3 +345,25 @@ techniques:
     # nothing — the caught path is distinguished by the printed error message.
     assert "Duplicate technique ids" in result.output
     assert result.exception is None or isinstance(result.exception, SystemExit)
+
+
+def test_research_track_record_prints_rows_and_caveat(tmp_path):
+    runner = CliRunner()
+    root = _project(tmp_path)
+    runner.invoke(app, ["research", "scan", "--root", str(root)])
+
+    result = runner.invoke(app, ["research", "track-record", "--root", str(root)])
+
+    assert result.exit_code == 0
+    assert "qlora" in result.stdout
+    assert "hit-rate" in result.stdout  # honest caveat present
+
+
+def test_research_track_record_without_scan_prompts(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["research", "track-record",
+                                 "--root", str(_project(tmp_path))])
+
+    assert result.exit_code == 0
+    assert "radar research scan" in result.stdout
