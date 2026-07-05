@@ -30,6 +30,9 @@ class TechniqueProposal(BaseModel):
     suggested_domain: TechniqueDomain
     suggested_category: Category
     matched_keyword: str
+    discovered_via: str = "hf-daily-papers"
+    citation_count: int | None = None
+    citations_per_day: float | None = None
 
 
 def write_technique_proposals(path: Path, proposals: list[TechniqueProposal]) -> None:
