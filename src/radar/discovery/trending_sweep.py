@@ -10,13 +10,14 @@ raising. Tracked sources are excluded; onprem wins repos seen in both lanes.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
 from dateutil import parser as date_parser
 
 from radar.discovery.trending_entities import Lane, TrendingObservation
+from radar.enrichment.retry import get_with_retry
 from radar.models import SourceConfig
 
 
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 PER_PAGE = 30
-PER_LANE_CAP = 20
+RISING_LANE_CAP = 20   # per-lane budget for the rising (established, still-pushed) shape
+BORN_LANE_CAP = 15     # per-lane budget for the born-recently shape — never starved by rising
 RISING_MIN_STARS = 800
 BORN_MIN_STARS = 50
 BORN_WINDOW_DAYS = 14
@@ -54,18 +56,21 @@ async def sweep_trending(
     observations: list[TrendingObservation] = []
     # onprem first so it wins repos that also match a broader topic.
     for lane, topics in ((Lane.ONPREM, ONPREM_TOPICS), (Lane.BROADER, BROADER_TOPICS)):
-        lane_repos: set[str] = set()
-        for topic in topics:
-            if len(lane_repos) >= PER_LANE_CAP:
-                break
-            queries = [
-                f"topic:{topic} stars:>={RISING_MIN_STARS} pushed:>={pushed_since}",
-                f"topic:{topic} created:>={born_since} stars:>={BORN_MIN_STARS}",
-            ]
-            for query in queries:
-                if len(lane_repos) >= PER_LANE_CAP:
+        # Each shape has an independent budget so a full page of rising results
+        # can never starve the born-recently signal.
+        for budget, born in ((RISING_LANE_CAP, False), (BORN_LANE_CAP, True)):
+            taken = 0
+            for topic in topics:
+                if taken >= budget:
                     break
+                query = (
+                    f"topic:{topic} created:>={born_since} stars:>={BORN_MIN_STARS}"
+                    if born
+                    else f"topic:{topic} stars:>={RISING_MIN_STARS} pushed:>={pushed_since}"
+                )
                 for item in await _search(client, query, headers):
+                    if taken >= budget:
+                        break
                     repo = (item.get("full_name") or "").strip()
                     if not repo or repo.lower() in tracked or repo in seen:
                         continue
@@ -73,10 +78,8 @@ async def sweep_trending(
                     if observation is None:
                         continue
                     seen.add(repo)
-                    lane_repos.add(repo)
                     observations.append(observation)
-                    if len(lane_repos) >= PER_LANE_CAP:
-                        break
+                    taken += 1
     return observations
 
 
@@ -84,12 +87,11 @@ async def _search(
     client: Any, query: str, headers: dict[str, str] | None
 ) -> list[dict[str, Any]]:
     try:
-        response = await client.get(
-            GITHUB_SEARCH_URL,
+        response = await get_with_retry(
+            client, GITHUB_SEARCH_URL, label="trending-sweep",
             params={"q": query, "sort": "stars", "order": "desc", "per_page": PER_PAGE},
             headers=headers or {},
         )
-        response.raise_for_status()
         return response.json().get("items") or []
     except Exception as exc:
         logger.warning("Trending sweep query failed (%s): %s", query, exc)
@@ -105,8 +107,10 @@ def _to_observation(
         return None
     try:
         created = date_parser.parse(created_raw)
-    except (ValueError, OverflowError):
+    except Exception:
         return None
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=UTC)
     spdx = (item.get("license") or {}).get("spdx_id")
     return TrendingObservation(
         repo=repo, lane=lane, stars=int(item.get("stargazers_count") or 0),

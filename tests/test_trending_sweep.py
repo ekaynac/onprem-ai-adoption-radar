@@ -125,15 +125,49 @@ async def test_sweep_one_failing_query_does_not_crash():
 
 
 @pytest.mark.asyncio
-async def test_sweep_respects_per_lane_cap():
-    from radar.discovery.trending_sweep import ONPREM_TOPICS, PER_LANE_CAP
+async def test_sweep_rising_shape_respects_lane_budget():
+    from radar.discovery.trending_sweep import ONPREM_TOPICS, RISING_LANE_CAP
 
     first_topic = ONPREM_TOPICS[0]
-    # rising query for the first topic returns MORE than the cap of unique repos
-    many = [_item(f"onprem/repo{i}", 1000 + i) for i in range(PER_LANE_CAP + 5)]
-    client = _Client({first_topic: many})
+    many = [_item(f"onprem/repo{i}", 1000 + i) for i in range(RISING_LANE_CAP + 5)]
+    # _Client matches by topic substring only (not query shape), so without
+    # failing the born query it would also match first_topic and pick up the
+    # leftover items the rising shape skipped — isolate the rising shape here.
+    client = _Client({first_topic: many}, fail_substr="created:")
 
     observations = await sweep_trending([], client, NOW)
 
     onprem = [o for o in observations if o.lane == Lane.ONPREM]
-    assert len(onprem) == PER_LANE_CAP  # exactly the cap, never more
+    assert len(onprem) == RISING_LANE_CAP  # rising budget bounds it; never more
+
+
+class _ShapeClient:
+    """Returns the born list when the query is the born shape (has 'created:'),
+    the rising list otherwise — for every topic."""
+
+    def __init__(self, rising: list[dict], born: list[dict]):
+        self._rising = rising
+        self._born = born
+
+    async def get(self, url, **kwargs):
+        query = kwargs.get("params", {}).get("q", "")
+        return _Resp(self._born if "created:" in query else self._rising)
+
+
+@pytest.mark.asyncio
+async def test_sweep_born_shape_not_starved_by_full_rising():
+    from radar.discovery.trending_sweep import RISING_LANE_CAP
+
+    rising = [_item(f"rising/repo{i}", 1000 + i) for i in range(RISING_LANE_CAP + 5)]
+    born = [_item("fresh/newcomer", 120, created="2026-07-01T00:00:00Z")]
+    client = _ShapeClient(rising, born)
+
+    observations = await sweep_trending([], client, NOW)
+
+    # _ShapeClient serves every topic identically, so the broader lane's rising
+    # query also matches "rising" and mops up the leftover items the onprem
+    # lane's rising shape skipped — scope to the onprem lane being verified.
+    onprem = [o for o in observations if o.lane == Lane.ONPREM]
+    repos = {o.repo for o in onprem}
+    assert "fresh/newcomer" in repos  # born signal survives a full rising page
+    assert len([o for o in onprem if o.repo.startswith("rising/")]) == RISING_LANE_CAP
