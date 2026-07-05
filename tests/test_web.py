@@ -873,6 +873,7 @@ sources:
 
     encoded = "/project/NVIDIA%20Blackwell%20%2F%20GB200"
     assert f'href="{encoded}"' in text
-    # Verify the href generates and does not cause a 500 error
-    # (Starlette router does not decode %2F in path params for security)
+    # ASGI decodes %2F back to a literal "/" before route matching, so slashed
+    # project names route-miss with a plain 404 — the same pre-existing behavior
+    # as index.html's |urlencode project links. The encoded href must never 500.
     assert client.get(encoded).status_code != 500
