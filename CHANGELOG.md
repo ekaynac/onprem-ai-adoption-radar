@@ -26,6 +26,15 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Technique discovery + durable citation velocity** — `radar research
+  discover` proposes technique candidates from Hugging Face daily papers
+  (keyword-gated by title, deduped against the seed, upvote floor) into
+  `data/proposed-technique-seeds.yaml` for human review — techniques are never
+  auto-added. Citation metrics now dual-write to an append-only
+  `data/technique-metrics.jsonl` that the publish workflow commits back;
+  a fresh CI checkout rehydrates its metrics store from the log, so published
+  citation-velocity momentum finally survives across daily runs (arXiv
+  category sweeps and velocity-spike proposals stay deferred).
 - **Research pedigree cross-linking** — the three radars now reference each
   other: tool decision cards carry an "Implements N tracked research
   techniques" evidence line (best-effort, never affects scoring), project and

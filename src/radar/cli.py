@@ -542,6 +542,7 @@ def research_scan(root: Path = typer.Option(Path("."), help="Project root.")) ->
                 client=client,
                 contact_email=os.environ.get("RADAR_CONTACT_EMAIL"),
                 run_id=run_id,
+                metrics_log_path=root / "data" / "technique-metrics.jsonl",
             )
 
     entries, events = asyncio.run(_run())
@@ -630,6 +631,48 @@ def research_show(
         console.print(
             f"  {event.observed_at.date()} {event.change_type.value} → {event.ring.value}"
         )
+
+
+@research_app.command("discover")
+def research_discover(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    min_upvotes: int = typer.Option(10, help="Minimum HF daily-papers upvotes."),
+    limit: int = typer.Option(20, help="Maximum proposals to write."),
+) -> None:
+    """Propose technique candidates from HF daily papers (human-reviewed file)."""
+    import asyncio
+
+    import httpx
+
+    from radar.discovery import hf_technique_candidates
+    from radar.discovery.technique_proposals import write_technique_proposals
+    from radar.research_radar.seed import TechniqueSeedError, load_technique_seed
+
+    seed_path = root / "config" / "technique-seed.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "technique-seed.yaml"
+
+    try:
+        seeds = load_technique_seed(seed_path)
+    except TechniqueSeedError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await hf_technique_candidates.discover_technique_candidates(
+                seeds, client, min_upvotes=min_upvotes, limit=limit,
+            )
+
+    proposals = asyncio.run(_run())
+    out_path = root / "data" / "proposed-technique-seeds.yaml"
+    write_technique_proposals(out_path, proposals)
+    if not proposals:
+        console.print("No technique candidates found (or HF API unavailable).")
+        return
+    console.print(
+        f"{len(proposals)} technique candidate(s) → {out_path.relative_to(root)}"
+    )
 
 
 def _latest_technique_entries(root: Path):

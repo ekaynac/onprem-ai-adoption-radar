@@ -21,3 +21,9 @@ def test_publish_runs_research_scan_before_export_and_commits_technique_history(
 
     assert models_idx < research_idx < export_idx
     assert "data/technique-history.jsonl" in text
+
+
+def test_publish_commits_technique_metrics_log():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+
+    assert "data/technique-metrics.jsonl" in text

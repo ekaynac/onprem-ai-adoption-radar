@@ -82,6 +82,12 @@ class TechniqueMetricsStore:
             ).fetchall()
         return [self._to_metrics(r) for r in reversed(rows)]
 
+    def is_empty(self) -> bool:
+        """True when no metrics have ever been recorded."""
+        with sqlite3.connect(self.path) as conn:
+            row = conn.execute("SELECT 1 FROM technique_metrics LIMIT 1").fetchone()
+        return row is None
+
     @staticmethod
     def _row(m: TechniqueMetrics) -> tuple:
         return (m.technique_id, m.run_id, m.observed_at.isoformat(), m.citation_count,

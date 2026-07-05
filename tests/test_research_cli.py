@@ -174,3 +174,107 @@ def test_research_scan_bad_seed_fails_clean_without_orphan_run_dir(tmp_path):
     assert "Traceback" not in result.output
     runs_dir = root / "data" / "runs"
     assert not runs_dir.exists() or list(runs_dir.iterdir()) == []
+
+
+def test_research_discover_writes_proposals(tmp_path, monkeypatch):
+    from radar.discovery.technique_proposals import TechniqueProposal, load_technique_proposals
+    from radar.models import Category as _Cat
+    from radar.research_radar.entities import TechniqueDomain as _Dom
+
+    async def _fake_discover(seeds, client, min_upvotes=10, limit=20):
+        return [TechniqueProposal(
+            suggested_id="test-time-scaling", name="Test-Time Scaling",
+            arxiv_id="2502.12345", published="2025-02-18", upvotes=142,
+            suggested_domain=_Dom.INFERENCE, suggested_category=_Cat.MODEL_SERVING,
+            matched_keyword="inference",
+        )]
+
+    monkeypatch.setattr(
+        "radar.discovery.hf_technique_candidates.discover_technique_candidates",
+        _fake_discover,
+    )
+    runner = CliRunner()
+    root = _project(tmp_path)
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root)])
+
+    assert result.exit_code == 0
+    assert "1 technique candidate" in result.stdout
+    proposals = load_technique_proposals(root / "data" / "proposed-technique-seeds.yaml")
+    assert proposals[0].suggested_id == "test-time-scaling"
+
+
+def test_research_discover_no_candidates_message(tmp_path, monkeypatch):
+    async def _none(seeds, client, min_upvotes=10, limit=20):
+        return []
+
+    monkeypatch.setattr(
+        "radar.discovery.hf_technique_candidates.discover_technique_candidates", _none,
+    )
+    runner = CliRunner()
+    root = _project(tmp_path)
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root)])
+
+    assert result.exit_code == 0
+    assert "No technique candidates" in result.stdout
+
+
+def test_research_scan_writes_metrics_log(tmp_path):
+    runner = CliRunner()
+    root = _project(tmp_path)
+
+    runner.invoke(app, ["research", "scan", "--root", str(root)])
+
+    assert (root / "data" / "technique-metrics.jsonl").exists()
+
+
+def test_research_discover_empty_run_clears_stale_proposals(tmp_path, monkeypatch):
+    from radar.discovery.technique_proposals import load_technique_proposals
+
+    async def _none(seeds, client, min_upvotes=10, limit=20):
+        return []
+
+    monkeypatch.setattr(
+        "radar.discovery.hf_technique_candidates.discover_technique_candidates", _none,
+    )
+    runner = CliRunner()
+    root = _project(tmp_path)
+    stale = root / "data" / "proposed-technique-seeds.yaml"
+    stale.write_text("proposals:\n  - suggested_id: old\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root)])
+
+    assert result.exit_code == 0
+    assert load_technique_proposals(stale) == []
+
+
+def test_research_discover_bad_seed_exits_clean(tmp_path):
+    runner = CliRunner()
+    root = _project(tmp_path)
+    seed = root / "config" / "technique-seed.yaml"
+    seed.write_text(
+        """
+techniques:
+  - id: qlora
+    name: QLoRA
+    category: ai_infrastructure
+    domain: fine_tuning
+    onprem_impact: reduces_memory
+  - id: qlora
+    name: QLoRA Again
+    category: ai_infrastructure
+    domain: fine_tuning
+    onprem_impact: reduces_memory
+""",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(root)])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output
+    # An uncaught TechniqueSeedError also exits 1 under CliRunner but prints
+    # nothing — the caught path is distinguished by the printed error message.
+    assert "Duplicate technique ids" in result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)
