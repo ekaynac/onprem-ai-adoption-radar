@@ -29,8 +29,6 @@ jobs:
         run: uv venv && uv pip install -e .
 
       - name: Promote sustained-momentum trending repos
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run radar trending promote --root . --limit 3
 
       # Belt-and-suspenders: the catalog must still load with unique ids.
@@ -56,7 +54,7 @@ jobs:
             git config user.name "radar-bot"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add config/seed-sources.yaml
-            git add -f data/autopilot-log.jsonl || true
+            git add data/autopilot-log.jsonl
             git commit -m "chore(sources): autopilot additions $(date -u +%F)"
             git push
             echo "changed=true" >> "$GITHUB_OUTPUT"
