@@ -23,6 +23,8 @@ sources:
     category: coding_agents
     url: https://github.com/cline/cline
     tags: [coding-agent]
+quotas:
+  coding_agents: 4
 """
 
 

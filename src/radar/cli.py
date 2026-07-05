@@ -904,10 +904,11 @@ def trending_promote(
         console.print(table)
         return
 
+    from radar.discovery.source_promotion import splice_into_sources
+
     old_text = seed_path.read_text(encoding="utf-8")
-    blocks = "".join("\n" + source_to_yaml_block(s).strip("\n") + "\n"
-                     for s, _ in collected)
-    new_text = old_text.rstrip("\n") + "\n" + blocks
+    block_text = "".join(source_to_yaml_block(s) for s, _ in collected)
+    new_text = splice_into_sources(old_text, block_text)
 
     tmp = seed_path.with_suffix(".promote.tmp")
     tmp.write_text(new_text, encoding="utf-8")

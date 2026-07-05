@@ -12,6 +12,7 @@ from radar.discovery.source_promotion import (
     is_promotable_source,
     momentum_stats,
     source_to_yaml_block,
+    splice_into_sources,
 )
 from radar.discovery.trending_entities import Lane, TrendingObservation
 from radar.models import Category
@@ -161,3 +162,37 @@ def test_source_to_yaml_block_round_trips(tmp_path):
     config = load_config(seed)
     assert config.sources[0].id == "github-rocket"
     assert "auto-added" in config.sources[0].tags
+
+
+# ── splice (promote-time YAML surgery) ──────────────────────────────────────
+
+def test_splice_inserts_before_trailing_section(tmp_path):
+    old = ("version: \"1.0\"\nsources:\n"
+           "  - id: github-cline\n    type: github_repo\n    enabled: true\n"
+           "    project: Cline\n    category: coding_agents\n"
+           "    url: https://github.com/cline/cline\n    tags: [coding-agent]\n"
+           "quotas:\n  coding_agents: 4\n")
+    source = build_source("acme/rocket", _sustained("acme/rocket"), existing_ids=set())
+    assert source is not None
+
+    spliced = splice_into_sources(old, source_to_yaml_block(source))
+    seed = tmp_path / "seed.yaml"
+    seed.write_text(spliced, encoding="utf-8")
+
+    config = load_config(seed)  # must be valid YAML
+    assert {s.id for s in config.sources} == {"github-cline", "github-rocket"}
+    assert config.quotas.get("coding_agents") == 4  # trailing section survived
+
+
+def test_splice_appends_when_sources_is_last_section(tmp_path):
+    old = ("version: \"1.0\"\nsources:\n"
+           "  - id: github-cline\n    type: github_repo\n    enabled: true\n"
+           "    project: Cline\n    category: coding_agents\n"
+           "    url: https://github.com/cline/cline\n    tags: [coding-agent]\n")
+    source = build_source("acme/rocket", _sustained("acme/rocket"), existing_ids=set())
+    assert source is not None
+    spliced = splice_into_sources(old, source_to_yaml_block(source))
+    seed = tmp_path / "seed.yaml"
+    seed.write_text(spliced, encoding="utf-8")
+
+    assert {s.id for s in load_config(seed).sources} == {"github-cline", "github-rocket"}

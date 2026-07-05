@@ -182,3 +182,27 @@ def source_to_yaml_block(source: SourceConfig) -> str:
         "",
     ]
     return "\n".join(lines)
+
+
+def splice_into_sources(old_text: str, block_text: str) -> str:
+    """Insert rendered source block(s) at the end of the top-level ``sources:``
+    list, before any following top-level section (quotas/scoring/…). The seed
+    file has sections after ``sources:``, so appending at EOF would be invalid
+    YAML — this keeps the new entries inside the sources list.
+    """
+    lines = old_text.splitlines(keepends=True)
+    insert_at = len(lines)
+    seen_sources = False
+    for i, line in enumerate(lines):
+        if not seen_sources:
+            if line.rstrip("\n") == "sources:":
+                seen_sources = True
+            continue
+        # first non-indented, non-blank, non-comment line ends the sources block
+        if line.strip() and not line[0].isspace() and not line.lstrip().startswith("#"):
+            insert_at = i
+            break
+    head = "".join(lines[:insert_at]).rstrip("\n")
+    tail = "".join(lines[insert_at:])
+    spliced = head + "\n" + block_text.strip("\n") + "\n"
+    return spliced + tail if tail else spliced
