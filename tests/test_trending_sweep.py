@@ -122,3 +122,18 @@ async def test_sweep_one_failing_query_does_not_crash():
     observations = await sweep_trending([], client, NOW)  # broader query raises
 
     assert any(o.repo == "acme/rocket" for o in observations)  # onprem still returned
+
+
+@pytest.mark.asyncio
+async def test_sweep_respects_per_lane_cap():
+    from radar.discovery.trending_sweep import ONPREM_TOPICS, PER_LANE_CAP
+
+    first_topic = ONPREM_TOPICS[0]
+    # rising query for the first topic returns MORE than the cap of unique repos
+    many = [_item(f"onprem/repo{i}", 1000 + i) for i in range(PER_LANE_CAP + 5)]
+    client = _Client({first_topic: many})
+
+    observations = await sweep_trending([], client, NOW)
+
+    onprem = [o for o in observations if o.lane == Lane.ONPREM]
+    assert len(onprem) == PER_LANE_CAP  # exactly the cap, never more

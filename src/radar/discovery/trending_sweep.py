@@ -63,6 +63,8 @@ async def sweep_trending(
                 f"topic:{topic} created:>={born_since} stars:>={BORN_MIN_STARS}",
             ]
             for query in queries:
+                if len(lane_repos) >= PER_LANE_CAP:
+                    break
                 for item in await _search(client, query, headers):
                     repo = (item.get("full_name") or "").strip()
                     if not repo or repo.lower() in tracked or repo in seen:
