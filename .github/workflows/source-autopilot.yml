@@ -1,0 +1,69 @@
+name: Source autopilot
+
+on:
+  schedule:
+    - cron: "30 7 * * 1" # Mondays 07:30 UTC (offset from catalog-autopilot 07:00)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # commit updated seed-sources.yaml + autopilot-log.jsonl
+  actions: write  # dispatch publish.yml after commit
+
+concurrency:
+  group: source-autopilot
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install package
+        run: uv venv && uv pip install -e .
+
+      - name: Promote sustained-momentum trending repos
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run radar trending promote --root . --limit 3
+
+      # Belt-and-suspenders: the catalog must still load with unique ids.
+      # promote validates-or-aborts before writing, so reaching here means good.
+      - name: Source catalog integrity gate
+        run: |
+          uv run python -c "
+          from pathlib import Path
+          from radar.storage.config import load_config
+          config = load_config(Path('config/seed-sources.yaml'))
+          ids = [s.id for s in config.sources]
+          assert len(ids) == len(set(ids)), 'duplicate source ids'
+          print(f'catalog OK: {len(ids)} sources, ids unique')
+          "
+
+      - name: Commit catalog changes (if any)
+        id: commit
+        run: |
+          if git diff --quiet -- config/seed-sources.yaml; then
+            echo "No new sources this week — nothing to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "radar-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add config/seed-sources.yaml
+            git add -f data/autopilot-log.jsonl || true
+            git commit -m "chore(sources): autopilot additions $(date -u +%F)"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch publish to refresh live site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml --ref main
