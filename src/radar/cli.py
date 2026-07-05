@@ -31,6 +31,8 @@ models_app = typer.Typer(help="Local-model radar (catalog + specs).", no_args_is
 app.add_typer(models_app, name="models")
 research_app = typer.Typer(help="Academic research radar (techniques).", no_args_is_help=True)
 app.add_typer(research_app, name="research")
+trending_app = typer.Typer(help="Trending & newly-created repos radar.", no_args_is_help=True)
+app.add_typer(trending_app, name="trending")
 console = Console()
 
 
@@ -741,6 +743,82 @@ def _latest_technique_entries(root: Path):
 
     entries = load_technique_entries(root)
     return entries or None
+
+
+@trending_app.command("scan")
+def trending_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+    """Sweep GitHub for trending/new repos and append to the observation log."""
+    import asyncio
+    import os
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from radar.discovery import trending_sweep
+    from radar.discovery.trending_entities import Lane
+    from radar.storage.config import load_config
+    from radar.storage.trending_observations_log import append_observations
+
+    config_path = root / "data" / "config.yaml"
+    try:
+        sources = load_config(config_path).sources
+    except Exception as exc:
+        console.print(f"[yellow]No config ({exc}); sweeping without exclusions.[/yellow]")
+        sources = []
+
+    def _headers() -> dict[str, str]:
+        token = os.environ.get("GITHUB_TOKEN")
+        return {"Authorization": f"Bearer {token}"} if token else {}
+
+    now = datetime.now(UTC)
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await trending_sweep.sweep_trending(
+                sources, client, now=now, headers=_headers(),
+            )
+
+    observations = asyncio.run(_run())
+    out_path = root / "data" / "trending-observations.jsonl"
+    append_observations(out_path, observations)
+    onprem = sum(1 for o in observations if o.lane == Lane.ONPREM)
+    broader = len(observations) - onprem
+    console.print(
+        f"Observed {len(observations)} trending repo(s) "
+        f"({onprem} on-prem / {broader} broader) → {out_path.relative_to(root)}"
+    )
+
+
+@trending_app.command("list")
+def trending_list(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    lane: str = typer.Option("", help="Filter by lane: onprem | broader."),
+    new: bool = typer.Option(False, "--new", help="Only newly-created repos."),
+) -> None:
+    """List trending repos derived from the observation log."""
+    from datetime import UTC, datetime
+
+    from radar.discovery.trending_detect import build_trending
+    from radar.storage.trending_observations_log import load_observations
+
+    path = root / "data" / "trending-observations.jsonl"
+    entries = build_trending(load_observations(path), datetime.now(UTC))
+    if not entries:
+        console.print("No trending observations yet. Run [bold]radar trending scan[/bold] first.")
+        return
+    if lane:
+        entries = [e for e in entries if e.lane.value == lane.lower()]
+    if new:
+        entries = [e for e in entries if e.is_new]
+    console.print(f"{len(entries)} trending repo(s):")
+    for e in entries:
+        vel = f"{e.velocity_per_day:+.1f}/d" if e.velocity_per_day is not None else "   ?  "
+        badge = "NEW" if e.is_new else "   "
+        console.print(
+            f"  {e.repo:<40} {e.stars:>7}★ {vel:<9} {badge} {e.lane.value:<8} "
+            f"since {e.first_seen}",
+            highlight=False, soft_wrap=True,
+        )
 
 
 @app.command()

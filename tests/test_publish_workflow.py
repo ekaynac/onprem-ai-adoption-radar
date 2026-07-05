@@ -27,3 +27,14 @@ def test_publish_commits_technique_metrics_log():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
 
     assert "data/technique-metrics.jsonl" in text
+
+
+def test_publish_runs_trending_scan_and_commits_observations():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+
+    research_idx = text.index("radar research scan")
+    trending_idx = text.index("radar trending scan")
+    export_idx = text.index("radar export")
+
+    assert research_idx < trending_idx < export_idx
+    assert "data/trending-observations.jsonl" in text
