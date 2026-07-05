@@ -23,7 +23,7 @@ def star_velocity(rows: list[TrendingObservation], now: datetime) -> float | Non
     )
     if len(in_window) < 2:
         return None
-    span_days = (in_window[-1].observed_at - in_window[0].observed_at).days
+    span_days = (in_window[-1].observed_at.date() - in_window[0].observed_at.date()).days
     if span_days <= 0:
         return None
     return round((in_window[-1].stars - in_window[0].stars) / span_days, 1)

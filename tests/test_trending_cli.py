@@ -92,3 +92,14 @@ def test_trending_list_empty_store(tmp_path):
 
     assert result.exit_code == 0
     assert "No trending observations yet" in result.stdout
+
+
+def test_trending_list_rejects_unknown_lane(tmp_path):
+    _seed(tmp_path, [_obs("on/repo", 100, 4)])
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["trending", "list", "--root", str(tmp_path),
+                                 "--lane", "bogus"])
+
+    assert result.exit_code == 1
+    assert "Unknown --lane" in result.output

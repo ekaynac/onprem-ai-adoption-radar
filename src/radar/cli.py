@@ -799,7 +799,12 @@ def trending_list(
     from datetime import UTC, datetime
 
     from radar.discovery.trending_detect import build_trending
+    from radar.discovery.trending_entities import Lane
     from radar.storage.trending_observations_log import load_observations
+
+    if lane and lane not in (Lane.ONPREM.value, Lane.BROADER.value):
+        console.print(f"[red]Unknown --lane: {lane} (use onprem | broader)[/red]")
+        raise typer.Exit(code=1)
 
     path = root / "data" / "trending-observations.jsonl"
     entries = build_trending(load_observations(path), datetime.now(UTC))
