@@ -702,3 +702,84 @@ def test_scan_health_survives_a_later_research_run(tmp_path):
     r = client.get("/")
 
     assert "rate limited" in r.text
+
+
+def _card(project: str, ring: Ring) -> DecisionCard:
+    return DecisionCard(
+        project=project, category=Category.MODEL_SERVING, ring=ring,
+        summary=f"{project} summary", workflow_fit={}, risk_level="low",
+    )
+
+
+def _seed_pedigree_research_run(root: Path, tool_ref: str) -> None:
+    from radar.models import Category as _Cat
+    from radar.models import Ring as _Ring
+    from radar.research_radar.entities import (
+        ImplKind as _IK,
+    )
+    from radar.research_radar.entities import (
+        OnPremImpact as _Imp,
+    )
+    from radar.research_radar.entities import (
+        ResolvedImplementation as _RI,
+    )
+    from radar.research_radar.entities import (
+        TechniqueDomain as _Dom,
+    )
+    from radar.research_radar.entities import (
+        TechniqueEntry as _TE,
+    )
+    from radar.storage.run_store import RunStore as _RS
+
+    entry = _TE(
+        id="spec-dec", name="Speculative Decoding", category=_Cat.MODEL_SERVING,
+        domain=_Dom.INFERENCE, onprem_impact=_Imp.REDUCES_LATENCY, ring=_Ring.ADOPT,
+        citation_count=1697,
+        resolved_implementations=[
+            _RI(kind=_IK.TOOL, ref=tool_ref, ring=None),
+            _RI(kind=_IK.MODEL, ref="llama-3.3-70b", ring=None),
+        ],
+    )
+    store = _RS(root / "data" / "runs")
+    run_id = store.create_run()
+    store.update_meta(run_id, {"kind": "research"})
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+
+
+def _write_pedigree_config(root: Path, source_id: str, project: str) -> None:
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    (root / "data" / "config.yaml").write_text(
+        f"""
+sources:
+  - id: {source_id}
+    type: github_repo
+    project: {project}
+    category: model_serving
+    url: https://github.com/vllm-project/vllm
+""",
+        encoding="utf-8",
+    )
+
+
+def test_project_page_shows_research_pedigree(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+    _write_pedigree_config(tmp_path, "github-vllm", "vLLM")
+    _seed_pedigree_research_run(tmp_path, "github-vllm")
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+
+    assert "Research techniques" in text
+    assert "Speculative Decoding" in text
+    assert 'href="/technique/spec-dec"' in text
+
+
+def test_project_page_without_research_run_has_no_pedigree_section(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([_card("vLLM", Ring.ADOPT)])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+
+    assert "Research techniques" not in text

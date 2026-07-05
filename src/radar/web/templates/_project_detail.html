@@ -1,5 +1,6 @@
 {# Shared project-detail body. Context: card, events (oldest-first),
-   metrics (newest-first), links {home, compare, history}. #}
+   metrics (newest-first), links {home, compare, history},
+   pedigree (list[TechniquePedigree] | None), technique_hrefs (dict). #}
 <h1>{{ card.project }}</h1>
 {% set b = backer_badge(card.backer) %}
 {% if b %}<p class="backer-line">Backed by <span class="backer backer-{{ b.type }}" title="{{ b.title }}">{{ b.emoji }} {{ b.name }}</span> <span class="backer-type-label">({{ b.label }})</span></p>{% endif %}
@@ -55,6 +56,17 @@
 <h2>Observed evidence</h2>
 <ul class="evidence">
   {% for note in card.evidence_notes %}<li>{{ note }}</li>{% endfor %}
+</ul>
+{% endif %}
+
+{% if pedigree %}
+<h3>Research techniques</h3>
+<ul>
+  {% for t in pedigree %}
+  <li><a href="{{ technique_hrefs[t.technique_id] }}">{{ t.name }}</a>
+      — {{ t.ring.value if t.ring else 'unringed' }}
+      {% if t.citation_count is not none %} · {{ t.citation_count }} citations{% endif %}</li>
+  {% endfor %}
 </ul>
 {% endif %}
 

@@ -1122,6 +1122,35 @@ def export(
     if technique_history_src.exists():
         shutil.copy2(technique_history_src, out / "technique-history.jsonl")
 
+    # Pedigree maps (optional: only meaningful once technique entries exist) —
+    # drive the "Research techniques" section on project + model static pages.
+    from radar.research_radar.pedigree import (
+        TechniquePedigree,
+        build_pedigree_index,
+        pedigree_for_refs,
+    )
+    from radar.web.slugs import build_slug_map
+
+    pedigree_by_project: dict[str, list[TechniquePedigree]] = {}
+    pedigree_by_model: dict[str, list[TechniquePedigree]] = {}
+    technique_hrefs: dict[str, str] = {}
+    if technique_entries:
+        technique_slugs = build_slug_map([t.id for t in technique_entries])
+        technique_hrefs = {tid: f"technique_{slug}.html" for tid, slug in technique_slugs.items()}
+        pedigree_index = build_pedigree_index(technique_entries)
+        export_config = load_config(root / "data" / "config.yaml")
+        ids_by_project: dict[str, list[str]] = {}
+        for source in export_config.sources:
+            ids_by_project.setdefault(source.project, []).append(source.id)
+        pedigree_by_project = {
+            project: items for project, ids in ids_by_project.items()
+            if (items := pedigree_for_refs(pedigree_index.by_tool_ref, ids))
+        }
+        pedigree_by_model = {
+            ref: items for ref in pedigree_index.by_model_ref
+            if (items := pedigree_for_refs(pedigree_index.by_model_ref, [ref]))
+        }
+
     index = render_static_site(
         cards,
         out,
@@ -1136,6 +1165,9 @@ def export(
         model_events=model_events or None,
         technique_entries=technique_entries or None,
         technique_events=technique_events or None,
+        pedigree_by_project=pedigree_by_project or None,
+        pedigree_by_model=pedigree_by_model or None,
+        technique_hrefs=technique_hrefs or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

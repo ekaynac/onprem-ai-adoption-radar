@@ -23,6 +23,7 @@ from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
 from radar.research_radar.entities import TechniqueEntry
 from radar.research_radar.history import TechniqueHistoryEvent
+from radar.research_radar.pedigree import TechniquePedigree
 from radar.research_radar.reports import (
     technique_events_to_feed_atom,
     technique_events_to_feed_json,
@@ -60,6 +61,9 @@ def render_static_site(
     model_events: list[ModelHistoryEvent] | None = None,
     technique_entries: list[TechniqueEntry] | None = None,
     technique_events: list[TechniqueHistoryEvent] | None = None,
+    pedigree_by_project: dict[str, list[TechniquePedigree]] | None = None,
+    pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
+    technique_hrefs: dict[str, str] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -73,7 +77,11 @@ def render_static_site(
     ``model_events`` is also provided). When ``technique_entries`` is provided,
     writes ``techniques.html``, per-technique pages, and
     ``changes-research.xml``/``.json`` feeds (the latter only when
-    ``technique_events`` is also provided).
+    ``technique_events`` is also provided). ``pedigree_by_project`` (optional)
+    supplies each project page's "Research techniques" section; ``technique_hrefs``
+    maps technique id to its href and must cover every id referenced by
+    ``pedigree_by_project``/``pedigree_by_model``. ``pedigree_by_model`` is
+    unused here — reserved for the model-detail pages (a later task).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -159,7 +167,8 @@ def render_static_site(
     )
 
     _write_project_pages(
-        env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {}
+        env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {},
+        pedigree_by_project=pedigree_by_project or {}, technique_hrefs=technique_hrefs or {},
     )
     _write_feeds(out_dir, timelines or [], site_title, self_base_url)
 
@@ -184,6 +193,8 @@ def _write_project_pages(
     slug_by_project: dict[str, str],
     timelines: list[dict[str, Any]],
     metrics_by_project: dict[str, list[ProjectMetrics]],
+    pedigree_by_project: dict[str, list[TechniquePedigree]],
+    technique_hrefs: dict[str, str],
 ) -> None:
     """Render one self-contained project_<slug>.html per card."""
     events_by_project: dict[str, list[ProjectHistoryEvent]] = {
@@ -200,6 +211,8 @@ def _write_project_pages(
                 events=events_by_project.get(card.project, []),
                 metrics=metrics,
                 links=links,
+                pedigree=(pedigree_by_project.get(card.project) or None),
+                technique_hrefs=technique_hrefs,
             ),
             encoding="utf-8",
         )

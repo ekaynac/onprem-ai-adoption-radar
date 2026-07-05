@@ -21,6 +21,11 @@ from radar.models_radar.entities import ModelEntry
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.research_radar.entities import TechniqueEntry
 from radar.research_radar.history import load_technique_events
+from radar.research_radar.pedigree import (
+    TechniquePedigree,
+    build_pedigree_index,
+    pedigree_for_refs,
+)
 from radar.research_radar.timeline import build_technique_timeline
 from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
@@ -81,6 +86,18 @@ def create_app(root: Path) -> FastAPI:
         """Load technique entries from the latest research run; empty list if none."""
         return [TechniqueEntry.model_validate(c) for c in _latest_technique_cards(root)]
 
+    def _project_pedigree(project: str) -> list[TechniquePedigree]:
+        """Techniques implemented by this project's sources; [] on any gap."""
+        try:
+            entries = _technique_entries()
+            if not entries:
+                return []
+            config = load_config(root / "data" / "config.yaml")
+            refs = [s.id for s in config.sources if s.project == project]
+            return pedigree_for_refs(build_pedigree_index(entries).by_tool_ref, refs)
+        except Exception:
+            return []
+
     # Nav targets for the project-detail partial (live = server routes).
     live_links = {"home": "/", "compare": "/compare", "history": "/history"}
 
@@ -138,6 +155,7 @@ def create_app(root: Path) -> FastAPI:
         metrics.initialize()
         events = history.history_for(card.project)
         metric_rows = list(reversed(metrics.history_for(card.project)))  # newest-first
+        entries = _technique_entries()
         return TEMPLATES.TemplateResponse(
             request,
             "project.html",
@@ -146,6 +164,8 @@ def create_app(root: Path) -> FastAPI:
                 "events": events,
                 "metrics": metric_rows,
                 "links": live_links,
+                "pedigree": _project_pedigree(card.project) or None,
+                "technique_hrefs": {t.id: f"/technique/{t.id}" for t in entries},
             },
         )
 

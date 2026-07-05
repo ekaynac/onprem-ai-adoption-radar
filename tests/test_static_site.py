@@ -431,3 +431,25 @@ def test_static_site_backcompat_without_techniques(tmp_path):
     assert not (site / "techniques.html").exists()
     assert not (site / "changes-research.xml").exists()
     assert (site / "index.html").exists()
+
+
+def test_static_project_page_shows_pedigree_with_static_links(tmp_path):
+    from radar.models import Ring
+    from radar.research_radar.pedigree import TechniquePedigree
+
+    card = _card("vLLM", Ring.ADOPT)
+    pedigree_by_project = {"vLLM": [TechniquePedigree(
+        technique_id="spec-dec", name="Speculative Decoding",
+        ring=Ring.ADOPT, citation_count=1697,
+    )]}
+
+    render_static_site(
+        [card], tmp_path / "_site", datetime(2026, 7, 5, tzinfo=UTC),
+        pedigree_by_project=pedigree_by_project,
+        technique_hrefs={"spec-dec": "technique_spec-dec.html"},
+    )
+
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "Research techniques" in page
+    assert 'href="technique_spec-dec.html"' in page
+    assert "1697 citations" in page
