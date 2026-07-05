@@ -51,9 +51,9 @@ async def enrich_proposals_with_velocity(
 
 
 def rank_proposals(proposals: list[TechniqueProposal]) -> list[TechniqueProposal]:
-    """Velocity desc (unknown last), then upvotes desc, then arxiv_id."""
+    """Velocity desc (unknown treated as zero signal), then upvotes desc, then arxiv_id."""
     return sorted(proposals, key=lambda p: (
-        -(p.citations_per_day if p.citations_per_day is not None else -1.0),
+        -(p.citations_per_day or 0.0),
         -p.upvotes,
         p.arxiv_id,
     ))

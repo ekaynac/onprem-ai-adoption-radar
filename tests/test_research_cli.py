@@ -316,6 +316,16 @@ def test_research_discover_source_hf_skips_arxiv(tmp_path, monkeypatch):
     assert calls["arxiv"] == 0
 
 
+def test_research_discover_rejects_unknown_source(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["research", "discover", "--root", str(_project(tmp_path)),
+                                 "--source", "bogus"])
+
+    assert result.exit_code == 1
+    assert "Unknown --source" in result.output
+
+
 def test_research_discover_bad_seed_exits_clean(tmp_path):
     runner = CliRunner()
     root = _project(tmp_path)

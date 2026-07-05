@@ -27,10 +27,6 @@ def _proposal(arxiv_id: str, published: str | None, upvotes: int = 0) -> Techniq
     )
 
 
-class _FetchOK:
-    """Patch target double for fetch_citations."""
-
-
 @pytest.mark.asyncio
 async def test_enrich_computes_citations_per_day(monkeypatch):
     from radar.research_radar.citations import CitationRecord
@@ -101,3 +97,13 @@ def test_rank_velocity_first_then_upvotes_then_id():
 
     assert ranked[0].arxiv_id == "2606.00006"          # velocity wins
     assert [p.arxiv_id for p in ranked[1:]] == ["2606.00005", "2606.00007"]  # id tiebreak
+
+
+def test_rank_unknown_velocity_ties_with_zero_and_upvotes_break_it():
+    known_zero = _proposal("2606.00008", "2026-06-25", upvotes=1).model_copy(
+        update={"citations_per_day": 0.0, "citation_count": 0})
+    unknown = _proposal("2606.00009", "2026-06-25", upvotes=50)
+
+    ranked = rank_proposals([known_zero, unknown])
+
+    assert ranked[0].arxiv_id == "2606.00009"  # upvotes win when velocity signal is absent/zero
