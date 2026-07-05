@@ -15,10 +15,6 @@ from radar.discovery.trending_entities import TrendingEntry, TrendingObservation
 VELOCITY_WINDOW_DAYS = 7
 NEW_WINDOW_DAYS = 14
 
-# Sort velocity high→low with None (unknown) last, then stars high→low, then repo.
-_NO_VELOCITY = -1.0
-
-
 def star_velocity(rows: list[TrendingObservation], now: datetime) -> float | None:
     """Stars/day across in-window rows; None with <2 rows or a zero day-span."""
     cutoff = now - timedelta(days=VELOCITY_WINDOW_DAYS)
@@ -55,6 +51,8 @@ def build_trending(
             description=latest.description, topics=latest.topics, license=latest.license,
         ))
     return sorted(entries, key=lambda e: (
-        -(e.velocity_per_day if e.velocity_per_day is not None else _NO_VELOCITY),
-        -e.stars, e.repo,
+        e.velocity_per_day is None,
+        -(e.velocity_per_day if e.velocity_per_day is not None else 0.0),
+        -e.stars,
+        e.repo,
     ))

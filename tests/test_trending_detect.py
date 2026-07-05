@@ -83,3 +83,16 @@ def test_build_trending_marks_new_repo():
         _obs("new/repo", 90, 7, created="2026-07-01"),
     ], NOW)[0]
     assert entry.is_new is True
+
+
+def test_build_trending_negative_velocity_sorts_before_unknown():
+    observations = [
+        _obs("solo/repo", 900, 4),                            # velocity None (1 obs)
+        _obs("dying/repo", 200, 1), _obs("dying/repo", 100, 4),  # -33.3/day
+    ]
+    entries = build_trending(observations, NOW)
+
+    # A real (negative) velocity must precede an unknown one.
+    assert [e.repo for e in entries] == ["dying/repo", "solo/repo"]
+    assert entries[0].velocity_per_day is not None and entries[0].velocity_per_day < 0
+    assert entries[1].velocity_per_day is None
