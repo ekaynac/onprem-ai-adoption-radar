@@ -1688,6 +1688,13 @@ def export(
 
     _model_candidates = load_emerging_candidates(root, generated_at)
 
+    # Emerging techniques (optional): untracked arXiv papers with rising
+    # upvote velocity, shown on trending.html under "Emerging — not yet
+    # tracked" (mirror of the model candidates above).
+    from radar.discovery.technique_candidate_detect import load_emerging_techniques
+
+    _technique_candidates = load_emerging_techniques(root, generated_at)
+
     index = render_static_site(
         cards,
         out,
@@ -1714,6 +1721,7 @@ def export(
         top_model=next((r for r in _model_hub if not r.is_new), None),
         top_technique=next((r for r in _technique_hub if not r.is_new), None),
         model_candidates=_model_candidates or None,
+        technique_candidates=_technique_candidates or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

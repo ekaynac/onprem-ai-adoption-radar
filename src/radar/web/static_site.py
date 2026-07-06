@@ -17,6 +17,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from radar.discovery.model_candidate_detect import ModelCandidateEntry
+from radar.discovery.technique_candidate_detect import TechniqueCandidateEntry
 from radar.discovery.trending_detect import build_trending
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.models import Category, DecisionCard, Ring
@@ -82,6 +83,7 @@ def render_static_site(
     top_model: HubRow | None = None,
     top_technique: HubRow | None = None,
     model_candidates: list[ModelCandidateEntry] | None = None,
+    technique_candidates: list[TechniqueCandidateEntry] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -106,11 +108,15 @@ def render_static_site(
     ``model_hub``/``technique_hub`` (optional) supply the "Trending Models"/
     "Trending Techniques" sections on that same page — ``trending.html`` is
     written whenever any of ``trending_observations``, ``model_hub``,
-    ``technique_hub``, or ``model_candidates`` yields data. ``top_model``/
-    ``top_technique`` (optional) drive the index-page trending strip's
-    highlight lines. ``model_candidates`` (optional) supplies the "Emerging —
-    not yet tracked" sub-section under Trending Models, linking each untracked
-    Hugging Face repo to its absolute ``https://huggingface.co/<repo>`` page.
+    ``technique_hub``, ``model_candidates``, or ``technique_candidates``
+    yields data. ``top_model``/``top_technique`` (optional) drive the
+    index-page trending strip's highlight lines. ``model_candidates``
+    (optional) supplies the "Emerging — not yet tracked" sub-section under
+    Trending Models, linking each untracked Hugging Face repo to its absolute
+    ``https://huggingface.co/<repo>`` page. ``technique_candidates``
+    (optional) supplies the same sub-section under Trending Techniques,
+    linking each untracked paper to its absolute
+    ``https://arxiv.org/abs/<arxiv_id>`` page.
     When ``digest_dir`` is given and exists, its tree (digest pages, cards,
     feeds) is copied into ``out_dir/digests``; ``latest_digest`` (optional)
     drives a "Latest digest" link on the index page. Both are a no-op when
@@ -236,12 +242,13 @@ def render_static_site(
             impl_hrefs=impl_hrefs,
         )
 
-    if trending_entries or model_hub or technique_hub or model_candidates:
+    if trending_entries or model_hub or technique_hub or model_candidates or technique_candidates:
         _write_trending_page(
             env, out_dir, trending_entries, stamp,
             model_hub=model_hub or [], technique_hub=technique_hub or [],
             model_slugs=model_slugs, technique_slugs=technique_slugs,
             model_candidates=model_candidates or [],
+            technique_candidates=technique_candidates or [],
         )
 
     # Publish the generated weekly digests (page + cards + feeds) alongside
@@ -433,6 +440,7 @@ def _write_trending_page(
     model_slugs: dict[str, str] | None = None,
     technique_slugs: dict[str, str] | None = None,
     model_candidates: list[ModelCandidateEntry] | None = None,
+    technique_candidates: list[TechniqueCandidateEntry] | None = None,
 ) -> None:
     """Render trending.html (repo lanes + Models/Techniques hub sections)."""
     onprem = [e for e in trending_entries if e.lane == Lane.ONPREM]
@@ -443,6 +451,7 @@ def _write_trending_page(
             model_hub=model_hub or [], technique_hub=technique_hub or [],
             model_slugs=model_slugs or {}, technique_slugs=technique_slugs or {},
             model_candidates=model_candidates or [],
+            technique_candidates=technique_candidates or [],
         ),
         encoding="utf-8",
     )
