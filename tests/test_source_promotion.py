@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from radar.discovery.source_promotion import (
     MomentumStats,
@@ -17,6 +17,9 @@ from radar.discovery.source_promotion import (
 from radar.discovery.trending_entities import Lane, TrendingObservation
 from radar.models import Category
 from radar.storage.config import load_config
+
+
+NOW = datetime(2026, 7, 8, tzinfo=UTC)
 
 
 def _obs(repo: str, stars: int, day: int, lane: Lane = Lane.ONPREM,
@@ -35,26 +38,53 @@ def _obs(repo: str, stars: int, day: int, lane: Lane = Lane.ONPREM,
 
 def test_momentum_stats_computed_over_calendar_days():
     rows = [_obs("a/b", 800, 1), _obs("a/b", 900, 4), _obs("a/b", 1000, 6)]
-    stats = momentum_stats(rows)
+    stats = momentum_stats(rows, NOW)
 
     assert stats == MomentumStats(distinct_days=3, span_days=5, avg_velocity=40.0,
                                   growth_pct=25.0)
 
 
 def test_momentum_none_with_single_row_or_zero_span():
-    assert momentum_stats([_obs("a/b", 800, 1)]) is None
-    assert momentum_stats([_obs("a/b", 800, 1), _obs("a/b", 810, 1)]) is None  # same day
+    assert momentum_stats([_obs("a/b", 800, 1)], NOW) is None
+    assert momentum_stats([_obs("a/b", 800, 1), _obs("a/b", 810, 1)], NOW) is None  # same day
+
+
+def test_momentum_stats_windowed_to_recent():
+    # NOW = 2026-07-08; day 2 is 6 days ago, day 7 is 1 day ago — both inside the window.
+    recent = [_obs("a/b", 100, 2), _obs("a/b", 400, 7)]
+    stats = momentum_stats(recent, NOW)
+    assert stats is not None and stats.avg_velocity > 0
+
+    # _obs's July-2026 `day` param can't reach 30-40 days before NOW, so build the
+    # out-of-window rows directly via timedelta from NOW.
+    old = [
+        TrendingObservation(
+            repo="a/b", lane=Lane.ONPREM, stars=100,
+            observed_at=NOW - timedelta(days=40),
+            repo_created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            description="fast llm serving", topics=["llm-inference"],
+            license="Apache-2.0",
+        ),
+        TrendingObservation(
+            repo="a/b", lane=Lane.ONPREM, stars=400,
+            observed_at=NOW - timedelta(days=30),
+            repo_created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            description="fast llm serving", topics=["llm-inference"],
+            license="Apache-2.0",
+        ),
+    ]
+    assert momentum_stats(old, NOW) is None   # both rows outside the 14-day window
 
 
 def test_sustained_requires_days_span_and_rate_or_growth():
     strong = [_obs("a/b", 800, 1), _obs("a/b", 900, 4), _obs("a/b", 1050, 6)]
-    assert has_sustained_momentum(strong) is True  # ≥3 days, span 5, growth 31%
+    assert has_sustained_momentum(strong, NOW) is True  # ≥3 days, span 5, growth 31%
 
     too_few_days = [_obs("a/b", 800, 1), _obs("a/b", 2000, 6)]  # 2 days
-    assert has_sustained_momentum(too_few_days) is False
+    assert has_sustained_momentum(too_few_days, NOW) is False
 
     flat = [_obs("a/b", 800, 1), _obs("a/b", 802, 4), _obs("a/b", 804, 6)]
-    assert has_sustained_momentum(flat) is False  # <30/day and <25% growth
+    assert has_sustained_momentum(flat, NOW) is False  # <30/day and <25% growth
 
 
 def test_momentum_must_be_onprem_lane_evidence():
@@ -64,7 +94,7 @@ def test_momentum_must_be_onprem_lane_evidence():
         _obs("x/y", 1200, 6, lane=Lane.ONPREM),  # flips onprem only on the latest day
     ]
     assert is_promotable_source("x/y", rows, tracked_repos=set(),
-                                existing_ids=set(), existing_projects=set()) is False
+                                existing_ids=set(), existing_projects=set(), now=NOW) is False
 
 
 # ── classifier ──────────────────────────────────────────────────────────────
@@ -93,32 +123,32 @@ def _sustained(repo: str, license: str | None = "Apache-2.0",
 def test_is_promotable_happy_path():
     assert is_promotable_source(
         "acme/rocket", _sustained("acme/rocket"),
-        tracked_repos=set(), existing_ids=set(), existing_projects=set(),
+        tracked_repos=set(), existing_ids=set(), existing_projects=set(), now=NOW,
     ) is True
 
 
 def test_is_promotable_rejects_broader_lane():
     assert is_promotable_source(
         "acme/rocket", _sustained("acme/rocket", lane=Lane.BROADER),
-        tracked_repos=set(), existing_ids=set(), existing_projects=set(),
+        tracked_repos=set(), existing_ids=set(), existing_projects=set(), now=NOW,
     ) is False
 
 
 def test_is_promotable_rejects_bad_license():
     assert is_promotable_source(
         "acme/rocket", _sustained("acme/rocket", license=None),
-        tracked_repos=set(), existing_ids=set(), existing_projects=set(),
+        tracked_repos=set(), existing_ids=set(), existing_projects=set(), now=NOW,
     ) is False
     assert is_promotable_source(
         "acme/rocket", _sustained("acme/rocket", license="BUSL-1.1"),
-        tracked_repos=set(), existing_ids=set(), existing_projects=set(),
+        tracked_repos=set(), existing_ids=set(), existing_projects=set(), now=NOW,
     ) is False
 
 
 def test_is_promotable_rejects_low_stars():
     rows = [_obs("a/b", 100, 1), _obs("a/b", 150, 4), _obs("a/b", 400, 6)]  # <800 latest
     assert is_promotable_source(
-        "a/b", rows, tracked_repos=set(), existing_ids=set(), existing_projects=set(),
+        "a/b", rows, tracked_repos=set(), existing_ids=set(), existing_projects=set(), now=NOW,
     ) is False
 
 
@@ -128,29 +158,29 @@ def test_is_promotable_rejects_uncategorizable():
     rows = [r.model_copy(update={"description": "a gallery", "topics": ["cats"]})
             for r in rows]
     assert is_promotable_source(
-        "a/b", rows, tracked_repos=set(), existing_ids=set(), existing_projects=set(),
+        "a/b", rows, tracked_repos=set(), existing_ids=set(), existing_projects=set(), now=NOW,
     ) is False
 
 
 def test_is_promotable_rejects_tracked_and_dupes():
     rows = _sustained("acme/rocket")
     assert is_promotable_source("acme/rocket", rows, tracked_repos={"acme/rocket"},
-                                existing_ids=set(), existing_projects=set()) is False
+                                existing_ids=set(), existing_projects=set(), now=NOW) is False
     assert is_promotable_source("acme/rocket", rows, tracked_repos=set(),
                                 existing_ids={"github-rocket"},
-                                existing_projects=set()) is False
+                                existing_projects=set(), now=NOW) is False
 
 
 def test_is_promotable_rejects_denylisted_org():
     rows = _sustained("awesome/rocket")  # org "awesome" is in ORG_DENYLIST
     assert is_promotable_source("awesome/rocket", rows, tracked_repos=set(),
-                                existing_ids=set(), existing_projects=set()) is False
+                                existing_ids=set(), existing_projects=set(), now=NOW) is False
 
 
 def test_is_promotable_rejects_awesome_lists():
     rows = _sustained("someorg/awesome-ai-agents", topics=["ai-agents", "awesome-list"])
     assert is_promotable_source("someorg/awesome-ai-agents", rows, tracked_repos=set(),
-                                existing_ids=set(), existing_projects=set()) is False
+                                existing_ids=set(), existing_projects=set(), now=NOW) is False
 
 
 # ── builder + serializer ────────────────────────────────────────────────────

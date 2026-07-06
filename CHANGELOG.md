@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Recency/staleness pass** — Emerging rows on `/trending` now show a "Last
+  seen" date and a STALE badge once a candidate stops appearing in the daily
+  sweep (its frozen numbers are no longer misleading), and both autopilot
+  momentum gates (`models promote`, `trending promote`) now measure sustained
+  growth over the last 14 days relative to now — "rising right now", fail-closed
+  on stale data — instead of growth since the earliest-ever observation, so the
+  gates no longer saturate over time.
 - **Absolute feed URLs** — `radar export` gained `--base-url`; when set, the
   Atom (`changes.xml`) and RSS (`changes.rss`) feeds emit absolute self/link
   URLs instead of relative filenames (strict-validator-friendly). The publish

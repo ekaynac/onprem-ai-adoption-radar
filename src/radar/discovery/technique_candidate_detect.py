@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 VELOCITY_WINDOW_DAYS = 7
 NEW_WINDOW_DAYS = 14
+STALE_AFTER_DAYS = 4
 EMERGING_LIMIT = 15
 
 
@@ -33,6 +34,8 @@ class TechniqueCandidateEntry(BaseModel):
     citation_count: int | None
     is_new: bool
     first_seen: str
+    last_seen: str
+    is_stale: bool
 
 
 def _upvotes_per_day(rows: list[TechniqueCandidateObservation], now: datetime) -> float | None:
@@ -58,12 +61,15 @@ def build_technique_candidates(
         ordered = sorted(rows, key=lambda r: r.observed_at)
         latest = ordered[-1]
         first_seen = ordered[0].observed_at.date()
+        last_seen = ordered[-1].observed_at.date()
         entries.append(TechniqueCandidateEntry(
             arxiv_id=arxiv_id, name=latest.name, upvotes=latest.upvotes,
             upvotes_per_day=_upvotes_per_day(ordered, now),
             citation_count=latest.citation_count,
             is_new=first_seen >= (now - timedelta(days=NEW_WINDOW_DAYS)).date(),
             first_seen=first_seen.isoformat(),
+            last_seen=last_seen.isoformat(),
+            is_stale=last_seen < (now - timedelta(days=STALE_AFTER_DAYS)).date(),
         ))
     return sorted(entries, key=lambda e: (
         e.upvotes_per_day is None,

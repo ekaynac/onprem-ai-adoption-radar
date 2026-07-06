@@ -40,6 +40,20 @@ def test_observation_rejects_unknown_fields_and_defaults():
         )
 
 
+def test_observation_naive_observed_at_normalized_to_utc():
+    # A hand-edited/merge-mangled JSONL line can drop the UTC offset. The model
+    # must normalize it at construction so downstream comparisons (momentum_stats,
+    # build_trending, etc.) never see a naive-vs-aware TypeError.
+    obs = TrendingObservation(
+        repo="acme/rocket", lane=Lane.ONPREM, stars=1200,
+        observed_at=datetime(2026, 7, 5, 7, 0),  # naive — no tzinfo
+        repo_created_at=datetime(2026, 6, 20, tzinfo=UTC),
+        description="fast serving", topics=["llm"], license="Apache-2.0",
+    )
+    assert obs.observed_at.tzinfo is not None
+    assert obs.observed_at == datetime(2026, 7, 5, 7, 0, tzinfo=UTC)
+
+
 def test_entry_carries_derived_fields():
     entry = TrendingEntry(
         repo="acme/rocket", lane=Lane.ONPREM, stars=1200, velocity_per_day=40.0,

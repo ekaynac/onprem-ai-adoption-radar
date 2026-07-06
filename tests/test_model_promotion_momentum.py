@@ -9,6 +9,9 @@ from radar.discovery.model_proposals import ModelProposal
 from radar.storage.model_candidate_log import ModelCandidateObservation
 
 
+NOW = datetime(2026, 7, 8, tzinfo=UTC)
+
+
 def _proposal(repo: str, downloads: int) -> ModelProposal:
     name = repo.split("/")[-1]
     return ModelProposal(model_id=name, name=name, family=repo.split("/")[0], hf_repo=repo,
@@ -29,12 +32,13 @@ def test_sustained_candidate_passes_flat_popular_gated_out():
         _obs("bigco/flat", 500000, 1), _obs("bigco/flat", 501000, 4), _obs("bigco/flat", 502000, 6),
     ]  # rocket +50% (sustained); flat +0.4% (flat)
 
-    kept = promotable_candidates(proposals, observations, min_downloads=100000, seeded_repos=set())
+    kept = promotable_candidates(
+        proposals, observations, min_downloads=100000, seeded_repos=set(), now=NOW)
 
     assert [p.hf_repo for p in kept] == ["acme/rocket"]   # popular-but-flat is gated out
 
 
 def test_no_observations_gates_everything_out():
     proposals = [_proposal("acme/rocket", 200000)]
-    kept = promotable_candidates(proposals, [], min_downloads=100000, seeded_repos=set())
+    kept = promotable_candidates(proposals, [], min_downloads=100000, seeded_repos=set(), now=NOW)
     assert kept == []   # fail-closed: no momentum evidence → not promoted

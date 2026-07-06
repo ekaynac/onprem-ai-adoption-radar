@@ -354,6 +354,7 @@ def models_promote(
 ) -> None:
     """Promote high-quality proposals from data/proposed-model-seeds.yaml into config/model-seed.yaml."""
     import asyncio
+    from datetime import UTC, datetime
 
     import httpx
 
@@ -383,8 +384,10 @@ def models_promote(
         return
 
     observations = load_model_candidates(root / "data" / "model-candidate-observations.jsonl")
+    now = datetime.now(UTC)
     candidates = promotable_candidates(
-        proposals, observations, min_downloads=min_downloads, seeded_repos=seeded_repos)
+        proposals, observations, min_downloads=min_downloads,
+        seeded_repos=seeded_repos, now=now)
 
     async def _run() -> list[ModelSeed]:
         _collected: list[ModelSeed] = []
@@ -946,14 +949,16 @@ def trending_promote(
     existing_ids = {s.id for s in config.sources}
     existing_projects = {s.project for s in config.sources}
 
+    now = datetime.now(UTC)
     candidates = [
         (repo, rows) for repo, rows in by_repo.items()
         if is_promotable_source(repo, rows, tracked_repos=tracked_repos,
-                                existing_ids=existing_ids, existing_projects=existing_projects)
+                                existing_ids=existing_ids, existing_projects=existing_projects,
+                                now=now)
     ]
 
     def _velocity(rows: list[TrendingObservation]) -> float:
-        stats = momentum_stats([r for r in rows if r.lane == Lane.ONPREM])
+        stats = momentum_stats([r for r in rows if r.lane == Lane.ONPREM], now)
         return stats.avg_velocity if stats else 0.0
 
     candidates.sort(key=lambda rr: _velocity(rr[1]), reverse=True)

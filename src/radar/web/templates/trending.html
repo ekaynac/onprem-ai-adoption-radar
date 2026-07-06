@@ -66,15 +66,16 @@
       {% if model_candidates %}
       <table>
         <thead><tr><th>Model</th><th>Downloads</th><th>Downloads/day</th>
-          <th></th><th>First seen</th></tr></thead>
+          <th></th><th>First seen</th><th>Last seen</th></tr></thead>
         <tbody>
           {% for c in model_candidates %}
           <tr>
             <td><a href="https://huggingface.co/{{ c.hf_repo }}">{{ c.hf_repo }}</a></td>
             <td>{{ c.downloads }}</td>
             <td>{% if c.downloads_per_day is not none %}{{ "%+.0f"|format(c.downloads_per_day) }}{% else %}—{% endif %}</td>
-            <td>{% if c.is_new %}NEW{% endif %}</td>
+            <td>{% if c.is_stale %}STALE{% elif c.is_new %}NEW{% endif %}</td>
             <td>{{ c.first_seen }}</td>
+            <td>{{ c.last_seen }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -87,7 +88,7 @@
       {% if technique_candidates %}
       <table>
         <thead><tr><th>Paper</th><th>Upvotes</th><th>Upvotes/day</th>
-          <th>Citations</th><th></th><th>First seen</th></tr></thead>
+          <th>Citations</th><th></th><th>First seen</th><th>Last seen</th></tr></thead>
         <tbody>
           {% for c in technique_candidates %}
           <tr>
@@ -95,8 +96,9 @@
             <td>{{ c.upvotes }}</td>
             <td>{% if c.upvotes_per_day is not none %}{{ "%+.0f"|format(c.upvotes_per_day) }}{% else %}—{% endif %}</td>
             <td>{% if c.citation_count is not none %}{{ c.citation_count }}{% else %}—{% endif %}</td>
-            <td>{% if c.is_new %}NEW{% endif %}</td>
+            <td>{% if c.is_stale %}STALE{% elif c.is_new %}NEW{% endif %}</td>
             <td>{{ c.first_seen }}</td>
+            <td>{{ c.last_seen }}</td>
           </tr>
           {% endfor %}
         </tbody>

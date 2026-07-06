@@ -8,6 +8,8 @@ the broader lane is content, never catalog. Mirror of model_promotion.py.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 import yaml
 from pydantic import BaseModel, ConfigDict
 
@@ -22,6 +24,7 @@ MIN_AVG_VELOCITY = 30.0
 MIN_TOTAL_GROWTH_PCT = 25.0
 PROMOTE_MIN_STARS = 800
 MAX_TAGS = 4
+MOMENTUM_WINDOW_DAYS = 14
 
 LICENSE_ALLOWLIST: frozenset[str] = frozenset(
     {"apache-2.0", "mit", "bsd-2-clause", "bsd-3-clause", "mpl-2.0"}
@@ -67,11 +70,12 @@ class MomentumStats(BaseModel):
     growth_pct: float
 
 
-def momentum_stats(rows: list[TrendingObservation]) -> MomentumStats | None:
-    """Momentum over one repo's observation rows. None with <2 rows or zero span."""
-    if len(rows) < 2:
+def momentum_stats(rows: list[TrendingObservation], now: datetime) -> MomentumStats | None:
+    """Momentum over one repo's recent (<= MOMENTUM_WINDOW_DAYS) observation rows."""
+    recent = [r for r in rows if r.observed_at >= now - timedelta(days=MOMENTUM_WINDOW_DAYS)]
+    if len(recent) < 2:
         return None
-    ordered = sorted(rows, key=lambda r: r.observed_at)
+    ordered = sorted(recent, key=lambda r: r.observed_at)
     distinct_days = len({r.observed_at.date() for r in ordered})
     span_days = (ordered[-1].observed_at.date() - ordered[0].observed_at.date()).days
     if span_days <= 0:
@@ -84,8 +88,8 @@ def momentum_stats(rows: list[TrendingObservation]) -> MomentumStats | None:
                          avg_velocity=avg_velocity, growth_pct=growth_pct)
 
 
-def has_sustained_momentum(rows: list[TrendingObservation]) -> bool:
-    stats = momentum_stats(rows)
+def has_sustained_momentum(rows: list[TrendingObservation], now: datetime) -> bool:
+    stats = momentum_stats(rows, now)
     if stats is None:
         return False
     if stats.distinct_days < MIN_OBSERVATION_DAYS or stats.span_days < MIN_SPAN_DAYS:
@@ -113,6 +117,7 @@ def is_promotable_source(
     tracked_repos: set[str],
     existing_ids: set[str],
     existing_projects: set[str],
+    now: datetime,
 ) -> bool:
     if not rows:
         return False
@@ -134,7 +139,7 @@ def is_promotable_source(
     if any(t.lower() in TOPIC_DENYLIST for t in latest.topics):
         return False
     onprem_rows = [r for r in rows if r.lane == Lane.ONPREM]
-    if not has_sustained_momentum(onprem_rows):
+    if not has_sustained_momentum(onprem_rows, now):
         return False
     if classify_category(latest.topics, latest.description) is None:
         return False

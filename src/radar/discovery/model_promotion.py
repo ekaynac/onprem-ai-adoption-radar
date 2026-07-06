@@ -8,6 +8,7 @@ I/O lives at the call site.
 from __future__ import annotations
 
 import re
+from datetime import datetime
 
 import yaml
 
@@ -109,6 +110,7 @@ def promotable_candidates(
     *,
     min_downloads: int,
     seeded_repos: set[str],
+    now: datetime,
 ) -> list[ModelProposal]:
     """Proposals that pass the existing gate AND show sustained download momentum."""
     obs_by_repo: dict[str, list[ModelCandidateObservation]] = {}
@@ -117,7 +119,7 @@ def promotable_candidates(
     return [
         p for p in proposals
         if is_promotable(p, min_downloads=min_downloads, seeded_repos=seeded_repos)
-        and has_sustained_download_momentum(obs_by_repo.get(p.hf_repo.lower(), []))
+        and has_sustained_download_momentum(obs_by_repo.get(p.hf_repo.lower(), []), now)
     ]
 
 

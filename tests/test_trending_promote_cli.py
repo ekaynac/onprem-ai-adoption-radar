@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -31,16 +31,19 @@ quotas:
 def _sustained(repo: str, stars_end: int = 1050, lane: Lane = Lane.ONPREM,
                license: str | None = "Apache-2.0",
                topics: list[str] | None = None) -> list[TrendingObservation]:
-    days = [(1, 800), (4, 900), (6, stars_end)]
+    # Dated relative to "now" (rather than a fixed calendar date) so the rows stay
+    # inside the CLI's 14-day momentum window regardless of when the suite runs.
+    now = datetime.now(UTC)
+    days_ago = [(6, 800), (3, 900), (1, stars_end)]
     return [
         TrendingObservation(
             repo=repo, lane=lane, stars=stars,
-            observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+            observed_at=now - timedelta(days=ago),
             repo_created_at=datetime(2026, 1, 1, tzinfo=UTC),
             description="fast llm serving", topics=topics or ["llm-inference"],
             license=license,
         )
-        for day, stars in days
+        for ago, stars in days_ago
     ]
 
 

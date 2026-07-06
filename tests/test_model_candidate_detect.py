@@ -50,13 +50,13 @@ def test_is_new_flag():
 
 def test_sustained_momentum_requires_days_span_growth():
     strong = [_obs("a/b", 100, 1), _obs("a/b", 110, 4), _obs("a/b", 130, 6)]  # 3 days, span 5, +30%
-    assert has_sustained_download_momentum(strong) is True
+    assert has_sustained_download_momentum(strong, NOW) is True
 
     too_few_days = [_obs("a/b", 100, 1), _obs("a/b", 200, 6)]                 # 2 days
-    assert has_sustained_download_momentum(too_few_days) is False
+    assert has_sustained_download_momentum(too_few_days, NOW) is False
 
     flat = [_obs("a/b", 100, 1), _obs("a/b", 101, 4), _obs("a/b", 102, 6)]    # +2% < 25%
-    assert has_sustained_download_momentum(flat) is False
+    assert has_sustained_download_momentum(flat, NOW) is False
 
 
 def test_velocity_none_on_zero_span_same_day():
@@ -66,13 +66,13 @@ def test_velocity_none_on_zero_span_same_day():
 
 
 def test_momentum_false_with_single_observation():
-    assert has_sustained_download_momentum([_obs("a/b", 100, 1)]) is False
+    assert has_sustained_download_momentum([_obs("a/b", 100, 1)], NOW) is False
 
 
 def test_momentum_false_when_earliest_downloads_zero():
     # 3 days over span 5, but earliest is 0 → growth % undefined → not sustained
     rows = [_obs("a/b", 0, 1), _obs("a/b", 5000, 4), _obs("a/b", 9000, 6)]
-    assert has_sustained_download_momentum(rows) is False
+    assert has_sustained_download_momentum(rows, NOW) is False
 
 
 def test_load_emerging_excludes_seeded_and_caps(tmp_path):
@@ -93,3 +93,34 @@ def test_load_emerging_excludes_seeded_and_caps(tmp_path):
     repos = {r.hf_repo for r in rows}
     assert "tracked/model" not in repos          # seeded model dropped from Emerging
     assert len(rows) == EMERGING_LIMIT            # capped
+
+
+def test_last_seen_and_not_stale_when_recent():
+    # NOW = 2026-07-08; latest obs 2026-07-06 → 2 days → not stale
+    rows = [_obs("a/b", 100, 1), _obs("a/b", 400, 6)]
+    entry = build_model_candidates(rows, NOW)[0]
+    assert entry.last_seen == "2026-07-06"
+    assert entry.is_stale is False
+
+
+def test_is_stale_when_latest_observation_old():
+    from radar.discovery.model_candidate_detect import STALE_AFTER_DAYS
+    assert STALE_AFTER_DAYS == 4
+    # latest obs 2026-07-01, NOW 2026-07-08 → 7 days > 4 → stale
+    rows = [_obs("a/b", 100, 1), _obs("a/b", 400, 1)]  # both day 1 (velocity None); latest = 07-01
+    entry = build_model_candidates(rows, NOW)[0]
+    assert entry.last_seen == "2026-07-01"
+    assert entry.is_stale is True
+
+
+def test_momentum_windowed_out_when_no_recent_observation():
+    from radar.discovery.model_candidate_detect import has_sustained_download_momentum
+    # strong sustained growth, but ALL observations are > 14 days before NOW → windowed out
+    old = [_obs("a/b", 100000, 1), _obs("a/b", 130000, 4), _obs("a/b", 160000, 6)]
+    assert has_sustained_download_momentum(old, datetime(2026, 8, 1, tzinfo=UTC)) is False
+
+
+def test_momentum_holds_for_recent_window():
+    from radar.discovery.model_candidate_detect import has_sustained_download_momentum
+    recent = [_obs("a/b", 100000, 1), _obs("a/b", 130000, 4), _obs("a/b", 160000, 6)]
+    assert has_sustained_download_momentum(recent, NOW) is True   # NOW 07-08, obs within 14d
