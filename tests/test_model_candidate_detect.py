@@ -93,3 +93,21 @@ def test_load_emerging_excludes_seeded_and_caps(tmp_path):
     repos = {r.hf_repo for r in rows}
     assert "tracked/model" not in repos          # seeded model dropped from Emerging
     assert len(rows) == EMERGING_LIMIT            # capped
+
+
+def test_last_seen_and_not_stale_when_recent():
+    # NOW = 2026-07-08; latest obs 2026-07-06 → 2 days → not stale
+    rows = [_obs("a/b", 100, 1), _obs("a/b", 400, 6)]
+    entry = build_model_candidates(rows, NOW)[0]
+    assert entry.last_seen == "2026-07-06"
+    assert entry.is_stale is False
+
+
+def test_is_stale_when_latest_observation_old():
+    from radar.discovery.model_candidate_detect import STALE_AFTER_DAYS
+    assert STALE_AFTER_DAYS == 4
+    # latest obs 2026-07-01, NOW 2026-07-08 → 7 days > 4 → stale
+    rows = [_obs("a/b", 100, 1), _obs("a/b", 400, 1)]  # both day 1 (velocity None); latest = 07-01
+    entry = build_model_candidates(rows, NOW)[0]
+    assert entry.last_seen == "2026-07-01"
+    assert entry.is_stale is True

@@ -18,6 +18,7 @@ NEW_WINDOW_DAYS = 14
 MIN_MOMENTUM_DAYS = 3
 MIN_MOMENTUM_SPAN = 5
 MIN_GROWTH_PCT = 25.0
+STALE_AFTER_DAYS = 4
 EMERGING_LIMIT = 15
 
 
@@ -31,6 +32,8 @@ class ModelCandidateEntry(BaseModel):
     downloads_per_day: float | None
     is_new: bool
     first_seen: str
+    last_seen: str
+    is_stale: bool
 
 
 def _downloads_per_day(rows: list[ModelCandidateObservation], now: datetime) -> float | None:
@@ -56,12 +59,15 @@ def build_model_candidates(
         ordered = sorted(rows, key=lambda r: r.observed_at)
         latest = ordered[-1]
         first_seen = ordered[0].observed_at.date()
+        last_seen = ordered[-1].observed_at.date()
         entries.append(ModelCandidateEntry(
             hf_repo=repo, name=latest.name, family=latest.family,
             downloads=latest.downloads,
             downloads_per_day=_downloads_per_day(ordered, now),
             is_new=first_seen >= (now - timedelta(days=NEW_WINDOW_DAYS)).date(),
             first_seen=first_seen.isoformat(),
+            last_seen=last_seen.isoformat(),
+            is_stale=last_seen < (now - timedelta(days=STALE_AFTER_DAYS)).date(),
         ))
     return sorted(entries, key=lambda e: (
         e.downloads_per_day is None,
