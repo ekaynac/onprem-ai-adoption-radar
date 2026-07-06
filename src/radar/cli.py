@@ -965,7 +965,7 @@ def digest_generate(
     from radar.mcp_server.trending_queries import load_trending_entries
     from radar.models import NotifyConfig
     from radar.models_radar.history import load_model_events
-    from radar.notify.webhook import send_digest_notification
+    from radar.notify import webhook
     from radar.reports.digest import build_digest
     from radar.reports.digest_feeds import render_digest_atom, render_digest_rss
     from radar.research_radar.history import load_technique_events
@@ -1010,8 +1010,9 @@ def digest_generate(
 
     log_path = root / "data" / "digest-log.jsonl"
     existing_labels = {e.label for e in load_digests(log_path)}
+    label_is_new = digest.label not in existing_labels
     page_url = f"{base}/digests/{page_name}" if base else f"digests/{page_name}"
-    if digest.label not in existing_labels:
+    if label_is_new:
         append_digest(log_path, [DigestLogEntry(
             label=digest.label, generated_at=digest.generated_at,
             url=page_url, summary=digest.summary_line,
@@ -1038,12 +1039,15 @@ def digest_generate(
         async with httpx.AsyncClient(
             timeout=float(notify_config.timeout_seconds)
         ) as client:
-            return await send_digest_notification(notify_config, digest, client)
+            return await webhook.send_digest_notification(notify_config, digest, client)
 
-    try:
-        asyncio.run(_notify())
-    except Exception as exc:
-        console.print(f"[yellow]Digest webhook failed: {exc}[/yellow]")
+    # Fire the webhook only for a newly-logged week — a manual re-run of the same
+    # ISO week rewrites artifacts but must not re-ping subscribers.
+    if label_is_new:
+        try:
+            asyncio.run(_notify())
+        except Exception as exc:
+            console.print(f"[yellow]Digest webhook failed: {exc}[/yellow]")
 
     console.print(
         f"Digest {digest.label}: {out_dir.relative_to(root) / page_name} · "

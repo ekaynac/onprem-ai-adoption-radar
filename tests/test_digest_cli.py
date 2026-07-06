@@ -56,3 +56,33 @@ def test_digest_page_links_up_one_level(tmp_path):
     assert "../trending.html" in page
     assert "../static/brand/favicon.png" in page   # favicon resolves up one level
     assert 'href="index.html"' not in page  # no shallow root-relative link remains
+
+
+def test_digest_webhook_fires_once_per_week(tmp_path, monkeypatch):
+    _seed_trending(tmp_path)
+    # enable notify so the webhook path is live
+    (tmp_path / "data" / "config.yaml").write_text(
+        "sources:\n"
+        "  - id: acme-rocket\n"
+        "    type: github_repo\n"
+        "    project: acme/rocket\n"
+        "    category: coding_agents\n"
+        "    url: https://github.com/acme/rocket\n"
+        "notify:\n"
+        "  enabled: true\n"
+        "  webhook_url: https://example.test/hook\n",
+        encoding="utf-8",
+    )
+    calls = []
+
+    async def _fake_send(config, digest, client):
+        calls.append(digest.label)
+        return True
+
+    monkeypatch.setattr("radar.notify.webhook.send_digest_notification", _fake_send)
+    runner = CliRunner()
+
+    runner.invoke(app, ["digest", "generate", "--root", str(tmp_path)])
+    runner.invoke(app, ["digest", "generate", "--root", str(tmp_path)])  # same ISO week
+
+    assert len(calls) == 1   # first run pings; second run (same week) does not re-ping
