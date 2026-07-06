@@ -101,11 +101,14 @@ def _tevent(tid: str, day: int, change: str = "new") -> TechniqueHistoryEvent:
 
 
 def test_technique_section_ranks_high_momentum():
-    entries = [_tentry("hot", 5, 900), _tentry("warm", 4, 100), _tentry("cold", 2, 999)]
+    entries = [_tentry("hot", 5, 900), _tentry("warm", 4, 100),
+               _tentry("mid", 3, 500), _tentry("cold", 2, 999)]
     rows = build_technique_section(entries, [], NOW)
 
-    assert [r.id for r in rows] == ["hot", "warm"]     # momentum >= 4 only
+    # momentum 3+/5 counts as trending; the momentum-2 "cold" is excluded
+    assert [r.id for r in rows] == ["hot", "warm", "mid"]
     assert rows[0].momentum == 5 and rows[0].direction == "rising"
+    assert rows[2].id == "mid" and rows[2].direction == "rising"   # momentum 3 included
     assert rows[0].kind == "technique"
 
 
