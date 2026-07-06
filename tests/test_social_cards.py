@@ -63,3 +63,23 @@ def test_write_cards_skips_movers_when_no_changes(tmp_path):
     d = _digest().model_copy(update={"changes": []})
     names = {p.name for p in write_cards(d, tmp_path)}
     assert not any("movers" in n for n in names)
+
+
+def test_write_cards_emits_adopt_card_for_adopt_entries(tmp_path):
+    # _digest()'s change is promoted → adopt this week, so an adopt card is emitted.
+    names = {p.name for p in write_cards(_digest(), tmp_path)}
+    assert "adopt_portrait.svg" in names and "adopt_og.svg" in names
+    page = (tmp_path / "adopt_portrait.svg").read_text(encoding="utf-8")
+    assert "Reached adopt" in page and "Cline" in page
+
+
+def test_write_cards_skips_adopt_card_when_no_adopt_entries(tmp_path):
+    from radar.reports.digest import DigestChange as _DC
+
+    # a change that does NOT reach adopt (pilot ring) → no adopt card
+    non_adopt = _DC(kind="tool", name="X", change_type="promoted", ring="pilot",
+                    previous_ring="watch", observed_at=datetime(2026, 7, 7, tzinfo=UTC))
+    d = _digest().model_copy(update={"changes": [non_adopt]})
+
+    names = {p.name for p in write_cards(d, tmp_path)}
+    assert not any("adopt" in n for n in names)

@@ -23,7 +23,7 @@ _MAX_ROWS = 6
 
 def render_card(headline: str, rows: list[str], size: str) -> str:
     width, height = CARD_SIZES[size]
-    band = max(120, height // 8)
+    band = max(120, height // 8)  # brand header band height (min 120px)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}" font-family="{_FONT}">',
@@ -69,12 +69,26 @@ def _mover_rows(digest: WeeklyDigest) -> list[str]:
     return rows
 
 
+def _adopt_rows(digest: WeeklyDigest) -> list[str]:
+    """Up to 3 entries that reached the adopt ring this week (across all radars)."""
+    rows = []
+    for c in digest.changes:
+        if c.ring == "adopt" and c.change_type in {"new", "promoted"}:
+            rows.append(f"{c.name}  ({c.kind})")
+        if len(rows) >= 3:
+            break
+    return rows
+
+
 def write_cards(digest: WeeklyDigest, out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     specs = [("trending", f"Trending · {digest.label}", _trending_rows(digest))]
     if digest.changes:
         specs.append(("movers", f"Ring changes · {digest.label}", _mover_rows(digest)))
+    adopt = _adopt_rows(digest)
+    if adopt:
+        specs.append(("adopt", f"Reached adopt · {digest.label}", adopt))
     for stem, headline, rows in specs:
         for size in CARD_SIZES:
             path = out_dir / f"{stem}_{size}.svg"
