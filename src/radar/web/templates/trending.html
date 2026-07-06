@@ -36,6 +36,31 @@
       </table>
       {% endif %}
       {% endfor %}
+
+      {% for title, rows, kind in [("Trending Models", model_hub, "model"),
+                                    ("Trending Techniques", technique_hub, "technique")] %}
+      <h2>{{ title }}</h2>
+      {% if not rows %}<p>No trending {{ kind }}s this week.</p>{% endif %}
+      {% if rows %}
+      <table>
+        <thead><tr><th>{{ kind|capitalize }}</th><th>{{ "Family" if kind == "model" else "Domain" }}</th>
+          <th>{{ "Downloads" if kind == "model" else "Citations" }}</th>
+          <th>Momentum</th><th>Ring</th><th></th></tr></thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td><a href="/{{ r.kind }}/{{ r.id }}">{{ r.name }}</a></td>
+            <td>{{ r.subtitle }}</td>
+            <td>{% if r.metric is not none %}{{ r.metric }}{% else %}—{% endif %}</td>
+            <td>{% if r.growth is not none %}{{ "%+.1f"|format(r.growth) }}%{% elif r.momentum is not none %}{{ r.momentum }}/5{% else %}—{% endif %} {{ r.direction }}</td>
+            <td>{{ r.ring or "—" }}</td>
+            <td>{% if r.is_new %}NEW{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% endfor %}
     </main>
     {% include "_footer.html" %}
   </body>

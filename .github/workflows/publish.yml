@@ -79,6 +79,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f data/history.jsonl || true
           git add -f data/model-history.jsonl || true
+          git add -f data/model-metrics.jsonl || true
           git add -f data/technique-history.jsonl || true
           git add -f data/technique-metrics.jsonl || true
           git add -f data/trending-observations.jsonl || true

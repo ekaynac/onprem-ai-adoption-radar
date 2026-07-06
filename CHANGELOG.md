@@ -26,6 +26,14 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Trending hub for models & techniques** — `/trending` (dashboard + static
+  site) now shows "Trending Models" (fastest-rising by download growth) and
+  "Trending Techniques" (by citation momentum) sections, each unioned with the
+  items added/promoted this ISO week, with a top-model/technique line on the
+  index strip. Model download-velocity is made durable across CI runs by a new
+  committed `data/model-metrics.jsonl` log (mirroring the technique-metrics
+  log). Guarded reads keep a corrupt store from breaking `/trending` or the
+  daily export. (Phase 1 — untracked model/paper discovery is a future phase.)
 - **Weekly digest + social cards** — `radar digest generate` assembles the
   ISO week's top trending (both lanes), autopilot additions, and ring changes
   across all three radars into `digests/digest_<year>-W<week>.html`, with

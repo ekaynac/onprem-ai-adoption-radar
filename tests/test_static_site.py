@@ -584,3 +584,29 @@ def test_static_site_survives_bad_digest_dir(tmp_path):
                        digest_dir=bad)   # must not raise; index still renders
 
     assert (tmp_path / "_site" / "index.html").exists()
+
+
+def test_static_site_renders_hub_sections(tmp_path):
+    from radar.web.hub_sections import HubRow
+
+    model_hub = [HubRow(id="m1", name="M One", subtitle="Fam", metric=5000, growth=120.0,
+                        momentum=None, direction="rising", ring="pilot", is_new=False,
+                        kind="model")]
+    technique_hub = [HubRow(id="t1", name="T One", subtitle="reasoning", metric=900,
+                            growth=None, momentum=5, direction="rising", ring="adopt",
+                            is_new=True, kind="technique")]
+
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       model_hub=model_hub, technique_hub=technique_hub,
+                       top_model=model_hub[0], top_technique=technique_hub[0])
+    trending = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+
+    assert "Trending Models" in trending and "M One" in trending
+    assert "Trending Techniques" in trending and "T One" in trending
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "M One" in index or "T One" in index   # strip shows a top hub item
+
+
+def test_static_site_hub_backcompat(tmp_path):
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
+    assert (tmp_path / "_site" / "index.html").exists()   # no hub data → still renders

@@ -38,6 +38,7 @@ from radar.storage.run_store import RunStore
 from radar.storage.seed_store import SeedError, add_seed
 from radar.storage.source_health_store import SourceHealthStore
 from radar.web.backer_badge import backer_badge
+from radar.web.hub_sections import load_hub_sections
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
 from radar.web.research_summary import summarize_techniques
@@ -94,6 +95,10 @@ def create_app(root: Path) -> FastAPI:
         from datetime import UTC, datetime
         return load_trending_entries(root, datetime.now(UTC))
 
+    def _hub_sections():
+        from datetime import UTC, datetime
+        return load_hub_sections(root, datetime.now(UTC))
+
     def _technique_hrefs() -> dict[str, str]:
         """Map technique id -> live href, shared by project/model pedigree sections."""
         return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
@@ -128,6 +133,7 @@ def create_app(root: Path) -> FastAPI:
         db.initialize()
         cards = db.list_cards()
         meta = latest_tool_scan_meta(run_store)
+        mh, th = _hub_sections()
         return TEMPLATES.TemplateResponse(
             request,
             "index.html",
@@ -141,6 +147,8 @@ def create_app(root: Path) -> FastAPI:
                 "research_href": "/research",
                 "trending_summary": summarize_trending(_trending_entries()),
                 "trending_href": "/trending",
+                "top_model": next((r for r in mh if not r.is_new), None),
+                "top_technique": next((r for r in th if not r.is_new), None),
             },
         )
 
@@ -299,9 +307,11 @@ def create_app(root: Path) -> FastAPI:
         entries = _trending_entries()
         onprem = [e for e in entries if e.lane == Lane.ONPREM]
         broader = [e for e in entries if e.lane == Lane.BROADER]
-        return TEMPLATES.TemplateResponse(
-            request, "trending.html", {"onprem": onprem, "broader": broader}
-        )
+        model_hub, technique_hub = _hub_sections()
+        return TEMPLATES.TemplateResponse(request, "trending.html", {
+            "onprem": onprem, "broader": broader,
+            "model_hub": model_hub, "technique_hub": technique_hub,
+        })
 
     @app.get("/technique/{technique_id}", response_class=HTMLResponse)
     def technique_detail(request: Request, technique_id: str):

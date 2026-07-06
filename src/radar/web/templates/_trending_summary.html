@@ -1,8 +1,11 @@
-{# Trending strip. Context: trending_summary (TrendingSummary) | None. #}
-{% if trending_summary and trending_summary.has_trending %}
+{# Trending strip. Context: trending_summary (TrendingSummary) | None,
+   top_model/top_technique (HubRow) | None. Any one of the three can drive
+   the strip — a hub-only export (no repo trending yet) must still show. #}
+{% if (trending_summary and trending_summary.has_trending) or top_model or top_technique %}
 <div class="scan-health">
   <details>
-    <summary>📈 {{ trending_summary.one_line }}</summary>
+    <summary>📈 {% if trending_summary %}{{ trending_summary.one_line }}{% else %}Trending{% endif %}</summary>
+    {% if trending_summary and trending_summary.has_trending %}
     <ul>
       {% for e in trending_summary.onprem_top %}
       <li><a href="https://github.com/{{ e.repo }}">{{ e.repo }}</a>
@@ -10,6 +13,11 @@
           {% if e.is_new %} · NEW{% endif %}</li>
       {% endfor %}
     </ul>
+    {% endif %}
+    {% if top_model %}<p>🤖 Top model: {{ top_model.name }}
+        {% if top_model.growth is not none %}({{ "%+.1f"|format(top_model.growth) }}%){% endif %}</p>{% endif %}
+    {% if top_technique %}<p>🎓 Top technique: {{ top_technique.name }}
+        {% if top_technique.momentum is not none %}({{ top_technique.momentum }}/5){% endif %}</p>{% endif %}
     <p><a href="{{ trending_href|default('trending.html') }}">Browse trending →</a></p>
   </details>
 </div>

@@ -16,6 +16,7 @@ from radar.models_radar.history import (
 from radar.models_radar.memory import minimum_viable_quant
 from radar.models_radar.momentum import ModelMomentum, compute_model_momentum
 from radar.models_radar.scoring import model_ring, score_model
+from radar.storage.model_metrics_log import append_model_metrics
 from radar.storage.model_metrics_store import ModelMetrics, ModelMetricsStore
 
 
@@ -45,6 +46,7 @@ def persist_model_scan(
     observed_at: datetime,
     db_path: Path,
     history_path: Path,
+    metrics_log_path: Path | None = None,
 ) -> list[ModelHistoryEvent]:
     """Diff rings vs the log, append new events, record per-scan metrics."""
     previous = _latest_rings(history_path)
@@ -64,6 +66,8 @@ def persist_model_scan(
             hardware_tier=entry.hardware_tier.value,
         ))
     store.record(rows)
+    if metrics_log_path is not None:
+        append_model_metrics(metrics_log_path, rows)
     return events
 
 

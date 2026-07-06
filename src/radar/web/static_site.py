@@ -36,6 +36,7 @@ from radar.storage.digest_log import DigestLogEntry
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.backer_badge import backer_badge
+from radar.web.hub_sections import HubRow
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
 from radar.web.research_summary import summarize_techniques
@@ -75,6 +76,10 @@ def render_static_site(
     impl_hrefs: dict[str, str] | None = None,
     digest_dir: Path | None = None,
     latest_digest: DigestLogEntry | None = None,
+    model_hub: list[HubRow] | None = None,
+    technique_hub: list[HubRow] | None = None,
+    top_model: HubRow | None = None,
+    top_technique: HubRow | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -96,6 +101,11 @@ def render_static_site(
     driving the technique pages' "Implementations" links. When
     ``trending_observations`` is provided, derives trending entries and writes
     ``trending.html`` (two lanes: on-prem candidates and broader AI heat).
+    ``model_hub``/``technique_hub`` (optional) supply the "Trending Models"/
+    "Trending Techniques" sections on that same page — ``trending.html`` is
+    written whenever any of ``trending_observations``, ``model_hub``, or
+    ``technique_hub`` yields data. ``top_model``/``top_technique`` (optional)
+    drive the index-page trending strip's highlight lines.
     When ``digest_dir`` is given and exists, its tree (digest pages, cards,
     feeds) is copied into ``out_dir/digests``; ``latest_digest`` (optional)
     drives a "Latest digest" link on the index page. Both are a no-op when
@@ -160,6 +170,11 @@ def render_static_site(
         trending_entries = []
     trending_summary = summarize_trending(trending_entries) if trending_entries else None
 
+    # One slug per model/technique, shared by the trending-hub detail links so
+    # they can never disagree with the per-entity pages' own filenames.
+    model_slugs = build_slug_map([e.id for e in (model_entries or [])])
+    technique_slugs = build_slug_map([t.id for t in (technique_entries or [])])
+
     index = out_dir / "index.html"
     index.write_text(
         env.get_template("static_index.html").render(
@@ -174,6 +189,8 @@ def render_static_site(
             techniques_summary=techniques_summary,
             trending_summary=trending_summary,
             latest_digest=latest_digest,
+            top_model=top_model,
+            top_technique=top_technique,
         ),
         encoding="utf-8",
     )
@@ -214,8 +231,12 @@ def render_static_site(
             impl_hrefs=impl_hrefs,
         )
 
-    if trending_entries:
-        _write_trending_page(env, out_dir, trending_entries, stamp)
+    if trending_entries or model_hub or technique_hub:
+        _write_trending_page(
+            env, out_dir, trending_entries, stamp,
+            model_hub=model_hub or [], technique_hub=technique_hub or [],
+            model_slugs=model_slugs, technique_slugs=technique_slugs,
+        )
 
     # Publish the generated weekly digests (page + cards + feeds) alongside
     # the site. Only offered when the directory exists — back-compat for
@@ -401,13 +422,19 @@ def _write_trending_page(
     out_dir: Path,
     trending_entries: list[TrendingEntry],
     generated_at: str = "",
+    model_hub: list[HubRow] | None = None,
+    technique_hub: list[HubRow] | None = None,
+    model_slugs: dict[str, str] | None = None,
+    technique_slugs: dict[str, str] | None = None,
 ) -> None:
-    """Render trending.html (two lanes) from derived trending entries."""
+    """Render trending.html (repo lanes + Models/Techniques hub sections)."""
     onprem = [e for e in trending_entries if e.lane == Lane.ONPREM]
     broader = [e for e in trending_entries if e.lane == Lane.BROADER]
     (out_dir / "trending.html").write_text(
         env.get_template("static_trending.html").render(
-            onprem=onprem, broader=broader, generated_at=generated_at
+            onprem=onprem, broader=broader, generated_at=generated_at,
+            model_hub=model_hub or [], technique_hub=technique_hub or [],
+            model_slugs=model_slugs or {}, technique_slugs=technique_slugs or {},
         ),
         encoding="utf-8",
     )
