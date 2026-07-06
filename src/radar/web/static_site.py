@@ -221,7 +221,10 @@ def render_static_site(
     # the site. Only offered when the directory exists — back-compat for
     # exports run before any digest has been generated.
     if digest_dir and digest_dir.exists():
-        shutil.copytree(digest_dir, out_dir / "digests", dirs_exist_ok=True)
+        try:
+            shutil.copytree(digest_dir, out_dir / "digests", dirs_exist_ok=True)
+        except Exception as exc:
+            logger.warning("Could not copy digests into site: %s", exc)
 
     return index
 

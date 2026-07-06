@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ class DigestLogEntry(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     label: str
-    generated_at: datetime
+    generated_at: AwareDatetime
     url: str
     summary: str
 

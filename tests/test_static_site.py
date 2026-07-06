@@ -573,3 +573,14 @@ def test_static_site_without_digests_is_backcompat(tmp_path):
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
     assert not (tmp_path / "_site" / "digests").exists()
     assert (tmp_path / "_site" / "index.html").exists()
+
+
+def test_static_site_survives_bad_digest_dir(tmp_path):
+    # digests exists but as a FILE, not a dir — copytree would raise
+    bad = tmp_path / "digests_file"
+    bad.write_text("not a dir", encoding="utf-8")
+
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       digest_dir=bad)   # must not raise; index still renders
+
+    assert (tmp_path / "_site" / "index.html").exists()
