@@ -32,6 +32,7 @@ from radar.research_radar.reports import (
     technique_events_to_feed_json,
 )
 from radar.research_radar.timeline import build_technique_timeline
+from radar.storage.digest_log import DigestLogEntry
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.backer_badge import backer_badge
@@ -72,6 +73,8 @@ def render_static_site(
     pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
     technique_hrefs: dict[str, str] | None = None,
     impl_hrefs: dict[str, str] | None = None,
+    digest_dir: Path | None = None,
+    latest_digest: DigestLogEntry | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -93,6 +96,10 @@ def render_static_site(
     driving the technique pages' "Implementations" links. When
     ``trending_observations`` is provided, derives trending entries and writes
     ``trending.html`` (two lanes: on-prem candidates and broader AI heat).
+    When ``digest_dir`` is given and exists, its tree (digest pages, cards,
+    feeds) is copied into ``out_dir/digests``; ``latest_digest`` (optional)
+    drives a "Latest digest" link on the index page. Both are a no-op when
+    omitted — back-compat for exports without a digest log yet.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -166,6 +173,7 @@ def render_static_site(
             models_summary=models_summary,
             techniques_summary=techniques_summary,
             trending_summary=trending_summary,
+            latest_digest=latest_digest,
         ),
         encoding="utf-8",
     )
@@ -208,6 +216,15 @@ def render_static_site(
 
     if trending_entries:
         _write_trending_page(env, out_dir, trending_entries, stamp)
+
+    # Publish the generated weekly digests (page + cards + feeds) alongside
+    # the site. Only offered when the directory exists — back-compat for
+    # exports run before any digest has been generated.
+    if digest_dir and digest_dir.exists():
+        try:
+            shutil.copytree(digest_dir, out_dir / "digests", dirs_exist_ok=True)
+        except Exception as exc:
+            logger.warning("Could not copy digests into site: %s", exc)
 
     return index
 

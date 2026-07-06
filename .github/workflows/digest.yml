@@ -1,0 +1,74 @@
+name: Weekly digest
+
+on:
+  schedule:
+    - cron: "0 8 * * 1" # Mondays 08:00 UTC (offset from the autopilots)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # commit digests/ + data/digest-log.jsonl
+  actions: write  # dispatch publish.yml after commit
+
+concurrency:
+  group: digest
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install package
+        run: uv venv && uv pip install -e .
+
+      # --base-url makes the digest Atom/RSS feed URLs absolute. Derived from the
+      # repo context via env vars (mirrors publish.yml), so a fork/rename/transfer
+      # gets correct links with no edit. Assumes the default github.io Pages domain.
+      - name: Generate weekly digest
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_FULL: ${{ github.repository }}
+        run: |
+          repo_name="${REPO_FULL#*/}"
+          uv run radar digest generate --root . \
+            --base-url "https://${OWNER}.github.io/${repo_name}"
+
+      # Best-effort: an apt-mirror hiccup or rasterization failure must never
+      # block the digest commit below — the SVGs always ship regardless.
+      - name: Rasterize digest cards to PNG
+        continue-on-error: true
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          for f in digests/cards/*.svg; do rsvg-convert "$f" -o "${f%.svg}.png" || true; done
+
+      # Commit only when the digest actually produced new/changed output.
+      # `git add -A` (scoped to these two paths) stages both brand-new digest
+      # pages/cards and appended log lines, so `git diff --cached` catches
+      # first-run untracked files too, not just modifications.
+      - name: Commit digest artifacts (if changed)
+        id: commit
+        run: |
+          git add -A -- digests/ data/digest-log.jsonl
+          if git diff --cached --quiet; then
+            echo "No digest changes this week — nothing to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "radar-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(digest): weekly digest $(date -u +%F)"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch publish to refresh live site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml --ref main

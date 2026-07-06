@@ -12,6 +12,7 @@ from typing import Any
 
 from radar.models import NotifyConfig
 from radar.pipeline.delta import CardDelta, ChangeType
+from radar.reports.digest import WeeklyDigest
 
 
 logger = logging.getLogger(__name__)
@@ -79,4 +80,34 @@ async def send_notification(
         return True
     except Exception as exc:
         logger.warning("Webhook notification failed: %s", exc)
+        return False
+
+
+def build_digest_payload(digest: WeeklyDigest) -> dict[str, Any]:
+    """Structured generic JSON payload for a weekly digest."""
+    return {
+        "label": digest.label,
+        "summary": digest.summary_line,
+        "onprem_candidates": [e.repo for e in digest.trending_onprem],
+        "auto_added": [a.repo for a in digest.auto_added],
+        "ring_changes": len(digest.changes),
+    }
+
+
+async def send_digest_notification(
+    config: NotifyConfig, digest: WeeklyDigest, client: Any
+) -> bool:
+    """POST the digest summary if enabled. Never raises (fire-and-forget)."""
+    if not config.enabled or not config.webhook_url:
+        return False
+    body: dict[str, Any] = (
+        {"text": digest.summary_line} if config.format == "slack"
+        else build_digest_payload(digest)
+    )
+    try:
+        response = await client.post(config.webhook_url, json=body)
+        response.raise_for_status()
+        return True
+    except Exception as exc:
+        logger.warning("Digest webhook failed: %s", exc)
         return False

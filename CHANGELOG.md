@@ -26,6 +26,14 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Weekly digest + social cards** — `radar digest generate` assembles the
+  ISO week's top trending (both lanes), autopilot additions, and ring changes
+  across all three radars into `digests/digest_<year>-W<week>.html`, with
+  Atom (`digest.xml`) + RSS (`digest-rss.xml`) newsletter feeds built from a
+  committed `data/digest-log.jsonl`, a fire-and-forget webhook ping, and
+  deterministic Mega-branded SVG cards (Instagram-portrait + OG) rasterized
+  to PNG via `rsvg-convert` in a weekly `digest.yml` workflow. Separate from
+  the daily publish, so a digest failure never stales the site.
 - **Trending surfaces** — a `/trending` page (dashboard + static site) shows
   the two-lane GitHub trending signal (on-prem radar candidates + elsewhere in
   AI) with star velocity, NEW-repo badges, and first-seen dates; the index
