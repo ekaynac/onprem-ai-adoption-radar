@@ -34,6 +34,10 @@ All notable changes to this project are documented here. The format follows
   deterministic Mega-branded SVG cards (Instagram-portrait + OG) rasterized
   to PNG via `rsvg-convert` in a weekly `digest.yml` workflow. Separate from
   the daily publish, so a digest failure never stales the site.
+- **Adopt-ring social card** — the weekly digest now emits a third Mega-branded
+  card for repos/models/techniques that reached the **adopt** ring during the
+  week (completing spec §4's card set); the digest webhook fires once per ISO
+  week (a manual re-run no longer re-pings subscribers).
 - **Trending surfaces** — a `/trending` page (dashboard + static site) shows
   the two-lane GitHub trending signal (on-prem radar candidates + elsewhere in
   AI) with star velocity, NEW-repo badges, and first-seen dates; the index
