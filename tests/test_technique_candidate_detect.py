@@ -81,3 +81,19 @@ def test_load_emerging_excludes_tracked_and_caps(tmp_path):
     ids = {r.arxiv_id for r in rows}
     assert "2501.tracked" not in ids      # tracked paper excluded
     assert len(rows) == EMERGING_LIMIT     # capped
+
+
+def test_last_seen_and_not_stale_when_recent():
+    rows = [_obs("2501.x", 10, 1), _obs("2501.x", 90, 6)]   # latest 07-06, NOW 07-08 → not stale
+    entry = build_technique_candidates(rows, NOW)[0]
+    assert entry.last_seen == "2026-07-06"
+    assert entry.is_stale is False
+
+
+def test_is_stale_when_latest_observation_old():
+    from radar.discovery.technique_candidate_detect import STALE_AFTER_DAYS
+    assert STALE_AFTER_DAYS == 4
+    rows = [_obs("2501.x", 10, 1), _obs("2501.x", 90, 1)]   # latest 07-01, NOW 07-08 → stale
+    entry = build_technique_candidates(rows, NOW)[0]
+    assert entry.last_seen == "2026-07-01"
+    assert entry.is_stale is True
