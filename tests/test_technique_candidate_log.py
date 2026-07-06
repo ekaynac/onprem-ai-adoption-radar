@@ -48,6 +48,12 @@ def test_non_utf8_skipped(tmp_path: Path):
     assert len(load_technique_candidates(path)) == 1
 
 
+def test_store_as_directory_returns_empty(tmp_path: Path):
+    d = tmp_path / "technique-candidate-observations.jsonl"
+    d.mkdir()
+    assert load_technique_candidates(d) == []   # OSError guarded → []
+
+
 def test_naive_observed_at_normalized_to_utc(tmp_path: Path):
     path = tmp_path / "technique-candidate-observations.jsonl"
     path.write_text('{"arxiv_id":"2501.1","name":"P","upvotes":5,"citation_count":1,'

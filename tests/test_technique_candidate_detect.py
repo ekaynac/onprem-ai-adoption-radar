@@ -49,6 +49,19 @@ def test_is_new_flag():
     assert entry.is_new is True
 
 
+def test_load_emerging_guarded_empty_on_corrupt_seed(tmp_path):
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "technique-seed.yaml").write_text("techniques: [{ broken", encoding="utf-8")
+    append_technique_candidates(tmp_path / "data" / "technique-candidate-observations.jsonl",
+                                [_obs("2501.x", 50, 4), _obs("2501.x", 90, 6)])
+    assert load_emerging_techniques(tmp_path, NOW) == []   # corrupt seed → guarded [] not raise
+
+
+def test_velocity_none_on_zero_span_same_day():
+    rows = [_obs("2501.x", 10, 4), _obs("2501.x", 90, 4)]   # same day → zero span
+    assert build_technique_candidates(rows, NOW)[0].upvotes_per_day is None
+
+
 def test_load_emerging_excludes_tracked_and_caps(tmp_path):
     from radar.discovery.technique_candidate_detect import EMERGING_LIMIT
 
