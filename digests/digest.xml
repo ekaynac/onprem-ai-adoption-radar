@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>On-Prem AI Adoption Radar — Weekly Digest</title>
+  <link rel="self" href="https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest.xml"/>
+  <id>https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest.xml</id>
+  <updated>2026-07-06T11:58:51.289655+00:00</updated>
+  <entry>
+    <title>Week 2026-W28: 0 source(s) added · 5 ring change(s) · 5 on-prem candidate(s)</title>
+    <link href="https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest_2026-W28.html"/>
+    <id>urn:radar:digest:2026-W28</id>
+    <updated>2026-07-06T11:58:51.289655+00:00</updated>
+    <summary>Week 2026-W28: 0 source(s) added · 5 ring change(s) · 5 on-prem candidate(s)</summary>
+  </entry>
+</feed>

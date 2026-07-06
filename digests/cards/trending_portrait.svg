@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" font-family="'Hanken Grotesk', Arial, Helvetica, sans-serif">
+<rect width="1080" height="1350" fill="#ffffff"/>
+<rect width="1080" height="168" fill="#009FDA"/>
+<text x="48" y="128" font-size="56" font-weight="700" fill="#ffffff">MEGA</text>
+<text x="48" y="258" font-size="52" font-weight="700" fill="#111111">Trending · 2026-W28</text>
+<text x="48" y="348" font-size="40" fill="#222222">oomol-lab/open-connector  +200★/day</text>
+<text x="48" y="412" font-size="40" fill="#222222">katanemo/plano  +44★/day</text>
+<text x="48" y="476" font-size="40" fill="#222222">amplifthq/opentag  +23★/day</text>
+<text x="48" y="1302" font-size="32" fill="#009FDA">on-prem AI adoption radar</text>
+</svg>
