@@ -718,3 +718,28 @@ def test_export_survives_corrupt_research_run(tmp_path):
     assert result.exit_code == 0
     assert (tmp_path / "_site" / "index.html").exists()
     assert not (tmp_path / "_site" / "techniques.html").exists()
+
+
+def test_export_includes_trending_page(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+    from radar.storage.trending_observations_log import append_observations
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [
+        TrendingObservation(
+            repo="acme/rocket", lane=Lane.ONPREM, stars=stars,
+            observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+            repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+            description="d", topics=["llm"], license="MIT")
+        for day, stars in ((1, 100), (4, 400))
+    ])
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0
+    assert (tmp_path / "_site" / "trending.html").exists()
+    assert "acme/rocket" in (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Trending · Repos</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
+  </head>
+  <body>
+    {% set page_title = "Trending Repos" %}
+    {% set tagline = "Fast-rising and newly-created AI repos across GitHub — the radar's own signal." %}
+    {% set nav = {"Radar": "index.html", "Models": "models.html", "Research": "techniques.html"} %}
+    {% include "_hero.html" %}
+    <main class="container">
+      {% if not onprem and not broader %}<p>No trending observations yet.</p>{% endif %}
+      {% for section, rows in [("On-prem radar candidates", onprem),
+                                ("Elsewhere in AI", broader)] %}
+      {% if rows %}
+      <h2>{{ section }}</h2>
+      <table>
+        <thead><tr><th>Repo</th><th>Stars</th><th>Velocity/day</th><th></th>
+                   <th>First seen</th><th>Description</th></tr></thead>
+        <tbody>
+          {% for e in rows %}
+          <tr>
+            <td><a href="https://github.com/{{ e.repo }}">{{ e.repo }}</a></td>
+            <td>{{ e.stars }}</td>
+            <td>{% if e.velocity_per_day is not none %}{{ e.velocity_per_day }}{% else %}—{% endif %}</td>
+            <td>{% if e.is_new %}NEW{% endif %}</td>
+            <td>{{ e.first_seen }}</td>
+            <td>{{ e.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% endfor %}
+    </main>
+    {% include "_footer.html" %}
+  </body>
+</html>
