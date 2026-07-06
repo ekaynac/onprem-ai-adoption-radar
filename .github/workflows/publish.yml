@@ -46,6 +46,7 @@ jobs:
           uv run radar models scan --root .
           uv run radar models candidates scan --root .
           uv run radar research scan --root .
+          uv run radar research candidates scan --root .
           uv run radar trending scan --root .
 
       # Quality gate: fail the run if scoring collapsed (rings stopped
@@ -82,6 +83,7 @@ jobs:
           git add -f data/model-history.jsonl || true
           git add -f data/model-metrics.jsonl || true
           git add -f data/model-candidate-observations.jsonl || true
+          git add -f data/technique-candidate-observations.jsonl || true
           git add -f data/technique-history.jsonl || true
           git add -f data/technique-metrics.jsonl || true
           git add -f data/trending-observations.jsonl || true

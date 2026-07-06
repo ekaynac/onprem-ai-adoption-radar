@@ -744,6 +744,41 @@ def research_discover(
     )
 
 
+research_candidates_app = typer.Typer(help="Untracked paper-candidate discovery.", no_args_is_help=True)
+research_app.add_typer(research_candidates_app, name="candidates")
+
+
+@research_candidates_app.command("scan")
+def research_candidates_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+    """Sweep untracked HF/arXiv paper candidates and append to the observation log."""
+    import asyncio
+    import os
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from radar.discovery.technique_candidate_sweep import sweep_technique_candidates
+    from radar.research_radar.seed import load_technique_seed
+    from radar.storage.technique_candidate_log import append_technique_candidates
+
+    seed_path = root / "config" / "technique-seed.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "technique-seed.yaml"
+    seeds = load_technique_seed(seed_path)
+    now = datetime.now(UTC)
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await sweep_technique_candidates(
+                seeds, client, now, contact_email=os.environ.get("RADAR_CONTACT_EMAIL"))
+
+    observations = asyncio.run(_run())
+    out_path = root / "data" / "technique-candidate-observations.jsonl"
+    append_technique_candidates(out_path, observations)
+    console.print(f"Observed {len(observations)} untracked paper candidate(s) "
+                  f"→ {out_path.relative_to(root)}")
+
+
 @research_app.command("track-record")
 def research_track_record(
     root: Path = typer.Option(Path("."), help="Project root."),
