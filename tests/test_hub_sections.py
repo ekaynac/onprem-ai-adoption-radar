@@ -48,6 +48,16 @@ def test_model_section_ranks_rising_by_growth():
     assert rows[0].kind == "model"
 
 
+def test_model_section_sorts_metrics_oldest_first():
+    entries = [_mentry("fast", 100)]
+    # rows deliberately newest-first — must still compute +200% rising, not falling
+    metrics = [_mm("fast", 300, 6), _mm("fast", 100, 1)]
+    rows = build_model_section(entries, metrics, [], NOW)
+
+    assert [r.id for r in rows] == ["fast"]
+    assert rows[0].growth == 200.0 and rows[0].direction == "rising"
+
+
 def test_model_section_unions_new_this_week():
     entries = [_mentry("newbie", 50)]
     events = [_mevent("newbie", 7, "new")]              # in week 28
@@ -93,3 +103,20 @@ def test_technique_section_unions_new_this_week():
     rows = build_technique_section(entries, [_tevent("fresh", 7, "promoted")], NOW)
 
     assert [r.id for r in rows] == ["fresh"] and rows[0].is_new is True
+
+
+def test_load_hub_sections_empty_root_returns_empty(tmp_path):
+    from radar.web.hub_sections import load_hub_sections
+    # no runs / no data files → both sections empty, no raise
+    assert load_hub_sections(tmp_path, NOW) == ([], [])
+
+
+def test_load_hub_sections_swallows_errors(tmp_path, monkeypatch):
+    from radar.web import hub_sections
+
+    def _boom(*a, **k):
+        raise RuntimeError("store exploded")
+
+    # a raise inside the build must degrade to ([], []), never propagate
+    monkeypatch.setattr(hub_sections, "build_model_section", _boom)
+    assert hub_sections.load_hub_sections(tmp_path, NOW) == ([], [])

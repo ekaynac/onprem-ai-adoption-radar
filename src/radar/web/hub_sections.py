@@ -76,7 +76,11 @@ def build_model_section(
         )
 
     scored = [
-        (e, compute_model_momentum(e.id, metrics_by_id.get(e.id, []), events_by_id.get(e.id, [])))
+        (e, compute_model_momentum(
+            e.id,
+            sorted(metrics_by_id.get(e.id, []), key=lambda m: m.observed_at),
+            events_by_id.get(e.id, []),
+        ))
         for e in entries
     ]
     rising = sorted(
@@ -85,7 +89,9 @@ def build_model_section(
     )[:top_n]
     rows = [_row(e, m, e.id in new_ids) for e, m in rising]
     seen = {e.id for e, _ in rising}
-    rows += [_row(e, m, True) for e, m in scored if e.id in new_ids and e.id not in seen]
+    new_rows = [_row(e, m, True) for e, m in scored if e.id in new_ids and e.id not in seen]
+    new_rows.sort(key=lambda r: r.name)
+    rows += new_rows
     return rows
 
 
@@ -117,19 +123,21 @@ def build_technique_section(
     )[:top_n]
     rows = [_row(e, e.id in new_ids) for e in rising]
     seen = {e.id for e in rising}
-    rows += [_row(e, True) for e in entries if e.id in new_ids and e.id not in seen]
+    new_rows = [_row(e, True) for e in entries if e.id in new_ids and e.id not in seen]
+    new_rows.sort(key=lambda r: r.name)
+    rows += new_rows
     return rows
 
 
 def load_hub_sections(root: Path, now: datetime) -> tuple[list[HubRow], list[HubRow]]:
     """Guarded gateway: build both sections from committed stores; ([], []) on any failure."""
-    from radar.mcp_server.model_queries import _latest_model_cards
-    from radar.mcp_server.technique_queries import load_technique_entries
-    from radar.models_radar.history import load_model_events
-    from radar.research_radar.history import load_technique_events
-    from radar.storage.model_metrics_log import load_model_metrics
-
     try:
+        from radar.mcp_server.model_queries import _latest_model_cards
+        from radar.mcp_server.technique_queries import load_technique_entries
+        from radar.models_radar.history import load_model_events
+        from radar.research_radar.history import load_technique_events
+        from radar.storage.model_metrics_log import load_model_metrics
+
         root = Path(root)
         model_entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
         model_rows = build_model_section(
