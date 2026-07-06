@@ -20,6 +20,7 @@ MIN_MOMENTUM_SPAN = 5
 MIN_GROWTH_PCT = 25.0
 STALE_AFTER_DAYS = 4
 EMERGING_LIMIT = 15
+MOMENTUM_WINDOW_DAYS = 14
 
 
 class ModelCandidateEntry(BaseModel):
@@ -76,10 +77,14 @@ def build_model_candidates(
     ))
 
 
-def has_sustained_download_momentum(observations: list[ModelCandidateObservation]) -> bool:
-    if len(observations) < 2:
+def has_sustained_download_momentum(
+    observations: list[ModelCandidateObservation], now: datetime
+) -> bool:
+    recent = [o for o in observations
+              if o.observed_at >= now - timedelta(days=MOMENTUM_WINDOW_DAYS)]
+    if len(recent) < 2:
         return False
-    ordered = sorted(observations, key=lambda r: r.observed_at)
+    ordered = sorted(recent, key=lambda r: r.observed_at)
     distinct_days = len({r.observed_at.date() for r in ordered})
     span = (ordered[-1].observed_at.date() - ordered[0].observed_at.date()).days
     if distinct_days < MIN_MOMENTUM_DAYS or span < MIN_MOMENTUM_SPAN:

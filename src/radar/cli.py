@@ -354,6 +354,7 @@ def models_promote(
 ) -> None:
     """Promote high-quality proposals from data/proposed-model-seeds.yaml into config/model-seed.yaml."""
     import asyncio
+    from datetime import UTC, datetime
 
     import httpx
 
@@ -383,8 +384,10 @@ def models_promote(
         return
 
     observations = load_model_candidates(root / "data" / "model-candidate-observations.jsonl")
+    now = datetime.now(UTC)
     candidates = promotable_candidates(
-        proposals, observations, min_downloads=min_downloads, seeded_repos=seeded_repos)
+        proposals, observations, min_downloads=min_downloads,
+        seeded_repos=seeded_repos, now=now)
 
     async def _run() -> list[ModelSeed]:
         _collected: list[ModelSeed] = []
