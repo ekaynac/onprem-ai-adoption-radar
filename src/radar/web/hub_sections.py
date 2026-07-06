@@ -25,6 +25,7 @@ from radar.storage.model_metrics_store import ModelMetrics
 logger = logging.getLogger(__name__)
 
 RISING_MOMENTUM = 4
+MODEL_METRICS_WINDOW = 14  # most-recent daily observations feeding growth (a trending window, not all-time)
 _NEW_CHANGES = {"new", "promoted"}
 
 
@@ -78,14 +79,14 @@ def build_model_section(
     scored = [
         (e, compute_model_momentum(
             e.id,
-            sorted(metrics_by_id.get(e.id, []), key=lambda m: m.observed_at),
+            sorted(metrics_by_id.get(e.id, []), key=lambda m: m.observed_at)[-MODEL_METRICS_WINDOW:],
             events_by_id.get(e.id, []),
         ))
         for e in entries
     ]
     rising = sorted(
         (em for em in scored if em[1].direction == "rising"),
-        key=lambda em: -(em[1].downloads_growth_pct or 0.0),
+        key=lambda em: (-(em[1].downloads_growth_pct or 0.0), em[0].name),
     )[:top_n]
     rows = [_row(e, m, e.id in new_ids) for e, m in rising]
     seen = {e.id for e, _ in rising}
@@ -130,28 +131,43 @@ def build_technique_section(
 
 
 def load_hub_sections(root: Path, now: datetime) -> tuple[list[HubRow], list[HubRow]]:
-    """Guarded gateway: build both sections from committed stores; ([], []) on any failure."""
+    """Guarded gateway: each section is built and degraded independently.
+
+    A failure isolated to one store (e.g. a corrupt technique log) must never
+    wipe out the other, healthy section — so each half gets its own try/except.
+    """
+    root = Path(root)
+    return _safe_model_section(root, now), _safe_technique_section(root, now)
+
+
+def _safe_model_section(root: Path, now: datetime) -> list[HubRow]:
     try:
         from radar.mcp_server.model_queries import _latest_model_cards
-        from radar.mcp_server.technique_queries import load_technique_entries
         from radar.models_radar.history import load_model_events
-        from radar.research_radar.history import load_technique_events
         from radar.storage.model_metrics_log import load_model_metrics
 
-        root = Path(root)
-        model_entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
-        model_rows = build_model_section(
-            model_entries,
+        entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
+        return build_model_section(
+            entries,
             load_model_metrics(root / "data" / "model-metrics.jsonl"),
             load_model_events(root / "data" / "model-history.jsonl"),
             now,
         )
-        technique_rows = build_technique_section(
+    except Exception as exc:
+        logger.warning("Trending-hub model section unavailable under %s: %s", root, exc)
+        return []
+
+
+def _safe_technique_section(root: Path, now: datetime) -> list[HubRow]:
+    try:
+        from radar.mcp_server.technique_queries import load_technique_entries
+        from radar.research_radar.history import load_technique_events
+
+        return build_technique_section(
             load_technique_entries(root),
             load_technique_events(root / "data" / "technique-history.jsonl"),
             now,
         )
-        return model_rows, technique_rows
     except Exception as exc:
-        logger.warning("Trending-hub sections unavailable under %s: %s", root, exc)
-        return [], []
+        logger.warning("Trending-hub technique section unavailable under %s: %s", root, exc)
+        return []

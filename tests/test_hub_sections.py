@@ -58,6 +58,17 @@ def test_model_section_sorts_metrics_oldest_first():
     assert rows[0].growth == 200.0 and rows[0].direction == "rising"
 
 
+def test_model_section_growth_bounded_to_recent_window():
+    from radar.web.hub_sections import MODEL_METRICS_WINDOW
+    entries = [_mentry("stale", 100)]
+    # one ancient low point, then MODEL_METRICS_WINDOW flat-high points →
+    # all-time growth is huge, but the recent window is flat → steady, not rising.
+    metrics = [_mm("stale", 100, 1)] + [_mm("stale", 1000, 2) for _ in range(MODEL_METRICS_WINDOW)]
+    rows = build_model_section(entries, metrics, [], NOW)
+
+    assert rows == []   # bounded window sees no recent growth → not in the section
+
+
 def test_model_section_unions_new_this_week():
     entries = [_mentry("newbie", 50)]
     events = [_mevent("newbie", 7, "new")]              # in week 28
@@ -120,3 +131,13 @@ def test_load_hub_sections_swallows_errors(tmp_path, monkeypatch):
     # a raise inside the build must degrade to ([], []), never propagate
     monkeypatch.setattr(hub_sections, "build_model_section", _boom)
     assert hub_sections.load_hub_sections(tmp_path, NOW) == ([], [])
+
+
+def test_load_hub_sections_model_failure_isolated(tmp_path, monkeypatch):
+    from radar.web import hub_sections
+
+    # a raise isolated to the model section must not empty the healthy technique section
+    monkeypatch.setattr(hub_sections, "build_model_section",
+                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    model_rows, technique_rows = hub_sections.load_hub_sections(tmp_path, NOW)
+    assert model_rows == [] and technique_rows == []   # model failure caught, technique unaffected
