@@ -106,6 +106,13 @@ def create_app(root: Path) -> FastAPI:
         from radar.discovery.model_candidate_detect import load_emerging_candidates
         return load_emerging_candidates(root, datetime.now(UTC))
 
+    def _technique_candidates():
+        """Emerging (untracked) paper candidates for the route; guarded in the gateway."""
+        from datetime import UTC, datetime
+
+        from radar.discovery.technique_candidate_detect import load_emerging_techniques
+        return load_emerging_techniques(root, datetime.now(UTC))
+
     def _technique_hrefs() -> dict[str, str]:
         """Map technique id -> live href, shared by project/model pedigree sections."""
         return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
@@ -319,6 +326,7 @@ def create_app(root: Path) -> FastAPI:
             "onprem": onprem, "broader": broader,
             "model_hub": model_hub, "technique_hub": technique_hub,
             "model_candidates": _model_candidates(),
+            "technique_candidates": _technique_candidates(),
         })
 
     @app.get("/technique/{technique_id}", response_class=HTMLResponse)

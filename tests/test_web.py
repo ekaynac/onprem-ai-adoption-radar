@@ -1094,3 +1094,40 @@ def test_trending_emerging_empty_survives(tmp_path):
 
     assert r.status_code == 200
     assert "Emerging" in r.text   # header present even when empty
+
+
+def _seed_paper_candidates(root: Path) -> None:
+    from datetime import UTC, datetime
+
+    from radar.storage.technique_candidate_log import (
+        TechniqueCandidateObservation,
+        append_technique_candidates,
+    )
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    append_technique_candidates(root / "data" / "technique-candidate-observations.jsonl", [
+        TechniqueCandidateObservation(arxiv_id="2501.9999", name="Hot Paper", upvotes=u,
+                                      citation_count=3, published="2026-06-20",
+                                      suggested_domain="reasoning", suggested_category="inference",
+                                      observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC))
+        for day, u in ((1, 10), (4, 130))
+    ])
+
+
+def test_trending_shows_emerging_papers(tmp_path):
+    _seed_paper_candidates(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200
+    assert "Hot Paper" in r.text
+    assert 'href="https://arxiv.org/abs/2501.9999"' in r.text
+
+
+def test_trending_emerging_papers_empty_survives(tmp_path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200   # no store → empty sub-section, page still renders
