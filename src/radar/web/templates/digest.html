@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Weekly Digest — {{ digest.label }}</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
+  </head>
+  <body>
+    {% set page_title = "Weekly Digest — " ~ digest.label %}
+    {% set tagline = digest.summary_line %}
+    {% set nav = {"Radar": "index.html", "Trending": "trending.html"} %}
+    {% include "_hero.html" %}
+    <main class="container">
+      {% for section, rows in [("On-prem radar candidates", digest.trending_onprem),
+                                ("Elsewhere in AI", digest.trending_broader)] %}
+      {% if rows %}
+      <h2>{{ section }}</h2>
+      <table>
+        <thead><tr><th>Repo</th><th>Stars</th><th>Velocity/day</th></tr></thead>
+        <tbody>
+          {% for e in rows %}
+          <tr>
+            <td><a href="https://github.com/{{ e.repo }}">{{ e.repo }}</a></td>
+            <td>{{ e.stars }}</td>
+            <td>{% if e.velocity_per_day is not none %}{{ e.velocity_per_day }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% endfor %}
+
+      <h2>Auto-added this week</h2>
+      {% if digest.auto_added %}
+      <ul>
+        {% for a in digest.auto_added %}
+        <li>{{ a.repo }} — {{ a.category }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>No new sources auto-added this week.</p>
+      {% endif %}
+
+      <h2>Ring changes this week</h2>
+      {% if digest.changes %}
+      <ul>
+        {% for c in digest.changes %}
+        <li>{{ c.kind }}: {{ c.name }} {% if c.previous_ring %}{{ c.previous_ring }} → {% endif %}{{ c.ring }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>No ring changes this week.</p>
+      {% endif %}
+    </main>
+    {% include "_footer.html" %}
+  </body>
+</html>
