@@ -65,6 +65,20 @@ def test_write_cards_skips_movers_when_no_changes(tmp_path):
     assert not any("movers" in n for n in names)
 
 
+def test_adopt_card_caps_rows_at_three(tmp_path):
+    changes = [
+        DigestChange(kind="tool", name=f"P{i}", change_type="promoted", ring="adopt",
+                     previous_ring="pilot", observed_at=datetime(2026, 7, 7, tzinfo=UTC))
+        for i in range(4)
+    ]
+    d = _digest().model_copy(update={"changes": changes})
+    write_cards(d, tmp_path)
+
+    svg = (tmp_path / "adopt_portrait.svg").read_text(encoding="utf-8")
+    assert "P0" in svg and "P1" in svg and "P2" in svg
+    assert "P3" not in svg   # capped at 3 adopt entries
+
+
 def test_write_cards_emits_adopt_card_for_adopt_entries(tmp_path):
     # _digest()'s change is promoted → adopt this week, so an adopt card is emitted.
     names = {p.name for p in write_cards(_digest(), tmp_path)}
