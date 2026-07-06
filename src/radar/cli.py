@@ -357,11 +357,16 @@ def models_promote(
 
     import httpx
 
-    from radar.discovery.model_promotion import build_seed, is_promotable, seed_to_yaml_block
+    from radar.discovery.model_promotion import (
+        build_seed,
+        promotable_candidates,
+        seed_to_yaml_block,
+    )
     from radar.discovery.model_proposals import load_model_proposals
     from radar.models_radar.collectors.huggingface import fetch_hf_model
     from radar.models_radar.entities import ModelSeed
     from radar.models_radar.seed import ModelSeedError, load_model_seed
+    from radar.storage.model_candidate_log import load_model_candidates
 
     seed_path = root / "config" / "model-seed.yaml"
     if not seed_path.exists():
@@ -377,7 +382,9 @@ def models_promote(
         console.print(f"No proposals found at {proposals_path}.")
         return
 
-    candidates = [p for p in proposals if is_promotable(p, min_downloads=min_downloads, seeded_repos=seeded_repos)]
+    observations = load_model_candidates(root / "data" / "model-candidate-observations.jsonl")
+    candidates = promotable_candidates(
+        proposals, observations, min_downloads=min_downloads, seeded_repos=seeded_repos)
 
     async def _run() -> list[ModelSeed]:
         _collected: list[ModelSeed] = []
