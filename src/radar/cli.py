@@ -268,6 +268,7 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     persist_model_scan(
         entries, run_id, observed_at,
         root / "data" / "radar.db", root / "data" / "model-history.jsonl",
+        metrics_log_path=root / "data" / "model-metrics.jsonl",
     )
     run_store.save_stage(run_id, "model_cards", [m.model_dump(mode="json") for m in entries])
     run_store.update_meta(run_id, {"kind": "models", "model_count": len(entries)})

@@ -40,6 +40,11 @@ def test_publish_runs_trending_scan_and_commits_observations():
     assert "data/trending-observations.jsonl" in text
 
 
+def test_publish_commits_model_metrics_log():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+    assert "data/model-metrics.jsonl" in text
+
+
 def test_publish_deploy_retries_on_transient_pages_failure():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
 
