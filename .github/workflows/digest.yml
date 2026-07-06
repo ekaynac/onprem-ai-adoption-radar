@@ -1,0 +1,64 @@
+name: Weekly digest
+
+on:
+  schedule:
+    - cron: "0 8 * * 1" # Mondays 08:00 UTC (offset from the autopilots)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # commit digests/ + data/digest-log.jsonl
+  actions: write  # dispatch publish.yml after commit
+
+concurrency:
+  group: digest
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install package
+        run: uv venv && uv pip install -e .
+
+      - name: Generate weekly digest
+        run: |
+          uv run radar digest generate --root . \
+            --base-url https://ekaynac.github.io/onprem-ai-adoption-radar
+
+      - name: Rasterize digest cards to PNG
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          for f in digests/cards/*.svg; do rsvg-convert "$f" -o "${f%.svg}.png" || true; done
+
+      # Commit only when the digest actually produced new/changed output.
+      # `git add -A` (scoped to these two paths) stages both brand-new digest
+      # pages/cards and appended log lines, so `git diff --cached` catches
+      # first-run untracked files too, not just modifications.
+      - name: Commit digest artifacts (if changed)
+        id: commit
+        run: |
+          git add -A -- digests/ data/digest-log.jsonl
+          if git diff --cached --quiet; then
+            echo "No digest changes this week — nothing to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "radar-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(digest): weekly digest $(date -u +%F)"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch publish to refresh live site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml --ref main

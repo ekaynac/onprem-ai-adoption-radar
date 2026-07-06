@@ -1470,6 +1470,7 @@ def export(
     from radar.models_radar.entities import ModelEntry
     from radar.models_radar.history import load_model_events
     from radar.storage.config import ConfigError, load_config
+    from radar.storage.digest_log import load_digests
     from radar.storage.history_store import HistoryStore
     from radar.storage.metrics_store import MetricsStore
     from radar.storage.source_health_store import SourceHealthStore
@@ -1587,6 +1588,10 @@ def export(
                 elif impl.ref in model_slugs:
                     impl_hrefs[impl.ref] = f"model_{model_slugs[impl.ref]}.html"
 
+    # Weekly digests (optional): only present after `radar digest generate`.
+    digests = load_digests(root / "data" / "digest-log.jsonl")
+    latest_digest = max(digests, key=lambda d: d.generated_at) if digests else None
+
     index = render_static_site(
         cards,
         out,
@@ -1606,6 +1611,8 @@ def export(
         pedigree_by_model=pedigree_by_model or None,
         technique_hrefs=technique_hrefs or None,
         impl_hrefs=impl_hrefs or None,
+        digest_dir=root / "digests",
+        latest_digest=latest_digest,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

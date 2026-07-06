@@ -550,3 +550,26 @@ def test_export_survives_naive_datetime_observation(tmp_path):
 
     assert (tmp_path / "_site" / "index.html").exists()
     assert not (tmp_path / "_site" / "trending.html").exists()
+
+
+def test_static_site_copies_digests_and_links_latest(tmp_path):
+    from radar.storage.digest_log import DigestLogEntry
+
+    digests = tmp_path / "digests"
+    (digests / "cards").mkdir(parents=True)
+    (digests / "digest_2026-W28.html").write_text("<h1>W28</h1>", encoding="utf-8")
+    latest = DigestLogEntry(label="2026-W28", generated_at=datetime(2026, 7, 8, tzinfo=UTC),
+                            url="digests/digest_2026-W28.html", summary="Week 28")
+
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       digest_dir=digests, latest_digest=latest)
+    site = tmp_path / "_site"
+
+    assert (site / "digests" / "digest_2026-W28.html").exists()
+    assert 'href="digests/digest_2026-W28.html"' in (site / "index.html").read_text("utf-8")
+
+
+def test_static_site_without_digests_is_backcompat(tmp_path):
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
+    assert not (tmp_path / "_site" / "digests").exists()
+    assert (tmp_path / "_site" / "index.html").exists()

@@ -21,6 +21,7 @@
       {% include "_models_summary.html" %}
       {% include "_research_summary.html" %}
       {% include "_trending_summary.html" %}
+      {% if latest_digest %}<p class="scan-health"><a href="{{ latest_digest.url }}">📰 Latest digest: {{ latest_digest.label }} →</a></p>{% endif %}
       {% include "_legend.html" %}
       {% include "_filter_bar.html" %}
       <table id="radar-table">
