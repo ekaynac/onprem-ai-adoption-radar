@@ -26,6 +26,15 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Untracked paper candidate discovery** — a daily `radar research candidates
+  scan` records untracked hot arXiv/HF papers (via the existing candidate
+  fetchers) into a committed `data/technique-candidate-observations.jsonl`;
+  `/trending` shows them in an "Emerging — not yet tracked" sub-section under
+  Trending Techniques, ranked by HF-upvote velocity (citations shown as
+  secondary), linking to arxiv.org. Papers stay human-gated — no promotion
+  gate; the surface just makes emerging work visible for review. Guarded reads
+  keep a corrupt store from breaking `/trending` or the export. (Trending hub
+  Phase 2b — this completes the models + papers hub.)
 - **Untracked model candidate discovery** — a daily `radar models candidates
   scan` records untracked HF-trending models (via the existing
   `discover_trending_models`) into a committed

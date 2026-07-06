@@ -84,6 +84,28 @@
       </table>
       {% endif %}
       {% endif %}
+      {% if kind == "technique" %}
+      <h3>Emerging — not yet tracked</h3>
+      {% if not technique_candidates %}<p>No emerging papers yet.</p>{% endif %}
+      {% if technique_candidates %}
+      <table>
+        <thead><tr><th>Paper</th><th>Upvotes</th><th>Upvotes/day</th>
+          <th>Citations</th><th></th><th>First seen</th></tr></thead>
+        <tbody>
+          {% for c in technique_candidates %}
+          <tr>
+            <td><a href="https://arxiv.org/abs/{{ c.arxiv_id }}">{{ c.name }}</a></td>
+            <td>{{ c.upvotes }}</td>
+            <td>{% if c.upvotes_per_day is not none %}{{ "%+.0f"|format(c.upvotes_per_day) }}{% else %}—{% endif %}</td>
+            <td>{% if c.citation_count is not none %}{{ c.citation_count }}{% else %}—{% endif %}</td>
+            <td>{% if c.is_new %}NEW{% endif %}</td>
+            <td>{{ c.first_seen }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% endif %}
       {% endfor %}
     </main>
     {% include "_footer.html" %}

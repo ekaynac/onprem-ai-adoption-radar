@@ -629,3 +629,22 @@ def test_static_site_renders_emerging(tmp_path):
 def test_static_site_emerging_backcompat(tmp_path):
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
     assert (tmp_path / "_site" / "index.html").exists()   # no candidates → still renders
+
+
+def test_static_site_renders_emerging_papers(tmp_path):
+    from radar.discovery.technique_candidate_detect import TechniqueCandidateEntry
+
+    cands = [TechniqueCandidateEntry(arxiv_id="2501.9999", name="Hot Paper", upvotes=130,
+                                     upvotes_per_day=40.0, citation_count=3, is_new=True,
+                                     first_seen="2026-07-01")]
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       technique_candidates=cands)
+    page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+
+    assert "Hot Paper" in page
+    assert 'href="https://arxiv.org/abs/2501.9999"' in page
+
+
+def test_static_site_emerging_papers_backcompat(tmp_path):
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
+    assert (tmp_path / "_site" / "index.html").exists()   # no candidates → still renders
