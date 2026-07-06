@@ -99,6 +99,17 @@ def create_app(root: Path) -> FastAPI:
         from datetime import UTC, datetime
         return load_hub_sections(root, datetime.now(UTC))
 
+    def _model_candidates():
+        from datetime import UTC, datetime
+
+        from radar.discovery.model_candidate_detect import build_model_candidates
+        from radar.storage.model_candidate_log import load_model_candidates
+        try:
+            obs = load_model_candidates(root / "data" / "model-candidate-observations.jsonl")
+            return build_model_candidates(obs, datetime.now(UTC))
+        except Exception:
+            return []
+
     def _technique_hrefs() -> dict[str, str]:
         """Map technique id -> live href, shared by project/model pedigree sections."""
         return {t.id: f"/technique/{t.id}" for t in _technique_entries()}
@@ -311,6 +322,7 @@ def create_app(root: Path) -> FastAPI:
         return TEMPLATES.TemplateResponse(request, "trending.html", {
             "onprem": onprem, "broader": broader,
             "model_hub": model_hub, "technique_hub": technique_hub,
+            "model_candidates": _model_candidates(),
         })
 
     @app.get("/technique/{technique_id}", response_class=HTMLResponse)
