@@ -38,3 +38,14 @@ def test_publish_runs_trending_scan_and_commits_observations():
 
     assert research_idx < trending_idx < export_idx
     assert "data/trending-observations.jsonl" in text
+
+
+def test_publish_deploy_retries_on_transient_pages_failure():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+
+    # The Pages deploy is retried (>=2 attempts), with continue-on-error guarding
+    # the earlier ones, so a transient "try again later" self-heals without a
+    # manual re-run. The final attempt is unguarded (a persistent failure still
+    # fails the job).
+    assert text.count("uses: actions/deploy-pages@v5") >= 2
+    assert "continue-on-error: true" in text
