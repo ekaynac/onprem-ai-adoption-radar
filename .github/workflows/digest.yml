@@ -28,10 +28,17 @@ jobs:
       - name: Install package
         run: uv venv && uv pip install -e .
 
+      # --base-url makes the digest Atom/RSS feed URLs absolute. Derived from the
+      # repo context via env vars (mirrors publish.yml), so a fork/rename/transfer
+      # gets correct links with no edit. Assumes the default github.io Pages domain.
       - name: Generate weekly digest
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_FULL: ${{ github.repository }}
         run: |
+          repo_name="${REPO_FULL#*/}"
           uv run radar digest generate --root . \
-            --base-url https://ekaynac.github.io/onprem-ai-adoption-radar
+            --base-url "https://${OWNER}.github.io/${repo_name}"
 
       - name: Rasterize digest cards to PNG
         run: |
