@@ -533,3 +533,20 @@ def test_static_site_backcompat_without_trending(tmp_path):
 
     assert not (tmp_path / "_site" / "trending.html").exists()
     assert (tmp_path / "_site" / "index.html").exists()
+
+
+def test_export_survives_naive_datetime_observation(tmp_path):
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+
+    naive = TrendingObservation(
+        repo="acme/rocket", lane=Lane.ONPREM, stars=400,
+        observed_at=datetime(2026, 7, 4, 7, 0),        # tz-naive → would crash build_trending
+        repo_created_at=datetime(2026, 6, 1, 7, 0),
+        description="d", topics=["llm"], license="MIT",
+    )
+    # must not raise; index still renders, trending page simply omitted
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       trending_observations=[naive])
+
+    assert (tmp_path / "_site" / "index.html").exists()
+    assert not (tmp_path / "_site" / "trending.html").exists()

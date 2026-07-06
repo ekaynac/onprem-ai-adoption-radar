@@ -31,14 +31,17 @@ def load_observations(path: Path) -> list[TrendingObservation]:
     if not path.exists():
         return []
     rows: list[TrendingObservation] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line_no, raw in enumerate(handle, start=1):
-            line = raw.strip()
-            if not line:
-                continue
-            try:
-                rows.append(TrendingObservation.model_validate_json(line))
-            except ValueError as exc:
-                logger.warning("Skipping corrupt trending-observations line %d in %s: %s",
-                               line_no, path, exc)
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            for line_no, raw in enumerate(handle, start=1):
+                line = raw.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(TrendingObservation.model_validate_json(line))
+                except ValueError as exc:
+                    logger.warning("Skipping corrupt trending-observations line %d in %s: %s",
+                                   line_no, path, exc)
+    except OSError as exc:
+        logger.warning("Could not read trending-observations store %s: %s", path, exc)
     return rows

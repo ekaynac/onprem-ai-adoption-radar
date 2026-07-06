@@ -8,6 +8,7 @@ and relative cross-links, so a CI job can scan and publish a complete snapshot.
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -42,6 +43,8 @@ from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth
 from radar.web.trending_summary import summarize_trending
 
+
+logger = logging.getLogger(__name__)
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _STATIC_DIR = Path(__file__).parent / "static"
@@ -140,9 +143,14 @@ def render_static_site(
     # Summarize models for the index page banner (None when no models yet).
     models_summary = summarize_models(model_entries) if model_entries else None
     techniques_summary = summarize_techniques(technique_entries) if technique_entries else None
-    trending_entries = (
-        build_trending(trending_observations, generated_at) if trending_observations else []
-    )
+    try:
+        trending_entries = (
+            build_trending(trending_observations, generated_at)
+            if trending_observations else []
+        )
+    except Exception as exc:
+        logger.warning("Trending derivation failed during export: %s", exc)
+        trending_entries = []
     trending_summary = summarize_trending(trending_entries) if trending_entries else None
 
     index = out_dir / "index.html"
