@@ -1647,12 +1647,11 @@ def export(
 
     # Emerging models (optional): untracked Hugging Face repos with rising
     # download velocity, shown on trending.html under "Emerging — not yet
-    # tracked". Back-compat: an empty/missing observation log yields [].
-    from radar.discovery.model_candidate_detect import build_model_candidates
-    from radar.storage.model_candidate_log import load_model_candidates
+    # tracked". Guarded gateway: excludes already-seeded/promoted repos, caps
+    # the list, and degrades to [] on any failure (corrupt store, bad seed, …).
+    from radar.discovery.model_candidate_detect import load_emerging_candidates
 
-    _model_candidates = build_model_candidates(
-        load_model_candidates(root / "data" / "model-candidate-observations.jsonl"), generated_at)
+    _model_candidates = load_emerging_candidates(root, generated_at)
 
     index = render_static_site(
         cards,

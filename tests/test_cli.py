@@ -743,3 +743,29 @@ def test_export_includes_trending_page(tmp_path):
     assert result.exit_code == 0
     assert (tmp_path / "_site" / "trending.html").exists()
     assert "acme/rocket" in (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+
+
+def test_export_survives_naive_datetime_model_candidate(tmp_path):
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    # A hand-edited/merge-mangled line with no UTC offset, alongside a normal
+    # tz-aware observation for the SAME repo, must not crash the daily
+    # publish: build_model_candidates's sorted(rows, key=lambda r: r.observed_at)
+    # used to raise "can't compare offset-naive and offset-aware datetimes"
+    # once there were >=2 rows to actually compare.
+    candidates_path = tmp_path / "data" / "model-candidate-observations.jsonl"
+    candidates_path.parent.mkdir(parents=True, exist_ok=True)
+    candidates_path.write_text(
+        '{"hf_repo":"acme/naive","name":"naive","family":"acme","downloads":10,'
+        '"likes":1,"observed_at":"2026-07-06T07:00:00"}\n'
+        '{"hf_repo":"acme/naive","name":"naive","family":"acme","downloads":20,'
+        '"likes":1,"observed_at":"2026-07-07T07:00:00+00:00"}\n',
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0
+    assert (tmp_path / "_site" / "index.html").exists()

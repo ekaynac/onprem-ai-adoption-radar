@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
 from radar.storage.model_candidate_log import ModelCandidateObservation
 
 
+logger = logging.getLogger(__name__)
+
 VELOCITY_WINDOW_DAYS = 7
 NEW_WINDOW_DAYS = 14
 MIN_MOMENTUM_DAYS = 3
 MIN_MOMENTUM_SPAN = 5
 MIN_GROWTH_PCT = 25.0
+EMERGING_LIMIT = 15
 
 
 class ModelCandidateEntry(BaseModel):
@@ -78,3 +83,32 @@ def has_sustained_download_momentum(observations: list[ModelCandidateObservation
         return False
     growth_pct = (ordered[-1].downloads - earliest) / earliest * 100
     return growth_pct >= MIN_GROWTH_PCT
+
+
+def load_emerging_candidates(
+    root: Path, now: datetime, *, limit: int = EMERGING_LIMIT
+) -> list[ModelCandidateEntry]:
+    """Guarded: emerging (untracked, still not seeded) candidates, capped. [] on any failure.
+
+    A promoted model drops out of new sweep observations (the sweep excludes
+    seeded repos) but ``build_model_candidates`` still renders every repo ever
+    observed — so without this filter a promoted model would show up in both
+    "Rising in the catalog" and "Emerging" with a frozen, stale download count.
+    This is the I/O boundary for the pure builders above, mirroring
+    ``web/hub_sections.load_hub_sections``.
+    """
+    try:
+        from radar.models_radar.seed import load_model_seed
+        from radar.storage.model_candidate_log import load_model_candidates
+
+        root = Path(root)
+        seed_path = root / "config" / "model-seed.yaml"
+        seeded = {(s.hf_repo or "").lower()
+                  for s in (load_model_seed(seed_path) if seed_path.exists() else [])
+                  if s.hf_repo}
+        entries = build_model_candidates(
+            load_model_candidates(root / "data" / "model-candidate-observations.jsonl"), now)
+        return [e for e in entries if e.hf_repo.lower() not in seeded][:limit]
+    except Exception as exc:
+        logger.warning("Emerging model candidates unavailable under %s: %s", root, exc)
+        return []

@@ -14,7 +14,7 @@ from radar.storage.model_candidate_log import ModelCandidateObservation
 NOW = datetime(2026, 7, 8, 12, 0, tzinfo=UTC)
 
 
-def _obs(repo: str, downloads: int, day: int, created: int = 1) -> ModelCandidateObservation:
+def _obs(repo: str, downloads: int, day: int) -> ModelCandidateObservation:
     return ModelCandidateObservation(
         hf_repo=repo, name=repo.split("/")[-1], family=repo.split("/")[0],
         downloads=downloads, likes=1, observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
@@ -73,3 +73,23 @@ def test_momentum_false_when_earliest_downloads_zero():
     # 3 days over span 5, but earliest is 0 → growth % undefined → not sustained
     rows = [_obs("a/b", 0, 1), _obs("a/b", 5000, 4), _obs("a/b", 9000, 6)]
     assert has_sustained_download_momentum(rows) is False
+
+
+def test_load_emerging_excludes_seeded_and_caps(tmp_path):
+    from radar.discovery.model_candidate_detect import EMERGING_LIMIT, load_emerging_candidates
+    from radar.models_radar.seed import load_model_seed  # noqa: F401  (import proves module path)
+    from radar.storage.model_candidate_log import append_model_candidates
+
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "model-seed.yaml").write_text(
+        "models:\n  - id: tracked\n    name: T\n    family: T\n    hf_repo: tracked/model\n",
+        encoding="utf-8")
+    obs = [_obs("tracked/model", 5000, 4), _obs("tracked/model", 6000, 6)]  # seeded → excluded
+    for i in range(EMERGING_LIMIT + 3):
+        obs += [_obs(f"cand/m{i}", 1000 + i, 4), _obs(f"cand/m{i}", 2000 + i, 6)]
+    append_model_candidates(tmp_path / "data" / "model-candidate-observations.jsonl", obs)
+
+    rows = load_emerging_candidates(tmp_path, NOW)
+    repos = {r.hf_repo for r in rows}
+    assert "tracked/model" not in repos          # seeded model dropped from Emerging
+    assert len(rows) == EMERGING_LIMIT            # capped

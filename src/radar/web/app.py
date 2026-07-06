@@ -100,15 +100,11 @@ def create_app(root: Path) -> FastAPI:
         return load_hub_sections(root, datetime.now(UTC))
 
     def _model_candidates():
+        """Emerging (untracked, unseeded) candidates for the route; guarded in the gateway."""
         from datetime import UTC, datetime
 
-        from radar.discovery.model_candidate_detect import build_model_candidates
-        from radar.storage.model_candidate_log import load_model_candidates
-        try:
-            obs = load_model_candidates(root / "data" / "model-candidate-observations.jsonl")
-            return build_model_candidates(obs, datetime.now(UTC))
-        except Exception:
-            return []
+        from radar.discovery.model_candidate_detect import load_emerging_candidates
+        return load_emerging_candidates(root, datetime.now(UTC))
 
     def _technique_hrefs() -> dict[str, str]:
         """Map technique id -> live href, shared by project/model pedigree sections."""
