@@ -6,12 +6,7 @@ from datetime import UTC, datetime
 
 from radar.discovery.trending_entities import Lane, TrendingEntry
 from radar.models_radar.history import ModelHistoryEvent
-from radar.reports.digest import (
-    DigestChange,  # noqa: F401  -- imported for interface/documentation clarity
-    build_digest,
-    iso_week_bounds,
-    week_label,
-)
+from radar.reports.digest import build_digest, iso_week_bounds, week_label
 from radar.storage.autopilot_log import AutopilotEntry
 from radar.storage.history_log import ProjectHistoryEvent
 

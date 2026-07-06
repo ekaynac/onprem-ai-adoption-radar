@@ -40,7 +40,10 @@ jobs:
           uv run radar digest generate --root . \
             --base-url "https://${OWNER}.github.io/${repo_name}"
 
+      # Best-effort: an apt-mirror hiccup or rasterization failure must never
+      # block the digest commit below — the SVGs always ship regardless.
       - name: Rasterize digest cards to PNG
+        continue-on-error: true
         run: |
           sudo apt-get update && sudo apt-get install -y librsvg2-bin
           for f in digests/cards/*.svg; do rsvg-convert "$f" -o "${f%.svg}.png" || true; done

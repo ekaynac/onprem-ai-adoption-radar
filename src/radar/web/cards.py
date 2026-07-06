@@ -34,12 +34,17 @@ def render_card(headline: str, rows: list[str], size: str) -> str:
         f'<text x="48" y="{band + 90}" font-size="52" font-weight="700" '
         f'fill="#111111">{escape(headline)}</text>',
     ]
-    y = band + 180
-    for row in rows[:_MAX_ROWS]:
+    first_row_y = band + 180          # first row baseline, below the headline
+    row_step = 64                     # vertical gap between rows
+    tagline_y = height - 48           # tagline baseline near the bottom
+    # only render rows that fit above the tagline (small `og` cards hold fewer)
+    fit_rows = max(1, (tagline_y - 40 - first_row_y) // row_step)
+    y = first_row_y
+    for row in rows[: min(_MAX_ROWS, fit_rows)]:
         parts.append(
             f'<text x="48" y="{y}" font-size="40" fill="#222222">{escape(row)}</text>'
         )
-        y += 64
+        y += row_step
     parts.append(
         f'<text x="48" y="{height - 48}" font-size="32" '
         f'fill="{PROCESS_BLUE}">{escape(TAGLINE)}</text>'

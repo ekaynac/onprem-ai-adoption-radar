@@ -27,6 +27,15 @@ def test_render_card_both_sizes():
         assert f'width="{w}"' in svg and f'height="{h}"' in svg
 
 
+def test_render_card_clamps_rows_to_fit_small_size():
+    rows = [f"row{i}" for i in range(6)]
+    svg = render_card("H", rows, "og")   # 630px tall → fewer than 6 rows fit
+
+    # rows beyond what fits are dropped, not overlapped onto the tagline/edge
+    assert svg.count('font-size="40"') < 6
+    assert "row0" in svg               # top rows still present
+
+
 def _digest():
     entry = TrendingEntry(repo="acme/rocket", lane=Lane.ONPREM, stars=1500,
                           velocity_per_day=42.0, is_new=True, first_seen="2026-07-01",
