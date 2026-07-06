@@ -660,3 +660,17 @@ def test_static_site_marks_stale_and_shows_last_seen(tmp_path):
                        model_candidates=cands)
     page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
     assert "Last seen" in page and "2026-06-02" in page and "STALE" in page
+
+
+def test_static_site_technique_stale_wins_over_new(tmp_path):
+    from radar.discovery.technique_candidate_detect import TechniqueCandidateEntry
+
+    cands = [TechniqueCandidateEntry(arxiv_id="2501.stale", name="Quiet Paper", upvotes=9,
+                                     upvotes_per_day=None, citation_count=1, is_new=True,
+                                     first_seen="2026-06-20", last_seen="2026-06-25",
+                                     is_stale=True)]
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       technique_candidates=cands)
+    page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+    assert "STALE" in page and "2026-06-25" in page and "Quiet Paper" in page
+    assert "NEW" not in page.split("Quiet Paper")[1].split("</tr>")[0]
