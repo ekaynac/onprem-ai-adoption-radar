@@ -26,6 +26,16 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Untracked model candidate discovery** — a daily `radar models candidates
+  scan` records untracked HF-trending models (via the existing
+  `discover_trending_models`) into a committed
+  `data/model-candidate-observations.jsonl`; `/trending` shows them in an
+  "Emerging — not yet tracked" sub-section ranked by download velocity, and
+  `radar models promote` now requires **sustained download momentum** (≥3
+  observation days over ≥5 with ≥25% growth) before auto-adding a model —
+  not just a high absolute download count. Guarded reads keep a corrupt store
+  from breaking `/trending`, the export, or promotion. (Trending hub Phase 2a;
+  untracked papers are a future phase.)
 - **Trending hub for models & techniques** — `/trending` (dashboard + static
   site) now shows "Trending Models" (fastest-rising by download growth) and
   "Trending Techniques" (by citation momentum) sections, each unioned with the
