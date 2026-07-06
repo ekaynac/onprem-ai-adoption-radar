@@ -450,3 +450,68 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-06
+
+  - id: hf-minicpm5-1b
+    name: MiniCPM5-1B
+    family: MiniCPM5
+    hf_repo: openbmb/MiniCPM5-1B
+    backer: {name: "openbmb", type: community}
+    params_total: 1080632832
+    num_layers: 24
+    hidden_size: 1536
+    context_length: 131072
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-05
+
+  - id: hf-qwen3-6-27b-nvfp4
+    name: Qwen3.6-27B-NVFP4
+    family: nvidia
+    hf_repo: nvidia/Qwen3.6-27B-NVFP4
+    backer: {name: "NVIDIA", type: big_tech}
+    params_total: 18164649200
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-06
+
+  - id: hf-glm-5-2-nvfp4
+    name: GLM-5.2-NVFP4
+    family: nvidia
+    hf_repo: nvidia/GLM-5.2-NVFP4
+    backer: {name: "NVIDIA", type: big_tech}
+    params_total: 380989135104
+    num_layers: 78
+    hidden_size: 6144
+    context_length: 1048576
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-06
+
+  - id: hf-ornith-1-0-35b
+    name: Ornith-1.0-35B
+    family: Ornith-1.0
+    hf_repo: deepreinforce-ai/Ornith-1.0-35B
+    backer: {name: "deepreinforce-ai", type: community}
+    params_total: 664944
+    hidden_size: 2048
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-06
+
+  - id: hf-glm-5-2
+    name: GLM-5.2
+    family: zai-org
+    hf_repo: zai-org/GLM-5.2
+    backer: {name: "zai-org", type: community}
+    params_total: 753329940480
+    num_layers: 78
+    hidden_size: 6144
+    context_length: 1048576
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-07
