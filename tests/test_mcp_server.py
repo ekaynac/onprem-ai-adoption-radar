@@ -137,3 +137,41 @@ def test_get_technique_tool_full_payload(tmp_path: Path):
 
     assert payload["citation_count"] == 1697
     assert "momentum" in payload
+
+
+def _seed_trending(root: Path) -> None:
+    from datetime import UTC, datetime
+
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+    from radar.storage.trending_observations_log import append_observations
+
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    rows = [
+        TrendingObservation(
+            repo="acme/rocket", lane=Lane.ONPREM, stars=stars,
+            observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+            repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+            description="d", topics=["llm"], license="MIT",
+        )
+        for day, stars in ((1, 100), (4, 500))
+    ]
+    append_observations(root / "data" / "trending-observations.jsonl", rows)
+
+
+def test_server_registers_trending_tool(tmp_path: Path):
+    _seed_trending(tmp_path)
+    server = build_mcp_server(tmp_path)
+
+    names = {t.name for t in asyncio.run(server.list_tools())}
+
+    assert "list_trending" in names
+
+
+def test_list_trending_tool_returns_rows(tmp_path: Path):
+    _seed_trending(tmp_path)
+    server = build_mcp_server(tmp_path)
+
+    result = asyncio.run(server.call_tool("list_trending", {"lane": "onprem"}))
+    payload = result[1].get("result", result[1])
+
+    assert any(item["repo"] == "acme/rocket" for item in payload)

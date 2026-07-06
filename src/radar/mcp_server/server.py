@@ -16,6 +16,7 @@ from mcp.server.fastmcp import FastMCP
 from radar.mcp_server.model_queries import ModelQueryService
 from radar.mcp_server.queries import RadarQueryService
 from radar.mcp_server.technique_queries import TechniqueQueryService
+from radar.mcp_server.trending_queries import TrendingQueryService
 
 
 def build_mcp_server(root: Path) -> FastMCP:
@@ -23,6 +24,7 @@ def build_mcp_server(root: Path) -> FastMCP:
     service = RadarQueryService(root)
     models = ModelQueryService(root)
     techniques = TechniqueQueryService(root)
+    trending = TrendingQueryService(root)
     mcp = FastMCP("onprem-ai-adoption-radar")
 
     @mcp.tool()
@@ -135,6 +137,11 @@ def build_mcp_server(root: Path) -> FastMCP:
     def technique_movers() -> list[dict]:
         """Recent technique ring changes, newest first."""
         return techniques.technique_movers()
+
+    @mcp.tool()
+    def list_trending(lane: str | None = None, limit: int = 20) -> list[dict]:
+        """Trending/newly-created GitHub repos by star velocity (lane: onprem | broader)."""
+        return trending.list_trending(lane=lane, limit=limit)
 
     return mcp
 
