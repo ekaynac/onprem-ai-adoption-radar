@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
+from radar.cli import app
 from radar.discovery import (
     arxiv_technique_candidates,
     hf_technique_candidates,
@@ -59,3 +62,20 @@ async def test_sweep_fetch_failure_degrades_empty(monkeypatch):
     # the sweep must not raise even if a fetcher does — mirror discover's best-effort intent
     rows = await sweep_technique_candidates([], object(), NOW)
     assert rows == []
+
+
+def test_candidates_scan_cli_bad_seed_exits_clean(tmp_path: Path):
+    """A corrupt technique-seed.yaml must fail cleanly (exit 1, no traceback), mirroring
+    `research discover`'s handling rather than dumping a raw traceback."""
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "technique-seed.yaml").write_text("techniques: [{ broken", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["research", "candidates", "scan", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output
+    # An uncaught TechniqueSeedError also exits 1 under CliRunner but prints nothing —
+    # the caught path is distinguished by the printed error message and a clean SystemExit.
+    assert "Invalid YAML" in result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)

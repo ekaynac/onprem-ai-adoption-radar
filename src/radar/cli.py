@@ -758,13 +758,17 @@ def research_candidates_scan(root: Path = typer.Option(Path("."), help="Project 
     import httpx
 
     from radar.discovery.technique_candidate_sweep import sweep_technique_candidates
-    from radar.research_radar.seed import load_technique_seed
+    from radar.research_radar.seed import TechniqueSeedError, load_technique_seed
     from radar.storage.technique_candidate_log import append_technique_candidates
 
     seed_path = root / "config" / "technique-seed.yaml"
     if not seed_path.exists():
         seed_path = Path(__file__).resolve().parents[2] / "config" / "technique-seed.yaml"
-    seeds = load_technique_seed(seed_path)
+    try:
+        seeds = load_technique_seed(seed_path)
+    except TechniqueSeedError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
     now = datetime.now(UTC)
 
     async def _run():
