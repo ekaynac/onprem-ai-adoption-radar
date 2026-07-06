@@ -1420,6 +1420,11 @@ def export(
     if technique_history_src.exists():
         shutil.copy2(technique_history_src, out / "technique-history.jsonl")
 
+    # Trending observations (optional: only present after `radar trending scan`).
+    from radar.storage.trending_observations_log import load_observations as _load_trending_obs
+
+    trending_observations = _load_trending_obs(root / "data" / "trending-observations.jsonl")
+
     # Pedigree maps (optional: only meaningful once technique entries exist) —
     # drive the "Research techniques" section on project + model static pages.
     from radar.research_radar.pedigree import (
@@ -1485,6 +1490,7 @@ def export(
         model_events=model_events or None,
         technique_entries=technique_entries or None,
         technique_events=technique_events or None,
+        trending_observations=trending_observations or None,
         pedigree_by_project=pedigree_by_project or None,
         pedigree_by_model=pedigree_by_model or None,
         technique_hrefs=technique_hrefs or None,

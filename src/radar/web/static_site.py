@@ -8,6 +8,7 @@ and relative cross-links, so a CI job can scan and publish a complete snapshot.
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from radar.discovery.trending_detect import build_trending
+from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.models import Category, DecisionCard, Ring
 from radar.models_radar.entities import ModelEntry
 from radar.models_radar.history import ModelHistoryEvent
@@ -38,7 +41,10 @@ from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth
+from radar.web.trending_summary import summarize_trending
 
+
+logger = logging.getLogger(__name__)
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _STATIC_DIR = Path(__file__).parent / "static"
@@ -61,6 +67,7 @@ def render_static_site(
     model_events: list[ModelHistoryEvent] | None = None,
     technique_entries: list[TechniqueEntry] | None = None,
     technique_events: list[TechniqueHistoryEvent] | None = None,
+    trending_observations: list[TrendingObservation] | None = None,
     pedigree_by_project: dict[str, list[TechniquePedigree]] | None = None,
     pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
     technique_hrefs: dict[str, str] | None = None,
@@ -83,7 +90,9 @@ def render_static_site(
     techniques" section; ``technique_hrefs`` maps technique id to its href and
     must cover every id referenced by either. ``impl_hrefs`` (optional) maps a
     technique's resolved-implementation ref to its project/model page href,
-    driving the technique pages' "Implementations" links.
+    driving the technique pages' "Implementations" links. When
+    ``trending_observations`` is provided, derives trending entries and writes
+    ``trending.html`` (two lanes: on-prem candidates and broader AI heat).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -134,6 +143,15 @@ def render_static_site(
     # Summarize models for the index page banner (None when no models yet).
     models_summary = summarize_models(model_entries) if model_entries else None
     techniques_summary = summarize_techniques(technique_entries) if technique_entries else None
+    try:
+        trending_entries = (
+            build_trending(trending_observations, generated_at)
+            if trending_observations else []
+        )
+    except Exception as exc:
+        logger.warning("Trending derivation failed during export: %s", exc)
+        trending_entries = []
+    trending_summary = summarize_trending(trending_entries) if trending_entries else None
 
     index = out_dir / "index.html"
     index.write_text(
@@ -147,6 +165,7 @@ def render_static_site(
             downloads=downloads,
             models_summary=models_summary,
             techniques_summary=techniques_summary,
+            trending_summary=trending_summary,
         ),
         encoding="utf-8",
     )
@@ -186,6 +205,9 @@ def render_static_site(
             site_title, self_base_url, stamp,
             impl_hrefs=impl_hrefs,
         )
+
+    if trending_entries:
+        _write_trending_page(env, out_dir, trending_entries, stamp)
 
     return index
 
@@ -355,6 +377,23 @@ def _write_technique_pages(
                        indent=2),
             encoding="utf-8",
         )
+
+
+def _write_trending_page(
+    env: Environment,
+    out_dir: Path,
+    trending_entries: list[TrendingEntry],
+    generated_at: str = "",
+) -> None:
+    """Render trending.html (two lanes) from derived trending entries."""
+    onprem = [e for e in trending_entries if e.lane == Lane.ONPREM]
+    broader = [e for e in trending_entries if e.lane == Lane.BROADER]
+    (out_dir / "trending.html").write_text(
+        env.get_template("static_trending.html").render(
+            onprem=onprem, broader=broader, generated_at=generated_at
+        ),
+        encoding="utf-8",
+    )
 
 
 def _comparisons_by_category(cards: list[DecisionCard]) -> list[dict[str, Any]]:

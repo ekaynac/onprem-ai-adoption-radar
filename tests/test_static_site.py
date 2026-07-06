@@ -495,3 +495,58 @@ def test_static_technique_page_links_impls_only_when_targets_exist(tmp_path):
     page = (tmp_path / "_site" / "technique_speculative-decoding.html").read_text(
         encoding="utf-8")
     assert 'href="project_vllm.html"' in page
+
+
+def _trending_obs():
+    from datetime import UTC, datetime
+
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+
+    return [
+        TrendingObservation(
+            repo="acme/rocket", lane=Lane.ONPREM, stars=stars,
+            observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+            repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+            description="fast serving", topics=["llm"], license="MIT")
+        for day, stars in ((1, 100), (4, 400))
+    ]
+
+
+def test_static_site_renders_trending_page(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+        trending_observations=_trending_obs(),
+    )
+    site = tmp_path / "_site"
+
+    page = (site / "trending.html").read_text(encoding="utf-8")
+    assert "acme/rocket" in page
+    assert 'href="https://github.com/acme/rocket"' in page
+    assert "On-prem radar candidates" in page
+    index = (site / "index.html").read_text(encoding="utf-8")
+    assert 'href="trending.html"' in index
+    assert "Trending:" in index
+
+
+def test_static_site_backcompat_without_trending(tmp_path):
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
+
+    assert not (tmp_path / "_site" / "trending.html").exists()
+    assert (tmp_path / "_site" / "index.html").exists()
+
+
+def test_export_survives_naive_datetime_observation(tmp_path):
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+
+    naive = TrendingObservation(
+        repo="acme/rocket", lane=Lane.ONPREM, stars=400,
+        observed_at=datetime(2026, 7, 4, 7, 0),        # tz-naive → would crash build_trending
+        repo_created_at=datetime(2026, 6, 1, 7, 0),
+        description="d", topics=["llm"], license="MIT",
+    )
+    # must not raise; index still renders, trending page simply omitted
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       trending_observations=[naive])
+
+    assert (tmp_path / "_site" / "index.html").exists()
+    assert not (tmp_path / "_site" / "trending.html").exists()

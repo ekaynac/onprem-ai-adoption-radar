@@ -933,3 +933,81 @@ def test_technique_page_corrupt_run_is_404_not_500(tmp_path: Path):
     _seed_corrupt_research_run(tmp_path)
 
     assert TestClient(create_app(tmp_path)).get("/technique/anything").status_code == 404
+
+
+def _seed_trending_obs(root: Path) -> None:
+    from datetime import UTC, datetime
+
+    from radar.discovery.trending_entities import Lane as _L
+    from radar.discovery.trending_entities import TrendingObservation as _O
+    from radar.storage.trending_observations_log import append_observations
+
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    rows = [
+        _O(repo="acme/rocket", lane=_L.ONPREM, stars=stars,
+           observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+           repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+           description="fast serving", topics=["llm"], license="MIT")
+        for day, stars in ((1, 100), (4, 400))
+    ] + [
+        _O(repo="big/model", lane=_L.BROADER, stars=90000,
+           observed_at=datetime(2026, 7, 4, 7, 0, tzinfo=UTC),
+           repo_created_at=datetime(2024, 1, 1, tzinfo=UTC),
+           description="a model", topics=["llm"], license="Apache-2.0"),
+    ]
+    append_observations(root / "data" / "trending-observations.jsonl", rows)
+
+
+def test_trending_route_shows_both_lanes(tmp_path):
+    _seed_trending_obs(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200
+    assert "acme/rocket" in r.text and "big/model" in r.text
+    assert "On-prem radar candidates" in r.text
+    assert "Elsewhere in AI" in r.text
+    assert 'href="https://github.com/acme/rocket"' in r.text
+
+
+def test_trending_route_empty_without_store(tmp_path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200
+    assert "No trending" in r.text
+
+
+def test_index_shows_trending_strip_and_nav(tmp_path):
+    _seed_trending_obs(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/")
+
+    assert 'href="/trending"' in r.text
+    assert "acme/rocket" in r.text  # top strict-lane repo in the strip
+
+
+def test_index_strip_signs_negative_velocity(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.discovery.trending_entities import Lane as _L
+    from radar.discovery.trending_entities import TrendingObservation as _O
+    from radar.storage.trending_observations_log import append_observations
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [
+        _O(repo="dying/repo", lane=_L.ONPREM, stars=stars,
+           observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+           repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+           description="d", topics=["llm"], license="MIT")
+        for day, stars in ((1, 500), (4, 200))   # -100/day
+    ])
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/")
+
+    assert "+-" not in r.text  # signed format, not a hardcoded '+' prefix

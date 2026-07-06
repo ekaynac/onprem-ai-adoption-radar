@@ -41,3 +41,15 @@ def test_load_skips_corrupt_lines(tmp_path: Path):
         handle.write("{broken\n")
 
     assert len(load_observations(path)) == 1
+
+
+def test_load_survives_non_utf8_bytes(tmp_path: Path):
+    path = tmp_path / "trending-observations.jsonl"
+    good = _obs("a/b", 100, "2026-07-01T07:00:00+00:00")
+    append_observations(path, [good])
+    # prepend a torn multibyte line (invalid UTF-8) — must not raise
+    with path.open("ab") as handle:
+        handle.write(b"\xff\xfe broken\n")
+
+    rows = load_observations(path)  # errors='replace' → bad line skipped, good kept
+    assert [r.repo for r in rows] == ["a/b"]
