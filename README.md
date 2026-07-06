@@ -3,7 +3,7 @@
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-352%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-910%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -46,7 +46,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - ⬇️ **Downloadable data** — the full append-only timeline (`history.jsonl`) and change feeds (Atom/RSS/JSON) are published next to the site and served by the dashboard at `/history.jsonl`.
 - 🎨 **Fun lane** — playful local-AI projects (image gen, voice, LLM toys) tracked in their own category.
 - 🎓 **Research technique radar** — curated academic techniques (speculative decoding, PagedAttention, LoRA, ReAct…) get their own deterministic rings, scored by *which tracked tools already implement them* plus citation evidence — research verdicts move when tool verdicts move. Browsable at `/research` (dashboard + static site) with per-technique pages showing a research→production timeline, queryable over MCP (`list_techniques`/`get_technique`/`technique_movers`), and published as Atom/JSON change feeds. Tool and model pages cross-link back: each shows the research techniques it implements, and tool cards carry an "Implements N tracked research techniques" evidence line.
-- 📈 **Trending radar** — a daily two-lane GitHub sweep (strict on-prem identity + broader AI heat) appends to a committed observation log, so the radar computes real star *velocity* and flags newly-created repos — the foundation for self-growing catalogs and a githubsignals-style trending feed. A weekly **source autopilot** then auto-adds the strict-lane repos that clear every gate (sustained star momentum, size + permissive-license floors, a confident category, denylists) straight into the tracked catalog — the radar growing itself, with `auto-added` provenance and a committed audit log. Browsable at `/trending` (dashboard + static site) with two lanes — on-prem radar candidates and "elsewhere in AI" — plus a top-3 strip on the index and an MCP `list_trending` tool. A weekly **digest** rolls the week's trending + auto-adds + ring changes into a shareable page, Atom/RSS newsletter feeds, a webhook ping, and Mega-branded social cards (SVG → PNG in CI). `/trending` is now a hub — alongside repos it surfaces **trending models** (fastest-rising by download growth) and **trending techniques** (by citation momentum), each with the items new or promoted this week; model download-velocity is made durable by a committed `data/model-metrics.jsonl` log.
+- 📈 **Trending radar** — a daily two-lane GitHub sweep (strict on-prem identity + broader AI heat) appends to a committed observation log, so the radar computes real star *velocity* and flags newly-created repos — the foundation for self-growing catalogs and a githubsignals-style trending feed. A weekly **source autopilot** then auto-adds the strict-lane repos that clear every gate (sustained star momentum, size + permissive-license floors, a confident category, denylists) straight into the tracked catalog — the radar growing itself, with `auto-added` provenance and a committed audit log. Browsable at `/trending` (dashboard + static site) with two lanes — on-prem radar candidates and "elsewhere in AI" — plus a top-3 strip on the index and an MCP `list_trending` tool. A weekly **digest** rolls the week's trending + auto-adds + ring changes into a shareable page, Atom/RSS newsletter feeds, a webhook ping, and Mega-branded social cards (SVG → PNG in CI). `/trending` is now a hub — alongside repos it surfaces **trending models** (fastest-rising by download growth) and **trending techniques** (by citation momentum), each with the items new or promoted this week; model download-velocity is made durable by a committed `data/model-metrics.jsonl` log. `/trending` also surfaces **emerging models** — untracked HF-trending models observed over time in `data/model-candidate-observations.jsonl`, ranked by download velocity — and the catalog autopilot only auto-adds a model once it shows **sustained** download momentum, not just a high absolute count.
 
 Everything new degrades gracefully and stays off the critical path: enrichment (OSV/HN/downloads) and webhooks are best-effort and never fail a scan, and the default scoring path remains fully deterministic and offline.
 
@@ -252,7 +252,7 @@ docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-resea
 ## Development
 
 ```bash
-uv run pytest --cov    # 352 tests, coverage floor 80% (currently ~93%)
+uv run pytest --cov    # 910 tests, coverage floor 80% (currently ~94%)
 uv run ruff check src tests
 uv run mypy
 ```

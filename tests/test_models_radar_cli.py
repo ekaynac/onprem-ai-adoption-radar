@@ -148,12 +148,33 @@ models:
 
 
 def _setup_promote_env(tmp_path: Path) -> None:
-    """Write seed file and proposals used by promote tests."""
+    """Write seed file, proposals, and candidate observations used by promote tests."""
+    from datetime import UTC, datetime
+
     from radar.discovery.model_proposals import ModelProposal, write_model_proposals
+    from radar.storage.model_candidate_log import (
+        ModelCandidateObservation,
+        append_model_candidates,
+    )
 
     (tmp_path / "config").mkdir(parents=True, exist_ok=True)
     (tmp_path / "data").mkdir(parents=True, exist_ok=True)
     (tmp_path / "config" / "model-seed.yaml").write_text(_SEED_YAML, encoding="utf-8")
+
+    # Sustained download momentum for the one proposal expected to survive the
+    # promote gate: 3 distinct days, 5-day span, +66% growth (all above threshold).
+    observations = [
+        ModelCandidateObservation(hf_repo="microsoft/Phi-4-14B", name="Phi-4-14B",
+                                  family="Phi", downloads=300000, likes=800,
+                                  observed_at=datetime(2026, 1, 1, tzinfo=UTC)),
+        ModelCandidateObservation(hf_repo="microsoft/Phi-4-14B", name="Phi-4-14B",
+                                  family="Phi", downloads=400000, likes=900,
+                                  observed_at=datetime(2026, 1, 4, tzinfo=UTC)),
+        ModelCandidateObservation(hf_repo="microsoft/Phi-4-14B", name="Phi-4-14B",
+                                  family="Phi", downloads=500000, likes=1000,
+                                  observed_at=datetime(2026, 1, 6, tzinfo=UTC)),
+    ]
+    append_model_candidates(tmp_path / "data" / "model-candidate-observations.jsonl", observations)
 
     proposals = [
         ModelProposal(

@@ -45,6 +45,15 @@ def test_publish_commits_model_metrics_log():
     assert "data/model-metrics.jsonl" in text
 
 
+def test_publish_runs_candidate_scan_and_commits_store():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+    models_idx = text.index("radar models scan")
+    cand_idx = text.index("radar models candidates scan")
+    export_idx = text.index("radar export")
+    assert models_idx < cand_idx < export_idx
+    assert "data/model-candidate-observations.jsonl" in text
+
+
 def test_publish_deploy_retries_on_transient_pages_failure():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
 

@@ -11,11 +11,13 @@ import re
 
 import yaml
 
+from radar.discovery.model_candidate_detect import has_sustained_download_momentum
 from radar.discovery.model_proposals import ModelProposal
 from radar.models import Backer, BackerType
 from radar.models_radar.assemble import openness_from_license
 from radar.models_radar.collectors.huggingface import HFModelData
 from radar.models_radar.entities import Modality, ModelSeed
+from radar.storage.model_candidate_log import ModelCandidateObservation
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +101,24 @@ def is_promotable(
     if org in _REPUBLISHER_ORGS:
         return False
     return proposal.modality in {"text", "multimodal"}
+
+
+def promotable_candidates(
+    proposals: list[ModelProposal],
+    observations: list[ModelCandidateObservation],
+    *,
+    min_downloads: int,
+    seeded_repos: set[str],
+) -> list[ModelProposal]:
+    """Proposals that pass the existing gate AND show sustained download momentum."""
+    obs_by_repo: dict[str, list[ModelCandidateObservation]] = {}
+    for o in observations:
+        obs_by_repo.setdefault(o.hf_repo.lower(), []).append(o)
+    return [
+        p for p in proposals
+        if is_promotable(p, min_downloads=min_downloads, seeded_repos=seeded_repos)
+        and has_sustained_download_momentum(obs_by_repo.get(p.hf_repo.lower(), []))
+    ]
 
 
 # ---------------------------------------------------------------------------

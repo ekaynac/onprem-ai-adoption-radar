@@ -1059,3 +1059,38 @@ def test_trending_page_survives_empty_hub(tmp_path):
 
     assert r.status_code == 200                 # no run/metrics → empty sections, still 200
     assert "Trending Models" in r.text          # section header present even when empty
+
+
+def _seed_candidates(root: Path) -> None:
+    from datetime import UTC, datetime
+
+    from radar.storage.model_candidate_log import ModelCandidateObservation, append_model_candidates
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    append_model_candidates(root / "data" / "model-candidate-observations.jsonl", [
+        ModelCandidateObservation(hf_repo="acme/emerging", name="emerging", family="acme",
+                                  downloads=d, likes=2,
+                                  observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC))
+        for day, d in ((1, 1000), (4, 4000))
+    ])
+
+
+def test_trending_shows_emerging_candidates(tmp_path):
+    _seed_candidates(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200
+    assert "Emerging" in r.text
+    assert "acme/emerging" in r.text
+    assert 'href="https://huggingface.co/acme/emerging"' in r.text
+
+
+def test_trending_emerging_empty_survives(tmp_path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200
+    assert "Emerging" in r.text   # header present even when empty
