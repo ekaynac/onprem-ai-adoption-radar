@@ -10,6 +10,10 @@
           {% if e.is_new %} · NEW{% endif %}</li>
       {% endfor %}
     </ul>
+    {% if top_model %}<p>🤖 Top model: {{ top_model.name }}
+        {% if top_model.growth is not none %}({{ "%+.1f"|format(top_model.growth) }}%){% endif %}</p>{% endif %}
+    {% if top_technique %}<p>🎓 Top technique: {{ top_technique.name }}
+        {% if top_technique.momentum is not none %}({{ top_technique.momentum }}/5){% endif %}</p>{% endif %}
     <p><a href="{{ trending_href|default('trending.html') }}">Browse trending →</a></p>
   </details>
 </div>

@@ -1011,3 +1011,51 @@ def test_index_strip_signs_negative_velocity(tmp_path):
     r = client.get("/")
 
     assert "+-" not in r.text  # signed format, not a hardcoded '+' prefix
+
+
+def _seed_model_run_and_metrics(root: Path) -> None:
+    """A models run + a 2-point metrics log so a model reads 'rising'."""
+    from datetime import UTC, datetime
+
+    from radar.models_radar.entities import ModelEntry
+    from radar.storage.model_metrics_log import append_model_metrics
+    from radar.storage.model_metrics_store import ModelMetrics
+    from radar.storage.run_store import RunStore
+
+    (root / "data").mkdir(parents=True, exist_ok=True)
+    entry = ModelEntry.model_validate({"id": "risingmodel", "name": "RisingModel",
+                                       "family": "Fam", "hf_downloads": 5000,
+                                       "quants": [], "ring": "pilot"})
+    rs = RunStore(root / "data" / "runs")
+    rid = rs.create_run()
+    rs.update_meta(rid, {"kind": "models"})
+    rs.save_stage(rid, "model_cards", [entry.model_dump(mode="json")])
+    append_model_metrics(root / "data" / "model-metrics.jsonl", [
+        ModelMetrics(model_id="risingmodel", run_id="r0",
+                     observed_at=datetime(2026, 7, 1, tzinfo=UTC), downloads=1000),
+        ModelMetrics(model_id="risingmodel", run_id="r1",
+                     observed_at=datetime(2026, 7, 6, tzinfo=UTC), downloads=5000),
+    ])
+
+
+def test_trending_page_shows_model_and_technique_sections(tmp_path):
+    _seed_model_run_and_metrics(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200
+    assert "Trending Models" in r.text
+    assert "Trending Techniques" in r.text
+    assert "risingmodel" in r.text
+    assert 'href="/model/risingmodel"' in r.text
+
+
+def test_trending_page_survives_empty_hub(tmp_path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/trending")
+
+    assert r.status_code == 200                 # no run/metrics → empty sections, still 200
+    assert "Trending Models" in r.text          # section header present even when empty
