@@ -65,3 +65,10 @@ def test_list_trending_respects_limit(tmp_path):
     svc = TrendingQueryService(tmp_path)
 
     assert len(svc.list_trending(limit=1, now=NOW)) == 1
+
+
+def test_list_trending_negative_limit_returns_empty(tmp_path):
+    _seed(tmp_path, [_obs("a/a", 500, 4), _obs("b/b", 300, 4)])
+    svc = TrendingQueryService(tmp_path)
+
+    assert svc.list_trending(limit=-1, now=NOW) == []  # clamped, not a negative slice

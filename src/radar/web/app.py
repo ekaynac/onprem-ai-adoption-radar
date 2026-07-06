@@ -15,7 +15,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from radar.discovery.trending_entities import Lane
+from radar.discovery.trending_entities import Lane, TrendingEntry
 from radar.mcp_server.model_queries import _latest_model_cards
 from radar.mcp_server.technique_queries import load_technique_entries
 from radar.mcp_server.trending_queries import load_trending_entries
@@ -90,7 +90,7 @@ def create_app(root: Path) -> FastAPI:
         """Load technique entries from the latest research run; empty list if none."""
         return load_technique_entries(root)
 
-    def _trending_entries():
+    def _trending_entries() -> list[TrendingEntry]:
         from datetime import UTC, datetime
         return load_trending_entries(root, datetime.now(UTC))
 

@@ -989,3 +989,25 @@ def test_index_shows_trending_strip_and_nav(tmp_path):
 
     assert 'href="/trending"' in r.text
     assert "acme/rocket" in r.text  # top strict-lane repo in the strip
+
+
+def test_index_strip_signs_negative_velocity(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.discovery.trending_entities import Lane as _L
+    from radar.discovery.trending_entities import TrendingObservation as _O
+    from radar.storage.trending_observations_log import append_observations
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [
+        _O(repo="dying/repo", lane=_L.ONPREM, stars=stars,
+           observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+           repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+           description="d", topics=["llm"], license="MIT")
+        for day, stars in ((1, 500), (4, 200))   # -100/day
+    ])
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/")
+
+    assert "+-" not in r.text  # signed format, not a hardcoded '+' prefix

@@ -44,7 +44,7 @@ class TrendingQueryService:
         entries = load_trending_entries(self.root, now or datetime.now(UTC))
         if lane:
             entries = [e for e in entries if e.lane.value == lane.lower()]
-        return [self._row(e) for e in entries[:limit]]
+        return [self._row(e) for e in entries[:max(0, limit)]]
 
     @staticmethod
     def _row(entry: TrendingEntry) -> dict[str, Any]:

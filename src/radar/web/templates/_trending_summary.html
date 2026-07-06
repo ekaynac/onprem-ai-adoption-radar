@@ -6,7 +6,7 @@
     <ul>
       {% for e in trending_summary.onprem_top %}
       <li><a href="https://github.com/{{ e.repo }}">{{ e.repo }}</a>
-          {% if e.velocity_per_day is not none %}+{{ e.velocity_per_day }}★/day{% endif %}
+          {% if e.velocity_per_day is not none %}{{ "%+.1f"|format(e.velocity_per_day) }}★/day{% endif %}
           {% if e.is_new %} · NEW{% endif %}</li>
       {% endfor %}
     </ul>
