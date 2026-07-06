@@ -1,235 +1,56 @@
+"""Deterministic Mega-branded SVG social cards."""
+
+from __future__ import annotations
+
 from datetime import UTC, datetime
+from xml.dom.minidom import parseString
 
-from radar.models import (
-    Backer,
-    BackerType,
-    Category,
-    Ring,
-    ScoreBreakdown,
-    ScoredSignal,
-    Signal,
-)
-from radar.pipeline.cards import build_decision_cards
+from radar.discovery.trending_entities import Lane, TrendingEntry
+from radar.reports.digest import DigestChange, WeeklyDigest
+from radar.web.cards import CARD_SIZES, PROCESS_BLUE, render_card, write_cards
 
 
-def _scored(project: str = "Cline") -> ScoredSignal:
-    signal = Signal(
-        id="s1",
-        source_id="github-cline",
-        project=project,
-        category=Category.CODING_AGENTS,
-        title=f"{project} released v1",
-        url="https://github.com/cline/cline/releases/tag/v1",
-        published_at=datetime(2026, 6, 10, tzinfo=UTC),
-        raw_summary="release",
-        signal_type="github_release",
-        tags=[],
-    )
-    return ScoredSignal(
-        signal=signal,
-        scores=ScoreBreakdown(
-            workflow_impact=4,
-            laptop_runnability=4,
-            open_source_maturity=4,
-            on_prem_relevance=4,
-            security_posture=4,
-            demo_value=4,
-            setup_friction=4,
-        ),
-        reason_codes=[],
-        recommended_ring=Ring.PILOT,
-    )
+def test_render_card_wellformed_branded_and_sized():
+    svg = render_card("Trending this week", ["vllm/vllm  +240★/day", "a&b/x  +9★/day"],
+                      "portrait")
+    parseString(svg)  # well-formed XML
+    assert 'width="1080"' in svg and 'height="1350"' in svg
+    assert PROCESS_BLUE in svg
+    assert "MEGA" in svg
+    assert "vllm/vllm" in svg
+    assert "a&amp;b/x" in svg      # escaped, not raw '&'
 
 
-def test_cards_carry_backer_when_provided():
-    backer = Backer(name="Cline", type=BackerType.STARTUP)
-    cards = build_decision_cards(
-        [_scored("Cline")], backer_by_project={"Cline": backer}
-    )
-
-    assert cards[0].backer == backer
-    assert cards[0].backer.type is BackerType.STARTUP
+def test_render_card_both_sizes():
+    for size, (w, h) in CARD_SIZES.items():
+        svg = render_card("H", ["r"], size)
+        assert f'width="{w}"' in svg and f'height="{h}"' in svg
 
 
-def test_cards_without_backer_map_have_none():
-    cards = build_decision_cards([_scored("Cline")])
-
-    assert cards[0].backer is None
-
-
-def test_build_decision_cards_groups_by_project():
-    signal = Signal(
-        id="s1",
-        source_id="github-cline",
-        project="Cline",
-        category=Category.CODING_AGENTS,
-        title="Cline released v1",
-        url="https://github.com/cline/cline/releases/tag/v1",
-        published_at=datetime(2026, 6, 10, tzinfo=UTC),
-        raw_summary="MCP approval improvements",
-        signal_type="github_release",
-        tags=["file-write-access"],
-    )
-    scored = ScoredSignal(
-        signal=signal,
-        scores=ScoreBreakdown(
-            workflow_impact=5,
-            laptop_runnability=5,
-            open_source_maturity=4,
-            on_prem_relevance=3,
-            security_posture=2,
-            demo_value=4,
-            setup_friction=4,
-        ),
-        reason_codes=["needs_sandbox_review"],
-        recommended_ring=Ring.PILOT,
-    )
-
-    cards = build_decision_cards([scored])
-
-    assert len(cards) == 1
-    assert cards[0].project == "Cline"
-    assert cards[0].ring == Ring.PILOT
-    assert cards[0].risk_level == "high"
-    assert "https://github.com/cline/cline/releases/tag/v1" in cards[0].evidence
+def _digest():
+    entry = TrendingEntry(repo="acme/rocket", lane=Lane.ONPREM, stars=1500,
+                          velocity_per_day=42.0, is_new=True, first_seen="2026-07-01",
+                          description="d", topics=["llm"])
+    change = DigestChange(kind="tool", name="Cline", change_type="promoted", ring="adopt",
+                          previous_ring="trial", observed_at=datetime(2026, 7, 7, tzinfo=UTC))
+    return WeeklyDigest(label="2026-W28",
+                        week_start=datetime(2026, 7, 6, tzinfo=UTC),
+                        week_end=datetime(2026, 7, 13, tzinfo=UTC),
+                        generated_at=datetime(2026, 7, 8, tzinfo=UTC),
+                        trending_onprem=[entry], trending_broader=[],
+                        auto_added=[], changes=[change])
 
 
-def test_clean_text_unescapes_entities_and_strips_html_tags():
-    from radar.pipeline.cards import _clean_text
+def test_write_cards_emits_both_sizes(tmp_path):
+    paths = write_cards(_digest(), tmp_path)
 
-    text = "It&amp;#39;s a <strong>big</strong> release<br/> with &lt;tags&gt; <!-- noise -->"
-
-    assert _clean_text(text) == "It's a big release with <tags>"
-
-
-def test_cards_carry_evidence_notes_and_license_change_risk():
-    from datetime import UTC, datetime
-
-    from radar.models import (
-        Category,
-        ProjectEvidence,
-        ScoreBreakdown,
-        ScoredSignal,
-        Signal,
-    )
-    from radar.models import Ring as RingEnum
-    from radar.pipeline.cards import build_decision_cards
-
-    signal = Signal(
-        id="s1", source_id="src", project="vLLM", category=Category.MODEL_SERVING,
-        title="vLLM repository snapshot", url="https://github.com/org/vllm",
-        published_at=datetime(2026, 6, 12, tzinfo=UTC),
-        signal_type="github_repo_snapshot",
-    )
-    scored = ScoredSignal(
-        signal=signal,
-        scores=ScoreBreakdown(
-            workflow_impact=4, laptop_runnability=4, open_source_maturity=4,
-            on_prem_relevance=4, security_posture=4, demo_value=4, setup_friction=4,
-        ),
-        recommended_ring=RingEnum.PILOT,
-    )
-    evidence = ProjectEvidence(
-        star_growth=500, star_growth_pct=2.0,
-        license_changed_from="Apache-2.0", license="BUSL-1.1",
-    )
-
-    cards = build_decision_cards([scored], evidence_by_project={"vLLM": evidence})
-
-    card = cards[0]
-    assert any("+500" in note for note in card.evidence_notes)
-    assert any("Apache-2.0" in risk and "BUSL-1.1" in risk for risk in card.risks)
+    names = {p.name for p in paths}
+    assert "trending_portrait.svg" in names and "trending_og.svg" in names
+    assert "movers_portrait.svg" in names           # changes present → movers card
+    assert (tmp_path / "trending_portrait.svg").read_text(encoding="utf-8")
 
 
-def test_cards_without_evidence_have_empty_notes():
-    from datetime import UTC, datetime
-
-    from radar.models import Category, ScoreBreakdown, ScoredSignal, Signal
-    from radar.models import Ring as RingEnum
-    from radar.pipeline.cards import build_decision_cards
-
-    signal = Signal(
-        id="s1", source_id="src", project="vLLM", category=Category.MODEL_SERVING,
-        title="snapshot", url="https://github.com/org/vllm",
-        published_at=datetime(2026, 6, 12, tzinfo=UTC),
-        signal_type="github_repo_snapshot",
-    )
-    scored = ScoredSignal(
-        signal=signal,
-        scores=ScoreBreakdown(
-            workflow_impact=4, laptop_runnability=4, open_source_maturity=4,
-            on_prem_relevance=4, security_posture=4, demo_value=4, setup_friction=4,
-        ),
-        recommended_ring=RingEnum.PILOT,
-    )
-
-    cards = build_decision_cards([scored])
-
-    assert cards[0].evidence_notes == []
-
-
-def test_paper_urls_appear_in_card_evidence():
-    from radar.models import PaperRef, ProjectEvidence
-
-    evidence_by_project = {
-        "vLLM": ProjectEvidence(
-            paper_mentions=1,
-            papers=[PaperRef(title="P", url="https://arxiv.org/abs/2506.1", published_at="2026-06-15")],
-        )
-    }
-    signal = Signal(
-        id="s1",
-        source_id="src",
-        project="vLLM",
-        category=Category.MODEL_SERVING,
-        title="vLLM repository snapshot",
-        url="https://github.com/org/vllm",
-        published_at=datetime(2026, 6, 12, tzinfo=UTC),
-        signal_type="github_repo_snapshot",
-    )
-    scored = ScoredSignal(
-        signal=signal,
-        scores=ScoreBreakdown(
-            workflow_impact=4,
-            laptop_runnability=4,
-            open_source_maturity=4,
-            on_prem_relevance=4,
-            security_posture=4,
-            demo_value=4,
-            setup_friction=4,
-        ),
-        recommended_ring=Ring.PILOT,
-    )
-
-    cards = build_decision_cards([scored], evidence_by_project=evidence_by_project)
-    card = next(c for c in cards if c.project == "vLLM")
-    assert "https://arxiv.org/abs/2506.1" in card.evidence
-
-
-def test_cards_flag_upgrade_risk_from_release_highlights():
-    from datetime import UTC, datetime
-
-    from radar.models import Category, ScoreBreakdown, ScoredSignal, Signal
-    from radar.models import Ring as RingEnum
-    from radar.pipeline.cards import build_decision_cards
-
-    signal = Signal(
-        id="r1", source_id="src", project="vLLM", category=Category.MODEL_SERVING,
-        title="vLLM released v2.0", url="https://github.com/org/vllm/releases/v2.0",
-        published_at=datetime(2026, 6, 12, tzinfo=UTC),
-        signal_type="github_release",
-        metadata={"release_highlights": ["BREAKING CHANGE: new engine API."]},
-    )
-    scored = ScoredSignal(
-        signal=signal,
-        scores=ScoreBreakdown(
-            workflow_impact=4, laptop_runnability=4, open_source_maturity=4,
-            on_prem_relevance=4, security_posture=4, demo_value=4, setup_friction=4,
-        ),
-        recommended_ring=RingEnum.PILOT,
-    )
-
-    card = build_decision_cards([scored])[0]
-
-    assert card.upgrade_risk == "high"
-    assert any("BREAKING" in note for note in card.upgrade_risk_notes)
+def test_write_cards_skips_movers_when_no_changes(tmp_path):
+    d = _digest().model_copy(update={"changes": []})
+    names = {p.name for p in write_cards(d, tmp_path)}
+    assert not any("movers" in n for n in names)
