@@ -275,6 +275,39 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     console.print(f"Scanned {len(entries)} models → run {run_id}")
 
 
+candidates_app = typer.Typer(help="Untracked model-candidate discovery.", no_args_is_help=True)
+models_app.add_typer(candidates_app, name="candidates")
+
+
+@candidates_app.command("scan")
+def candidates_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+    """Sweep untracked HF-trending models and append to the candidate observation log."""
+    import asyncio
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from radar.discovery.model_candidate_sweep import sweep_model_candidates
+    from radar.models_radar.seed import load_model_seed
+    from radar.storage.model_candidate_log import append_model_candidates
+
+    seed_path = root / "config" / "model-seed.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+    seeds = load_model_seed(seed_path)
+    now = datetime.now(UTC)
+
+    async def _run():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            return await sweep_model_candidates(seeds, client, now)
+
+    observations = asyncio.run(_run())
+    out_path = root / "data" / "model-candidate-observations.jsonl"
+    append_model_candidates(out_path, observations)
+    console.print(f"Observed {len(observations)} untracked model candidate(s) "
+                  f"→ {out_path.relative_to(root)}")
+
+
 @models_app.command("discover")
 def models_discover(
     min_downloads: int = typer.Option(10000, help="Minimum HF downloads for a candidate."),
