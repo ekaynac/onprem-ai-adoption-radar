@@ -45,3 +45,12 @@ def test_non_utf8_skipped(tmp_path: Path):
     with path.open("ab") as h:
         h.write(b"\xff\xfe broken\n")
     assert len(load_model_candidates(path)) == 1
+
+
+def test_naive_observed_at_is_normalized_to_utc(tmp_path):
+    path = tmp_path / "model-candidate-observations.jsonl"
+    # a raw naive-datetime line (no offset) must load as tz-aware, not crash a later sort
+    path.write_text('{"hf_repo":"a/b","name":"b","family":"a","downloads":10,'
+                    '"likes":1,"observed_at":"2026-07-06T07:00:00"}\n', encoding="utf-8")
+    rows = load_model_candidates(path)
+    assert len(rows) == 1 and rows[0].observed_at.tzinfo is not None

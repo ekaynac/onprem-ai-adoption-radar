@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,15 @@ class ModelCandidateObservation(BaseModel):
     downloads: int
     likes: int = 0
     observed_at: datetime
+
+    @field_validator("observed_at")
+    @classmethod
+    def _ensure_aware(cls, v: datetime) -> datetime:
+        # A hand-edited/merge-mangled line can drop the UTC offset. Normalize
+        # here at the model boundary so every consumer's sorted()/comparison
+        # sees tz-aware datetimes — never a naive-vs-aware TypeError downstream
+        # (build_model_candidates, has_sustained_download_momentum, etc.).
+        return v.replace(tzinfo=UTC) if v.tzinfo is None else v
 
 
 def append_model_candidates(path: Path, rows: list[ModelCandidateObservation]) -> None:
