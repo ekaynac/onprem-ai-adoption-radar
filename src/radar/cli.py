@@ -1000,7 +1000,7 @@ def digest_generate(
     env = Environment(
         loader=FileSystemLoader(str(_TEMPLATE_DIR)), autoescape=select_autoescape(["html"])
     )
-    env.globals["asset_base"] = ""
+    env.globals["asset_base"] = "../"
     page_name = f"digest_{digest.label}.html"
     (out_dir / page_name).write_text(
         env.get_template("digest.html").render(digest=digest), encoding="utf-8"

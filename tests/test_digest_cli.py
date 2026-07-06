@@ -45,3 +45,14 @@ def test_digest_generate_is_idempotent_per_week(tmp_path):
 
     log = load_digests(tmp_path / "data" / "digest-log.jsonl")
     assert len(log) == 1   # same ISO week → no duplicate log row
+
+
+def test_digest_page_links_up_one_level(tmp_path):
+    _seed_trending(tmp_path)
+    CliRunner().invoke(app, ["digest", "generate", "--root", str(tmp_path)])
+
+    page = next((tmp_path / "digests").glob("digest_*.html")).read_text(encoding="utf-8")
+    assert "../index.html" in page          # nav points up to the site root
+    assert "../trending.html" in page
+    assert "../static/brand/favicon.png" in page   # favicon resolves up one level
+    assert 'href="index.html"' not in page  # no shallow root-relative link remains

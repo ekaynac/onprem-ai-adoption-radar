@@ -10,7 +10,7 @@
   <body>
     {% set page_title = "Weekly Digest — " ~ digest.label %}
     {% set tagline = digest.summary_line %}
-    {% set nav = {"Radar": "index.html", "Trending": "trending.html"} %}
+    {% set nav = {"Radar": "../index.html", "Trending": "../trending.html"} %}
     {% include "_hero.html" %}
     <main class="container">
       {% for section, rows in [("On-prem radar candidates", digest.trending_onprem),
