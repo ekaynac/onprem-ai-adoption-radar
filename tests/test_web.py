@@ -1131,3 +1131,20 @@ def test_trending_emerging_papers_empty_survives(tmp_path):
     r = client.get("/trending")
 
     assert r.status_code == 200   # no store → empty sub-section, page still renders
+
+
+def test_trending_marks_stale_model_candidate(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.storage.model_candidate_log import ModelCandidateObservation, append_model_candidates
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    # both observations far in the past → latest is > 4 days before now → stale
+    append_model_candidates(tmp_path / "data" / "model-candidate-observations.jsonl", [
+        ModelCandidateObservation(hf_repo="acme/old", name="old", family="acme", downloads=d,
+                                  likes=1, observed_at=datetime(2020, 1, day, 7, 0, tzinfo=UTC))
+        for day, d in ((1, 1000), (2, 2000))
+    ])
+    r = TestClient(create_app(tmp_path)).get("/trending")
+    assert r.status_code == 200
+    assert "Last seen" in r.text
+    assert "STALE" in r.text

@@ -617,7 +617,7 @@ def test_static_site_renders_emerging(tmp_path):
 
     cands = [ModelCandidateEntry(hf_repo="acme/emerging", name="emerging", family="acme",
                                  downloads=4000, downloads_per_day=1000.0, is_new=True,
-                                 first_seen="2026-07-01")]
+                                 first_seen="2026-07-01", last_seen="2026-07-01", is_stale=False)]
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
                        model_candidates=cands)
     page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
@@ -636,7 +636,7 @@ def test_static_site_renders_emerging_papers(tmp_path):
 
     cands = [TechniqueCandidateEntry(arxiv_id="2501.9999", name="Hot Paper", upvotes=130,
                                      upvotes_per_day=40.0, citation_count=3, is_new=True,
-                                     first_seen="2026-07-01")]
+                                     first_seen="2026-07-01", last_seen="2026-07-01", is_stale=False)]
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
                        technique_candidates=cands)
     page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
@@ -648,3 +648,15 @@ def test_static_site_renders_emerging_papers(tmp_path):
 def test_static_site_emerging_papers_backcompat(tmp_path):
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
     assert (tmp_path / "_site" / "index.html").exists()   # no candidates → still renders
+
+
+def test_static_site_marks_stale_and_shows_last_seen(tmp_path):
+    from radar.discovery.model_candidate_detect import ModelCandidateEntry
+
+    cands = [ModelCandidateEntry(hf_repo="acme/old", name="old", family="acme", downloads=2000,
+                                 downloads_per_day=None, is_new=False, first_seen="2026-06-01",
+                                 last_seen="2026-06-02", is_stale=True)]
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       model_candidates=cands)
+    page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+    assert "Last seen" in page and "2026-06-02" in page and "STALE" in page
