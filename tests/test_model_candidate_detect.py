@@ -57,3 +57,19 @@ def test_sustained_momentum_requires_days_span_growth():
 
     flat = [_obs("a/b", 100, 1), _obs("a/b", 101, 4), _obs("a/b", 102, 6)]    # +2% < 25%
     assert has_sustained_download_momentum(flat) is False
+
+
+def test_velocity_none_on_zero_span_same_day():
+    # two observations on the SAME calendar day → zero span → no velocity
+    rows = [_obs("a/b", 100, 4), _obs("a/b", 500, 4)]
+    assert build_model_candidates(rows, NOW)[0].downloads_per_day is None
+
+
+def test_momentum_false_with_single_observation():
+    assert has_sustained_download_momentum([_obs("a/b", 100, 1)]) is False
+
+
+def test_momentum_false_when_earliest_downloads_zero():
+    # 3 days over span 5, but earliest is 0 → growth % undefined → not sustained
+    rows = [_obs("a/b", 0, 1), _obs("a/b", 5000, 4), _obs("a/b", 9000, 6)]
+    assert has_sustained_download_momentum(rows) is False
