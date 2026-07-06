@@ -1597,10 +1597,18 @@ def export(
     digests = load_digests(root / "data" / "digest-log.jsonl")
     latest_digest = max(digests, key=lambda d: d.generated_at) if digests else None
 
+    # Trending-hub sections (optional): rising/new-this-week models + techniques
+    # for the trending page's "Trending Models"/"Trending Techniques" sections
+    # and the index strip's top-model/top-technique highlights.
+    from radar.web.hub_sections import load_hub_sections
+
+    generated_at = datetime.now(UTC)
+    _model_hub, _technique_hub = load_hub_sections(root, generated_at)
+
     index = render_static_site(
         cards,
         out,
-        datetime.now(UTC),
+        generated_at,
         timelines=timelines,
         self_base_url=base_url,
         metrics_by_project=metrics_by_project,
@@ -1618,6 +1626,10 @@ def export(
         impl_hrefs=impl_hrefs or None,
         digest_dir=root / "digests",
         latest_digest=latest_digest,
+        model_hub=_model_hub or None,
+        technique_hub=_technique_hub or None,
+        top_model=next((r for r in _model_hub if not r.is_new), None),
+        top_technique=next((r for r in _technique_hub if not r.is_new), None),
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
