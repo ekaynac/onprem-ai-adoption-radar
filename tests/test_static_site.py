@@ -610,3 +610,22 @@ def test_static_site_renders_hub_sections(tmp_path):
 def test_static_site_hub_backcompat(tmp_path):
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
     assert (tmp_path / "_site" / "index.html").exists()   # no hub data → still renders
+
+
+def test_static_site_renders_emerging(tmp_path):
+    from radar.discovery.model_candidate_detect import ModelCandidateEntry
+
+    cands = [ModelCandidateEntry(hf_repo="acme/emerging", name="emerging", family="acme",
+                                 downloads=4000, downloads_per_day=1000.0, is_new=True,
+                                 first_seen="2026-07-01")]
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       model_candidates=cands)
+    page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+
+    assert "Emerging" in page and "acme/emerging" in page
+    assert 'href="https://huggingface.co/acme/emerging"' in page
+
+
+def test_static_site_emerging_backcompat(tmp_path):
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
+    assert (tmp_path / "_site" / "index.html").exists()   # no candidates → still renders

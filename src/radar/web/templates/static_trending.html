@@ -63,6 +63,27 @@
         </tbody>
       </table>
       {% endif %}
+      {% if kind == "model" %}
+      <h3>Emerging — not yet tracked</h3>
+      {% if not model_candidates %}<p>No emerging models yet.</p>{% endif %}
+      {% if model_candidates %}
+      <table>
+        <thead><tr><th>Model</th><th>Downloads</th><th>Downloads/day</th>
+          <th></th><th>First seen</th></tr></thead>
+        <tbody>
+          {% for c in model_candidates %}
+          <tr>
+            <td><a href="https://huggingface.co/{{ c.hf_repo }}">{{ c.hf_repo }}</a></td>
+            <td>{{ c.downloads }}</td>
+            <td>{% if c.downloads_per_day is not none %}{{ "%+.0f"|format(c.downloads_per_day) }}{% else %}—{% endif %}</td>
+            <td>{% if c.is_new %}NEW{% endif %}</td>
+            <td>{{ c.first_seen }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% endif %}
       {% endfor %}
     </main>
     {% include "_footer.html" %}

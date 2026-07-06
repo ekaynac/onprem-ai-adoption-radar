@@ -1645,6 +1645,15 @@ def export(
     generated_at = datetime.now(UTC)
     _model_hub, _technique_hub = load_hub_sections(root, generated_at)
 
+    # Emerging models (optional): untracked Hugging Face repos with rising
+    # download velocity, shown on trending.html under "Emerging — not yet
+    # tracked". Back-compat: an empty/missing observation log yields [].
+    from radar.discovery.model_candidate_detect import build_model_candidates
+    from radar.storage.model_candidate_log import load_model_candidates
+
+    _model_candidates = build_model_candidates(
+        load_model_candidates(root / "data" / "model-candidate-observations.jsonl"), generated_at)
+
     index = render_static_site(
         cards,
         out,
@@ -1670,6 +1679,7 @@ def export(
         technique_hub=_technique_hub or None,
         top_model=next((r for r in _model_hub if not r.is_new), None),
         top_technique=next((r for r in _technique_hub if not r.is_new), None),
+        model_candidates=_model_candidates or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
