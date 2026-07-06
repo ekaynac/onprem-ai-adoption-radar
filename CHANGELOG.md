@@ -26,6 +26,12 @@ All notable changes to this project are documented here. The format follows
   Ltd. Şti.**; site URL corrected to **www.megabilgisayar.com.tr**.
 
 ### Added
+- **Trending surfaces** — a `/trending` page (dashboard + static site) shows
+  the two-lane GitHub trending signal (on-prem radar candidates + elsewhere in
+  AI) with star velocity, NEW-repo badges, and first-seen dates; the index
+  gains a top-3 strip and a Trending nav link, and MCP gains `list_trending`.
+  All read the committed observation store — a corrupt store degrades to "no
+  trending data" rather than breaking any page.
 - **Source autopilot** — `radar trending promote` auto-adds sustained-momentum
   strict-lane trending repos into `config/seed-sources.yaml` behind hard code
   gates (≥3 observation days over ≥5, ≥30 stars/day or ≥25% growth, ≥800
