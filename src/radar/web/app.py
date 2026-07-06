@@ -15,8 +15,10 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from radar.discovery.trending_entities import Lane
 from radar.mcp_server.model_queries import _latest_model_cards
 from radar.mcp_server.technique_queries import load_technique_entries
+from radar.mcp_server.trending_queries import load_trending_entries
 from radar.models import Category, SourceType
 from radar.models_radar.entities import ModelEntry
 from radar.reports.comparison import ComparisonError, build_comparison
@@ -42,6 +44,7 @@ from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import latest_tool_scan_meta, summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth, summarize_source_health
+from radar.web.trending_summary import summarize_trending
 
 
 _WEB_DIR = Path(__file__).parent
@@ -86,6 +89,10 @@ def create_app(root: Path) -> FastAPI:
     def _technique_entries() -> list[TechniqueEntry]:
         """Load technique entries from the latest research run; empty list if none."""
         return load_technique_entries(root)
+
+    def _trending_entries():
+        from datetime import UTC, datetime
+        return load_trending_entries(root, datetime.now(UTC))
 
     def _technique_hrefs() -> dict[str, str]:
         """Map technique id -> live href, shared by project/model pedigree sections."""
@@ -132,6 +139,8 @@ def create_app(root: Path) -> FastAPI:
                 "models_href": "/models",
                 "techniques_summary": summarize_techniques(_technique_entries()),
                 "research_href": "/research",
+                "trending_summary": summarize_trending(_trending_entries()),
+                "trending_href": "/trending",
             },
         )
 
@@ -283,6 +292,15 @@ def create_app(root: Path) -> FastAPI:
         entries = _technique_entries()
         return TEMPLATES.TemplateResponse(
             request, "techniques.html", {"techniques": entries}
+        )
+
+    @app.get("/trending", response_class=HTMLResponse)
+    def trending_page(request: Request):
+        entries = _trending_entries()
+        onprem = [e for e in entries if e.lane == Lane.ONPREM]
+        broader = [e for e in entries if e.lane == Lane.BROADER]
+        return TEMPLATES.TemplateResponse(
+            request, "trending.html", {"onprem": onprem, "broader": broader}
         )
 
     @app.get("/technique/{technique_id}", response_class=HTMLResponse)

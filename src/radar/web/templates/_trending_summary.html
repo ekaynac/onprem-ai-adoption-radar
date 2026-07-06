@@ -1,0 +1,16 @@
+{# Trending strip. Context: trending_summary (TrendingSummary) | None. #}
+{% if trending_summary and trending_summary.has_trending %}
+<div class="scan-health">
+  <details>
+    <summary>📈 {{ trending_summary.one_line }}</summary>
+    <ul>
+      {% for e in trending_summary.onprem_top %}
+      <li><a href="https://github.com/{{ e.repo }}">{{ e.repo }}</a>
+          {% if e.velocity_per_day is not none %}+{{ e.velocity_per_day }}★/day{% endif %}
+          {% if e.is_new %} · NEW{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <p><a href="{{ trending_href|default('trending.html') }}">Browse trending →</a></p>
+  </details>
+</div>
+{% endif %}

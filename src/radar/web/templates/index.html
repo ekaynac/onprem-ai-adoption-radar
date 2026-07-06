@@ -10,7 +10,7 @@
   <body>
     {% set page_title = "On-Prem AI Adoption Radar" %}
     {% set tagline = "Which AI agent & tooling projects to adopt, pilot, watch, or avoid for on-prem — decided from observed evidence." %}
-    {% set nav = {"Models": "/models", "Research": "/research", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
+    {% set nav = {"Models": "/models", "Research": "/research", "Trending": "/trending", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
     {% set downloads = {"History (JSONL)": "/history.jsonl"} %}
     {% include "_hero.html" %}
 
@@ -20,6 +20,7 @@
       {% include "_source_health.html" %}
       {% include "_models_summary.html" %}
       {% include "_research_summary.html" %}
+      {% include "_trending_summary.html" %}
       {% include "_legend.html" %}
       {% include "_filter_bar.html" %}
       <table id="radar-table">
