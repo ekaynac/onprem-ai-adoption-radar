@@ -24,9 +24,9 @@ from radar.storage.model_metrics_store import ModelMetrics
 
 logger = logging.getLogger(__name__)
 
-# Techniques at momentum 3+/5 count as trending (the top three tiers of the
-# citation-momentum scale); 1-2 are flat/declining and excluded from the section.
-RISING_MOMENTUM = 3
+# Techniques at momentum 4+/5 count as trending. Canonical scale (momentum.py):
+# 5/4 = rising, 3 = steady, ≤2 = falling. Only the rising tiers are shown here.
+RISING_MOMENTUM = 4
 MODEL_METRICS_WINDOW = 14  # most-recent daily observations feeding growth (a trending window, not all-time)
 _NEW_CHANGES = {"new", "promoted"}
 
