@@ -712,7 +712,7 @@ def test_static_tables_are_scroll_wrapped(tmp_path):
                        model_entries=[ModelEntry(id="x", name="x", family="F")])
     for page in (tmp_path / "_site").glob("*.html"):
         text = page.read_text(encoding="utf-8")
-        if "<table" in text and page.name != "compare.html":   # compare converts in T5
+        if "<table" in text:
             assert '<div class="table-wrap">' in text, page.name
 
     models_page = (tmp_path / "_site" / "models.html").read_text(encoding="utf-8")
@@ -820,10 +820,26 @@ def test_static_nav_identical_across_pages(tmp_path: Path):
         trending_observations=_trending_obs(),
     )
     site = tmp_path / "_site"
-    for name in ("models.html", "techniques.html", "trending.html", "history.html"):
+    for name in ("models.html", "techniques.html", "trending.html", "history.html", "compare.html"):
         html = (site / name).read_text(encoding="utf-8")
         for label in STATIC_NAV:
             assert f">{label}</a>" in html, f"{label} missing from {name}"
+
+
+def test_static_compare_uses_design_system(tmp_path: Path):
+    """static_compare.html adopts the shared hero/table/footer system (finding #8b)."""
+    cards = [
+        _card("Cline", Ring.PILOT),
+        _card("Aider", Ring.ADOPT),
+    ]
+    render_static_site(cards, tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
+    page = (tmp_path / "_site" / "compare.html").read_text(encoding="utf-8")
+
+    assert 'class="hero"' in page            # shared hero present
+    assert "--hero-bg" in page               # shared stylesheet inlined
+    assert "#f9fafb" not in page             # bespoke light-only style gone
+    assert '<div class="table-wrap">' in page
+    assert "Cline" in page and "Aider" in page
 
 
 def test_static_legend_on_catalog_pages(tmp_path: Path):

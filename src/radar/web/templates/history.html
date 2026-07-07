@@ -3,79 +3,50 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>History · Adoption Radar</title>
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        margin: 2rem;
-        color: #1f2937;
-      }
-      .project {
-        margin-bottom: 2rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 1rem 1.25rem;
-      }
-      .meta {
-        color: #4b5563;
-        font-size: 0.9rem;
-        margin: 0.25rem 0 0.75rem;
-      }
-      table {
-        border-collapse: collapse;
-        width: 100%;
-      }
-      th,
-      td {
-        border-bottom: 1px solid #e5e7eb;
-        padding: 0.4rem 0.6rem;
-        text-align: left;
-      }
-      th {
-        background: #f9fafb;
-      }
-      .mono {
-        font-family: ui-monospace, monospace;
-      }
-      a {
-        color: #2563eb;
-      }
-    </style>
+    <title>History · On-Prem AI Adoption Radar</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
   </head>
   <body>
-    <p><a href="/">&larr; Dashboard</a> · <a href="/sources">Sources</a></p>
-    <h1>Adoption History</h1>
+    {% set page_title = "Adoption History" %}
+    {% set tagline = "Every ring change over time — the full, append-only timeline." %}
+    {% set nav = {"Radar": "/", "Models": "/models", "Research": "/research", "Trending": "/trending", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
+    {% include "_hero.html" %}
 
-    {% for item in timelines %}
-    <div class="project">
-      <h2>{{ item.summary.project }}</h2>
-      <p class="meta">
-        {{ item.summary.category.value }}
-        · now <span class="mono">{{ item.summary.current_ring.value }}</span>
-        · on radar since {{ item.summary.first_seen.date().isoformat() }}
-        · {{ item.summary.change_count }} change(s)
-      </p>
-      <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Date</th><th>Change</th><th>Ring</th></tr>
-        </thead>
-        <tbody>
-          {% for e in item.events %}
-          <tr>
-            <td>{{ e.observed_at.date().isoformat() }}</td>
-            <td>{{ e.change_type.value }}</td>
-            <td class="mono">
-              {% if e.previous_ring %}{{ e.previous_ring.value }} &rarr; {% endif %}{{ e.ring.value }}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <main class="container">
+      {% for item in timelines %}
+      <div class="project" style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+        <h2 style="margin-top: 0;">{{ item.summary.project }}</h2>
+        <p class="meta">
+          {{ item.summary.category.value }}
+          · now <span class="mono">{{ item.summary.current_ring.value }}</span>
+          · on radar since {{ item.summary.first_seen.date().isoformat() }}
+          · {{ item.summary.change_count }} change(s)
+        </p>
+        <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Change</th><th>Ring</th></tr>
+          </thead>
+          <tbody>
+            {% for e in item.events %}
+            <tr>
+              <td>{{ e.observed_at.date().isoformat() }}</td>
+              <td>{{ e.change_type.value }}</td>
+              <td class="mono">
+                {% if e.previous_ring %}{{ e.previous_ring.value }} &rarr; {% endif %}{{ e.ring.value }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
       </div>
-    </div>
-    {% else %}
-    <p>No history recorded yet. Run <code>radar scan</code> first.</p>
-    {% endfor %}
+      {% else %}
+      <p>No history recorded yet. Run <code>radar scan</code> first.</p>
+      {% endfor %}
+    </main>
+
+    {% include "_footer.html" %}
   </body>
 </html>

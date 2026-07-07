@@ -1272,7 +1272,7 @@ LIVE_NAV = ["Radar", "Models", "Research", "Trending", "Compare", "History", "So
 def test_nav_identical_across_live_pages(tmp_path: Path):
     """Every hero-bearing live page renders the same 7-item nav (finding #6)."""
     client = TestClient(create_app(tmp_path))
-    for path in ("/", "/models", "/research", "/trending"):
+    for path in ("/", "/models", "/research", "/trending", "/history"):
         r = client.get(path)
         for label in LIVE_NAV:
             assert f">{label}</a>" in r.text, f"{label} missing from {path}"
@@ -1283,3 +1283,45 @@ def test_legend_on_catalog_pages(tmp_path: Path):
     client = TestClient(create_app(tmp_path))
     for path in ("/models", "/research"):
         assert "Rings" in client.get(path).text
+
+
+def test_compare_page_uses_design_system(tmp_path: Path):
+    """Live /compare adopts the shared hero/table/footer system (finding #8b)."""
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Cline", category=Category.CODING_AGENTS, ring=Ring.PILOT,
+                summary="x", workflow_fit={}, risk_level="medium",
+            ),
+            DecisionCard(
+                project="Aider", category=Category.CODING_AGENTS, ring=Ring.ADOPT,
+                summary="x", workflow_fit={}, risk_level="low",
+            ),
+        ]
+    )
+
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/compare", params={"category": "coding_agents"})
+
+    assert response.status_code == 200
+    text = response.text
+    assert 'class="hero"' in text
+    assert "#f9fafb" not in text
+    assert '<div class="table-wrap">' in text
+    for label in LIVE_NAV:
+        assert f">{label}</a>" in text, f"{label} missing from /compare"
+
+
+def test_history_page_uses_design_system(tmp_path: Path):
+    """Live /history adopts the shared hero/table/footer system (finding #8b)."""
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/history")
+
+    assert response.status_code == 200
+    text = response.text
+    assert 'class="hero"' in text
+    assert "#f9fafb" not in text
+    for label in LIVE_NAV:
+        assert f">{label}</a>" in text, f"{label} missing from /history"
