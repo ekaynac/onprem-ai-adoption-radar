@@ -1373,7 +1373,7 @@ def test_sortable_headers_have_aria_sort(tmp_path: Path):
 
 
 def test_sortable_headers_keyboard_operable(tmp_path: Path):
-    """Sortable <th>s are keyboard-operable: focusable, announced as buttons,
+    """Sortable <th>s are keyboard-operable: focusable columnheaders with aria-sort,
     and wired for Enter/Space via keydown (Task 3, deferred-cleanup)."""
     (tmp_path / "data").mkdir(parents=True)
     _seed_models(tmp_path)
@@ -1383,14 +1383,14 @@ def test_sortable_headers_keyboard_operable(tmp_path: Path):
     models_text = client.get("/models").text
     techniques_text = client.get("/research").text
 
-    # /models: 9 sortable <th data-key=...> headers
-    assert models_text.count('role="button"') == 9
+    # /models: 9 sortable <th data-key=...> columnheader headers
+    assert models_text.count('role="button"') == 0  # columnheader role, not button
     assert models_text.count('tabindex="0"') == 9
     assert models_text.count('aria-sort="none"') == 9
     assert "keydown" in models_text
 
-    # /research: 6 sortable <th data-key=...> headers
-    assert techniques_text.count('role="button"') == 6
+    # /research: 6 sortable <th data-key=...> columnheader headers
+    assert techniques_text.count('role="button"') == 0  # columnheader role, not button
     assert techniques_text.count('tabindex="0"') == 6
     assert techniques_text.count('aria-sort="none"') == 6
     assert "keydown" in techniques_text
