@@ -129,4 +129,6 @@ class TechniqueEntry(BaseModel):
     score: float | None = None
     score_breakdown: TechniqueScore | None = None
     ring: Ring | None = None
+    momentum_direction: str | None = None  # rising | falling | steady
+    momentum_note: str | None = None
     warnings: list[str] = Field(default_factory=list)

@@ -424,6 +424,35 @@ def test_static_site_renders_research_section(tmp_path):
     assert 'href="techniques.html"' in index_html
 
 
+def test_static_technique_page_shows_momentum_note(tmp_path):
+    entry = _technique_entry().model_copy(update={
+        "momentum_direction": "rising",
+        "momentum_note": "Citations +12.3% since last comparable scan.",
+    })
+
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 3, tzinfo=UTC),
+        technique_entries=[entry],
+    )
+
+    detail_html = (tmp_path / "_site" / "technique_speculative-decoding.html").read_text(
+        encoding="utf-8")
+    assert "Momentum: rising" in detail_html
+    assert "Citations +12.3%" in detail_html
+
+
+def test_static_technique_page_without_momentum_still_renders(tmp_path):
+    """Back-compat: an entry with no momentum fields (old technique_cards.json) still renders."""
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 3, tzinfo=UTC),
+        technique_entries=[_technique_entry()],
+    )
+
+    detail_html = (tmp_path / "_site" / "technique_speculative-decoding.html").read_text(
+        encoding="utf-8")
+    assert "Momentum:" not in detail_html
+
+
 def test_static_site_backcompat_without_techniques(tmp_path):
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 3, tzinfo=UTC))
     site = tmp_path / "_site"

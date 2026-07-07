@@ -130,6 +130,39 @@ def test_score_and_ring_closed_loop(tmp_path):
     assert by_id["qlora"].ring == Ring.WATCH
 
 
+def test_score_entries_carry_momentum_narrative(tmp_path):
+    from radar.storage.technique_metrics_store import TechniqueMetrics
+
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    # Prior scan: same resolved-impl count (no impl delta) but far fewer citations,
+    # so the citation-growth branch of momentum_signal fires (not the impl-delta one).
+    store.record([TechniqueMetrics(
+        technique_id="speculative-decoding", run_id="run-0", observed_at=NOW,
+        citation_count=1000, citation_source="s2", resolved_impls=2,
+    )])
+    entries = assemble_entries(_seeds(), _context(), _citations(), store)
+
+    scored = score_technique_entries(entries, store)
+
+    spec = next(e for e in scored if e.id == "speculative-decoding")
+    assert spec.momentum_direction in {"rising", "falling", "steady"}
+    assert spec.momentum_direction == "rising"
+    assert "Citations" in (spec.momentum_note or "")
+
+
+def test_score_entries_without_prior_history_have_no_momentum_note(tmp_path):
+    """Back-compat sanity: neutral momentum still carries direction, not required note."""
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    entries = assemble_entries(_seeds(), _context(), _citations(), store)
+
+    scored = score_technique_entries(entries, store)
+
+    qlora = next(e for e in scored if e.id == "qlora")
+    assert qlora.momentum_direction == "steady"
+
+
 def test_persist_appends_history_and_metrics_once(tmp_path):
     db = tmp_path / "radar.db"
     history = tmp_path / "technique-history.jsonl"

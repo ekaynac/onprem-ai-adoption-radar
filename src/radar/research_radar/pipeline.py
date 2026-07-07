@@ -74,6 +74,7 @@ def score_technique_entries(
         )
         scored.append(entry.model_copy(update={
             "score": breakdown.average, "score_breakdown": breakdown, "ring": ring,
+            "momentum_direction": momentum.direction, "momentum_note": momentum.note or None,
         }))
     return scored
 
