@@ -34,6 +34,7 @@ def test_new_rules_present():
     assert re.search(r"td\.num, th\.num \{[^}]*tabular-nums", STYLES)  # numeric (#9)
     assert ".warning { color: var(--avoid)" in STYLES              # (#14)
     assert "font-size: 0.75rem" in STYLES and "font-size: 0.72rem" not in STYLES  # th (#16)
+    assert ".dim { color: var(--muted)" in STYLES                  # compare filter-bar follow-up
 
 
 def test_signal_badge_classes_present():

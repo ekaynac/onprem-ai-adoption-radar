@@ -19,7 +19,7 @@
         <h2 style="margin-top: 0;">{{ item.summary.project }}</h2>
         <p class="meta">
           {{ item.summary.category.value }}
-          · now <span class="mono">{{ item.summary.current_ring.value }}</span>
+          · now <span class="ring-pill ring-{{ item.summary.current_ring.value }}">{{ item.summary.current_ring.value }}</span>
           · on radar since {{ item.summary.first_seen.date().isoformat() }}
           · {{ item.summary.change_count }} change(s)
         </p>

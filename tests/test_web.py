@@ -233,6 +233,7 @@ def test_history_page_renders_recorded_events(tmp_path: Path):
     assert response.status_code == 200
     assert "Ollama" in response.text
     assert "2026-06-10" in response.text
+    assert "ring-pill" in response.text  # ring badge, matches static_history.html
 
 
 def test_post_source_rejects_duplicate_with_message(tmp_path: Path):
@@ -1310,6 +1311,7 @@ def test_compare_page_uses_design_system(tmp_path: Path):
     assert 'class="hero"' in text
     assert "#f9fafb" not in text
     assert '<div class="table-wrap">' in text
+    assert "filter-bar" in text  # filter form controls picked up shared styling
     for label in LIVE_NAV:
         assert f">{label}</a>" in text, f"{label} missing from /compare"
 
