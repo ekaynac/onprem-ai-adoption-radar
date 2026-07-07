@@ -42,3 +42,9 @@ def test_seed_catalog_is_comprehensive_and_valid():
     # MoE seeds carry active params
     moe = {s.id: s for s in seeds if s.id in ("mixtral-8x7b", "deepseek-r1")}
     assert all(s.params_active and s.params_active < s.params_total for s in moe.values())
+
+
+def test_seed_ornith_params_corrected():
+    seeds = load_model_seed(_REPO_ROOT / "config" / "model-seed.yaml")
+    ornith = next(s for s in seeds if s.id == "hf-ornith-1-0-35b")
+    assert ornith.params_total == 35_000_000_000
