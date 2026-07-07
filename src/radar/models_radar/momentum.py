@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from pydantic import BaseModel
 
 from radar.models_radar.history import ModelHistoryEvent
@@ -12,6 +14,7 @@ from radar.storage.model_metrics_store import ModelMetrics
 RISING_PCT = 5.0
 FALLING_PCT = -5.0
 RECENT_EVENTS = 3
+RING_EVENT_WINDOW_DAYS = 30  # older ring events stop overriding the downloads signal
 
 
 class ModelMomentum(BaseModel):
@@ -32,10 +35,17 @@ def compute_model_momentum(
     model_id: str,
     metric_rows: list[ModelMetrics],
     ring_events: list[ModelHistoryEvent],
+    now: datetime,
 ) -> ModelMomentum:
-    """Direction of travel (rows + events oldest-first)."""
+    """Direction of travel (rows + events oldest-first).
+
+    Ring events older than ``RING_EVENT_WINDOW_DAYS`` no longer act as direction
+    overrides — a demotion from months ago must not force "falling" forever.
+    """
     growth = _downloads_growth_pct(metric_rows)
-    for event in reversed(ring_events[-RECENT_EVENTS:]):
+    cutoff = (now - timedelta(days=RING_EVENT_WINDOW_DAYS)).date()
+    recent_events = [e for e in ring_events[-RECENT_EVENTS:] if e.observed_at.date() >= cutoff]
+    for event in reversed(recent_events):
         if event.change_type == ChangeType.PROMOTED:
             return ModelMomentum(model_id=model_id, direction="rising",
                                  downloads_growth_pct=growth,

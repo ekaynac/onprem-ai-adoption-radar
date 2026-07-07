@@ -7,6 +7,7 @@ I/O lives at the call site.
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime
 
@@ -19,6 +20,9 @@ from radar.models_radar.assemble import openness_from_license
 from radar.models_radar.collectors.huggingface import HFModelData
 from radar.models_radar.entities import Modality, ModelSeed
 from radar.storage.model_candidate_log import ModelCandidateObservation
+
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +177,27 @@ _MODALITY_MAP: dict[str, Modality] = {
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}")
 
+_SIZE_TOKEN = re.compile(r"(\d+(?:\.\d+)?)\s*[bB]\b")
+_MOE_TOKEN = re.compile(r"\d+x\d+(?:\.\d+)?\s*[bB]\b")
+PARAMS_TOLERANCE = 5.0  # name says 35B but value differs by >5x either way -> implausible
+
+
+def plausible_params(name: str, params_total: int | None) -> int | None:
+    """params_total, or None (+ warning) when wildly inconsistent with the name's size token."""
+    if params_total is None or _MOE_TOKEN.search(name):
+        return params_total  # MoE AxB naming is total-vs-active ambiguous: never guess
+    match = _SIZE_TOKEN.search(name)
+    if not match:
+        return params_total
+    nominal = float(match.group(1)) * 1e9
+    if params_total > nominal * PARAMS_TOLERANCE or params_total < nominal / PARAMS_TOLERANCE:
+        logger.warning(
+            "Implausible params_total %d for %r (name suggests ~%.0f) — dropping",
+            params_total, name, nominal,
+        )
+        return None
+    return params_total
+
 
 def build_seed(
     proposal: ModelProposal,
@@ -184,10 +209,14 @@ def build_seed(
 
     Returns None when:
     - hf is None (no network data available)
-    - hf.params_total is None (can't produce a useful seed without size)
+    - hf.params_total is None, or implausible relative to the name's size token
+      (can't produce a useful seed without a trustworthy size)
     - no unique ID can be generated within 50 attempts
     """
-    if hf is None or hf.params_total is None:
+    if hf is None:
+        return None
+    params = plausible_params(proposal.name, hf.params_total)
+    if params is None:
         return None
 
     # Resolve unique ID
@@ -224,7 +253,7 @@ def build_seed(
         hf_repo=proposal.hf_repo,
         ollama_name=None,
         backer=backer,
-        params_total=hf.params_total,
+        params_total=params,
         params_active=None,
         num_layers=hf.num_layers,
         hidden_size=hf.hidden_size,

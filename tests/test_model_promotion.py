@@ -9,6 +9,7 @@ from radar.discovery.model_promotion import (
     build_seed,
     derive_family,
     is_promotable,
+    plausible_params,
     seed_to_yaml_block,
 )
 from radar.discovery.model_proposals import ModelProposal
@@ -339,6 +340,19 @@ class TestBuildSeed:
         assert seed.backer.name == "unknown-org"
         assert seed.backer.type == BackerType.COMMUNITY
 
+    def test_build_seed_skips_implausible_params(self) -> None:
+        # A "35B"-named model whose HF scrape returned a garbage params_total
+        # (same shape of bug that broke the Ornith-1.0-35B seed): build_seed
+        # must route through plausible_params and skip the seed entirely,
+        # not just the field. Pins the guard's wiring against refactors.
+        p = _proposal(
+            hf_repo="acme-org/Test-35B", name="Test-35B", family="Test",
+            suggested_id="test-35b",
+        )
+        h = _hf(params_total=664944)
+        seed = build_seed(p, h, existing_ids=set())
+        assert seed is None  # implausible size -> skipped this round (warn), not seeded
+
 
 # ---------------------------------------------------------------------------
 # Round-trip: seed_to_yaml_block → load_model_seed
@@ -488,3 +502,20 @@ class TestRoundTrip:
         assert loaded_seed.use_case == "chat: general, coding"
         assert loaded_seed.family == "Test"
         assert loaded_seed.name == "Test Model Special"
+
+
+# ---------------------------------------------------------------------------
+# plausible_params
+# ---------------------------------------------------------------------------
+
+
+class TestPlausibleParams:
+    def test_plausible_params_rejects_ornith_class_error(self) -> None:
+        assert plausible_params("Ornith-1.0-35B", 664944) is None  # ~52,000x off
+
+    def test_plausible_params_keeps_consistent_and_ambiguous_values(self) -> None:
+        assert plausible_params("GLM-5.2", 753329940480) == 753329940480  # no size token -> keep
+        assert plausible_params("Qwen3-32B", 32_800_000_000) == 32_800_000_000  # within 5x
+        assert plausible_params("Mixtral-8x7B", 46_700_000_000) == 46_700_000_000  # MoE AxB -> skip
+        assert plausible_params("SmolLM2-1.7B", 1_710_000_000) == 1_710_000_000  # sub-1B ok
+        assert plausible_params("Some-35B", None) is None  # None passes through

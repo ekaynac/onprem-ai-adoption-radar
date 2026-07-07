@@ -111,3 +111,32 @@ def test_lost_impl_with_rising_citations_still_falls():
 
     assert signal.score == 2
     assert signal.direction == "falling"
+
+
+def test_low_baseline_growth_is_no_signal():
+    """Citation floor case: 7 -> 11 (+57%) is index noise, not signal."""
+    rows = [_row(7, impls=2)]
+    sig = momentum_signal("t", rows, citation_count=11, citation_source="s2", impl_count=2)
+    assert sig.score == 3 and sig.direction == "steady"
+    assert sig.citation_growth_pct is None  # floor: baseline < 50 -> no pct signal
+
+
+def test_tiny_negative_delta_is_steady():
+    """Self-consistency case: 7091 -> 7089 (-0.03%) is within noise deadband."""
+    rows = [_row(7091, impls=2)]
+    sig = momentum_signal("t", rows, citation_count=7089, citation_source="s2", impl_count=2)
+    assert sig.direction == "steady" and sig.score == 3
+
+
+def test_real_decline_still_falls():
+    """Real decline: -3% on large baseline crosses the -2% deadband."""
+    rows = [_row(1000, impls=2)]
+    sig = momentum_signal("t", rows, citation_count=970, citation_source="s2", impl_count=2)
+    assert sig.direction == "falling" and sig.score == 2
+
+
+def test_real_growth_still_rises():
+    """+12% on baseline >= 50 is above the 10% rising threshold."""
+    rows = [_row(1000, impls=2)]
+    sig = momentum_signal("t", rows, citation_count=1120, citation_source="s2", impl_count=2)
+    assert sig.direction == "rising" and sig.score == 4

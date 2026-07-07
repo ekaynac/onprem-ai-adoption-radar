@@ -129,8 +129,26 @@ def test_technique_entry_is_frozen_with_optional_enrichment():
     assert entry.citation_count is None
     assert entry.ring is None
     assert entry.warnings == []
+    assert entry.momentum_direction is None
+    assert entry.momentum_note is None
     with pytest.raises(ValidationError):
         entry.name = "changed"  # type: ignore[misc]
+
+
+def test_technique_entry_validates_old_snapshot_missing_momentum_keys():
+    """Back-compat: technique_cards.json written before momentum fields existed."""
+    old_snapshot = {
+        "id": "lora",
+        "name": "LoRA",
+        "category": "ai_infrastructure",
+        "domain": "fine_tuning",
+        "onprem_impact": "reduces_memory",
+    }
+
+    entry = TechniqueEntry.model_validate(old_snapshot)
+
+    assert entry.momentum_direction is None
+    assert entry.momentum_note is None
 
 
 def test_technique_score_bounds():

@@ -718,6 +718,10 @@ def test_export_survives_corrupt_research_run(tmp_path):
     assert result.exit_code == 0
     assert (tmp_path / "_site" / "index.html").exists()
     assert not (tmp_path / "_site" / "techniques.html").exists()
+    # A research run exists (kind=research, fresh created_at) but its
+    # technique_cards.json is unreadable/schema-drifted -> the guarded gateway
+    # treats it as empty entries, which the staleness check still flags.
+    assert "research data is stale/missing" in result.output
 
 
 def test_export_includes_trending_page(tmp_path):
@@ -769,3 +773,142 @@ def test_export_survives_naive_datetime_model_candidate(tmp_path):
 
     assert result.exit_code == 0
     assert (tmp_path / "_site" / "index.html").exists()
+
+
+def test_export_warns_when_research_snapshot_missing(tmp_path):
+    """No `radar research scan` has ever run: export must still succeed (the
+    daily-publish invariant) but warn that the technique pages reflect no
+    (or stale) research data."""
+    from radar.storage.database import RadarDatabase
+
+    RadarDatabase(tmp_path / "data" / "radar.db").initialize()
+
+    result = CliRunner().invoke(
+        app, ["export", "--root", str(tmp_path), "--out", str(tmp_path / "_site")]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert "research data is stale/missing" in result.output
+
+
+def test_export_does_not_warn_for_fresh_research_snapshot(tmp_path):
+    """A just-completed research scan with real entries must NOT trigger the
+    staleness warning — only missing/empty/stale snapshots should."""
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    entry = TechniqueEntry(
+        id="qlora", name="QLoRA", category=Category.AI_INFRASTRUCTURE,
+        domain=TechniqueDomain.FINE_TUNING, onprem_impact=OnPremImpact.REDUCES_MEMORY,
+        ring=Ring.WATCH,
+    )
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0, result.stdout
+    assert "research data is stale/missing" not in result.output
+
+
+def test_export_warns_when_research_snapshot_stale(tmp_path):
+    """A research run older than EXPORT_RESEARCH_STALE_DAYS must warn even
+    though entries are present — the whole point is catching silent drift
+    between the published snapshot and the current research state."""
+    from datetime import UTC, datetime, timedelta
+
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    entry = TechniqueEntry(
+        id="qlora", name="QLoRA", category=Category.AI_INFRASTRUCTURE,
+        domain=TechniqueDomain.FINE_TUNING, onprem_impact=OnPremImpact.REDUCES_MEMORY,
+        ring=Ring.WATCH,
+    )
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+
+    # RunStore.update_meta always re-stamps "updated_at" to the current time,
+    # so simulating an old run (real time can't be fast-forwarded here)
+    # requires writing meta.json directly, bypassing that auto-stamp.
+    import json
+
+    meta_path = tmp_path / "data" / "runs" / run_id / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["updated_at"] = (datetime.now(UTC) - timedelta(days=10)).isoformat()
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0, result.stdout
+    assert "research data is stale/missing" in result.output
+
+
+def test_export_survives_non_string_meta_timestamp(tmp_path):
+    """A meta.json that is valid JSON but has a non-string updated_at/created_at
+    (e.g. a number) must not crash export with a TypeError from
+    datetime.fromisoformat — it should be treated like a missing/stale
+    timestamp and just warn."""
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    entry = TechniqueEntry(
+        id="qlora", name="QLoRA", category=Category.AI_INFRASTRUCTURE,
+        domain=TechniqueDomain.FINE_TUNING, onprem_impact=OnPremImpact.REDUCES_MEMORY,
+        ring=Ring.WATCH,
+    )
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+
+    # Write meta.json directly with a non-string updated_at (a number), which
+    # is valid JSON but not something datetime.fromisoformat can parse without
+    # raising TypeError (as opposed to the ValueError a malformed string would
+    # raise).
+    import json
+
+    meta_path = tmp_path / "data" / "runs" / run_id / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["updated_at"] = 12345
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0, result.stdout
+    assert "research data is stale/missing" in result.output
+
+
+def test_research_scan_threads_metrics_log_path(tmp_path, monkeypatch):
+    """Regression pin: `radar research scan` must thread metrics_log_path
+    through to run_research_scan so technique momentum history keeps
+    recording — a silent regression here would desync CI vs local runs."""
+    captured: dict = {}
+
+    async def _fake_scan(**kwargs):
+        captured.update(kwargs)
+        return ([], [])
+
+    monkeypatch.setattr("radar.research_radar.pipeline.run_research_scan", _fake_scan)
+
+    result = CliRunner().invoke(app, ["research", "scan", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    assert captured["metrics_log_path"].name == "technique-metrics.jsonl"
+    assert captured["metrics_log_path"] == tmp_path / "data" / "technique-metrics.jsonl"

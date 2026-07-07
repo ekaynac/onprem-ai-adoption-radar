@@ -105,11 +105,17 @@ def test_technique_section_ranks_high_momentum():
                _tentry("mid", 3, 500), _tentry("cold", 2, 999)]
     rows = build_technique_section(entries, [], NOW)
 
-    # momentum 3+/5 counts as trending; the momentum-2 "cold" is excluded
-    assert [r.id for r in rows] == ["hot", "warm", "mid"]
+    # canonical scale (momentum.py): 5/4 = rising, 3 = steady, <=2 = falling
+    assert [r.id for r in rows] == ["hot", "warm"]
     assert rows[0].momentum == 5 and rows[0].direction == "rising"
-    assert rows[2].id == "mid" and rows[2].direction == "rising"   # momentum 3 included
-    assert rows[0].kind == "technique"
+    assert rows[1].id == "warm" and rows[1].direction == "rising"
+
+
+def test_momentum_three_is_steady_not_rising():
+    entries = [_tentry("mid", 3, 500)]
+    rows = build_technique_section(entries, [], NOW)
+
+    assert rows == []   # steady-3: not in the section
 
 
 def test_technique_section_unions_new_this_week():

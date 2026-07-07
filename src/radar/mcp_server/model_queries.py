@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -79,7 +80,7 @@ class ModelQueryService:
              "observed_at": e.observed_at.isoformat()}
             for e in events
         ]
-        mom = compute_model_momentum(model_id, store.history_for(model_id), events)
+        mom = compute_model_momentum(model_id, store.history_for(model_id), events, now=datetime.now(UTC))
         data["momentum"] = {"direction": mom.direction,
                             "downloads_growth_pct": mom.downloads_growth_pct}
         data["techniques"] = self._model_techniques(model_id)
@@ -131,7 +132,8 @@ class ModelQueryService:
         movers: list[dict[str, Any]] = []
         for entry in self._entries():
             mom = compute_model_momentum(
-                entry.id, store.history_for(entry.id), by_model.get(entry.id, []))
+                entry.id, store.history_for(entry.id), by_model.get(entry.id, []),
+                now=datetime.now(UTC))
             if mom.direction != "steady":
                 movers.append({"id": entry.id, "direction": mom.direction,
                                "downloads_growth_pct": mom.downloads_growth_pct,

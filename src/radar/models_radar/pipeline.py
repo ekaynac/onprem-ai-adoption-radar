@@ -72,7 +72,7 @@ def persist_model_scan(
 
 
 def momentum_for(
-    entries: list[ModelEntry], db_path: Path, history_path: Path,
+    entries: list[ModelEntry], db_path: Path, history_path: Path, now: datetime,
 ) -> dict[str, ModelMomentum]:
     """Momentum per model from its metric history + ring events."""
     store = ModelMetricsStore(db_path)
@@ -84,6 +84,6 @@ def momentum_for(
     result: dict[str, ModelMomentum] = {}
     for entry in entries:
         result[entry.id] = compute_model_momentum(
-            entry.id, store.history_for(entry.id), events_by_model.get(entry.id, []),
+            entry.id, store.history_for(entry.id), events_by_model.get(entry.id, []), now,
         )
     return result

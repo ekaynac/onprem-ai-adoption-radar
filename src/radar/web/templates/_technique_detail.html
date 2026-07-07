@@ -23,6 +23,9 @@
   </tr></tbody>
 </table>
 {% endif %}
+{% if technique.momentum_direction %}
+<p class="momentum-note">Momentum: {{ technique.momentum_direction }}{% if technique.momentum_note %} — {{ technique.momentum_note }}{% endif %}</p>
+{% endif %}
 {% if technique.papers %}
 <h3>Papers</h3>
 <ul>

@@ -675,6 +675,46 @@ def test_technique_detail_unknown_returns_404(tmp_path):
     assert client.get("/technique/nope").status_code == 404
 
 
+def test_technique_detail_route_shows_momentum_note(tmp_path):
+    from radar.models import Category as _Cat
+    from radar.models import Ring as _Ring
+    from radar.research_radar.entities import OnPremImpact as _Imp
+    from radar.research_radar.entities import TechniqueDomain as _Dom
+    from radar.research_radar.entities import TechniqueEntry as _TE
+    from radar.storage.run_store import RunStore as _RS
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    entry = _TE(
+        id="speculative-decoding", name="Speculative Decoding",
+        category=_Cat.MODEL_SERVING, domain=_Dom.INFERENCE,
+        onprem_impact=_Imp.REDUCES_LATENCY, ring=_Ring.ADOPT, score=4.3,
+        citation_count=1697, momentum_direction="rising",
+        momentum_note="Citations +12.3% since last comparable scan.",
+    )
+    store = _RS(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/technique/speculative-decoding")
+
+    assert r.status_code == 200
+    assert "Momentum: rising" in r.text
+    assert "Citations +12.3%" in r.text
+
+
+def test_technique_detail_route_without_momentum_still_renders(tmp_path):
+    """Back-compat: an entry with no momentum fields (old technique_cards.json) still renders."""
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/technique/speculative-decoding")
+
+    assert r.status_code == 200
+    assert "Momentum:" not in r.text
+
+
 def test_index_shows_research_summary_and_nav(tmp_path):
     (tmp_path / "data").mkdir(parents=True, exist_ok=True)
     _seed_techniques_run(tmp_path)
