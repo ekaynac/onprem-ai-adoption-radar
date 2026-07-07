@@ -25,12 +25,13 @@ All notable changes to this project are documented here. The format follows
   scannable at a glance; ambiguous "Ring"-only columns are now labeled
   "Status" where they mix ring + risk signal; a shared legend explains
   rings/backers/risk on both catalog pages; every page (dashboard, catalogs,
-  compare, history, trending, model/technique detail — live and
-  static) now renders the same canonical 7-item nav
-  (Radar/Models/Research/Trending/Compare/History/Sources, with the static
-  site substituting a Changes-feed link where a live-only route doesn't
-  exist); `/compare` and `/history` (live and static) were rebuilt onto the
-  shared hero/table/footer design system instead of bespoke inline styles;
+  compare, history, trending, sources, model/technique detail — live and
+  static where a static counterpart exists) now renders the same canonical
+  7-item nav (Radar/Models/Research/Trending/Compare/History/Sources, with
+  the static site substituting a Changes-feed link where a live-only route
+  doesn't exist); `/compare`, `/history` (live and static), and `/sources`
+  (live-only; it has no static counterpart) were rebuilt onto the shared
+  hero/table/footer design system instead of bespoke inline styles;
   and sortable table headers (`/models`, `/research`, live and static) now
   expose `aria-sort="none"` initially and toggle
   `aria-sort="ascending"/"descending"` on the active column on click (siblings

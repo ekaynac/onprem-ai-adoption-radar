@@ -1273,7 +1273,7 @@ LIVE_NAV = ["Radar", "Models", "Research", "Trending", "Compare", "History", "So
 def test_nav_identical_across_live_pages(tmp_path: Path):
     """Every hero-bearing live page renders the same 7-item nav (finding #6)."""
     client = TestClient(create_app(tmp_path))
-    for path in ("/", "/models", "/research", "/trending", "/history"):
+    for path in ("/", "/models", "/research", "/trending", "/history", "/sources"):
         r = client.get(path)
         for label in LIVE_NAV:
             assert f">{label}</a>" in r.text, f"{label} missing from {path}"
@@ -1342,6 +1342,18 @@ def test_history_page_uses_design_system(tmp_path: Path):
     assert "#f9fafb" not in text
     for label in LIVE_NAV:
         assert f">{label}</a>" in text, f"{label} missing from /history"
+
+
+def test_sources_page_on_design_system(tmp_path):
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/sources")
+    assert r.status_code == 200
+    assert 'class="hero"' in r.text and "--hero-bg" in r.text     # shared styles + hero
+    assert '<div class="table-wrap">' in r.text
+    assert 'class="filter-bar"' in r.text                          # form styled
+    assert "#f9fafb" not in r.text                                 # bespoke style gone
+    for label in ("Radar", "Models", "Research", "Trending", "Compare", "History", "Sources"):
+        assert f">{label}</a>" in r.text
 
 
 def test_sortable_headers_have_aria_sort(tmp_path: Path):
