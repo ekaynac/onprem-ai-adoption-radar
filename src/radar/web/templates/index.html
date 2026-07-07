@@ -24,6 +24,7 @@
       {% if latest_digest %}<p class="scan-health"><a href="{{ latest_digest.url }}">📰 Latest digest: {{ latest_digest.label }} →</a></p>{% endif %}
       {% include "_legend.html" %}
       {% include "_filter_bar.html" %}
+      <div class="table-wrap">
       <table id="radar-table">
         <thead>
           <tr>
@@ -67,6 +68,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
       {% include "_filter_script.html" %}
     </main>
 

@@ -1188,3 +1188,14 @@ def test_trending_marks_stale_model_candidate(tmp_path):
     assert r.status_code == 200
     assert "Last seen" in r.text
     assert "STALE" in r.text
+
+
+def test_catalog_tables_are_scroll_wrapped(tmp_path):
+    client = TestClient(create_app(tmp_path))
+    for path in ("/", "/models", "/research", "/trending"):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert ('<table' not in r.text) or ('<div class="table-wrap">' in r.text), path
+    models_page = client.get("/models").text
+    assert 'class="num"' in models_page
+    assert "Min mem (GB)" in models_page

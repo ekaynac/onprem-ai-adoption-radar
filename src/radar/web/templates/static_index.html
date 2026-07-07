@@ -24,6 +24,7 @@
       {% include "_legend.html" %}
 
       <h2>Try This Week</h2>
+      <div class="table-wrap">
       <table>
         <thead>
           <tr><th>Project</th><th>Category</th><th>Backed by</th><th>Ring</th><th>Trend</th><th>Risk</th><th>Summary</th></tr>
@@ -53,11 +54,13 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
 
       <h2>All Tracked Projects</h2>
       {# Filter applies to this comprehensive table only; "Try This Week" above is
          a small curated highlight and stays unfiltered. #}
       {% include "_filter_bar.html" %}
+      <div class="table-wrap">
       <table id="radar-table">
         <thead>
           <tr><th>Project</th><th>Category</th><th>Backed by</th><th>Ring</th><th>Trend</th><th>Risk</th><th>On-prem fit</th></tr>
@@ -82,6 +85,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
       {% include "_filter_script.html" %}
     </main>
 

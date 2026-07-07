@@ -15,6 +15,7 @@
     <main class="container">
       {% if not techniques %}<p>No research scan yet.</p>{% endif %}
       {% include "_techniques_filter_bar.html" %}
+      <div class="table-wrap">
       <table id="techniques-table">
         <thead>
           <tr>
@@ -22,8 +23,8 @@
             <th data-key="domain" data-type="str" onclick="techniquesSort(this)">Domain</th>
             <th data-key="ring" data-type="str" onclick="techniquesSort(this)">Ring</th>
             <th data-key="category" data-type="str" onclick="techniquesSort(this)">Category</th>
-            <th data-key="impls" data-type="num" onclick="techniquesSort(this)">Impls</th>
-            <th data-key="citations" data-type="num" onclick="techniquesSort(this)">Citations</th>
+            <th class="num" data-key="impls" data-type="num" onclick="techniquesSort(this)">Impls</th>
+            <th class="num" data-key="citations" data-type="num" onclick="techniquesSort(this)">Citations</th>
           </tr>
         </thead>
         <tbody>
@@ -36,13 +37,14 @@
             <td>{{ t.domain.value }}</td>
             <td>{{ t.ring.value if t.ring else '-' }}</td>
             <td>{{ t.category.value }}</td>
-            <td>{{ t.resolved_implementations | length }}</td>
-            <td>{{ t.citation_count if t.citation_count is not none else '?' }}</td>
+            <td class="num">{{ t.resolved_implementations | length }}</td>
+            <td class="num">{{ t.citation_count if t.citation_count is not none else '?' }}</td>
           </tr>
           {% endfor %}
           <tr id="techniques-no-matches" style="display:none;"><td colspan="6">No techniques match.</td></tr>
         </tbody>
       </table>
+      </div>
       {% include "_techniques_filter_script.html" %}
       {% include "_techniques_sort_script.html" %}
     </main>

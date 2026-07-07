@@ -703,3 +703,18 @@ def test_static_site_technique_stale_wins_over_new(tmp_path):
     page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
     assert "STALE" in page and "2026-06-25" in page and "Quiet Paper" in page
     assert "NEW" not in page.split("Quiet Paper")[1].split("</tr>")[0]
+
+
+def test_static_tables_are_scroll_wrapped(tmp_path):
+    from radar.models_radar.entities import ModelEntry
+
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+                       model_entries=[ModelEntry(id="x", name="x", family="F")])
+    for page in (tmp_path / "_site").glob("*.html"):
+        text = page.read_text(encoding="utf-8")
+        if "<table" in text and page.name != "compare.html":   # compare converts in T5
+            assert '<div class="table-wrap">' in text, page.name
+
+    models_page = (tmp_path / "_site" / "models.html").read_text(encoding="utf-8")
+    assert 'class="num"' in models_page
+    assert "Min mem (GB)" in models_page

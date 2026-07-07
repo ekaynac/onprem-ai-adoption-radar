@@ -16,6 +16,7 @@
       {% if not models %}<p>No models scanned yet.</p>{% endif %}
       {% include "_device_picker.html" %}
       {% include "_models_filter_bar.html" %}
+      <div class="table-wrap">
       <table id="models-table">
         <thead>
           <tr>
@@ -23,11 +24,11 @@
             <th data-key="family" data-type="str" onclick="modelsSort(this)">Family</th>
             <th data-key="ring" data-type="str" onclick="modelsSort(this)">Ring</th>
             <th data-key="tier" data-type="str" onclick="modelsSort(this)">Tier</th>
-            <th data-key="params" data-type="num" onclick="modelsSort(this)">Params</th>
-            <th data-key="context" data-type="num" onclick="modelsSort(this)">Context</th>
+            <th class="num" data-key="params" data-type="num" onclick="modelsSort(this)">Params</th>
+            <th class="num" data-key="context" data-type="num" onclick="modelsSort(this)">Context (tokens)</th>
             <th data-key="license" data-type="str" onclick="modelsSort(this)">License</th>
             <th data-key="use-case" data-type="str" onclick="modelsSort(this)">Use case</th>
-            <th data-key="min-memory-gb" data-type="num" onclick="modelsSort(this)">Min mem</th>
+            <th class="num" data-key="min-memory-gb" data-type="num" onclick="modelsSort(this)">Min mem (GB)</th>
           </tr>
         </thead>
         <tbody>
@@ -42,11 +43,11 @@
             <td>{{ m.family }}</td>
             <td>{% if m.ring %}<span class="ring-pill ring-{{ m.ring.value }}">{{ m.ring.value }}</span>{% else %}-{% endif %}</td>
             <td>{{ m.hardware_tier.value }}</td>
-            <td>{{ '%.0fB'|format(m.params_total / 1e9) if m.params_total else '?' }}{% if m.params_active %} <small>(A{{ '%.0f'|format(m.params_active / 1e9) }}B)</small>{% endif %}</td>
-            <td>{{ '{:,}'.format(m.context_length) if m.context_length else '?' }}</td>
+            <td class="num">{{ '%.0fB'|format(m.params_total / 1e9) if m.params_total else '?' }}{% if m.params_active %} <small>(A{{ '%.0f'|format(m.params_active / 1e9) }}B)</small>{% endif %}</td>
+            <td class="num">{{ '{:,}'.format(m.context_length) if m.context_length else '?' }}</td>
             <td>{{ m.license or '?' }}</td>
             <td>{{ m.use_case or '' }}</td>
-            <td>{{ '%.1f GB'|format(mems | min) if mems else '?' }}</td>
+            <td class="num">{{ '%.1f GB'|format(mems | min) if mems else '?' }}</td>
           </tr>
           {% else %}
           <tr><td colspan="9">No models yet.</td></tr>
@@ -54,6 +55,7 @@
           <tr id="models-no-matches" style="display:none;"><td colspan="9">No models match the current filter.</td></tr>
         </tbody>
       </table>
+      </div>
       {% include "_models_filter_script.html" %}
       {% include "_models_sort_script.html" %}
     </main>
