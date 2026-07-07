@@ -8,11 +8,13 @@
     {% include "_base_styles.html" %}
   </head>
   <body>
+    {% set nav = {"Radar": "index.html", "Models": "models.html", "Research": "techniques.html", "Trending": "trending.html", "Compare": "compare.html", "History": "history.html", "Changes feed": "changes.xml"} %}
     <main class="container" style="padding-top: 1.5rem;">
-      <nav class="hero-nav" style="margin-bottom: 1rem;"><a href="{{ links.home }}">← Radar</a><a href="{{ links.compare }}">Compare</a><a href="{{ links.history }}">History</a></nav>
+      <nav class="hero-nav" style="margin-bottom: 1rem;">
+        {% for label, url in nav.items() %}{% if url %}<a href="{{ url }}">{{ label }}</a>{% endif %}{% endfor %}
+      </nav>
       {% include "_project_detail.html" %}
     </main>
-    {% set nav = {"Radar": links.home, "Compare": links.compare, "History": links.history} %}
     {% include "_footer.html" %}
   </body>
 </html>

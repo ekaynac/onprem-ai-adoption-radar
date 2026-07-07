@@ -278,8 +278,6 @@ def _write_project_pages(
         t["summary"].project: t.get("events") or [] for t in timelines
     }
     template = env.get_template("static_project.html")
-    # Static pages are flat files in the same dir — all nav links are relative.
-    links = {"home": "index.html", "compare": "compare.html", "history": "history.html"}
     for card in cards:
         metrics = list(reversed(metrics_by_project.get(card.project, [])))  # newest-first
         (out_dir / f"project_{slug_by_project[card.project]}.html").write_text(
@@ -287,7 +285,6 @@ def _write_project_pages(
                 card=card,
                 events=events_by_project.get(card.project, []),
                 metrics=metrics,
-                links=links,
                 pedigree=(pedigree_by_project.get(card.project) or None),
                 technique_hrefs=technique_hrefs,
             ),

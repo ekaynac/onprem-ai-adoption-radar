@@ -10,7 +10,7 @@
   <body>
     {% set page_title = "Trending Repos" %}
     {% set tagline = "Fast-rising and newly-created AI repos across GitHub — the radar's own signal." %}
-    {% set nav = {"Radar": "/", "Models": "/models", "Research": "/research"} %}
+    {% set nav = {"Radar": "/", "Models": "/models", "Research": "/research", "Trending": "/trending", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
     {% include "_hero.html" %}
     <main class="container">
       {% if not onprem and not broader %}<p>No trending observations yet.</p>{% endif %}

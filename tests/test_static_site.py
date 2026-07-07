@@ -802,3 +802,39 @@ def test_static_trending_status_headers(tmp_path):
     page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
     assert page.count("<th>Status</th>") >= 4
     assert "<th></th>" not in page
+
+
+STATIC_NAV = [
+    "Radar", "Models", "Research", "Trending", "Compare", "History", "Changes feed",
+]
+
+
+def test_static_nav_identical_across_pages(tmp_path: Path):
+    """Every hero-bearing static page renders the same 7-item nav (finding #6)."""
+    from radar.models_radar.entities import ModelEntry
+
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+        model_entries=[ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")],
+        technique_entries=[_technique_entry()],
+        trending_observations=_trending_obs(),
+    )
+    site = tmp_path / "_site"
+    for name in ("models.html", "techniques.html", "trending.html", "history.html"):
+        html = (site / name).read_text(encoding="utf-8")
+        for label in STATIC_NAV:
+            assert f">{label}</a>" in html, f"{label} missing from {name}"
+
+
+def test_static_legend_on_catalog_pages(tmp_path: Path):
+    """Static models/research catalogs explain rings/backers/risk (finding #8)."""
+    from radar.models_radar.entities import ModelEntry
+
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+        model_entries=[ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")],
+        technique_entries=[_technique_entry()],
+    )
+    site = tmp_path / "_site"
+    assert "Rings" in (site / "models.html").read_text(encoding="utf-8")
+    assert "Rings" in (site / "techniques.html").read_text(encoding="utf-8")

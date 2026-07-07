@@ -10,10 +10,11 @@
   <body>
     {% set page_title = "Local Models" %}
     {% set tagline = "Open models you can run on-prem — sized to your hardware, refreshed daily." %}
-    {% set nav = {"Radar": "index.html", "Compare": "compare.html", "History": "history.html"} %}
+    {% set nav = {"Radar": "index.html", "Models": "models.html", "Research": "techniques.html", "Trending": "trending.html", "Compare": "compare.html", "History": "history.html", "Changes feed": "changes.xml"} %}
     {% include "_hero.html" %}
     <main class="container">
       {% if not models %}<p>No models scanned yet.</p>{% endif %}
+      {% include "_legend.html" %}
       {% include "_device_picker.html" %}
       {% include "_models_filter_bar.html" %}
       <div class="table-wrap">

@@ -1264,3 +1264,22 @@ def test_index_legend_has_risk_column(tmp_path: Path):
     assert 'class="ring-pill risk-low"' in r.text
     assert 'class="ring-pill risk-medium"' in r.text
     assert 'class="ring-pill risk-high"' in r.text
+
+
+LIVE_NAV = ["Radar", "Models", "Research", "Trending", "Compare", "History", "Sources"]
+
+
+def test_nav_identical_across_live_pages(tmp_path: Path):
+    """Every hero-bearing live page renders the same 7-item nav (finding #6)."""
+    client = TestClient(create_app(tmp_path))
+    for path in ("/", "/models", "/research", "/trending"):
+        r = client.get(path)
+        for label in LIVE_NAV:
+            assert f">{label}</a>" in r.text, f"{label} missing from {path}"
+
+
+def test_legend_on_catalog_pages(tmp_path: Path):
+    """Models and research catalogs explain rings/backers/risk (finding #8)."""
+    client = TestClient(create_app(tmp_path))
+    for path in ("/models", "/research"):
+        assert "Rings" in client.get(path).text
