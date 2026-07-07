@@ -16,7 +16,7 @@ def test_hero_uses_dedicated_dark_brand_shade():
 
 def test_watch_avoid_tokens_with_dark_overrides():
     assert STYLES.count("--watch:") == 2 and STYLES.count("--avoid:") == 2  # :root + dark
-    assert "--watch: #D9A519" in STYLES and "--avoid: #E5534B" in STYLES    # dark values
+    assert "--watch: #D9A519" in STYLES and "--avoid: #EC6A60" in STYLES    # dark values
 
 
 def test_no_hardcoded_status_hex_outside_token_definitions():
