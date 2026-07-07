@@ -233,6 +233,7 @@ def test_history_page_renders_recorded_events(tmp_path: Path):
     assert response.status_code == 200
     assert "Ollama" in response.text
     assert "2026-06-10" in response.text
+    assert "ring-pill" in response.text  # ring badge, matches static_history.html
 
 
 def test_post_source_rejects_duplicate_with_message(tmp_path: Path):
@@ -1188,3 +1189,172 @@ def test_trending_marks_stale_model_candidate(tmp_path):
     assert r.status_code == 200
     assert "Last seen" in r.text
     assert "STALE" in r.text
+
+
+def test_catalog_tables_are_scroll_wrapped(tmp_path):
+    client = TestClient(create_app(tmp_path))
+    for path in ("/", "/models", "/research", "/trending"):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert ('<table' not in r.text) or ('<div class="table-wrap">' in r.text), path
+    models_page = client.get("/models").text
+    assert 'class="num"' in models_page
+    assert "Min mem (GB)" in models_page
+
+
+# ---------------------------------------------------------------------------
+# Signal badges: ring pills, humanized fit verdicts, trend/risk, Status
+# headers (Task 3)
+# ---------------------------------------------------------------------------
+
+
+def test_techniques_catalog_renders_ring_pill(tmp_path):
+    _seed_techniques_run(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/research")
+    assert 'class="ring-pill ring-' in r.text
+
+
+def test_model_fit_verdict_humanized(tmp_path):
+    # Qwen3 8B / Q4_K_M ~8.0GB: won't fit the 8GB-usable rtx-4060 tier (6.8GB
+    # usable), but fits the larger tiers — both branches exercised.
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    _seed_models(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/model/qwen3-8b")
+    assert r.status_code == 200
+    assert "wont_fit" not in r.text and "fits_tight" not in r.text
+    assert "Won't fit" in r.text or "Fits" in r.text
+
+
+def test_index_trend_and_risk_badges(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM",
+                category=Category.MODEL_SERVING,
+                ring=Ring.ADOPT,
+                summary="fast inference",
+                workflow_fit={},
+                risk_level="high",
+                trend="rising",
+            )
+        ]
+    )
+
+    r = TestClient(create_app(tmp_path)).get("/")
+
+    assert 'class="trend-' in r.text          # ↑/→/↓ wrapped
+    assert "risk-" in r.text                   # risk badge class
+
+
+def test_trending_status_headers(tmp_path):
+    _seed_trending_obs(tmp_path)
+    _seed_model_run_and_metrics(tmp_path)
+    _seed_candidates(tmp_path)
+
+    r = TestClient(create_app(tmp_path)).get("/trending")
+
+    assert r.text.count("<th>Status</th>") >= 4
+    assert "<th></th>" not in r.text
+
+
+def test_index_legend_has_risk_column(tmp_path: Path):
+    r = TestClient(create_app(tmp_path)).get("/")
+    assert "<h4>Risk</h4>" in r.text
+    assert 'class="ring-pill risk-low"' in r.text
+    assert 'class="ring-pill risk-medium"' in r.text
+    assert 'class="ring-pill risk-high"' in r.text
+
+
+LIVE_NAV = ["Radar", "Models", "Research", "Trending", "Compare", "History", "Sources"]
+
+
+def test_nav_identical_across_live_pages(tmp_path: Path):
+    """Every hero-bearing live page renders the same 7-item nav (finding #6)."""
+    client = TestClient(create_app(tmp_path))
+    for path in ("/", "/models", "/research", "/trending", "/history"):
+        r = client.get(path)
+        for label in LIVE_NAV:
+            assert f">{label}</a>" in r.text, f"{label} missing from {path}"
+
+
+def test_legend_on_catalog_pages(tmp_path: Path):
+    """Models and research catalogs explain rings/backers/risk (finding #8)."""
+    client = TestClient(create_app(tmp_path))
+    for path in ("/models", "/research"):
+        assert "Rings" in client.get(path).text
+
+
+def test_compare_page_uses_design_system(tmp_path: Path):
+    """Live /compare adopts the shared hero/table/footer system (finding #8b)."""
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Cline", category=Category.CODING_AGENTS, ring=Ring.PILOT,
+                summary="x", workflow_fit={}, risk_level="medium",
+            ),
+            DecisionCard(
+                project="Aider", category=Category.CODING_AGENTS, ring=Ring.ADOPT,
+                summary="x", workflow_fit={}, risk_level="low",
+            ),
+        ]
+    )
+
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/compare", params={"category": "coding_agents"})
+
+    assert response.status_code == 200
+    text = response.text
+    assert 'class="hero"' in text
+    assert "#f9fafb" not in text
+    assert '<div class="table-wrap">' in text
+    assert "filter-bar" in text  # filter form controls picked up shared styling
+    for label in LIVE_NAV:
+        assert f">{label}</a>" in text, f"{label} missing from /compare"
+
+
+def test_compare_page_renders_styled_error_on_invalid_category(tmp_path: Path):
+    """Invalid /compare input renders a styled error paragraph (final review #1).
+
+    The bespoke stylesheet that used to style `.error` was deleted in the
+    design-system conversion; `_base_styles.html` now carries the rule again.
+    """
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/compare", params={"category": "not-a-real-category"})
+
+    assert response.status_code == 200
+    text = response.text
+    assert 'class="error"' in text
+    assert "Unknown category: not-a-real-category" in text
+
+
+def test_history_page_uses_design_system(tmp_path: Path):
+    """Live /history adopts the shared hero/table/footer system (finding #8b)."""
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/history")
+
+    assert response.status_code == 200
+    text = response.text
+    assert 'class="hero"' in text
+    assert "#f9fafb" not in text
+    for label in LIVE_NAV:
+        assert f">{label}</a>" in text, f"{label} missing from /history"
+
+
+def test_sortable_headers_have_aria_sort(tmp_path: Path):
+    """Sortable <th>s expose aria-sort so assistive tech tracks sort state (finding #17)."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    models_text = client.get("/models").text
+    techniques_text = client.get("/research").text
+
+    assert 'aria-sort="none"' in models_text
+    assert "function modelsSort" in models_text
+    assert 'aria-sort="none"' in techniques_text
+    assert "function techniquesSort" in techniques_text

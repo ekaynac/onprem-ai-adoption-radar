@@ -10,23 +10,24 @@
   <body>
     {% set page_title = "Trending Repos" %}
     {% set tagline = "Fast-rising and newly-created AI repos across GitHub — the radar's own signal." %}
-    {% set nav = {"Radar": "index.html", "Models": "models.html", "Research": "techniques.html"} %}
+    {% set nav = {"Radar": "index.html", "Models": "models.html", "Research": "techniques.html", "Trending": "trending.html", "Compare": "compare.html", "History": "history.html", "Changes feed": "changes.xml"} %}
     {% include "_hero.html" %}
     <main class="container">
       {% if not onprem and not broader %}<p>No trending observations yet.</p>{% endif %}
       {% for section, rows in [("On-prem radar candidates", onprem),
                                 ("Elsewhere in AI", broader)] %}
+      <div class="table-wrap">
       {% if rows %}
       <h2>{{ section }}</h2>
       <table>
-        <thead><tr><th>Repo</th><th>Stars</th><th>Velocity/day</th><th></th>
+        <thead><tr><th>Repo</th><th class="num">Stars</th><th class="num">Velocity (stars/day)</th><th>Status</th>
                    <th>First seen</th><th>Description</th></tr></thead>
         <tbody>
           {% for e in rows %}
           <tr>
             <td><a href="https://github.com/{{ e.repo }}">{{ e.repo }}</a></td>
-            <td>{{ e.stars }}</td>
-            <td>{% if e.velocity_per_day is not none %}{{ e.velocity_per_day }}{% else %}—{% endif %}</td>
+            <td class="num">{{ e.stars }}</td>
+            <td class="num">{% if e.velocity_per_day is not none %}{{ e.velocity_per_day }}{% else %}—{% endif %}</td>
             <td>{% if e.is_new %}NEW{% endif %}</td>
             <td>{{ e.first_seen }}</td>
             <td>{{ e.description }}</td>
@@ -35,17 +36,19 @@
         </tbody>
       </table>
       {% endif %}
+      </div>
       {% endfor %}
 
       {% for title, rows, kind in [("Trending Models", model_hub, "model"),
                                     ("Trending Techniques", technique_hub, "technique")] %}
       <h2>{{ title }}</h2>
       {% if not rows %}<p>No trending {{ kind }}s this week.</p>{% endif %}
+      <div class="table-wrap">
       {% if rows %}
       <table>
         <thead><tr><th>{{ kind|capitalize }}</th><th>{{ "Family" if kind == "model" else "Domain" }}</th>
-          <th>{{ "Downloads" if kind == "model" else "Citations" }}</th>
-          <th>Momentum</th><th>Ring</th><th></th></tr></thead>
+          <th class="num">{{ "Downloads" if kind == "model" else "Citations" }}</th>
+          <th>Momentum</th><th>Ring</th><th>Status</th></tr></thead>
         <tbody>
           {% for r in rows %}
           <tr>
@@ -54,7 +57,7 @@
               {% if slug %}<a href="{{ r.kind }}_{{ slug }}.html">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}
             </td>
             <td>{{ r.subtitle }}</td>
-            <td>{% if r.metric is not none %}{{ r.metric }}{% else %}—{% endif %}</td>
+            <td class="num">{% if r.metric is not none %}{{ r.metric }}{% else %}—{% endif %}</td>
             <td>{% if r.growth is not none %}{{ "%+.1f"|format(r.growth) }}%{% elif r.momentum is not none %}{{ r.momentum }}/5{% else %}—{% endif %} {{ r.direction }}</td>
             <td>{{ r.ring or "—" }}</td>
             <td>{% if r.is_new %}NEW{% endif %}</td>
@@ -63,19 +66,21 @@
         </tbody>
       </table>
       {% endif %}
+      </div>
       {% if kind == "model" %}
       <h3>Emerging — not yet tracked</h3>
       {% if not model_candidates %}<p>No emerging models yet.</p>{% endif %}
+      <div class="table-wrap">
       {% if model_candidates %}
       <table>
-        <thead><tr><th>Model</th><th>Downloads</th><th>Downloads/day</th>
-          <th></th><th>First seen</th><th>Last seen</th></tr></thead>
+        <thead><tr><th>Model</th><th class="num">Downloads</th><th class="num">Downloads/day</th>
+          <th>Status</th><th>First seen</th><th>Last seen</th></tr></thead>
         <tbody>
           {% for c in model_candidates %}
           <tr>
             <td><a href="https://huggingface.co/{{ c.hf_repo }}">{{ c.hf_repo }}</a></td>
-            <td>{{ c.downloads }}</td>
-            <td>{% if c.downloads_per_day is not none %}{{ "%+.0f"|format(c.downloads_per_day) }}{% else %}—{% endif %}</td>
+            <td class="num">{{ c.downloads }}</td>
+            <td class="num">{% if c.downloads_per_day is not none %}{{ "%+.0f"|format(c.downloads_per_day) }}{% else %}—{% endif %}</td>
             <td>{% if c.is_stale %}STALE{% elif c.is_new %}NEW{% endif %}</td>
             <td>{{ c.first_seen }}</td>
             <td>{{ c.last_seen }}</td>
@@ -84,21 +89,23 @@
         </tbody>
       </table>
       {% endif %}
+      </div>
       {% endif %}
       {% if kind == "technique" %}
       <h3>Emerging — not yet tracked</h3>
       {% if not technique_candidates %}<p>No emerging papers yet.</p>{% endif %}
+      <div class="table-wrap">
       {% if technique_candidates %}
       <table>
-        <thead><tr><th>Paper</th><th>Upvotes</th><th>Upvotes/day</th>
-          <th>Citations</th><th></th><th>First seen</th><th>Last seen</th></tr></thead>
+        <thead><tr><th>Paper</th><th class="num">Upvotes</th><th class="num">Upvotes/day</th>
+          <th class="num">Citations</th><th>Status</th><th>First seen</th><th>Last seen</th></tr></thead>
         <tbody>
           {% for c in technique_candidates %}
           <tr>
             <td><a href="https://arxiv.org/abs/{{ c.arxiv_id }}">{{ c.name }}</a></td>
-            <td>{{ c.upvotes }}</td>
-            <td>{% if c.upvotes_per_day is not none %}{{ "%+.0f"|format(c.upvotes_per_day) }}{% else %}—{% endif %}</td>
-            <td>{% if c.citation_count is not none %}{{ c.citation_count }}{% else %}—{% endif %}</td>
+            <td class="num">{{ c.upvotes }}</td>
+            <td class="num">{% if c.upvotes_per_day is not none %}{{ "%+.0f"|format(c.upvotes_per_day) }}{% else %}—{% endif %}</td>
+            <td class="num">{% if c.citation_count is not none %}{{ c.citation_count }}{% else %}—{% endif %}</td>
             <td>{% if c.is_stale %}STALE{% elif c.is_new %}NEW{% endif %}</td>
             <td>{{ c.first_seen }}</td>
             <td>{{ c.last_seen }}</td>
@@ -107,6 +114,7 @@
         </tbody>
       </table>
       {% endif %}
+      </div>
       {% endif %}
       {% endfor %}
     </main>

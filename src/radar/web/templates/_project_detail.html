@@ -1,5 +1,5 @@
 {# Shared project-detail body. Context: card, events (oldest-first),
-   metrics (newest-first), links {home, compare, history},
+   metrics (newest-first),
    pedigree (list[TechniquePedigree] | None), technique_hrefs (dict). #}
 <h1>{{ card.project }}</h1>
 {% set b = backer_badge(card.backer) %}
@@ -20,6 +20,7 @@
 <p>{{ card.summary }}</p>
 {% if card.why_it_matters %}<p>{{ card.why_it_matters }}</p>{% endif %}
 
+<div class="table-wrap">
 {% if card.score_breakdown %}
 <h2>Score breakdown</h2>
 <table>
@@ -38,7 +39,9 @@
   </tbody>
 </table>
 {% endif %}
+</div>
 
+<div class="table-wrap">
 {% if card.on_prem_rubric %}
 <h2>On-prem rubric</h2>
 <p>{{ card.on_prem_fit }}</p>
@@ -51,6 +54,7 @@
   </tbody>
 </table>
 {% endif %}
+</div>
 
 {% if card.evidence_notes %}
 <h2>Observed evidence</h2>
@@ -87,6 +91,7 @@
 
 <h2>Metrics history</h2>
 {% if metrics %}
+<div class="table-wrap">
 <table>
   <thead><tr><th>Observed</th><th>Stars</th><th>Forks</th><th>Open issues</th><th>Releases</th><th>Downloads/wk</th><th>HN</th><th>Advisories</th><th>License</th></tr></thead>
   <tbody>
@@ -105,12 +110,14 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <p>No metrics recorded yet.</p>
 {% endif %}
 
 <h2>Ring timeline</h2>
 {% if events %}
+<div class="table-wrap">
 <table>
   <thead><tr><th>Date</th><th>Change</th><th>Ring</th></tr></thead>
   <tbody>
@@ -123,6 +130,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <p>No ring changes recorded yet.</p>
 {% endif %}

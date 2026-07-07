@@ -139,9 +139,6 @@ def create_app(root: Path) -> FastAPI:
         except Exception:
             return []
 
-    # Nav targets for the project-detail partial (live = server routes).
-    live_links = {"home": "/", "compare": "/compare", "history": "/history"}
-
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
         db.initialize()
@@ -194,7 +191,7 @@ def create_app(root: Path) -> FastAPI:
             return TEMPLATES.TemplateResponse(
                 request,
                 "project.html",
-                {"card": None, "missing": name, "links": live_links},
+                {"card": None, "missing": name},
                 status_code=404,
             )
         history.initialize()
@@ -208,7 +205,6 @@ def create_app(root: Path) -> FastAPI:
                 "card": card,
                 "events": events,
                 "metrics": metric_rows,
-                "links": live_links,
                 "pedigree": _project_pedigree(card.project) or None,
                 "technique_hrefs": _technique_hrefs(),
             },

@@ -10,7 +10,7 @@
   <body>
     {% set page_title = "Adoption History" %}
     {% set tagline = "Every ring change over time — the full, append-only timeline." %}
-    {% set nav = {"Radar": "index.html", "Compare": "compare.html", "Changes feed": "changes.xml"} %}
+    {% set nav = {"Radar": "index.html", "Models": "models.html", "Research": "techniques.html", "Trending": "trending.html", "Compare": "compare.html", "History": "history.html", "Changes feed": "changes.xml"} %}
     {% include "_hero.html" %}
 
     <main class="container">
@@ -27,6 +27,7 @@
           · on radar since {{ item.summary.first_seen.date().isoformat() }}
           · {{ item.summary.change_count }} change(s)
         </p>
+        <div class="table-wrap">
         <table>
           <thead><tr><th>Date</th><th>Change</th><th>Ring</th></tr></thead>
           <tbody>
@@ -39,6 +40,7 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
       {% else %}
       <p>No history recorded yet. Run <code>radar scan</code> first.</p>

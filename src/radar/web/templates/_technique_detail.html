@@ -8,6 +8,7 @@
    {% if technique.citation_count is not none %} · Citations: {{ technique.citation_count }}{% endif %}
    {% if technique.superseded_by %} · Superseded by: <strong>{{ technique.superseded_by }}</strong>{% endif %}</p>
 {% if technique.notes %}<p>{{ technique.notes }}</p>{% endif %}
+<div class="table-wrap">
 {% if technique.score_breakdown %}
 <table>
   <thead><tr><th>Breadth</th><th>Maturity</th><th>Validation</th><th>Reproducibility</th>
@@ -23,6 +24,7 @@
   </tr></tbody>
 </table>
 {% endif %}
+</div>
 {% if technique.momentum_direction %}
 <p class="momentum-note">Momentum: {{ technique.momentum_direction }}{% if technique.momentum_note %} — {{ technique.momentum_note }}{% endif %}</p>
 {% endif %}

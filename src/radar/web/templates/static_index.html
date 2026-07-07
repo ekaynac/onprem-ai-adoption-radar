@@ -10,7 +10,7 @@
   <body>
     {% set page_title = "On-Prem AI Adoption Radar" %}
     {% set tagline = "Which AI agent & tooling projects to adopt, pilot, watch, or avoid for on-prem — decided from observed evidence, refreshed daily." %}
-    {% set nav = {"Models": "models.html", "Research": "techniques.html", "Trending": "trending.html", "Compare": "compare.html", "History": "history.html", "Changes feed": "changes.xml"} %}
+    {% set nav = {"Radar": "index.html", "Models": "models.html", "Research": "techniques.html", "Trending": "trending.html", "Compare": "compare.html", "History": "history.html", "Changes feed": "changes.xml"} %}
     {% include "_hero.html" %}
 
     <main class="container">
@@ -24,6 +24,7 @@
       {% include "_legend.html" %}
 
       <h2>Try This Week</h2>
+      <div class="table-wrap">
       <table>
         <thead>
           <tr><th>Project</th><th>Category</th><th>Backed by</th><th>Ring</th><th>Trend</th><th>Risk</th><th>Summary</th></tr>
@@ -35,8 +36,8 @@
             <td>{{ card.category.value }}</td>
             <td>{% include "_backer_cell.html" %}</td>
             <td><span class="ring-pill ring-{{ card.ring.value }}">{{ card.ring.value }}</span></td>
-            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
-            <td>{{ card.risk_level }}</td>
+            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}<span class="trend-up">↑</span>{% elif card.trend == 'falling' %}<span class="trend-down">↓</span>{% else %}<span class="trend-flat">→</span>{% endif %}</td>
+            <td><span class="ring-pill risk-{{ card.risk_level }}">{{ card.risk_level }}</span></td>
             <td>
               {% if card.pinned %}<span class="badge badge-pinned" title="{{ card.pinned_reason }}">📌 pinned{% if card.computed_ring %} (was {{ card.computed_ring.value }}){% endif %}</span>{% endif %}
               {% if card.upgrade_risk == 'high' %}<span class="badge badge-risk">⚠ upgrade risk</span>{% elif card.upgrade_risk == 'low' %}<span class="badge badge-risk-low">upgrade notes</span>{% endif %}
@@ -53,11 +54,13 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
 
       <h2>All Tracked Projects</h2>
       {# Filter applies to this comprehensive table only; "Try This Week" above is
          a small curated highlight and stays unfiltered. #}
       {% include "_filter_bar.html" %}
+      <div class="table-wrap">
       <table id="radar-table">
         <thead>
           <tr><th>Project</th><th>Category</th><th>Backed by</th><th>Ring</th><th>Trend</th><th>Risk</th><th>On-prem fit</th></tr>
@@ -70,8 +73,8 @@
             <td>{{ card.category.value }}</td>
             <td>{% include "_backer_cell.html" %}</td>
             <td><span class="ring-pill ring-{{ card.ring.value }}">{{ card.ring.value }}</span></td>
-            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
-            <td>{{ card.risk_level }}</td>
+            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}<span class="trend-up">↑</span>{% elif card.trend == 'falling' %}<span class="trend-down">↓</span>{% else %}<span class="trend-flat">→</span>{% endif %}</td>
+            <td><span class="ring-pill risk-{{ card.risk_level }}">{{ card.risk_level }}</span></td>
             <td>{{ card.on_prem_fit }}</td>
           </tr>
           {% else %}
@@ -82,6 +85,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
       {% include "_filter_script.html" %}
     </main>
 

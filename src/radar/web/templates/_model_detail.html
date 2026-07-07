@@ -7,6 +7,7 @@
 <p>Params: {{ '%.1fB'|format(model.params_total / 1e9) if model.params_total else '?' }}{% if model.params_active %} (active {{ '%.1fB'|format(model.params_active / 1e9) }}){% endif %}
    {% if model.context_length %} · Context: {{ '{:,}'.format(model.context_length) }}{% endif %}
    {% if model.release_date %} · Released: {{ model.release_date }}{% endif %}</p>
+<div class="table-wrap">
 <table><thead><tr><th>Quant</th><th>Bits</th><th>Mem @4K</th><th>Mem @32K</th><th>Platform</th></tr></thead>
 <tbody>
 {% for q in model.quants %}<tr><td>{{ q.format }}</td><td>{{ q.bits_per_weight }}</td>
@@ -14,12 +15,15 @@
 <td>{{ '%.1f'|format(q.est_memory_gb_32k) if q.est_memory_gb_32k else '?' }} GB</td>
 <td>{{ q.platform.value }}</td></tr>{% endfor %}
 </tbody></table>
+</div>
+<div class="table-wrap">
 {% if fit_by_tier %}
 <h3>Runs on</h3>
 <table><thead><tr><th>Device</th><th>Fit</th><th>Largest quant that fits</th></tr></thead><tbody>
-{% for r in fit_by_tier %}<tr><td>{{ r.device }}</td><td>{{ r.verdict }}</td><td>{{ r.best_quant }}</td></tr>{% endfor %}
+{% for r in fit_by_tier %}<tr><td>{{ r.device }}</td><td>{% if r.verdict == "fits" %}<span class="ring-pill fit-yes">Fits</span>{% elif r.verdict == "fits_tight" %}<span class="ring-pill fit-tight">Fits (tight)</span>{% elif r.verdict == "fits_quantized" %}<span class="ring-pill fit-tight">Fits (quantized)</span>{% elif r.verdict == "wont_fit" %}<span class="ring-pill fit-no">Won't fit</span>{% else %}<span class="ring-pill">Unknown</span>{% endif %}</td><td>{{ r.best_quant }}</td></tr>{% endfor %}
 </tbody></table>
 {% endif %}
+</div>
 {% if pedigree %}
 <h3>Research techniques</h3>
 <ul>
