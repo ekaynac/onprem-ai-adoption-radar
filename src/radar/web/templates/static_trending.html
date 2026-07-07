@@ -43,8 +43,8 @@
                                     ("Trending Techniques", technique_hub, "technique")] %}
       <h2>{{ title }}</h2>
       {% if not rows %}<p>No trending {{ kind }}s this week.</p>{% endif %}
-      <div class="table-wrap">
       {% if rows %}
+      <div class="table-wrap">
       <table>
         <thead><tr><th>{{ kind|capitalize }}</th><th>{{ "Family" if kind == "model" else "Domain" }}</th>
           <th class="num">{{ "Downloads" if kind == "model" else "Citations" }}</th>
@@ -65,13 +65,13 @@
           {% endfor %}
         </tbody>
       </table>
-      {% endif %}
       </div>
+      {% endif %}
       {% if kind == "model" %}
       <h3>Emerging — not yet tracked</h3>
       {% if not model_candidates %}<p>No emerging models yet.</p>{% endif %}
-      <div class="table-wrap">
       {% if model_candidates %}
+      <div class="table-wrap">
       <table>
         <thead><tr><th>Model</th><th class="num">Downloads</th><th class="num">Downloads/day</th>
           <th>Status</th><th>First seen</th><th>Last seen</th></tr></thead>
@@ -88,14 +88,14 @@
           {% endfor %}
         </tbody>
       </table>
-      {% endif %}
       </div>
+      {% endif %}
       {% endif %}
       {% if kind == "technique" %}
       <h3>Emerging — not yet tracked</h3>
       {% if not technique_candidates %}<p>No emerging papers yet.</p>{% endif %}
-      <div class="table-wrap">
       {% if technique_candidates %}
+      <div class="table-wrap">
       <table>
         <thead><tr><th>Paper</th><th class="num">Upvotes</th><th class="num">Upvotes/day</th>
           <th class="num">Citations</th><th>Status</th><th>First seen</th><th>Last seen</th></tr></thead>
@@ -113,8 +113,8 @@
           {% endfor %}
         </tbody>
       </table>
-      {% endif %}
       </div>
+      {% endif %}
       {% endif %}
       {% endfor %}
     </main>

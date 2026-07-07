@@ -62,11 +62,13 @@ All notable changes to this project are documented here. The format follows
 - **Deferred-cleanup pass (6 items)** — a follow-up sweep closed out items
   deferred from the readability and data-quality passes: `/sources`
   (live-only; it has no static counterpart) was rebuilt onto the shared
-  hero/table/footer design system, matching every other page; four templates
-  (`trending.html`, `static_trending.html`, `_project_detail.html`,
-  `_model_detail.html`) had their headings and `{% if %}` guards moved
-  outside `.table-wrap` divs, so a hidden or empty section can no longer
-  render an empty/heading-containing wrapper; the sortable headers on
+  hero/table/footer design system, matching every other page; every template
+  with a conditionally-rendered table (`trending.html`, `static_trending.html`,
+  `_project_detail.html`, `_model_detail.html`, `_technique_detail.html`) had
+  its headings/paragraphs and `{% if %}` guards moved outside `.table-wrap`
+  divs, so a `.table-wrap` div always contains exactly one `<table>` and
+  nothing else — no hidden or empty section can render an
+  empty/heading-containing wrapper; the sortable headers on
   `/models` and `/research` (live and static) are now keyboard-operable —
   `tabindex="0"` plus an Enter/Space keydown handler fires the same sort as a
   click — while staying native `<th>` columnheaders (**not** `role="button"`,

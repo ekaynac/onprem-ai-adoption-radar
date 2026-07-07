@@ -866,13 +866,20 @@ def test_static_legend_on_catalog_pages(tmp_path: Path):
 
 
 def test_export_emits_no_empty_table_wrap(tmp_path):
-    """Guards the table-wrap/heading fix in trending, _project_detail, and
-    _model_detail: no `<div class="table-wrap">` may ever render empty,
-    under BOTH the guard-true and guard-false path of each affected block.
+    """Guards the table-wrap/heading fix in trending, _project_detail,
+    _model_detail, and _technique_detail: no `<div class="table-wrap">` may
+    ever render empty, under BOTH the guard-true and guard-false path of
+    each affected block.
 
     Must actually render the affected pages — a call with no cards/models/
     trending data would pass on the pre-fix buggy templates too, since none
     of them would even be written.
+
+    A second render below (empty hub/candidate sections, trending_entries
+    only) drives trending.html's "Trending Models/Techniques" and "Emerging
+    — not yet tracked" blocks down their guard-false path specifically — the
+    exact combination a prior version of this test skipped by always
+    supplying non-empty hub/candidate data alongside the trending entries.
     """
     from radar.discovery.model_candidate_detect import ModelCandidateEntry
     from radar.discovery.technique_candidate_detect import TechniqueCandidateEntry
@@ -904,10 +911,10 @@ def test_export_emits_no_empty_table_wrap(tmp_path):
     # (c) trending.html's on-prem/broader block: _trending_obs() only supplies
     # ONPREM observations, so "broader" is genuinely empty (guard-false)
     # while "onprem" renders real rows (guard-true). The hub/candidate rows
-    # below give the *other*, unrelated trending.html sections (Trending
-    # Models/Techniques, Emerging) real content too, so this test only
-    # exercises the guard this task actually fixed rather than tripping on
-    # pre-existing, out-of-scope empty-div blocks elsewhere on the page.
+    # below additionally exercise the guard-true path of the "Trending
+    # Models/Techniques" and "Emerging — not yet tracked" blocks; the
+    # guard-false path of those same blocks is covered by the second render
+    # further down, which omits hub/candidate data entirely.
     model_hub = [HubRow(id="m1", name="M One", subtitle="Fam", metric=5000, growth=120.0,
                         momentum=None, direction="rising", ring="pilot", is_new=False,
                         kind="model")]
@@ -921,11 +928,14 @@ def test_export_emits_no_empty_table_wrap(tmp_path):
                             upvotes=130, upvotes_per_day=40.0, citation_count=3, is_new=True,
                             first_seen="2026-07-01", last_seen="2026-07-01", is_stale=False)]
 
+    # (e) _technique_detail's "Score breakdown" block: _technique_entry()
+    # leaves score_breakdown unset (guard-false — must emit no empty wrap).
     render_static_site(
         [plain_card, scored_card],
         tmp_path / "_site",
         datetime(2026, 7, 8, tzinfo=UTC),
         model_entries=[model_with_quants, model_no_quants],
+        technique_entries=[_technique_entry()],
         trending_observations=_trending_obs(),
         model_hub=model_hub,
         technique_hub=technique_hub,
@@ -943,3 +953,24 @@ def test_export_emits_no_empty_table_wrap(tmp_path):
     assert (site / "trending.html").exists()
     assert list(site.glob("project_*.html"))
     assert list(site.glob("model_*.html"))
+    assert list(site.glob("technique_*.html"))
+
+    # (d) trending.html's "Trending Models"/"Trending Techniques" and their
+    # "Emerging — not yet tracked" candidate blocks, guard-false path:
+    # trending_entries alone is enough to satisfy static_site.py's write
+    # guard (`if trending_entries or model_hub or ...`), so trending.html is
+    # written even though model_hub/technique_hub/model_candidates/
+    # technique_candidates are all left empty.
+    empty_hubs_dir = tmp_path / "_site_empty_hubs"
+    render_static_site(
+        [plain_card],
+        empty_hubs_dir,
+        datetime(2026, 7, 8, tzinfo=UTC),
+        trending_observations=_trending_obs(),
+    )
+    trending_page = (empty_hubs_dir / "trending.html").read_text(encoding="utf-8")
+    assert not re.search(r'<div class="table-wrap">\s*</div>', trending_page)
+    assert "No trending models this week." in trending_page
+    assert "No trending techniques this week." in trending_page
+    assert "No emerging models yet." in trending_page
+    assert "No emerging papers yet." in trending_page
