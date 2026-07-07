@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from radar.models import Backer, BackerType, Category, DecisionCard, Ring
+from radar.models import (
+    Backer,
+    BackerType,
+    Category,
+    DecisionCard,
+    OnPremAssessment,
+    Ring,
+    ScoreBreakdown,
+)
 from radar.storage.metrics_store import ProjectMetrics
 from radar.web.static_site import render_static_site
 
@@ -857,8 +866,80 @@ def test_static_legend_on_catalog_pages(tmp_path: Path):
 
 
 def test_export_emits_no_empty_table_wrap(tmp_path):
-    import re
-    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
-    for page in (tmp_path / "_site").glob("*.html"):
+    """Guards the table-wrap/heading fix in trending, _project_detail, and
+    _model_detail: no `<div class="table-wrap">` may ever render empty,
+    under BOTH the guard-true and guard-false path of each affected block.
+
+    Must actually render the affected pages — a call with no cards/models/
+    trending data would pass on the pre-fix buggy templates too, since none
+    of them would even be written.
+    """
+    from radar.discovery.model_candidate_detect import ModelCandidateEntry
+    from radar.discovery.technique_candidate_detect import TechniqueCandidateEntry
+    from radar.models_radar.entities import ModelEntry, Platform, QuantVariant
+    from radar.web.hub_sections import HubRow
+
+    # (a) _project_detail's "Score breakdown" / "On-prem rubric" blocks:
+    # one card with neither (guard-false — must emit no empty wrap) and one
+    # with both (guard-true — must render real rows).
+    plain_card = _card("vLLM", Ring.ADOPT)
+    scored_card = _card("Ray", Ring.PILOT).model_copy(update={
+        "score_breakdown": ScoreBreakdown(
+            workflow_impact=4, laptop_runnability=3, open_source_maturity=5,
+            on_prem_relevance=4, security_posture=3, demo_value=4, setup_friction=2,
+        ),
+        "on_prem_rubric": {"data_locality": OnPremAssessment(score=5, reason="fully local")},
+    })
+
+    # (b) _model_detail's "Runs on" (fit_by_tier) block: one model with real
+    # quants (concrete fit verdicts) and one without (falls back to
+    # "unknown" verdicts) — both exercise the fixed heading/div ordering.
+    model_with_quants = ModelEntry(
+        id="qwen3-8b", name="Qwen3 8B", family="Qwen3", params_total=8_000_000_000,
+        quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                             platform=Platform.GENERIC, source="x")],
+    )
+    model_no_quants = ModelEntry(id="no-quants", name="No Quants", family="F")
+
+    # (c) trending.html's on-prem/broader block: _trending_obs() only supplies
+    # ONPREM observations, so "broader" is genuinely empty (guard-false)
+    # while "onprem" renders real rows (guard-true). The hub/candidate rows
+    # below give the *other*, unrelated trending.html sections (Trending
+    # Models/Techniques, Emerging) real content too, so this test only
+    # exercises the guard this task actually fixed rather than tripping on
+    # pre-existing, out-of-scope empty-div blocks elsewhere on the page.
+    model_hub = [HubRow(id="m1", name="M One", subtitle="Fam", metric=5000, growth=120.0,
+                        momentum=None, direction="rising", ring="pilot", is_new=False,
+                        kind="model")]
+    technique_hub = [HubRow(id="t1", name="T One", subtitle="reasoning", metric=900,
+                            growth=None, momentum=5, direction="rising", ring="adopt",
+                            is_new=True, kind="technique")]
+    model_candidates = [ModelCandidateEntry(hf_repo="acme/emerging", name="emerging",
+                        family="acme", downloads=4000, downloads_per_day=1000.0, is_new=True,
+                        first_seen="2026-07-01", last_seen="2026-07-01", is_stale=False)]
+    technique_candidates = [TechniqueCandidateEntry(arxiv_id="2501.9999", name="Hot Paper",
+                            upvotes=130, upvotes_per_day=40.0, citation_count=3, is_new=True,
+                            first_seen="2026-07-01", last_seen="2026-07-01", is_stale=False)]
+
+    render_static_site(
+        [plain_card, scored_card],
+        tmp_path / "_site",
+        datetime(2026, 7, 8, tzinfo=UTC),
+        model_entries=[model_with_quants, model_no_quants],
+        trending_observations=_trending_obs(),
+        model_hub=model_hub,
+        technique_hub=technique_hub,
+        model_candidates=model_candidates,
+        technique_candidates=technique_candidates,
+    )
+
+    site = tmp_path / "_site"
+    for page in site.glob("*.html"):
         text = page.read_text(encoding="utf-8")
         assert not re.search(r'<div class="table-wrap">\s*</div>', text), page.name
+
+    # The affected pages must actually have been written — otherwise the
+    # scan above proves nothing (the original vacuous-test failure mode).
+    assert (site / "trending.html").exists()
+    assert list(site.glob("project_*.html"))
+    assert list(site.glob("model_*.html"))
