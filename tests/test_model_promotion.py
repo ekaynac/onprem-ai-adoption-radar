@@ -340,6 +340,19 @@ class TestBuildSeed:
         assert seed.backer.name == "unknown-org"
         assert seed.backer.type == BackerType.COMMUNITY
 
+    def test_build_seed_skips_implausible_params(self) -> None:
+        # A "35B"-named model whose HF scrape returned a garbage params_total
+        # (same shape of bug that broke the Ornith-1.0-35B seed): build_seed
+        # must route through plausible_params and skip the seed entirely,
+        # not just the field. Pins the guard's wiring against refactors.
+        p = _proposal(
+            hf_repo="acme-org/Test-35B", name="Test-35B", family="Test",
+            suggested_id="test-35b",
+        )
+        h = _hf(params_total=664944)
+        seed = build_seed(p, h, existing_ids=set())
+        assert seed is None  # implausible size -> skipped this round (warn), not seeded
+
 
 # ---------------------------------------------------------------------------
 # Round-trip: seed_to_yaml_block → load_model_seed

@@ -496,7 +496,6 @@ models:
     hf_repo: deepreinforce-ai/Ornith-1.0-35B
     backer: {name: "deepreinforce-ai", type: community}
     params_total: 35000000000
-    hidden_size: 2048
     modality: text
     license: mit
     openness: open-permissive

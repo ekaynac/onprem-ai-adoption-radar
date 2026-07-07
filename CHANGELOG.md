@@ -23,7 +23,7 @@ All notable changes to this project are documented here. The format follows
   name's declared size token, erring toward dropping the value rather than
   publishing an implausible one; (5) `radar export` now warns (without
   blocking the daily publish) when the technique pages it renders come from a
-  missing, empty, or >2-day-stale research run, so a silent
+  missing, empty, or 2+ days stale research run, so a silent
   local-vs-published divergence is now visible instead of invisible; (6)
   technique detail pages gained a "Momentum: {direction} — {note}" line so the
   momentum signal that already drove ranking is now visible to readers, not
