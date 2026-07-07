@@ -58,3 +58,31 @@ def test_list_runs_excludes_replays_by_default(tmp_path: Path):
 
 def test_list_runs_empty_when_no_runs(tmp_path: Path):
     assert RunStore(tmp_path).list_runs() == []
+
+
+def test_latest_run_of_kind_matches_latest(tmp_path: Path):
+    store = RunStore(tmp_path)
+    a = store.create_run("run-a")
+    b = store.create_run("run-b")
+    c = store.create_run("run-c")
+    store.update_meta(a, {"kind": "models", "created_at": "2026-06-01T00:00:00+00:00"})
+    store.update_meta(b, {"kind": "models", "created_at": "2026-06-02T00:00:00+00:00"})
+    store.update_meta(c, {"kind": "research", "created_at": "2026-06-03T00:00:00+00:00"})
+
+    assert store.latest_run_of_kind("models") == b       # latest models, not a; not c
+    assert store.latest_run_of_kind("research") == c
+    assert store.latest_run_of_kind("trending") is None
+
+
+def test_latest_run_of_kind_none_means_kindless(tmp_path: Path):
+    store = RunStore(tmp_path)
+    tool = store.create_run("run-tool")                   # main scan: no kind key
+    m = store.create_run("run-models")
+    store.update_meta(tool, {"created_at": "2026-06-01T00:00:00+00:00"})
+    store.update_meta(m, {"kind": "models", "created_at": "2026-06-02T00:00:00+00:00"})
+
+    assert store.latest_run_of_kind(None) == tool
+
+
+def test_latest_run_of_kind_empty_store(tmp_path: Path):
+    assert RunStore(tmp_path).latest_run_of_kind("models") is None

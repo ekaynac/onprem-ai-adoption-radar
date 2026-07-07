@@ -392,7 +392,11 @@ models:
     family: nvidia
     hf_repo: nvidia/Qwen3.6-35B-A3B-NVFP4
     backer: {name: "NVIDIA", type: big_tech}
-    params_total: 18683860336
+    # params_total corrected 2026-07-08: HF API safetensors.total for this NVFP4
+    # checkpoint reports 18,683,860,336 — a 4-bit-packing artifact, not the real
+    # parameter count. Base model Qwen/Qwen3.6-35B-A3B's safetensors.total is
+    # 35,951,822,704 (single BF16 dtype), matching the "35B" name; using that.
+    params_total: 35951822704
     modality: text
     license: apache-2.0
     openness: open-permissive
@@ -417,7 +421,11 @@ models:
     family: nvidia
     hf_repo: nvidia/Gemma-4-26B-A4B-NVFP4
     backer: {name: "NVIDIA", type: big_tech}
-    params_total: 14386941232
+    # params_total corrected 2026-07-08: HF API safetensors.total for this NVFP4
+    # checkpoint reports 14,386,941,232 — a 4-bit-packing artifact, not the real
+    # parameter count. Base model google/gemma-4-26B-A4B-it's safetensors.total
+    # is 26,544,131,376, matching the "26B" name; using that.
+    params_total: 26544131376
     modality: text
     license: apache-2.0
     openness: open-permissive
@@ -470,7 +478,11 @@ models:
     family: nvidia
     hf_repo: nvidia/Qwen3.6-27B-NVFP4
     backer: {name: "NVIDIA", type: big_tech}
-    params_total: 18164649200
+    # params_total corrected 2026-07-08: HF API safetensors.total for this NVFP4
+    # checkpoint reports 18,164,649,200 — a 4-bit-packing artifact, not the real
+    # parameter count. Base model Qwen/Qwen3.6-27B's safetensors.total is
+    # 27,781,427,952 (single BF16 dtype), matching the "27B" name; using that.
+    params_total: 27781427952
     modality: text
     license: apache-2.0
     openness: open-permissive

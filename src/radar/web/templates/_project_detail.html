@@ -20,9 +20,9 @@
 <p>{{ card.summary }}</p>
 {% if card.why_it_matters %}<p>{{ card.why_it_matters }}</p>{% endif %}
 
-<div class="table-wrap">
 {% if card.score_breakdown %}
 <h2>Score breakdown</h2>
+<div class="table-wrap">
 <table>
   <thead><tr><th>Dimension</th><th>Score (1–5)</th></tr></thead>
   <tbody>
@@ -38,13 +38,13 @@
     {% endfor %}
   </tbody>
 </table>
-{% endif %}
 </div>
+{% endif %}
 
-<div class="table-wrap">
 {% if card.on_prem_rubric %}
 <h2>On-prem rubric</h2>
 <p>{{ card.on_prem_fit }}</p>
+<div class="table-wrap">
 <table>
   <thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead>
   <tbody>
@@ -53,8 +53,8 @@
     {% endfor %}
   </tbody>
 </table>
-{% endif %}
 </div>
+{% endif %}
 
 {% if card.evidence_notes %}
 <h2>Observed evidence</h2>

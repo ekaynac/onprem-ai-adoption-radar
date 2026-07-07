@@ -1273,7 +1273,7 @@ LIVE_NAV = ["Radar", "Models", "Research", "Trending", "Compare", "History", "So
 def test_nav_identical_across_live_pages(tmp_path: Path):
     """Every hero-bearing live page renders the same 7-item nav (finding #6)."""
     client = TestClient(create_app(tmp_path))
-    for path in ("/", "/models", "/research", "/trending", "/history"):
+    for path in ("/", "/models", "/research", "/trending", "/history", "/sources"):
         r = client.get(path)
         for label in LIVE_NAV:
             assert f">{label}</a>" in r.text, f"{label} missing from {path}"
@@ -1344,6 +1344,18 @@ def test_history_page_uses_design_system(tmp_path: Path):
         assert f">{label}</a>" in text, f"{label} missing from /history"
 
 
+def test_sources_page_on_design_system(tmp_path):
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/sources")
+    assert r.status_code == 200
+    assert 'class="hero"' in r.text and "--hero-bg" in r.text     # shared styles + hero
+    assert '<div class="table-wrap">' in r.text
+    assert 'class="filter-bar"' in r.text                          # form styled
+    assert "#f9fafb" not in r.text                                 # bespoke style gone
+    for label in ("Radar", "Models", "Research", "Trending", "Compare", "History", "Sources"):
+        assert f">{label}</a>" in r.text
+
+
 def test_sortable_headers_have_aria_sort(tmp_path: Path):
     """Sortable <th>s expose aria-sort so assistive tech tracks sort state (finding #17)."""
     (tmp_path / "data").mkdir(parents=True)
@@ -1358,3 +1370,27 @@ def test_sortable_headers_have_aria_sort(tmp_path: Path):
     assert "function modelsSort" in models_text
     assert 'aria-sort="none"' in techniques_text
     assert "function techniquesSort" in techniques_text
+
+
+def test_sortable_headers_keyboard_operable(tmp_path: Path):
+    """Sortable <th>s are keyboard-operable: focusable columnheaders with aria-sort,
+    and wired for Enter/Space via keydown (Task 3, deferred-cleanup)."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    models_text = client.get("/models").text
+    techniques_text = client.get("/research").text
+
+    # /models: 9 sortable <th data-key=...> columnheader headers
+    assert models_text.count('role="button"') == 0  # columnheader role, not button
+    assert models_text.count('tabindex="0"') == 9
+    assert models_text.count('aria-sort="none"') == 9
+    assert "keydown" in models_text
+
+    # /research: 6 sortable <th data-key=...> columnheader headers
+    assert techniques_text.count('role="button"') == 0  # columnheader role, not button
+    assert techniques_text.count('tabindex="0"') == 6
+    assert techniques_text.count('aria-sort="none"') == 6
+    assert "keydown" in techniques_text

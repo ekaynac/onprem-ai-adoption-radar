@@ -36,4 +36,9 @@
   document.querySelectorAll('#models-table th[data-key]').forEach(function (h) {
     if (!h.hasAttribute('aria-sort')) h.setAttribute('aria-sort', 'none');
   });
+  document.querySelectorAll('#models-table th[data-key]').forEach(function (h) {
+    h.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); modelsSort(h); }
+    });
+  });
 </script>

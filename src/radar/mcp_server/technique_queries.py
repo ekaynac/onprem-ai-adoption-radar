@@ -22,6 +22,8 @@ def _latest_technique_cards(root: Path) -> list[dict[str, Any]]:
     if not runs_dir.exists():
         return []
     run_store = RunStore(runs_dir)
+    # NOT latest_run_of_kind: a crashed scan (kind stamped, stage file missing)
+    # must fall back to the next older research run, not just the newest match.
     for run_id in reversed(run_store.list_runs()):
         if run_store.read_meta(run_id).get("kind") == "research":
             path = run_store._run_dir(run_id) / "technique_cards.json"

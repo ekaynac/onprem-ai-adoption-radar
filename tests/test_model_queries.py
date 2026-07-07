@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from radar.mcp_server.model_queries import ModelQueryService
+from radar.mcp_server.model_queries import ModelQueryService, _latest_model_cards
 from radar.models import Category, Ring
 from radar.models_radar.entities import (
     HardwareTier,
@@ -83,6 +83,24 @@ def test_no_model_run_returns_empty(tmp_path: Path):
     (tmp_path / "data").mkdir(parents=True)
     svc = ModelQueryService(tmp_path)
     assert svc.list_models() == [] and svc.get_model("x") is None
+
+
+def test_latest_cards_skips_model_run_missing_its_stage(tmp_path: Path):
+    """A crashed scan (meta written, stage missing) must not raise — fall back.
+
+    Mirrors technique_queries._latest_technique_cards' guarded gateway (see
+    test_technique_queries.py::test_latest_cards_skips_research_run_missing_its_stage):
+    a newer kind="models" run without model_cards.json must not shadow the
+    older, complete run's cards.
+    """
+    _seed(tmp_path)  # older, complete kind="models" run
+    run_store = RunStore(tmp_path / "data" / "runs")
+    broken_run = run_store.create_run()
+    run_store.update_meta(broken_run, {"kind": "models", "model_count": 0})
+
+    cards = _latest_model_cards(tmp_path)
+
+    assert {c["id"] for c in cards} == {"qwen3-8b", "qwen3-30b-a3b", "big-405b"}
 
 
 def test_can_run_and_fit_report(tmp_path: Path):
