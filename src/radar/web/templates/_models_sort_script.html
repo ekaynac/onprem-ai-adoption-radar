@@ -14,8 +14,12 @@
     var dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
     var table = th.closest('table');
     var tbody = table.querySelector('tbody');
-    table.querySelectorAll('th[data-key]').forEach(function (h) { h.removeAttribute('data-dir'); });
+    table.querySelectorAll('th[data-key]').forEach(function (h) {
+      h.removeAttribute('data-dir');
+      h.setAttribute('aria-sort', 'none');
+    });
     th.setAttribute('data-dir', dir);
+    th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
     var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-model]'));
     rows.sort(function (a, b) {
       var av = a.getAttribute('data-' + key) || '';
@@ -29,4 +33,7 @@
     var none = document.getElementById('models-no-matches');
     if (none) tbody.appendChild(none);
   }
+  document.querySelectorAll('#models-table th[data-key]').forEach(function (h) {
+    if (!h.hasAttribute('aria-sort')) h.setAttribute('aria-sort', 'none');
+  });
 </script>

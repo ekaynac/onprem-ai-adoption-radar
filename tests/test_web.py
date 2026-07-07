@@ -1327,3 +1327,19 @@ def test_history_page_uses_design_system(tmp_path: Path):
     assert "#f9fafb" not in text
     for label in LIVE_NAV:
         assert f">{label}</a>" in text, f"{label} missing from /history"
+
+
+def test_sortable_headers_have_aria_sort(tmp_path: Path):
+    """Sortable <th>s expose aria-sort so assistive tech tracks sort state (finding #17)."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    models_text = client.get("/models").text
+    techniques_text = client.get("/research").text
+
+    assert 'aria-sort="none"' in models_text
+    assert "function modelsSort" in models_text
+    assert 'aria-sort="none"' in techniques_text
+    assert "function techniquesSort" in techniques_text

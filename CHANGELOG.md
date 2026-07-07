@@ -7,6 +7,35 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Fixed
+- **Frontend readability pass (18 findings)** — an accessibility/contrast audit
+  of the web UI surfaced 18 findability and readability issues, all now fixed:
+  the hero banner uses the brand's darker shade (`#005F85`, AA-contrast against
+  white hero text) instead of the lighter brand blue; dark-mode "watch"/"avoid"
+  status tokens are retuned (avoid → `#EC6A60`) so ring/status pill text stays
+  AA-compliant against its background in both themes; every table on every
+  page (live and static) is now wrapped in a responsive `.table-wrap` so wide
+  tables scroll horizontally on narrow viewports instead of breaking layout;
+  numeric table columns (params, context, memory, citations, impls, etc.) are
+  right-aligned with unit-bearing headers (`Context (tokens)`, `Min mem (GB)`)
+  via a shared `td.num, th.num` rule; the techniques catalog gained ring-pill
+  parity with the models catalog; hardware-fit verdicts are humanized (5
+  verdicts: Fits / Fits (tight) / Fits (quantized) / Won't fit / Unknown)
+  instead of raw enum tokens like `wont_fit`; trend arrows are color-coded
+  (rising/falling/steady); risk badges plus a legend column make risk levels
+  scannable at a glance; ambiguous "Ring"-only columns are now labeled
+  "Status" where they mix ring + risk signal; a shared legend explains
+  rings/backers/risk on both catalog pages; every page (dashboard, catalogs,
+  compare, history, trending, sources, model/technique detail — live and
+  static) now renders the same canonical 7-item nav
+  (Radar/Models/Research/Trending/Compare/History/Sources, with the static
+  site substituting a Changes-feed link where a live-only route doesn't
+  exist); `/compare` and `/history` (live and static) were rebuilt onto the
+  shared hero/table/footer design system instead of bespoke inline styles;
+  and sortable table headers (`/models`, `/research`, live and static) now
+  expose `aria-sort="none"` initially and toggle
+  `aria-sort="ascending"/"descending"` on the active column on click (siblings
+  reset to `"none"`), so assistive tech can track sort state.
+
 - **Data-quality audit fixes (six issues)** — a research-and-model-data audit
   surfaced six correctness bugs, all now fixed: (1) the trending hub mislabeled
   steady (momentum-3) techniques as "rising" — `RISING_MOMENTUM` corrected to
