@@ -320,3 +320,7 @@ git commit -m "chore: verify MoE seed params against HF; document A3B guard inte
 - Guarded behavior: every converted site keeps its own try/except + defaults; the helper never raises on missing meta (read_meta's own behavior — verify it returns {} or raises and mirror the walk's current handling; if read_meta can raise on a corrupt meta, the helper inherits the caller's existing guards, same as the inline walks did).
 - Twins: T2 (trending pair) + T3 (models/techniques pairs) restate the rule.
 - No new deps; sources conversion is live-only (no static twin created).
+- Reversal: T3's `role="button"` on sortable `<th>` (commit c60b606) was REVERSED in task review (commit 55f0eb2) — an ARIA anti-pattern, since `aria-sort` is only valid on the implicit `columnheader` role, which `role="button"` overrides.
+- Shipped end state for T3: `tabindex="0"` + the JS `keydown` wiring only; no `role` attribute on the sortable headers.
+- Reversal: T4 (commit 31edbe0) converted only 3 of the 5 identified run-walk sites (`cli.py` ×2, `scan_health.py`) to `RunStore.latest_run_of_kind`.
+- The 2 MCP gateways (`model_queries._latest_model_cards`, `technique_queries._latest_technique_cards`) keep their original crashed-scan fallback walks — task review reproduced the regression a naive swap would cause.
