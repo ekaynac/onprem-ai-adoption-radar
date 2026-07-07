@@ -1566,7 +1566,7 @@ def _research_snapshot_status(
 
     try:
         run_time = datetime.fromisoformat(stamp)
-    except ValueError:
+    except (TypeError, ValueError):
         return True, latest_run_id
     if run_time.tzinfo is None:
         run_time = run_time.replace(tzinfo=UTC)

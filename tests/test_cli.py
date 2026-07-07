@@ -856,6 +856,45 @@ def test_export_warns_when_research_snapshot_stale(tmp_path):
     assert "research data is stale/missing" in result.output
 
 
+def test_export_survives_non_string_meta_timestamp(tmp_path):
+    """A meta.json that is valid JSON but has a non-string updated_at/created_at
+    (e.g. a number) must not crash export with a TypeError from
+    datetime.fromisoformat — it should be treated like a missing/stale
+    timestamp and just warn."""
+    from radar.models import Category, Ring
+    from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+    entry = TechniqueEntry(
+        id="qlora", name="QLoRA", category=Category.AI_INFRASTRUCTURE,
+        domain=TechniqueDomain.FINE_TUNING, onprem_impact=OnPremImpact.REDUCES_MEMORY,
+        ring=Ring.WATCH,
+    )
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "technique_cards", [entry.model_dump(mode="json")])
+    store.update_meta(run_id, {"kind": "research", "technique_count": 1})
+
+    # Write meta.json directly with a non-string updated_at (a number), which
+    # is valid JSON but not something datetime.fromisoformat can parse without
+    # raising TypeError (as opposed to the ValueError a malformed string would
+    # raise).
+    import json
+
+    meta_path = tmp_path / "data" / "runs" / run_id / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["updated_at"] = 12345
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    result = runner.invoke(app, ["export", "--root", str(tmp_path),
+                                 "--out", str(tmp_path / "_site")])
+
+    assert result.exit_code == 0, result.stdout
+    assert "research data is stale/missing" in result.output
+
+
 def test_research_scan_threads_metrics_log_path(tmp_path, monkeypatch):
     """Regression pin: `radar research scan` must thread metrics_log_path
     through to run_research_scan so technique momentum history keeps
