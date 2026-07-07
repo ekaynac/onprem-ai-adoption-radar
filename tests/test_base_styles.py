@@ -34,7 +34,22 @@ def test_new_rules_present():
     assert re.search(r"td\.num, th\.num \{[^}]*tabular-nums", STYLES)  # numeric (#9)
     assert ".warning { color: var(--avoid)" in STYLES              # (#14)
     assert "font-size: 0.75rem" in STYLES and "font-size: 0.72rem" not in STYLES  # th (#16)
-    assert ".dim { color: var(--muted)" in STYLES                  # compare filter-bar follow-up
+    assert "td.dim { font-weight: 600" in STYLES                   # compare row-label emphasis
+    assert ".dim { color: var(--muted)" not in STYLES               # no longer dimmed
+
+
+def test_error_class_present_next_to_warning():
+    # /compare's invalid-input feedback (`<p class="error">`) needs styling —
+    # the bespoke stylesheet that defined it was deleted in the design-system
+    # conversion, leaving it unstyled until restored here.
+    assert ".error { color: var(--avoid); font-weight: 600; }" in STYLES
+
+
+def test_filter_bar_label_and_button_rules_present():
+    # restores the bespoke filter form ergonomics (stacked labels + a styled
+    # submit button) lost in the design-system conversion.
+    assert re.search(r"\.filter-bar label \{[^}]*flex-direction: column", STYLES)
+    assert re.search(r"\.filter-bar button \{[^}]*cursor: pointer", STYLES)
 
 
 def test_signal_badge_classes_present():

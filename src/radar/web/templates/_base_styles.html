@@ -108,9 +108,10 @@
   h3 { margin: 1.5rem 0 0.4rem; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
   main p { max-width: 70ch; }
   .warning { color: var(--avoid); font-weight: 600; }
+  .error { color: var(--avoid); font-weight: 600; }
   .table-wrap { overflow-x: auto; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .dim { color: var(--muted); }
+  td.dim { font-weight: 600; }
   .trend-up { color: var(--blue-dark); font-weight: 700; }
   .trend-down { color: var(--avoid); font-weight: 700; }
   .trend-flat { color: var(--muted); }
@@ -179,6 +180,11 @@
   .filter-bar input { flex: 1; min-width: 12rem; }
   .filter-bar input:focus, .filter-bar select:focus {
     border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,159,218,0.16);
+  }
+  .filter-bar label { display: flex; flex-direction: column; gap: 0.25rem; }
+  .filter-bar button {
+    padding: 0.45rem 0.9rem; border: 1px solid var(--border-mid); border-radius: 6px;
+    background: var(--surface); color: var(--text); cursor: pointer;
   }
 
   /* Legend */

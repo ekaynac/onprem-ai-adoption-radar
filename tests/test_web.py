@@ -1316,6 +1316,21 @@ def test_compare_page_uses_design_system(tmp_path: Path):
         assert f">{label}</a>" in text, f"{label} missing from /compare"
 
 
+def test_compare_page_renders_styled_error_on_invalid_category(tmp_path: Path):
+    """Invalid /compare input renders a styled error paragraph (final review #1).
+
+    The bespoke stylesheet that used to style `.error` was deleted in the
+    design-system conversion; `_base_styles.html` now carries the rule again.
+    """
+    client = TestClient(create_app(tmp_path))
+    response = client.get("/compare", params={"category": "not-a-real-category"})
+
+    assert response.status_code == 200
+    text = response.text
+    assert 'class="error"' in text
+    assert "Unknown category: not-a-real-category" in text
+
+
 def test_history_page_uses_design_system(tmp_path: Path):
     """Live /history adopts the shared hero/table/footer system (finding #8b)."""
     client = TestClient(create_app(tmp_path))
