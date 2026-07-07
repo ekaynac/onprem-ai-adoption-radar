@@ -1370,3 +1370,27 @@ def test_sortable_headers_have_aria_sort(tmp_path: Path):
     assert "function modelsSort" in models_text
     assert 'aria-sort="none"' in techniques_text
     assert "function techniquesSort" in techniques_text
+
+
+def test_sortable_headers_keyboard_operable(tmp_path: Path):
+    """Sortable <th>s are keyboard-operable: focusable, announced as buttons,
+    and wired for Enter/Space via keydown (Task 3, deferred-cleanup)."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    _seed_techniques_run(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    models_text = client.get("/models").text
+    techniques_text = client.get("/research").text
+
+    # /models: 9 sortable <th data-key=...> headers
+    assert models_text.count('role="button"') == 9
+    assert models_text.count('tabindex="0"') == 9
+    assert models_text.count('aria-sort="none"') == 9
+    assert "keydown" in models_text
+
+    # /research: 6 sortable <th data-key=...> headers
+    assert techniques_text.count('role="button"') == 6
+    assert techniques_text.count('tabindex="0"') == 6
+    assert techniques_text.count('aria-sort="none"') == 6
+    assert "keydown" in techniques_text
