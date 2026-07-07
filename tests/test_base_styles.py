@@ -61,3 +61,12 @@ def test_signal_badge_classes_present():
 
 def test_tagline_and_generated_contrast_raised():
     assert "rgba(255,255,255,0.82)" not in STYLES and "rgba(255,255,255,0.7)" not in STYLES
+
+
+def test_no_headings_inside_table_wrap():
+    for tpl in Path("src/radar/web/templates").glob("*.html"):
+        text = tpl.read_text(encoding="utf-8")
+        # between a wrap-open and its <table>, no heading/paragraph may appear
+        for m in re.finditer(r'<div class="table-wrap">(.*?)<table', text, re.S):
+            inner = m.group(1)
+            assert not re.search(r"<h[1-4]|<p[ >]", inner), f"{tpl.name}: heading/paragraph inside table-wrap"

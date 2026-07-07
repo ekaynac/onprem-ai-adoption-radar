@@ -16,9 +16,9 @@
       {% if not onprem and not broader %}<p>No trending observations yet.</p>{% endif %}
       {% for section, rows in [("On-prem radar candidates", onprem),
                                 ("Elsewhere in AI", broader)] %}
-      <div class="table-wrap">
       {% if rows %}
       <h2>{{ section }}</h2>
+      <div class="table-wrap">
       <table>
         <thead><tr><th>Repo</th><th class="num">Stars</th><th class="num">Velocity (stars/day)</th><th>Status</th>
                    <th>First seen</th><th>Description</th></tr></thead>
@@ -35,8 +35,8 @@
           {% endfor %}
         </tbody>
       </table>
-      {% endif %}
       </div>
+      {% endif %}
       {% endfor %}
 
       {% for title, rows, kind in [("Trending Models", model_hub, "model"),

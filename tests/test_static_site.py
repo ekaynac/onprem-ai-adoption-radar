@@ -854,3 +854,11 @@ def test_static_legend_on_catalog_pages(tmp_path: Path):
     site = tmp_path / "_site"
     assert "Rings" in (site / "models.html").read_text(encoding="utf-8")
     assert "Rings" in (site / "techniques.html").read_text(encoding="utf-8")
+
+
+def test_export_emits_no_empty_table_wrap(tmp_path):
+    import re
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
+    for page in (tmp_path / "_site").glob("*.html"):
+        text = page.read_text(encoding="utf-8")
+        assert not re.search(r'<div class="table-wrap">\s*</div>', text), page.name
