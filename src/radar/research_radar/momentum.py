@@ -13,6 +13,8 @@ from radar.storage.technique_metrics_store import TechniqueMetrics
 
 
 CITATION_RISING_PCT = 10.0
+CITATION_FALLING_PCT = -2.0  # noise deadband: only a real decline reads "falling"
+CITATION_BASELINE_FLOOR = 50  # pct growth on tiny citation counts is index noise
 
 
 class MomentumSignal(BaseModel):
@@ -42,14 +44,14 @@ def momentum_signal(
             note=f"+{impl_delta} tracked implementation(s) since last scan.",
         )
     if impl_delta is not None and impl_delta < 0:
-        falling_too = growth is not None and growth < 0
+        falling_too = growth is not None and growth < CITATION_FALLING_PCT
         return MomentumSignal(
             technique_id=technique_id, score=1 if falling_too else 2, direction="falling",
             citation_growth_pct=growth,
             note="Tracked implementation dropped"
             + (" and citations falling." if falling_too else "."),
         )
-    if growth is not None and growth < 0:
+    if growth is not None and growth < CITATION_FALLING_PCT:
         return MomentumSignal(
             technique_id=technique_id, score=2, direction="falling",
             citation_growth_pct=growth,
@@ -73,8 +75,8 @@ def _citation_growth_pct(
     for row in reversed(rows):  # most recent same-source row wins
         if row.citation_source != source:
             continue
-        if not row.citation_count:  # zero/None baseline: pct growth is undefined
-            return None
+        if not row.citation_count or row.citation_count < CITATION_BASELINE_FLOOR:
+            return None  # zero/None/tiny baseline: pct growth is noise, not signal
         return round((current - row.citation_count) / row.citation_count * 100, 1)
     return None
 
