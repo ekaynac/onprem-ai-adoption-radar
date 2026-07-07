@@ -1533,6 +1533,48 @@ def sandbox(
     console.print(render_sandbox_markdown(card, build_sandbox_plan(card)))
 
 
+EXPORT_RESEARCH_STALE_DAYS = 2
+
+
+def _research_snapshot_status(
+    technique_entries: list[Any], run_store: Any, now: Any,
+) -> tuple[bool, str]:
+    """Warn-only staleness check for the export command.
+
+    Returns ``(is_stale, latest_research_run_id)``. Export always renders the
+    latest research run's ``technique_cards.json`` snapshot as-is (see
+    ``load_technique_entries``); a missing, empty, or stale snapshot would
+    otherwise silently publish outdated technique pages, so this warns
+    instead of blocking the daily publish.
+    """
+    from datetime import datetime
+
+    latest_run_id = "none"
+    stamp: str | None = None
+    try:
+        for run_id in reversed(run_store.list_runs()):
+            meta = run_store.read_meta(run_id)
+            if meta.get("kind") == "research":
+                latest_run_id = run_id
+                stamp = meta.get("updated_at") or meta.get("created_at")
+                break
+    except Exception:
+        return True, latest_run_id
+
+    if not technique_entries or not stamp:
+        return True, latest_run_id
+
+    try:
+        run_time = datetime.fromisoformat(stamp)
+    except ValueError:
+        return True, latest_run_id
+    if run_time.tzinfo is None:
+        run_time = run_time.replace(tzinfo=UTC)
+
+    age_days = (now - run_time).days
+    return age_days >= EXPORT_RESEARCH_STALE_DAYS, latest_run_id
+
+
 @app.command()
 def export(
     out: Path = typer.Option(Path("_site"), help="Output directory for static HTML."),
@@ -1617,6 +1659,16 @@ def export(
 
     technique_entries = load_technique_entries(root)
     technique_events = _load_tech_events(root / "data" / "technique-history.jsonl")
+
+    research_stale, latest_research_run_id = _research_snapshot_status(
+        technique_entries, orchestrator.run_store, datetime.now(UTC),
+    )
+    if research_stale:
+        console.print(
+            "[yellow]⚠ research data is stale/missing "
+            f"(latest research run: {latest_research_run_id}); "
+            "run `radar research scan` before export[/yellow]"
+        )
 
     technique_history_src = root / "data" / "technique-history.jsonl"
     if technique_history_src.exists():

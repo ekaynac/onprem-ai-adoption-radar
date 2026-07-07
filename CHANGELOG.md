@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Data-quality audit fixes (six issues)** — a research-and-model-data audit
+  surfaced six correctness bugs, all now fixed: (1) the trending hub mislabeled
+  steady (momentum-3) techniques as "rising" — `RISING_MOMENTUM` corrected to
+  `4`, matching the canonical momentum scale where 4 means "citations rising
+  ≥10%"; (2) technique momentum flapped on citation-index noise — a baseline
+  floor (counts < 50 → no signal) and a −2% falling deadband now separate real
+  decline from measurement jitter; (3) model ring-change momentum could be
+  swayed by a promotion/demotion from months ago — `compute_model_momentum`
+  now takes an explicit `now` and only honors ring events from the last 30
+  days; (4) a HuggingFace scrape error left `Ornith-1.0-35B` recorded as
+  0.664M params (rendering "0.0B" and falsely claiming an 8GB-GPU fit) — the
+  seed entry is corrected to 35B, and the autopilot's `plausible_params` guard
+  now rejects (drops + warns on) any future scrape more than 5x off a model
+  name's declared size token, erring toward dropping the value rather than
+  publishing an implausible one; (5) `radar export` now warns (without
+  blocking the daily publish) when the technique pages it renders come from a
+  missing, empty, or >2-day-stale research run, so a silent
+  local-vs-published divergence is now visible instead of invisible; (6)
+  technique detail pages gained a "Momentum: {direction} — {note}" line so the
+  momentum signal that already drove ranking is now visible to readers, not
+  just consumed internally.
+
 ### Changed
 - **Recency/staleness pass** — Emerging rows on `/trending` now show a "Last
   seen" date and a STALE badge once a candidate stops appearing in the daily
