@@ -83,6 +83,7 @@ def build_model_section(
             e.id,
             sorted(metrics_by_id.get(e.id, []), key=lambda m: m.observed_at)[-MODEL_METRICS_WINDOW:],
             events_by_id.get(e.id, []),
+            now,
         ))
         for e in entries
     ]

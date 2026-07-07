@@ -511,6 +511,7 @@ def models_fit(
 def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
     """List models from the latest model scan."""
     import json as _json
+    from datetime import UTC, datetime
 
     from radar.models_radar.entities import ModelEntry as _ME
     from radar.models_radar.pipeline import momentum_for
@@ -530,7 +531,7 @@ def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     console.print(f"{len(entries)} models (run {model_run}):")
     parsed = [_ME.model_validate(m) for m in entries]
     moms = momentum_for(parsed, root / "data" / "radar.db",
-                        root / "data" / "model-history.jsonl")
+                        root / "data" / "model-history.jsonl", datetime.now(UTC))
     _ARROW = {"rising": "↑", "falling": "↓", "steady": "→"}
     for m in parsed:
         quants = m.quants
