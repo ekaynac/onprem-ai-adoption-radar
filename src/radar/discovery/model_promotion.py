@@ -178,6 +178,9 @@ _MODALITY_MAP: dict[str, Modality] = {
 _DATE_RE = re.compile(r"^\d{4}-\d{2}")
 
 _SIZE_TOKEN = re.compile(r"(\d+(?:\.\d+)?)\s*[bB]\b")
+# Deliberately does NOT match A<N>B active-param suffixes (e.g. "…-A3B"): the guard
+# fails toward less data, and treating the active count as nominal would keep
+# mis-scraped totals — the worse failure. See 2026-07-08 deferred-cleanup spec.
 _MOE_TOKEN = re.compile(r"\d+x\d+(?:\.\d+)?\s*[bB]\b")
 PARAMS_TOLERANCE = 5.0  # name says 35B but value differs by >5x either way -> implausible
 

@@ -59,6 +59,36 @@ All notable changes to this project are documented here. The format follows
   momentum signal that already drove ranking is now visible to readers, not
   just consumed internally.
 
+- **Deferred-cleanup pass (6 items)** — a follow-up sweep closed out items
+  deferred from the readability and data-quality passes: `/sources`
+  (live-only; it has no static counterpart) was rebuilt onto the shared
+  hero/table/footer design system, matching every other page; four templates
+  (`trending.html`, `static_trending.html`, `_project_detail.html`,
+  `_model_detail.html`) had their headings and `{% if %}` guards moved
+  outside `.table-wrap` divs, so a hidden or empty section can no longer
+  render an empty/heading-containing wrapper; the sortable headers on
+  `/models` and `/research` (live and static) are now keyboard-operable —
+  `tabindex="0"` plus an Enter/Space keydown handler fires the same sort as a
+  click — while staying native `<th>` columnheaders (**not** `role="button"`,
+  which was rejected in review as an ARIA anti-pattern on a non-interactive
+  element); a new `RunStore.latest_run_of_kind()` helper replaces three
+  duplicate "walk runs newest-first, stop at the first kind match" loops
+  (`models list`, the research-snapshot status check, and `scan_health`'s
+  tool-scan lookup) — the two MCP query gateways (`model_queries`,
+  `technique_queries`) deliberately keep their own raw walk, since they must
+  skip past a crashed scan (meta stamped with a `kind` but no stage file
+  written yet) to the next older run of that kind, a resilience behavior the
+  single-match helper doesn't provide; three NVIDIA NVFP4 seed entries
+  (`Qwen3.6-35B-A3B`, `Gemma-4-26B-A4B`, `Qwen3.6-27B`) carried
+  `params_total` values 1.5–1.9x below their real size — HF's
+  `safetensors.total` for a 4-bit-quantized checkpoint undercounts true
+  parameters (a packing artifact) — verified against each unquantized base
+  model's `safetensors.total` and corrected, with an evidence-dated comment
+  recording both numbers; and the model-promotion `plausible_params` guard's
+  deliberate choice to never treat `-A3B`/`-A4B`-style active-param suffixes
+  as a nominal size token (unlike `8x7B`-style MoE naming, which it does
+  recognize) is now documented in-code.
+
 ### Changed
 - **Recency/staleness pass** — Emerging rows on `/trending` now show a "Last
   seen" date and a STALE badge once a candidate stops appearing in the daily
