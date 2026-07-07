@@ -24,6 +24,9 @@ def _latest_model_cards(root: Path) -> list[dict[str, Any]]:
     if not runs_dir.exists():
         return []
     run_store = RunStore(runs_dir)
+    # NOT latest_run_of_kind: a crashed scan (kind stamped, stage file missing)
+    # must fall back to the next older models run, not just the newest match
+    # (mirrors technique_queries._latest_technique_cards' guarded gateway).
     for rid in reversed(run_store.list_runs()):
         if run_store.read_meta(rid).get("kind") == "models":
             path = run_store._run_dir(rid) / "model_cards.json"

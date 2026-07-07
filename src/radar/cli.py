@@ -518,11 +518,7 @@ def models_list(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     from radar.storage.run_store import RunStore
 
     run_store = RunStore(root / "data" / "runs")
-    model_run = None
-    for rid in reversed(run_store.list_runs()):
-        if run_store.read_meta(rid).get("kind") == "models":
-            model_run = rid
-            break
+    model_run = run_store.latest_run_of_kind("models")
     if model_run is None:
         console.print("[yellow]No model scan yet. Run [bold]radar models scan[/bold] first.[/yellow]")
         return
@@ -1552,12 +1548,11 @@ def _research_snapshot_status(
     latest_run_id = "none"
     stamp: str | None = None
     try:
-        for run_id in reversed(run_store.list_runs()):
-            meta = run_store.read_meta(run_id)
-            if meta.get("kind") == "research":
-                latest_run_id = run_id
-                stamp = meta.get("updated_at") or meta.get("created_at")
-                break
+        latest = run_store.latest_run_of_kind("research")
+        if latest is not None:
+            latest_run_id = latest
+            meta = run_store.read_meta(latest)
+            stamp = meta.get("updated_at") or meta.get("created_at")
     except Exception:
         return True, latest_run_id
 

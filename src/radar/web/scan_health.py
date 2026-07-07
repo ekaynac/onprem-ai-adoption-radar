@@ -91,11 +91,8 @@ def latest_tool_scan_meta(run_store: Any) -> dict[str, Any]:
     tool scan does not. Without this filter, a later ``radar models scan`` or
     ``radar research scan`` silently blanks the dashboard's scan-health panel.
     """
-    for run_id in reversed(run_store.list_runs()):
-        meta = run_store.read_meta(run_id)
-        if "kind" not in meta:
-            return meta
-    return {}
+    run_id = run_store.latest_run_of_kind(None)
+    return run_store.read_meta(run_id) if run_id else {}
 
 
 def _plural(count: int, noun: str) -> str:

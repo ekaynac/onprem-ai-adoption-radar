@@ -110,6 +110,17 @@ class RunStore:
         except json.JSONDecodeError:
             return {}
 
+    def latest_run_of_kind(self, kind: str | None) -> str | None:
+        """Newest run id whose meta ``kind`` matches; ``None`` = runs without a kind key."""
+        for run_id in reversed(self.list_runs()):
+            meta = self.read_meta(run_id)
+            if kind is None:
+                if "kind" not in meta:
+                    return run_id
+            elif meta.get("kind") == kind:
+                return run_id
+        return None
+
     def list_runs(self, include_replays: bool = False) -> list[str]:
         """Return run ids oldest-first by meta ``created_at`` (dir name fallback).
 
