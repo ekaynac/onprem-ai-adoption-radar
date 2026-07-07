@@ -1199,3 +1199,68 @@ def test_catalog_tables_are_scroll_wrapped(tmp_path):
     models_page = client.get("/models").text
     assert 'class="num"' in models_page
     assert "Min mem (GB)" in models_page
+
+
+# ---------------------------------------------------------------------------
+# Signal badges: ring pills, humanized fit verdicts, trend/risk, Status
+# headers (Task 3)
+# ---------------------------------------------------------------------------
+
+
+def test_techniques_catalog_renders_ring_pill(tmp_path):
+    _seed_techniques_run(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/research")
+    assert 'class="ring-pill ring-' in r.text
+
+
+def test_model_fit_verdict_humanized(tmp_path):
+    # Qwen3 8B / Q4_K_M ~8.0GB: won't fit the 8GB-usable rtx-4060 tier (6.8GB
+    # usable), but fits the larger tiers — both branches exercised.
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    _seed_models(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/model/qwen3-8b")
+    assert r.status_code == 200
+    assert "wont_fit" not in r.text and "fits_tight" not in r.text
+    assert "Won't fit" in r.text or "Fits" in r.text
+
+
+def test_index_trend_and_risk_badges(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM",
+                category=Category.MODEL_SERVING,
+                ring=Ring.ADOPT,
+                summary="fast inference",
+                workflow_fit={},
+                risk_level="high",
+                trend="rising",
+            )
+        ]
+    )
+
+    r = TestClient(create_app(tmp_path)).get("/")
+
+    assert 'class="trend-' in r.text          # ↑/→/↓ wrapped
+    assert "risk-" in r.text                   # risk badge class
+
+
+def test_trending_status_headers(tmp_path):
+    _seed_trending_obs(tmp_path)
+    _seed_model_run_and_metrics(tmp_path)
+    _seed_candidates(tmp_path)
+
+    r = TestClient(create_app(tmp_path)).get("/trending")
+
+    assert r.text.count("<th>Status</th>") >= 4
+    assert "<th></th>" not in r.text
+
+
+def test_index_legend_has_risk_column(tmp_path: Path):
+    r = TestClient(create_app(tmp_path)).get("/")
+    assert "<h4>Risk</h4>" in r.text
+    assert 'class="ring-pill risk-low"' in r.text
+    assert 'class="ring-pill risk-medium"' in r.text
+    assert 'class="ring-pill risk-high"' in r.text

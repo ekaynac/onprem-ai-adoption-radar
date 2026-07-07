@@ -718,3 +718,87 @@ def test_static_tables_are_scroll_wrapped(tmp_path):
     models_page = (tmp_path / "_site" / "models.html").read_text(encoding="utf-8")
     assert 'class="num"' in models_page
     assert "Min mem (GB)" in models_page
+
+
+# ---------------------------------------------------------------------------
+# Signal badges: ring pills, humanized fit verdicts, trend/risk, Status
+# headers (Task 3) — static-export twins of the live-route assertions.
+# ---------------------------------------------------------------------------
+
+
+def test_static_techniques_catalog_renders_ring_pill(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 3, tzinfo=UTC),
+        technique_entries=[_technique_entry()],
+    )
+    page = (tmp_path / "_site" / "techniques.html").read_text(encoding="utf-8")
+    assert 'class="ring-pill ring-' in page
+
+
+def test_static_model_fit_verdict_humanized(tmp_path):
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+
+    m = ModelEntry(
+        id="qwen3-8b", name="Qwen3 8B", family="Qwen3", params_total=8_000_000_000,
+        hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+        quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                             platform=Platform.GENERIC, source="x")],
+    )
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC), model_entries=[m])
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert "wont_fit" not in page and "fits_tight" not in page
+    assert "Won't fit" in page or "Fits" in page
+
+
+def test_static_index_trend_and_risk_badges(tmp_path: Path):
+    card = _card("vLLM", Ring.ADOPT).model_copy(update={"risk_level": "high", "trend": "rising"})
+    render_static_site([card], tmp_path / "_site", datetime(2026, 6, 13, tzinfo=UTC))
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert 'class="trend-' in index
+    assert "risk-" in index
+
+
+def test_static_index_legend_has_risk_column(tmp_path: Path):
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site", datetime(2026, 6, 13, tzinfo=UTC))
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "<h4>Risk</h4>" in index
+    assert 'class="ring-pill risk-low"' in index
+    assert 'class="ring-pill risk-medium"' in index
+    assert 'class="ring-pill risk-high"' in index
+
+
+def test_static_trending_status_headers(tmp_path):
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+    from radar.web.hub_sections import HubRow
+
+    obs = [
+        TrendingObservation(
+            repo="acme/rocket", lane=Lane.ONPREM, stars=400,
+            observed_at=datetime(2026, 7, 4, tzinfo=UTC),
+            repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+            description="fast serving", topics=["llm"], license="MIT"),
+        TrendingObservation(
+            repo="big/model", lane=Lane.BROADER, stars=90000,
+            observed_at=datetime(2026, 7, 4, tzinfo=UTC),
+            repo_created_at=datetime(2024, 1, 1, tzinfo=UTC),
+            description="a model", topics=["llm"], license="Apache-2.0"),
+    ]
+    model_hub = [HubRow(id="m1", name="M One", subtitle="Fam", metric=5000, growth=120.0,
+                        momentum=None, direction="rising", ring="pilot", is_new=False, kind="model")]
+    technique_hub = [HubRow(id="t1", name="T One", subtitle="reasoning", metric=900,
+                            growth=None, momentum=5, direction="rising", ring="adopt",
+                            is_new=True, kind="technique")]
+
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+        trending_observations=obs, model_hub=model_hub, technique_hub=technique_hub,
+    )
+    page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+    assert page.count("<th>Status</th>") >= 4
+    assert "<th></th>" not in page

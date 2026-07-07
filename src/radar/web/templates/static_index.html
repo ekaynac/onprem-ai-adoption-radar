@@ -36,8 +36,8 @@
             <td>{{ card.category.value }}</td>
             <td>{% include "_backer_cell.html" %}</td>
             <td><span class="ring-pill ring-{{ card.ring.value }}">{{ card.ring.value }}</span></td>
-            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
-            <td>{{ card.risk_level }}</td>
+            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}<span class="trend-up">↑</span>{% elif card.trend == 'falling' %}<span class="trend-down">↓</span>{% else %}<span class="trend-flat">→</span>{% endif %}</td>
+            <td><span class="ring-pill risk-{{ card.risk_level }}">{{ card.risk_level }}</span></td>
             <td>
               {% if card.pinned %}<span class="badge badge-pinned" title="{{ card.pinned_reason }}">📌 pinned{% if card.computed_ring %} (was {{ card.computed_ring.value }}){% endif %}</span>{% endif %}
               {% if card.upgrade_risk == 'high' %}<span class="badge badge-risk">⚠ upgrade risk</span>{% elif card.upgrade_risk == 'low' %}<span class="badge badge-risk-low">upgrade notes</span>{% endif %}
@@ -73,8 +73,8 @@
             <td>{{ card.category.value }}</td>
             <td>{% include "_backer_cell.html" %}</td>
             <td><span class="ring-pill ring-{{ card.ring.value }}">{{ card.ring.value }}</span></td>
-            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}↑{% elif card.trend == 'falling' %}↓{% else %}→{% endif %}</td>
-            <td>{{ card.risk_level }}</td>
+            <td title="{{ card.trend }}">{% if card.trend == 'rising' %}<span class="trend-up">↑</span>{% elif card.trend == 'falling' %}<span class="trend-down">↓</span>{% else %}<span class="trend-flat">→</span>{% endif %}</td>
+            <td><span class="ring-pill risk-{{ card.risk_level }}">{{ card.risk_level }}</span></td>
             <td>{{ card.on_prem_fit }}</td>
           </tr>
           {% else %}

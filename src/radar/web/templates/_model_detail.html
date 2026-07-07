@@ -20,7 +20,7 @@
 {% if fit_by_tier %}
 <h3>Runs on</h3>
 <table><thead><tr><th>Device</th><th>Fit</th><th>Largest quant that fits</th></tr></thead><tbody>
-{% for r in fit_by_tier %}<tr><td>{{ r.device }}</td><td>{{ r.verdict }}</td><td>{{ r.best_quant }}</td></tr>{% endfor %}
+{% for r in fit_by_tier %}<tr><td>{{ r.device }}</td><td>{% if r.verdict == "fits" %}<span class="ring-pill fit-yes">Fits</span>{% elif r.verdict == "fits_tight" %}<span class="ring-pill fit-tight">Fits (tight)</span>{% elif r.verdict == "fits_quantized" %}<span class="ring-pill fit-tight">Fits (quantized)</span>{% elif r.verdict == "wont_fit" %}<span class="ring-pill fit-no">Won't fit</span>{% else %}<span class="ring-pill">Unknown</span>{% endif %}</td><td>{{ r.best_quant }}</td></tr>{% endfor %}
 </tbody></table>
 {% endif %}
 </div>

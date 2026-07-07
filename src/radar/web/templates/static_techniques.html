@@ -35,7 +35,7 @@
               data-citations="{{ t.citation_count or 0 }}">
             <td><a href="technique_{{ slug_by_technique[t.id] }}.html">{{ t.name }}</a></td>
             <td>{{ t.domain.value }}</td>
-            <td>{{ t.ring.value if t.ring else '-' }}</td>
+            <td>{% if t.ring %}<span class="ring-pill ring-{{ t.ring.value }}">{{ t.ring.value }}</span>{% else %}-{% endif %}</td>
             <td>{{ t.category.value }}</td>
             <td class="num">{{ t.resolved_implementations | length }}</td>
             <td class="num">{{ t.citation_count if t.citation_count is not none else '?' }}</td>

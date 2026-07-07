@@ -20,7 +20,7 @@
       {% if rows %}
       <h2>{{ section }}</h2>
       <table>
-        <thead><tr><th>Repo</th><th class="num">Stars</th><th class="num">Velocity (stars/day)</th><th></th>
+        <thead><tr><th>Repo</th><th class="num">Stars</th><th class="num">Velocity (stars/day)</th><th>Status</th>
                    <th>First seen</th><th>Description</th></tr></thead>
         <tbody>
           {% for e in rows %}
@@ -48,7 +48,7 @@
       <table>
         <thead><tr><th>{{ kind|capitalize }}</th><th>{{ "Family" if kind == "model" else "Domain" }}</th>
           <th class="num">{{ "Downloads" if kind == "model" else "Citations" }}</th>
-          <th>Momentum</th><th>Ring</th><th></th></tr></thead>
+          <th>Momentum</th><th>Ring</th><th>Status</th></tr></thead>
         <tbody>
           {% for r in rows %}
           <tr>
@@ -71,7 +71,7 @@
       {% if model_candidates %}
       <table>
         <thead><tr><th>Model</th><th class="num">Downloads</th><th class="num">Downloads/day</th>
-          <th></th><th>First seen</th><th>Last seen</th></tr></thead>
+          <th>Status</th><th>First seen</th><th>Last seen</th></tr></thead>
         <tbody>
           {% for c in model_candidates %}
           <tr>
@@ -95,7 +95,7 @@
       {% if technique_candidates %}
       <table>
         <thead><tr><th>Paper</th><th class="num">Upvotes</th><th class="num">Upvotes/day</th>
-          <th class="num">Citations</th><th></th><th>First seen</th><th>Last seen</th></tr></thead>
+          <th class="num">Citations</th><th>Status</th><th>First seen</th><th>Last seen</th></tr></thead>
         <tbody>
           {% for c in technique_candidates %}
           <tr>
