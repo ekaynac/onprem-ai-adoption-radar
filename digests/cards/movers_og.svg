@@ -2,9 +2,9 @@
 <rect width="1200" height="630" fill="#ffffff"/>
 <rect width="1200" height="120" fill="#009FDA"/>
 <text x="48" y="80" font-size="56" font-weight="700" fill="#ffffff">MEGA</text>
-<text x="48" y="210" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W28</text>
-<text x="48" y="300" font-size="40" fill="#222222">hf-glm-5-2  (model) pilot</text>
-<text x="48" y="364" font-size="40" fill="#222222">hf-glm-5-2-nvfp4  (model) pilot</text>
-<text x="48" y="428" font-size="40" fill="#222222">hf-minicpm5-1b  (model) pilot</text>
+<text x="48" y="210" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W29</text>
+<text x="48" y="300" font-size="40" fill="#222222">open-connector  (tool) pilot</text>
+<text x="48" y="364" font-size="40" fill="#222222">hf-deepseek-v4-flash-dspark  (model) adopt</text>
+<text x="48" y="428" font-size="40" fill="#222222">hf-ornith-1-0-397b  (model) pilot</text>
 <text x="48" y="582" font-size="32" fill="#009FDA">on-prem AI adoption radar</text>
 </svg>
