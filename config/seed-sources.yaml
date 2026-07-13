@@ -622,7 +622,13 @@ sources:
     url: https://github.com/llm-d/llm-d
     tags: [model-serving, distributed-inference, kubernetes, open-source]
     backer: {name: "Community", type: community}
-
+  - id: github-open-connector
+    type: github_repo
+    enabled: true
+    project: open-connector
+    category: general_agents
+    url: https://github.com/oomol-lab/open-connector
+    tags: [agent-tools, ai-agents, api-gateway, automation, auto-added]
 quotas:
   coding_agents: 10
   general_agents: 10
