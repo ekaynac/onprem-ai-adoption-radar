@@ -526,3 +526,40 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-07
+
+  - id: hf-qwythos-9b-claude-mythos-5-1m
+    name: Qwythos-9B-Claude-Mythos-5-1M
+    family: Qwythos-9B-Claude-Mythos-5
+    hf_repo: empero-ai/Qwythos-9B-Claude-Mythos-5-1M
+    backer: {name: "empero-ai", type: community}
+    params_total: 9409813744
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-07
+
+  - id: hf-deepseek-v4-flash-dspark
+    name: DeepSeek-V4-Flash-DSpark
+    family: deepseek-ai
+    hf_repo: deepseek-ai/DeepSeek-V4-Flash-DSpark
+    backer: {name: "DeepSeek", type: startup}
+    params_total: 165265454782
+    num_layers: 43
+    hidden_size: 4096
+    context_length: 1048576
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-07
+
+  - id: hf-ornith-1-0-397b
+    name: Ornith-1.0-397B
+    family: Ornith-1.0
+    hf_repo: deepreinforce-ai/Ornith-1.0-397B
+    backer: {name: "deepreinforce-ai", type: community}
+    params_total: 396802360816
+    hidden_size: 4096
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-06
