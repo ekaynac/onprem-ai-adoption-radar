@@ -563,3 +563,14 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-06
+
+  - id: hf-qwen-agentworld-35b-a3b
+    name: Qwen-AgentWorld-35B-A3B
+    family: Qwen
+    hf_repo: Qwen/Qwen-AgentWorld-35B-A3B
+    backer: {name: "Alibaba", type: big_tech}
+    params_total: 34660610688
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-06
