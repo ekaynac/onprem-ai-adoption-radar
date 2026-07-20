@@ -629,6 +629,20 @@ sources:
     category: general_agents
     url: https://github.com/oomol-lab/open-connector
     tags: [agent-tools, ai-agents, api-gateway, automation, auto-added]
+  - id: github-fable-method
+    type: github_repo
+    enabled: true
+    project: fable-method
+    category: coding_agents
+    url: https://github.com/Sahir619/fable-method
+    tags: [agent-skills, ai-agents, claude, claude-code, auto-added]
+  - id: github-waggle
+    type: github_repo
+    enabled: true
+    project: waggle
+    category: general_agents
+    url: https://github.com/modiqo/waggle
+    tags: [ai-agents, harness-engineering, llm-tools, loop-engineering, auto-added]
 quotas:
   coding_agents: 10
   general_agents: 10
