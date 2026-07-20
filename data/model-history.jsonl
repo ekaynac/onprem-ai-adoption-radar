@@ -50,3 +50,4 @@
 {"model_id": "gemma-3-12b", "family": "Gemma", "change_type": "promoted", "ring": "adopt", "previous_ring": "pilot", "run_id": "run-20260716T065345Z-8ef8d1cf", "observed_at": "2026-07-16T06:53:45.449341Z", "reasons": ["promoted to adopt"]}
 {"model_id": "llama-3.1-8b", "family": "Llama", "change_type": "demoted", "ring": "avoid", "previous_ring": "pilot", "run_id": "run-20260716T065345Z-8ef8d1cf", "observed_at": "2026-07-16T06:53:45.449341Z", "reasons": ["demoted to avoid"]}
 {"model_id": "llama-3.1-8b", "family": "Llama", "change_type": "promoted", "ring": "pilot", "previous_ring": "avoid", "run_id": "run-20260717T065122Z-2b032d37", "observed_at": "2026-07-17T06:51:22.610500Z", "reasons": ["promoted to pilot"]}
+{"model_id": "hf-qwen-agentworld-35b-a3b", "family": "Qwen", "change_type": "new", "ring": "adopt", "previous_ring": null, "run_id": "run-20260720T080424Z-fad56098", "observed_at": "2026-07-20T08:04:24.903500Z", "reasons": ["new to adopt"]}
