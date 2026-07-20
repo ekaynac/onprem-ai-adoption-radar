@@ -5,7 +5,14 @@
     <link>https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest-rss.xml</link>
     <description>On-Prem AI Adoption Radar — Weekly Digest — weekly digest</description>
     <atom:link href="https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest-rss.xml" rel="self" type="application/rss+xml"/>
-    <lastBuildDate>Mon, 13 Jul 2026 09:13:29 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 20 Jul 2026 09:10:41 +0000</lastBuildDate>
+    <item>
+      <title>Week 2026-W30: 2 source(s) added · 6 ring change(s) · 5 on-prem candidate(s)</title>
+      <link>https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest_2026-W30.html</link>
+      <description>Week 2026-W30: 2 source(s) added · 6 ring change(s) · 5 on-prem candidate(s)</description>
+      <guid isPermaLink="false">urn:radar:digest:2026-W30</guid>
+      <pubDate>Mon, 20 Jul 2026 09:10:41 +0000</pubDate>
+    </item>
     <item>
       <title>Week 2026-W29: 1 source(s) added · 4 ring change(s) · 5 on-prem candidate(s)</title>
       <link>https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest_2026-W29.html</link>

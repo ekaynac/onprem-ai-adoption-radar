@@ -2,8 +2,9 @@
 <rect width="1200" height="630" fill="#ffffff"/>
 <rect width="1200" height="120" fill="#009FDA"/>
 <text x="48" y="80" font-size="56" font-weight="700" fill="#ffffff">MEGA</text>
-<text x="48" y="210" font-size="52" font-weight="700" fill="#111111">Reached adopt · 2026-W29</text>
-<text x="48" y="300" font-size="40" fill="#222222">hf-deepseek-v4-flash-dspark  (model)</text>
-<text x="48" y="364" font-size="40" fill="#222222">hf-qwythos-9b-claude-mythos-5-1m  (model)</text>
+<text x="48" y="210" font-size="52" font-weight="700" fill="#111111">Reached adopt · 2026-W30</text>
+<text x="48" y="300" font-size="40" fill="#222222">hf-qwen-agentworld-35b-a3b  (model)</text>
+<text x="48" y="364" font-size="40" fill="#222222">mixture-of-experts  (technique)</text>
+<text x="48" y="428" font-size="40" fill="#222222">yarn-context-extension  (technique)</text>
 <text x="48" y="582" font-size="32" fill="#009FDA">on-prem AI adoption radar</text>
 </svg>
