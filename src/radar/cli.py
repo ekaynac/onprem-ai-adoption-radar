@@ -248,8 +248,11 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
 
     import httpx
 
+    from radar.models_radar.entities import ModelSeed
     from radar.models_radar.pipeline import persist_model_scan, score_entries
     from radar.models_radar.scan import run_model_scan
+    from radar.models_radar.seed import load_model_seed
+    from radar.models_radar.validate import seed_advisories, validate_seed
     from radar.storage.run_store import RunStore
 
     seed_path = root / "config" / "model-seed.yaml"
@@ -257,9 +260,28 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
         # fall back to the packaged seed
         seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
 
+    seeds = load_model_seed(seed_path)
+
+    # Quarantine gate: absurd seeds (e.g. a mis-scraped params_total wildly off
+    # the name's size token) never reach collection, scoring, or ranking.
+    quarantined: dict[str, list[str]] = {}
+    advisories: list[str] = []
+    valid_seeds: list[ModelSeed] = []
+    for seed in seeds:
+        problems = validate_seed(seed)
+        if problems:
+            quarantined[seed.id] = problems
+            continue
+        advisories.extend(seed_advisories(seed))
+        valid_seeds.append(seed)
+    for seed_id, problems in quarantined.items():
+        console.print(f"[red]QUARANTINED {seed_id}:[/red] {'; '.join(problems)}")
+    for advisory in advisories:
+        console.print(f"[yellow]note:[/yellow] {advisory}")
+
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            return await run_model_scan(seed_path, client)
+            return await run_model_scan(valid_seeds, client)
 
     entries = asyncio.run(_run())
     entries = score_entries(entries)
@@ -268,6 +290,12 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     # Stamp the kind up front: a crashed scan must never masquerade as a tool run
     # (latest_tool_scan_meta filters on the absence of "kind").
     run_store.update_meta(run_id, {"kind": "models"})
+    if quarantined or advisories:
+        run_store.update_meta(run_id, {
+            "model_validation_warnings": [
+                *(p for ps in quarantined.values() for p in ps), *advisories,
+            ],
+        })
     observed_at = datetime.now(UTC)
     persist_model_scan(
         entries, run_id, observed_at,
