@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -13,7 +13,10 @@ from radar.storage.trending_observations_log import append_observations, load_ob
 
 
 def _obs(repo: str, stars: int, day: int, lane: Lane = Lane.ONPREM,
-         created: str = "2026-06-01") -> TrendingObservation:
+         created: str | None = None) -> TrendingObservation:
+    if created is None:
+        # Default to 30 days ago (safely outside 14-day NEW window)
+        created = (datetime.now(UTC) - timedelta(days=30)).date().isoformat()
     return TrendingObservation(
         repo=repo, lane=lane, stars=stars,
         observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
@@ -57,9 +60,11 @@ def test_trending_scan_survives_missing_config(tmp_path, monkeypatch):
 
 
 def test_trending_list_shows_velocity_and_new(tmp_path):
+    # Create a repo that was created within the last 14 days to trigger NEW badge
+    recent_date = (datetime.now(UTC) - timedelta(days=3)).date().isoformat()
     _seed(tmp_path, [
         _obs("fast/repo", 100, 1), _obs("fast/repo", 400, 4),
-        _obs("new/repo", 60, 4, created="2026-07-01"),
+        _obs("new/repo", 60, 4, created=recent_date),
     ])
     runner = CliRunner()
 
