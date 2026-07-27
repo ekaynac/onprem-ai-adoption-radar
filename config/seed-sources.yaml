@@ -643,6 +643,20 @@ sources:
     category: general_agents
     url: https://github.com/modiqo/waggle
     tags: [ai-agents, harness-engineering, llm-tools, loop-engineering, auto-added]
+  - id: github-img2threejs
+    type: github_repo
+    enabled: true
+    project: img2threejs
+    category: general_agents
+    url: https://github.com/hoainho/img2threejs
+    tags: [3d, ai-agents, claude-code, computer-graphics, auto-added]
+  - id: github-video-shotcraft
+    type: github_repo
+    enabled: true
+    project: video-shotcraft
+    category: general_agents
+    url: https://github.com/Vincentwei1021/video-shotcraft
+    tags: [agent-skills, ai-agents, ai-video, claude-code, auto-added]
 quotas:
   coding_agents: 10
   general_agents: 10
