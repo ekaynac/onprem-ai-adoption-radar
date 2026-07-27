@@ -55,7 +55,7 @@ async def test_post_raises_after_exhausting_retries(monkeypatch):
         return None
 
     monkeypatch.setattr(asyncio, "sleep", _no_sleep)
-    client = _Client([503, 503, 503, 503])
+    client = _Client([503, 503, 503, 503, 503])
 
     with pytest.raises(RuntimeError, match="HTTP 503"):
         await post_with_retry(client, "https://api.test/batch")

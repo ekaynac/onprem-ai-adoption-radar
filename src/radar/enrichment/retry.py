@@ -19,10 +19,10 @@ from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
 
-MAX_RETRIES = 3
+MAX_RETRIES = 4
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 RETRY_BASE_SECONDS = 0.5
-RETRY_MAX_SLEEP_SECONDS = 5.0
+RETRY_MAX_SLEEP_SECONDS = 30.0
 
 
 class _AsyncGetClient(Protocol):

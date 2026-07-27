@@ -129,7 +129,8 @@ async def _safe(coro: Any, label: str, warnings: list[str]) -> Any:
     try:
         return await coro
     except Exception as exc:
-        message = f"enrichment {label} failed: {exc}"
+        reason = str(exc).strip() or exc.__class__.__name__
+        message = f"enrichment {label} failed: {reason}"
         logger.warning(message)
         warnings.append(message)
         return None

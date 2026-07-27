@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Protocol
 
+from radar.enrichment.retry import post_with_retry
 from radar.models import Advisory, PackageRef
 
 
@@ -28,11 +29,12 @@ async def fetch_recent_advisories(
     window_days: int,
 ) -> list[Advisory]:
     """Recently-modified, non-withdrawn advisories for a package (newest first)."""
-    response = await client.post(
+    response = await post_with_retry(
+        client,
         OSV_QUERY_URL,
+        label=f"osv {package.name}",
         json={"package": {"ecosystem": package.ecosystem, "name": package.name}},
     )
-    response.raise_for_status()
     payload = response.json()
 
     cutoff = now - timedelta(days=window_days)
