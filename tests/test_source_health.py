@@ -94,3 +94,57 @@ def test_accepts_str_path(tmp_path: Path):
     store.record("run-1", _at(1), {"s": 1})
 
     assert store.latest_counts()["s"] == 1
+
+
+def test_record_with_statuses_and_error_rows_excluded_from_stale(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.storage.source_health_store import SourceHealthStore
+
+    store = SourceHealthStore(tmp_path / "radar.db")
+    store.initialize()
+    when = datetime(2026, 7, 1, tzinfo=UTC)
+    # 7 scans of zero: 4 genuine empties + 3 network errors.
+    for i in range(4):
+        store.record(f"run-empty-{i}", when, {"rss-x": 0}, {"rss-x": "empty"})
+    for i in range(3):
+        store.record(f"run-err-{i}", when, {"rss-x": 0}, {"rss-x": "error"})
+    # Only 4 non-error zero scans -> below the 7-scan window -> not stale.
+    assert store.stale_source_ids() == set()
+    # 3 more genuine empties -> 7 non-error zeros -> stale.
+    for i in range(3):
+        store.record(f"run-empty2-{i}", when, {"rss-x": 0}, {"rss-x": "empty"})
+    assert store.stale_source_ids() == {"rss-x"}
+
+
+def test_record_derives_status_when_omitted(tmp_path):
+    import sqlite3
+    from datetime import UTC, datetime
+
+    from radar.storage.source_health_store import SourceHealthStore
+
+    store = SourceHealthStore(tmp_path / "radar.db")
+    store.initialize()
+    store.record("run-1", datetime(2026, 7, 1, tzinfo=UTC), {"a": 3, "b": 0})
+    with sqlite3.connect(tmp_path / "radar.db") as conn:
+        rows = dict(conn.execute("SELECT source_id, status FROM source_health"))
+    assert rows == {"a": "ok", "b": "empty"}
+
+
+def test_initialize_migrates_legacy_table(tmp_path):
+    import sqlite3
+    from datetime import UTC, datetime
+
+    from radar.storage.source_health_store import SourceHealthStore
+
+    # Simulate a pre-status database.
+    with sqlite3.connect(tmp_path / "radar.db") as conn:
+        conn.execute(
+            "CREATE TABLE source_health (id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " source_id TEXT NOT NULL, run_id TEXT NOT NULL,"
+            " observed_at TEXT NOT NULL, signal_count INTEGER NOT NULL)"
+        )
+    store = SourceHealthStore(tmp_path / "radar.db")
+    store.initialize()  # must add the column, not crash
+    store.initialize()  # idempotent
+    store.record("run-1", datetime(2026, 7, 1, tzinfo=UTC), {"a": 1})

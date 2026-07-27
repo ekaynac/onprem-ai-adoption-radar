@@ -39,6 +39,45 @@ scoring:
     assert result.cards[0].project == "Model Context Protocol"
 
 
+def test_collect_records_error_status_for_unreachable_source(tmp_path: Path):
+    import sqlite3
+
+    initialize_project(tmp_path)
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+version: "1.0"
+sources:
+  - id: mcp-docs
+    type: manual
+    enabled: true
+    project: Model Context Protocol
+    category: mcp_tooling
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+    tags: [mcp]
+  - id: rss-dead
+    type: rss
+    enabled: true
+    project: DeadFeed
+    category: model_serving
+    url: http://127.0.0.1:1/feed.xml
+    tags: []
+quotas:
+  mcp_tooling: 4
+  model_serving: 4
+scoring:
+  default_ring: watch
+""",
+        encoding="utf-8",
+    )
+
+    RadarOrchestrator(root=tmp_path).scan(days=2)
+
+    with sqlite3.connect(tmp_path / "data" / "radar.db") as conn:
+        rows = dict(conn.execute("SELECT source_id, status FROM source_health"))
+    assert rows["rss-dead"] == "error"
+    assert rows["mcp-docs"] == "ok"
+
+
 def _write_manual_config(tmp_path: Path) -> None:
     config_path = tmp_path / "data" / "config.yaml"
     config_path.write_text(

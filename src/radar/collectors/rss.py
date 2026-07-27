@@ -32,6 +32,9 @@ class RSSCollector(BaseCollector):
         # the run's collector_warnings — a feed that returns an HTML challenge
         # otherwise looks identical to "no new posts".
         self.warnings: list[str] = []
+        # Sources whose fetch errored (vs. legitimately returned nothing) —
+        # feeds source-health outcome recording.
+        self.failed_source_ids: set[str] = set()
 
     async def fetch(self, since: datetime) -> list[Signal]:
         signals: list[Signal] = []
@@ -51,6 +54,7 @@ class RSSCollector(BaseCollector):
             message = f"rss {source.id}: request failed: {exc}"
             logger.warning(message)
             self.warnings.append(message)
+            self.failed_source_ids.add(source.id)
             return []
 
         feed = feedparser.parse(response.text)

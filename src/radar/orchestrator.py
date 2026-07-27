@@ -52,6 +52,20 @@ def _backers_by_project(config: Config) -> dict[str, Backer]:
 
 
 @dataclass(frozen=True)
+class CollectionHealth:
+    """How collection went: the input for the degraded-run gate."""
+
+    total_sources: int
+    errored_sources: int
+
+    @property
+    def error_fraction(self) -> float:
+        if self.total_sources == 0:
+            return 0.0
+        return self.errored_sources / self.total_sources
+
+
+@dataclass(frozen=True)
 class ReplayResult:
     """Result of an offline re-score of a past run."""
 
@@ -102,7 +116,7 @@ class RadarOrchestrator:
         run_id = self.run_store.create_run()
         since = datetime.now(UTC) - timedelta(days=days)
 
-        raw = await self._collect_raw(config, run_id, since)
+        raw, _health = await self._collect_raw(config, run_id, since)
         deduped = self._classify(config, raw, run_id)
         evidence = await self._assemble_evidence(config, deduped, run_id, since)
         scored: list[ScoredSignal] = [
@@ -198,7 +212,9 @@ class RadarOrchestrator:
         elif self.history.has_events():
             append_events(self.history_log, self.history.all_events())
 
-    async def _collect_raw(self, config, run_id: str, since: datetime) -> list[Signal]:
+    async def _collect_raw(
+        self, config, run_id: str, since: datetime
+    ) -> tuple[list[Signal], CollectionHealth]:
         """Fetch from all collectors, persist raw signals, record source health.
 
         A failing collector costs at most its own signals; the failure is
@@ -208,14 +224,20 @@ class RadarOrchestrator:
             collectors = build_collectors(config, client)
             raw: list[Signal] = []
             collector_warnings: list[str] = []
+            failed_source_ids: set[str] = set()
             for collector in collectors:
                 try:
                     raw.extend(await collector.fetch(since))
                 except Exception as exc:
                     collector_warnings.append(f"{collector.__class__.__name__}: {exc}")
+                    # The whole collector died: every enabled source it owns errored.
+                    failed_source_ids.update(
+                        s.id for s in getattr(collector, "sources", []) if s.enabled
+                    )
                 # Per-source soft failures (e.g. a feed that returned an HTML
                 # challenge) are surfaced without aborting the whole collector.
                 collector_warnings.extend(getattr(collector, "warnings", []))
+                failed_source_ids.update(getattr(collector, "failed_source_ids", set()))
             if collector_warnings:
                 self.run_store.update_meta(run_id, {"collector_warnings": collector_warnings})
 
@@ -229,8 +251,20 @@ class RadarOrchestrator:
         for signal in raw:
             if signal.source_id in source_counts:
                 source_counts[signal.source_id] += 1
-        self.source_health.record(run_id, datetime.now(UTC), source_counts)
-        return raw
+        statuses = {
+            source_id: (
+                "error" if source_id in failed_source_ids
+                else "ok" if count > 0
+                else "empty"
+            )
+            for source_id, count in source_counts.items()
+        }
+        self.source_health.record(run_id, datetime.now(UTC), source_counts, statuses)
+        health = CollectionHealth(
+            total_sources=len(source_counts),
+            errored_sources=sum(1 for s in statuses.values() if s == "error"),
+        )
+        return raw, health
 
     def _classify(self, config, raw: list[Signal], run_id: str) -> list[Signal]:
         """Re-attribute firehose entries to tracked projects, then dedupe.
