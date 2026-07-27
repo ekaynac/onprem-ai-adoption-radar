@@ -1443,6 +1443,38 @@ def calibrate_report(
         raise typer.Exit(code=1)
 
 
+@app.command("scan-health")
+def scan_health_cmd(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    check: bool = typer.Option(False, "--check", help="Exit non-zero if unhealthy."),
+    min_signals: int = typer.Option(20, help="Minimum raw signals for a publishable run."),
+) -> None:
+    """Health of the latest main scan run (the publish gate reads this)."""
+    from radar.storage.run_store import RunStore
+
+    run_store = RunStore(root / "data" / "runs")
+    run_id = run_store.latest_run_of_kind(None)
+    if run_id is None:
+        console.print("[red]No main scan run found.[/red]")
+        raise typer.Exit(code=1 if check else 0)
+
+    meta = run_store.read_meta(run_id)
+    problems: list[str] = []
+    if meta.get("degraded"):
+        problems.append(f"run is degraded: {meta.get('degraded_reason', 'unknown reason')}")
+    try:
+        raw = run_store.load_stage(run_id, "raw_signals")
+    except FileNotFoundError:
+        raw = []
+    if len(raw) < min_signals:
+        problems.append(f"only {len(raw)} raw signals (< {min_signals})")
+    if problems:
+        for problem in problems:
+            console.print(f"[red]UNHEALTHY:[/red] {problem}")
+        raise typer.Exit(code=1 if check else 0)
+    console.print(f"OK: {run_id} — {len(raw)} raw signals, not degraded")
+
+
 def _latest_scored_signals(root: Path):
     """Load the most recent run's scored_signals, or None if unavailable."""
     from radar.models import ScoredSignal

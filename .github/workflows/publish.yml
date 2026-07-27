@@ -49,6 +49,11 @@ jobs:
           uv run radar research candidates scan --root .
           uv run radar trending scan --root .
 
+      # Publish gate keyed on the RUN (not the DB union): refuse to export a
+      # degraded or near-empty scan (see 2026-07-27 hardening spec).
+      - name: Scan health gate
+        run: uv run radar scan-health --root . --check
+
       # Quality gate: fail the run if scoring collapsed (rings stopped
       # discriminating). Runs on the persisted scan, before publishing.
       - name: Scoring quality gate
