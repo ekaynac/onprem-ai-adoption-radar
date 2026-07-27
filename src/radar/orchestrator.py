@@ -198,7 +198,7 @@ class RadarOrchestrator:
         delta_report_path = self.run_store.save_try_this_week(run_id, delta_report)
 
         history_report = render_history_report(
-            summaries=self.history.summaries(),
+            summaries=self.history.all_summaries(),
             events_by_project=self._history_by_project(),
             title="Adoption History",
         )
@@ -544,10 +544,15 @@ class RadarOrchestrator:
         return [DecisionCard.model_validate(item) for item in payload]
 
     def _history_by_project(self) -> dict[str, list]:
-        """Group all recorded history events by project for report rendering."""
+        """Group all recorded history events by project for report rendering.
+
+        Uses `all_summaries()` (never omits a project), not `summaries()`, so
+        a project whose entire timeline was corrected away still gets its raw
+        events rendered in the report — the raw view must never drop a row.
+        """
         return {
             summary.project: self.history.history_for(summary.project)
-            for summary in self.history.summaries()
+            for summary in self.history.all_summaries()
         }
 
     def latest_cards(self, profile: str | None = None) -> list[DecisionCard]:

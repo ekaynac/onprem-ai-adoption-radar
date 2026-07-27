@@ -268,7 +268,9 @@ def create_app(root: Path) -> FastAPI:
     @app.get("/history", response_class=HTMLResponse)
     def history_page(request: Request):
         history.initialize()
-        summaries = history.summaries()
+        # all_summaries(), not summaries(): a project entirely corrected away
+        # must still show its raw timeline here.
+        summaries = history.all_summaries()
         timelines = [
             {"summary": s, "events": history.history_for(s.project)}
             for s in sorted(summaries, key=lambda s: s.last_change_at, reverse=True)

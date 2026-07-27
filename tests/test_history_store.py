@@ -256,3 +256,52 @@ def test_corrects_run_id_roundtrips_through_db_and_jsonl(tmp_path):
     log = tmp_path / "history.jsonl"
     append_events(log, [marker])
     assert load_events(log)[0].corrects_run_id == "run-x"
+
+
+def test_all_summaries_includes_project_absent_from_summaries(tmp_path):
+    """A project whose entire history was corrected away (a promoted event
+    plus the corrected marker that neutralizes it, and nothing else) has no
+    effective events, so `summaries()` — used for scoring/momentum — omits it
+    entirely. Raw timeline surfaces must never drop a project like this, so
+    `all_summaries()` is the enumeration primitive they use instead."""
+    from radar.storage.history_store import HistoryStore
+
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.add_events([
+        _event("Outaged", "promoted", "adopt", "watch", "run-outage"),
+        _event("Outaged", "corrected", "watch", "adopt", "repair:run-outage",
+               corrects="run-outage"),
+    ])
+
+    assert store.summaries() == []
+
+    (summary,) = store.all_summaries()
+    assert summary.project == "Outaged"
+    assert summary.change_count == 2  # both raw events counted, nothing dropped
+
+
+def test_all_summaries_keeps_fully_corrected_project_in_history_report(tmp_path):
+    """End-to-end: a fully-corrected project still renders on the raw
+    timeline (the cumulative Adoption History report), even though it is
+    absent from `summaries()`."""
+    from radar.reports.history import render_history_report
+    from radar.storage.history_store import HistoryStore
+
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.add_events([
+        _event("Outaged", "promoted", "adopt", "watch", "run-outage"),
+        _event("Outaged", "corrected", "watch", "adopt", "repair:run-outage",
+               corrects="run-outage"),
+    ])
+
+    all_summaries = store.all_summaries()
+    report = render_history_report(
+        summaries=all_summaries,
+        events_by_project={"Outaged": store.history_for("Outaged")},
+        title="Adoption History",
+    )
+
+    assert "Outaged" in report
+    assert "corrected" in report

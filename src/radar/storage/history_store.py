@@ -236,7 +236,42 @@ class HistoryStore:
         Computed over the *effective* view: corrected (project, run) pairs are
         removed via `apply_corrections`. A project with no effective events
         after filtering (e.g. its only history was a collection-outage
-        artifact) is omitted entirely.
+        artifact) is omitted entirely. Raw timeline surfaces (reports, feeds,
+        `radar history`, `radar calibration`) that must never drop a project
+        use `all_summaries()` instead — corrections stay visible there.
+        """
+        summaries = []
+        for project, raw in self._grouped_events().items():
+            events = apply_corrections(raw)
+            if not events:
+                continue
+            summaries.append(self._summarize(project, events))
+        return sorted(summaries, key=lambda s: s.project.lower())
+
+    def all_summaries(self) -> list[ProjectHistorySummary]:
+        """Return one summary per project with ANY recorded history.
+
+        Unlike `summaries()`, this never omits a project: one whose entire
+        timeline was corrected away (a promoted event plus the corrected
+        marker that neutralizes it, and nothing else) still gets a summary,
+        synthesized from its raw, unfiltered events instead of the empty
+        effective view. Used by raw timeline surfaces — the cumulative
+        history report, the `/history` web and static pages, change feeds,
+        `radar history`, `radar calibration` — which must keep showing every
+        project regardless of correction.
+        """
+        summaries = []
+        for project, raw in self._grouped_events().items():
+            events = apply_corrections(raw) or raw
+            summaries.append(self._summarize(project, events))
+        return sorted(summaries, key=lambda s: s.project.lower())
+
+    def _grouped_events(self) -> dict[str, list[ProjectHistoryEvent]]:
+        """Every project's events, oldest-first by observed_at.
+
+        Order by observed_at, not insertion order: logs merged from several
+        machines (or rehydrated from a concatenated JSONL file) may arrive
+        out of chronological order. Stable sort keeps within-run order.
         """
         with sqlite3.connect(self.path) as conn:
             rows = conn.execute(
@@ -252,27 +287,23 @@ class HistoryStore:
         for row in rows:
             event = self._row_to_event(row)
             events_by_project.setdefault(event.project, []).append(event)
+        return {
+            project: sorted(events, key=lambda e: e.observed_at)
+            for project, events in events_by_project.items()
+        }
 
-        # Order by observed_at, not insertion order: logs merged from several
-        # machines (or rehydrated from a concatenated JSONL file) may arrive
-        # out of chronological order. Stable sort keeps within-run order.
-        summaries = []
-        for project, unordered in events_by_project.items():
-            events = apply_corrections(sorted(unordered, key=lambda e: e.observed_at))
-            if not events:
-                continue
-            summaries.append(
-                ProjectHistorySummary(
-                    project=project,
-                    category=events[-1].category,
-                    current_ring=events[-1].ring,
-                    first_seen=events[0].observed_at,
-                    last_change_at=events[-1].observed_at,
-                    last_change_type=events[-1].change_type,
-                    change_count=len(events),
-                )
-            )
-        return sorted(summaries, key=lambda s: s.project.lower())
+    @staticmethod
+    def _summarize(project: str, events: list[ProjectHistoryEvent]) -> ProjectHistorySummary:
+        """Aggregate a chronologically-sorted, non-empty event list."""
+        return ProjectHistorySummary(
+            project=project,
+            category=events[-1].category,
+            current_ring=events[-1].ring,
+            first_seen=events[0].observed_at,
+            last_change_at=events[-1].observed_at,
+            last_change_type=events[-1].change_type,
+            change_count=len(events),
+        )
 
     @staticmethod
     def _row_to_event(row: tuple) -> ProjectHistoryEvent:

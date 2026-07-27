@@ -1227,7 +1227,9 @@ def history(
 
     store = HistoryStore(root / "data" / "radar.db")
     store.initialize()
-    summaries = store.summaries()
+    # all_summaries(), not summaries(): a project entirely corrected away
+    # must still show its raw timeline here.
+    summaries = store.all_summaries()
     if project:
         summaries = [s for s in summaries if s.project == project]
     events = {s.project: store.history_for(s.project) for s in summaries}
@@ -1430,7 +1432,9 @@ def calibrate_report(
 
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
-    events = [e for s in history.summaries() for e in history.history_for(s.project)]
+    # seen_projects(), not summaries(): calibration must see raw history for
+    # every project, including one entirely corrected away.
+    events = [e for p in history.seen_projects() for e in history.history_for(p)]
 
     report = build_calibration_report(scored, ring_by_project, history_events=events)
     console.print(render_calibration_markdown(report))
@@ -1646,9 +1650,11 @@ def export(
 
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
+    # all_summaries(), not summaries(): a project entirely corrected away
+    # must still show its raw timeline and feed entries here.
     timelines = [
         {"summary": s, "events": history.history_for(s.project)}
-        for s in sorted(history.summaries(), key=lambda s: s.last_change_at, reverse=True)
+        for s in sorted(history.all_summaries(), key=lambda s: s.last_change_at, reverse=True)
     ]
 
     metrics = MetricsStore(root / "data" / "radar.db")
