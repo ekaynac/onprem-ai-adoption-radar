@@ -1216,12 +1216,19 @@ def discover(
         )
 
 
-@app.command()
+history_app = typer.Typer(help="Project ring timeline.", invoke_without_command=True)
+app.add_typer(history_app, name="history")
+
+
+@history_app.callback()
 def history(
+    ctx: typer.Context,
     project: str = typer.Option("", help="Limit to a single project (optional)."),
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Print the cumulative per-project observation history."""
+    if ctx.invoked_subcommand is not None:
+        return
     from radar.reports.history import render_history_report
     from radar.storage.history_store import HistoryStore
 
@@ -1234,6 +1241,36 @@ def history(
         summaries = [s for s in summaries if s.project == project]
     events = {s.project: store.history_for(s.project) for s in summaries}
     console.print(render_history_report(summaries, events, "Adoption History"))
+
+
+@history_app.command("repair")
+def history_repair(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show corrections, write nothing."),
+) -> None:
+    """Neutralize ring changes from collection-outage runs (append-only)."""
+    from datetime import UTC, datetime
+
+    from radar.orchestrator import RadarOrchestrator
+    from radar.storage.history_log import append_events
+    from radar.storage.history_repair import build_corrections, outage_run_ids
+
+    orchestrator = RadarOrchestrator(root)
+    orchestrator.history.initialize()
+    orchestrator.reconcile_history()  # log -> DB so all_events() is complete
+    events = orchestrator.history.all_events()
+    outages = outage_run_ids(root / "data" / "radar.db")
+    corrections = build_corrections(events, outages, datetime.now(UTC))
+    console.print(f"Outage runs detected: {len(outages)}")
+    console.print(f"Corrections to append: {len(corrections)}")
+    for c in corrections:
+        previous_ring = c.previous_ring.value if c.previous_ring else "?"
+        console.print(f"  {c.project}: {previous_ring} -> {c.ring.value} ({c.corrects_run_id})")
+    if dry_run or not corrections:
+        return
+    orchestrator.history.add_events(corrections)
+    append_events(orchestrator.history_log, corrections)
+    console.print(f"Appended {len(corrections)} corrected events.")
 
 
 @app.command()

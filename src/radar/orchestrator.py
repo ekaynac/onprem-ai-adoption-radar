@@ -217,6 +217,13 @@ class RadarOrchestrator:
 
     # --- scan phases (extracted from _scan for readability) -----------------
 
+    def reconcile_history(self) -> None:
+        """Public entry point for callers outside the scan pipeline (e.g. CLI).
+
+        Delegates to `_reconcile_history`; see there for what "reconcile" means.
+        """
+        self._reconcile_history()
+
     def _reconcile_history(self) -> None:
         """Reconcile the durable JSONL log (source of truth) with the DB.
 
