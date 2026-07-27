@@ -1,4 +1,5 @@
-{# Scan-health summary. Context: scan_health (ScanHealth) | None.
+{# Scan-health summary. Context: scan_health (ScanHealth) | None,
+   card_staleness (str) | None — note when persisted cards span >1 scan day.
    Native <details> only — no JS, so it works on the static site too. #}
 {% if scan_health and scan_health.last_run_at %}
 <div class="scan-health">
