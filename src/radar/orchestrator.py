@@ -37,7 +37,7 @@ from radar.scoring.profiles import resolve_weights, reweight_cards
 from radar.storage.config import load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_log import append_events, load_events
-from radar.storage.history_store import HistoryStore, deltas_to_events
+from radar.storage.history_store import HistoryStore, apply_corrections, deltas_to_events
 from radar.storage.metrics_store import MetricsStore
 from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
@@ -403,7 +403,7 @@ class RadarOrchestrator:
             card.project: compute_momentum(
                 card.project,
                 metric_rows=self.metrics.history_for(card.project),
-                ring_events=self.history.history_for(card.project),
+                ring_events=apply_corrections(self.history.history_for(card.project)),
             )
             for card in cards
         }

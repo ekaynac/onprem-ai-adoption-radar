@@ -32,7 +32,7 @@
             {% for e in item.events %}
             <tr>
               <td>{{ e.observed_at.date().isoformat() }}</td>
-              <td>{{ e.change_type.value }}</td>
+              <td>{% if e.change_type.value == "corrected" %}<em title="neutralizes an outage artifact">corrected</em>{% else %}{{ e.change_type.value }}{% endif %}</td>
               <td class="mono">
                 {% if e.previous_ring %}{{ e.previous_ring.value }} &rarr; {% endif %}{{ e.ring.value }}
               </td>
