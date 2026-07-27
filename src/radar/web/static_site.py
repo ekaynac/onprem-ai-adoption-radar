@@ -84,6 +84,7 @@ def render_static_site(
     top_technique: HubRow | None = None,
     model_candidates: list[ModelCandidateEntry] | None = None,
     technique_candidates: list[TechniqueCandidateEntry] | None = None,
+    card_staleness: str | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -121,6 +122,9 @@ def render_static_site(
     feeds) is copied into ``out_dir/digests``; ``latest_digest`` (optional)
     drives a "Latest digest" link on the index page. Both are a no-op when
     omitted — back-compat for exports without a digest log yet.
+    ``card_staleness`` (optional, from ``RadarDatabase.card_staleness_note()``)
+    renders a note in the scan-health panel when persisted cards span more
+    than one scan day (a partial/degraded run mixing fresh and stale ages).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -194,6 +198,7 @@ def render_static_site(
             generated_at=stamp,
             slug_by_project=slug_by_project,
             scan_health=summarize_meta(latest_scan_meta or {}),
+            card_staleness=card_staleness,
             source_health=source_health,
             downloads=downloads,
             models_summary=models_summary,

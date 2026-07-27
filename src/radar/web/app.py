@@ -151,6 +151,7 @@ def create_app(root: Path) -> FastAPI:
             {
                 "cards": cards,
                 "scan_health": summarize_meta(meta),
+                "card_staleness": db.card_staleness_note(),
                 "source_health": _source_health(),
                 "models_summary": summarize_models(_model_entries()),
                 "models_href": "/models",

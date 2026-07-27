@@ -449,6 +449,45 @@ def test_index_shows_scan_health_when_runs_exist(tmp_path: Path):
     assert "collector warning" in text
 
 
+def test_index_shows_card_staleness_when_cards_mix_ages(tmp_path: Path):
+    import sqlite3
+
+    from radar.storage.run_store import RunStore
+
+    db_path = tmp_path / "data" / "radar.db"
+    db = RadarDatabase(db_path)
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Fresh", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="s", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="Stale", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="s", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+    # Backdate one card directly — upsert always stamps now.
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "UPDATE decision_cards SET updated_at = '2026-07-25T06:00:00+00:00' "
+            "WHERE project = 'Stale'"
+        )
+    # scan_health.last_run_at must be present for the block to render at all.
+    RunStore(tmp_path / "data" / "runs").create_run()
+
+    client = TestClient(create_app(tmp_path))
+    text = client.get("/").text
+
+    assert "predate the latest scan" in text
+
+
 def test_index_no_scan_health_block_when_empty(tmp_path: Path):
     db = RadarDatabase(tmp_path / "data" / "radar.db")
     db.initialize()

@@ -18,5 +18,8 @@
   {% else %}
   <p class="scan-health-ok">✓ {{ scan_health.one_line }}</p>
   {% endif %}
+  {% if card_staleness %}
+  <p class="scan-health-stale">⏱ {{ card_staleness }}</p>
+  {% endif %}
 </div>
 {% endif %}

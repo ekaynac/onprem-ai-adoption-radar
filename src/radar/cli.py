@@ -1858,6 +1858,7 @@ def export(
         top_technique=next((r for r in _technique_hub if not r.is_new), None),
         model_candidates=_model_candidates or None,
         technique_candidates=_technique_candidates or None,
+        card_staleness=orchestrator.database.card_staleness_note(),
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

@@ -77,6 +77,31 @@ def test_export_without_history_log_omits_download(tmp_path: Path):
     assert 'href="changes.json"' in index
 
 
+def test_static_index_shows_card_staleness_note(tmp_path: Path):
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+        latest_scan_meta={"updated_at": "2026-06-13T00:00:00+00:00"},
+        card_staleness="1 of 2 cards predate the latest scan (oldest 2026-06-11, newest 2026-06-13)",
+    )
+
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "predate the latest scan" in index
+
+
+def test_static_index_omits_card_staleness_when_none(tmp_path: Path):
+    render_static_site(
+        [_card("vLLM", Ring.ADOPT)],
+        tmp_path / "_site",
+        datetime(2026, 6, 13, tzinfo=UTC),
+        latest_scan_meta={"updated_at": "2026-06-13T00:00:00+00:00"},
+    )
+
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "predate the latest scan" not in index
+
+
 def test_static_index_carries_mega_brand(tmp_path: Path):
     # The Mega corporate identity must survive: Process Blue, the logo lockup,
     # and the tagline. Guards against an accidental de-brand.
