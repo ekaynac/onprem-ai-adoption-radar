@@ -17,6 +17,10 @@ data/config.yaml.bak
 # committed. To version your history (recommended for self-hosting durability),
 # `git add -f data/history.jsonl`. See docs/persistence.md.
 data/history.jsonl
+# Durable source-health log: ignored by default so local/test runs aren't
+# committed. To version it (recommended for self-hosting durability),
+# `git add -f data/source-health.jsonl`. See docs/persistence.md.
+data/source-health.jsonl
 # Human decisions and discovery proposals (local runtime state).
 data/overrides.yaml
 data/proposed-seeds.yaml

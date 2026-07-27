@@ -72,3 +72,4 @@ def test_healthy_run_is_not_degraded(tmp_path: Path):
 
     assert result.degraded is False
     assert len(result.cards) == 1
+    assert (tmp_path / "data" / "source-health.jsonl").exists()

@@ -41,6 +41,12 @@ from radar.storage.history_store import HistoryStore, apply_corrections, deltas_
 from radar.storage.metrics_store import MetricsStore
 from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
+from radar.storage.source_health_log import (
+    SourceHealthRecord,
+    SourceOutcome,
+    append_source_health,
+    load_source_health,
+)
 from radar.storage.source_health_store import SourceHealthStore
 
 
@@ -103,6 +109,8 @@ class RadarOrchestrator:
         self.source_health = SourceHealthStore(self.data_dir / "radar.db")
         # Durable, portable source of truth for the timeline (the DB is a cache).
         self.history_log = self.data_dir / "history.jsonl"
+        # Durable, portable source of truth for source health (the DB is a cache).
+        self.source_health_log = self.data_dir / "source-health.jsonl"
         # Human decisions: pinned rings + trial journal (portable YAML).
         self.overrides_path = self.data_dir / "overrides.yaml"
 
@@ -116,6 +124,8 @@ class RadarOrchestrator:
         self.database.initialize()
         self.history.initialize()
         self._reconcile_history()
+        self.source_health.initialize()
+        self.source_health.import_records(load_source_health(self.source_health_log))
         run_id = self.run_store.create_run()
         since = datetime.now(UTC) - timedelta(days=days)
 
@@ -284,6 +294,17 @@ class RadarOrchestrator:
             for source_id, count in source_counts.items()
         }
         self.source_health.record(run_id, datetime.now(UTC), source_counts, statuses)
+        append_source_health(
+            self.source_health_log,
+            SourceHealthRecord(
+                run_id=run_id,
+                observed_at=datetime.now(UTC),
+                sources={
+                    sid: SourceOutcome(count=count, status=statuses[sid])
+                    for sid, count in source_counts.items()
+                },
+            ),
+        )
         health = CollectionHealth(
             total_sources=len(source_counts),
             errored_sources=sum(1 for s in statuses.values() if s == "error"),

@@ -85,6 +85,7 @@ jobs:
           git config user.name "radar-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f data/history.jsonl || true
+          git add -f data/source-health.jsonl || true
           git add -f data/model-history.jsonl || true
           git add -f data/model-metrics.jsonl || true
           git add -f data/model-candidate-observations.jsonl || true
