@@ -16,6 +16,7 @@ from radar.analysis.backtest import (
     build_backtest_report,
 )
 from radar.collectors.registry import build_collectors
+from radar.constants import DEGRADED_SOURCE_ERROR_THRESHOLD
 from radar.enrichment.runner import run_enrichment
 from radar.models import Backer, Config, DecisionCard, ScoredSignal, Signal
 from radar.notify.webhook import send_notification
@@ -84,6 +85,8 @@ class ScanResult:
     delta_report_path: Path
     history_report_path: Path
     deltas: list[CardDelta]
+    degraded: bool = False
+    degraded_reason: str | None = None
 
 
 class RadarOrchestrator:
@@ -116,7 +119,21 @@ class RadarOrchestrator:
         run_id = self.run_store.create_run()
         since = datetime.now(UTC) - timedelta(days=days)
 
-        raw, _health = await self._collect_raw(config, run_id, since)
+        raw, health = await self._collect_raw(config, run_id, since)
+        if health.error_fraction >= DEGRADED_SOURCE_ERROR_THRESHOLD:
+            reason = (
+                f"collection outage: {health.errored_sources}/{health.total_sources} "
+                "sources failed — run recorded but not scored"
+            )
+            self.run_store.update_meta(run_id, {"degraded": True, "degraded_reason": reason})
+            report_path = self.run_store.save_report(
+                run_id, f"# Degraded run\n\n{reason}\n"
+            )
+            return ScanResult(
+                run_id=run_id, cards=[], report_path=report_path,
+                delta_report_path=report_path, history_report_path=report_path,
+                deltas=[], degraded=True, degraded_reason=reason,
+            )
         deduped = self._classify(config, raw, run_id)
         evidence = await self._assemble_evidence(config, deduped, run_id, since)
         scored: list[ScoredSignal] = [

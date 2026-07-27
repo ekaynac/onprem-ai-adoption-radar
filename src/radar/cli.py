@@ -119,6 +119,10 @@ def scan(
     except UnknownProfileError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
+    if result.degraded:
+        console.print(f"[red]DEGRADED:[/red] {result.degraded_reason}")
+        console.print("No cards, history, or metrics were written.")
+        raise typer.Exit(code=2)
     console.print(f"Run: {result.run_id}")
     console.print(f"Cards: {len(result.cards)}")
     console.print(f"Report: {result.report_path}")
