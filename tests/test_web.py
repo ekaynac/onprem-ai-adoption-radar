@@ -1472,6 +1472,32 @@ def test_trending_route_window_changes_velocity_value(tmp_path):
     assert "15.8" in r30.text      # both rows qualify for 30d -> a real velocity
 
 
+def test_trending_route_survives_naive_datetime_observation(tmp_path):
+    """A corrupt/merge-mangled row with a tz-naive repo_created_at crashes
+    is_new() inside build_trending (naive vs. aware comparison) — the live
+    route's per-window rebuild must degrade to an empty page, not 500.
+    Mirrors test_export_survives_naive_datetime_observation (static side)."""
+    from datetime import datetime
+
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+    from radar.storage.trending_observations_log import append_observations
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    naive = TrendingObservation(
+        repo="acme/rocket", lane=Lane.ONPREM, stars=400,
+        observed_at=datetime(2026, 7, 4, 7, 0),
+        repo_created_at=datetime(2026, 6, 1, 7, 0),  # tz-naive -> would crash build_trending
+        description="d", topics=["llm"], license="MIT",
+    )
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [naive])
+
+    r = TestClient(create_app(tmp_path)).get("/trending")
+
+    assert r.status_code == 200
+    assert "No trending observations yet." in r.text
+    assert 'tab-active">7d' in r.text
+
+
 def test_index_legend_has_risk_column(tmp_path: Path):
     r = TestClient(create_app(tmp_path)).get("/")
     assert "<h4>Risk</h4>" in r.text
