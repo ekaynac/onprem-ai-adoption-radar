@@ -133,7 +133,7 @@ class RadarOrchestrator:
         run_id = self.run_store.create_run()
         since = datetime.now(UTC) - timedelta(days=days)
 
-        raw, health = await self._collect_raw(config, run_id, since)
+        raw, health = await self._collect_raw(config, run_id, since, publish_history)
         if health.error_fraction >= DEGRADED_SOURCE_ERROR_THRESHOLD:
             reason = (
                 f"collection outage: {health.errored_sources}/{health.total_sources} "
@@ -251,7 +251,7 @@ class RadarOrchestrator:
             append_events(self.history_log, self.history.all_events())
 
     async def _collect_raw(
-        self, config, run_id: str, since: datetime
+        self, config, run_id: str, since: datetime, publish_history: bool
     ) -> tuple[list[Signal], CollectionHealth]:
         """Fetch from all collectors, persist raw signals, record source health.
 
@@ -298,8 +298,19 @@ class RadarOrchestrator:
             for source_id, count in source_counts.items()
         }
         self.source_health.record(run_id, datetime.now(UTC), source_counts, statuses)
+        # D5 (2026-07-27 spec): only CI writes the committed source-health
+        # lane. Local scans still record evidence (this runs BEFORE the
+        # degraded-run gate, so outages are never silently dropped) but to the
+        # gitignored `data/local/source-health.jsonl` lane, same as history.jsonl,
+        # so laptop runs never diverge the committed timeline (see D5's
+        # rationale in `_persist_history`).
+        target = (
+            self.source_health_log
+            if publish_history
+            else self.data_dir / "local" / "source-health.jsonl"
+        )
         append_source_health(
-            self.source_health_log,
+            target,
             SourceHealthRecord(
                 run_id=run_id,
                 observed_at=datetime.now(UTC),

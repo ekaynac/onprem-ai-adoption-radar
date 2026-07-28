@@ -1284,17 +1284,33 @@ def history_repair(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show corrections, write nothing."),
 ) -> None:
     """Neutralize ring changes from collection-outage runs (append-only)."""
+    import sqlite3
     from datetime import UTC, datetime
 
     from radar.orchestrator import RadarOrchestrator
-    from radar.storage.history_log import append_events
+    from radar.storage.history_log import append_events, load_events
     from radar.storage.history_repair import build_corrections, outage_run_ids
 
     orchestrator = RadarOrchestrator(root)
     orchestrator.history.initialize()
-    orchestrator.reconcile_history()  # log -> DB so all_events() is complete
-    events = orchestrator.history.all_events()
-    outages = outage_run_ids(root / "data" / "radar.db")
+    # Legacy backfill only: if the log is missing/empty but the DB has real
+    # history, this regenerates the log from the DB (see docs/persistence.md).
+    # It does NOT make the DB authoritative going forward — the log below is.
+    orchestrator.reconcile_history()
+    # The durable JSONL log is truth, not the SQLite projection: both the
+    # event stream corrections are derived from AND the "already corrected"
+    # idempotence set must come from `load_events`, never from
+    # `orchestrator.history.all_events()`. The DB can get ahead of the log
+    # (e.g. a `corrected` marker written to the DB whose log append never
+    # landed) — reading the DB there would make that drift permanently
+    # unhealable, which is exactly the 2026-07-27 incident this guards against.
+    events = load_events(orchestrator.history_log)
+    try:
+        outages = outage_run_ids(root / "data" / "radar.db")
+    except sqlite3.OperationalError:
+        # Fresh root: no scan has ever run, so source_health doesn't exist yet.
+        console.print("No outage evidence recorded.")
+        return
     corrections = build_corrections(events, outages, datetime.now(UTC))
     console.print(f"Outage runs detected: {len(outages)}")
     console.print(f"Corrections to append: {len(corrections)}")
@@ -1303,7 +1319,12 @@ def history_repair(
         console.print(f"  {c.project}: {previous_ring} -> {c.ring.value} ({c.corrects_run_id})")
     if dry_run or not corrections:
         return
-    orchestrator.history.add_events(corrections)
+    # The log append is unconditional (it's the log's own idempotence check
+    # above that decided these corrections are new); the DB insert is
+    # deduped separately via import_events's natural key so a correction
+    # already present in the DB (again, today's exact drift) isn't
+    # double-inserted there.
+    orchestrator.history.import_events(corrections)
     append_events(orchestrator.history_log, corrections)
     console.print(f"Appended {len(corrections)} corrected events.")
 

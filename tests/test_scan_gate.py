@@ -57,6 +57,11 @@ def test_outage_run_is_degraded_and_writes_no_history(tmp_path: Path):
     # Nothing durable was written, in either lane.
     assert not (tmp_path / "data" / "history.jsonl").exists()
     assert not (tmp_path / "data" / "local" / "history.jsonl").exists()
+    # Source health is recorded BEFORE the gate (degraded runs are still
+    # evidence), and since this scan asked for the committed lane, it must
+    # land there — not the local lane, which a publish=True scan never writes.
+    assert (tmp_path / "data" / "source-health.jsonl").exists()
+    assert not (tmp_path / "data" / "local" / "source-health.jsonl").exists()
     run_dir = tmp_path / "data" / "runs" / result.run_id
     assert (run_dir / "raw_signals.json").exists()  # evidence is kept
     assert not (run_dir / "decision_cards.json").exists()
@@ -75,4 +80,7 @@ def test_healthy_run_is_not_degraded(tmp_path: Path):
 
     assert result.degraded is False
     assert len(result.cards) == 1
-    assert (tmp_path / "data" / "source-health.jsonl").exists()
+    # publish_history defaults to False: source health goes to the local,
+    # gitignored lane, not the committed one (D5, same rule as history.jsonl).
+    assert (tmp_path / "data" / "local" / "source-health.jsonl").exists()
+    assert not (tmp_path / "data" / "source-health.jsonl").exists()

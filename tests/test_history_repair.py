@@ -107,3 +107,65 @@ def test_cli_history_callback_preserved(tmp_path: Path):
     result = runner.invoke(app, ["history", "--root", str(tmp_path)])
 
     assert result.exit_code == 0, result.stdout
+
+
+def test_repair_heals_db_ahead_of_log(tmp_path: Path):
+    """Regression test for the 2026-07-27 broken-repair incident.
+
+    The DB's project_history table held 50 `corrected` markers that never
+    reached data/history.jsonl (the durable log the DB merely projects).
+    Because the old `history_repair()` built both the event stream AND the
+    idempotence set from `orchestrator.history.all_events()` (the DB), it saw
+    the marker as "already corrected" and reported "Corrections to append: 0"
+    — the source of truth could never be healed. Repair must read from the
+    log, so a marker present only in the DB is *not* treated as already done.
+    """
+    from radar.storage.history_log import append_events, load_events
+    from radar.storage.history_store import HistoryStore
+
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    _seed_source_health(tmp_path / "data" / "radar.db", "run-x", zero=60, ok=6)
+
+    promoted = _event("MCP", "promoted", "adopt", "pilot", "run-x")
+    # The exact broken state: the corrected marker made it into the DB but
+    # never into the log (simulating the earlier repair run's silent no-op).
+    corrected_marker = _event(
+        "MCP", "corrected", "pilot", "adopt", "repair:run-x", corrects="run-x"
+    )
+
+    store = HistoryStore(tmp_path / "data" / "radar.db")
+    store.initialize()
+    store.add_events([promoted, corrected_marker])
+    append_events(tmp_path / "data" / "history.jsonl", [promoted])
+
+    result = runner.invoke(app, ["history", "repair", "--root", str(tmp_path)])
+    assert result.exit_code == 0, result.stdout
+    assert "Corrections to append: 1" in result.stdout
+
+    events = load_events(tmp_path / "data" / "history.jsonl")
+    corrected = [e for e in events if e.change_type.value == "corrected"]
+    assert len(corrected) == 1, "the marker must be appended to the LOG, not just the DB"
+    assert corrected[0].corrects_run_id == "run-x"
+
+    # Re-running is idempotent now that the log itself carries the marker.
+    result_again = runner.invoke(app, ["history", "repair", "--root", str(tmp_path)])
+    assert result_again.exit_code == 0, result_again.stdout
+    assert "Corrections to append: 0" in result_again.stdout
+
+
+def test_repair_on_root_without_source_health_table_exits_cleanly(tmp_path: Path):
+    """A fresh clone that has never been scanned has no source_health table.
+
+    `radar history repair` used to crash with a raw
+    `sqlite3.OperationalError: no such table: source_health`. It must instead
+    report there's nothing to do and exit 0.
+    """
+    runner = CliRunner()
+    runner.invoke(app, ["init", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["history", "repair", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "No outage evidence recorded." in result.stdout
