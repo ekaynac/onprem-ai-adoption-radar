@@ -45,6 +45,7 @@ from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth
+from radar.web.tenure import TenureLine
 from radar.web.trending_summary import summarize_trending
 
 
@@ -85,6 +86,8 @@ def render_static_site(
     model_candidates: list[ModelCandidateEntry] | None = None,
     technique_candidates: list[TechniqueCandidateEntry] | None = None,
     card_staleness: str | None = None,
+    tenure_by_project: dict[str, TenureLine] | None = None,
+    model_tenure_by_id: dict[str, TenureLine] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -125,6 +128,10 @@ def render_static_site(
     ``card_staleness`` (optional, from ``RadarDatabase.card_staleness_note()``)
     renders a note in the scan-health panel when persisted cards span more
     than one scan day (a partial/degraded run mixing fresh and stale ages).
+    ``tenure_by_project``/``model_tenure_by_id`` (optional) supply the tenure
+    credential line ("On radar N days · RING since <date> · N ring changes")
+    on the index page's project rows and each project/model detail page;
+    omitting either renders that surface without the tenure chrome.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -207,6 +214,7 @@ def render_static_site(
             latest_digest=latest_digest,
             top_model=top_model,
             top_technique=top_technique,
+            tenure_by_project=tenure_by_project,
         ),
         encoding="utf-8",
     )
@@ -231,6 +239,7 @@ def render_static_site(
     _write_project_pages(
         env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {},
         pedigree_by_project=pedigree_by_project or {}, technique_hrefs=technique_hrefs or {},
+        tenure_by_project=tenure_by_project or {},
     )
     _write_feeds(out_dir, timelines or [], site_title, self_base_url)
 
@@ -238,6 +247,7 @@ def render_static_site(
         _write_model_pages(
             env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp,
             pedigree_by_model=pedigree_by_model or {}, technique_hrefs=technique_hrefs or {},
+            model_tenure_by_id=model_tenure_by_id or {},
         )
 
     if technique_entries:
@@ -277,6 +287,7 @@ def _write_project_pages(
     metrics_by_project: dict[str, list[ProjectMetrics]],
     pedigree_by_project: dict[str, list[TechniquePedigree]],
     technique_hrefs: dict[str, str],
+    tenure_by_project: dict[str, TenureLine] | None = None,
 ) -> None:
     """Render one self-contained project_<slug>.html per card."""
     events_by_project: dict[str, list[ProjectHistoryEvent]] = {
@@ -292,6 +303,7 @@ def _write_project_pages(
                 metrics=metrics,
                 pedigree=(pedigree_by_project.get(card.project) or None),
                 technique_hrefs=technique_hrefs,
+                tenure=(tenure_by_project or {}).get(card.project),
             ),
             encoding="utf-8",
         )
@@ -337,6 +349,7 @@ def _write_model_pages(
     generated_at: str = "",
     pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
     technique_hrefs: dict[str, str] | None = None,
+    model_tenure_by_id: dict[str, TenureLine] | None = None,
 ) -> None:
     """Render models.html, per-model pages, and model feed files."""
     slug_by_model = build_slug_map([m.id for m in model_entries])
@@ -360,6 +373,7 @@ def _write_model_pages(
                 generated_at=generated_at,
                 pedigree=(pedigree_by_model or {}).get(entry.id) or None,
                 technique_hrefs=technique_hrefs or {},
+                model_tenure_line=(model_tenure_by_id or {}).get(entry.id),
             ),
             encoding="utf-8",
         )

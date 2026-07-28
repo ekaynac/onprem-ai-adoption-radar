@@ -21,6 +21,7 @@ from radar.mcp_server.technique_queries import load_technique_entries
 from radar.mcp_server.trending_queries import load_trending_entries
 from radar.models import Category, SourceType
 from radar.models_radar.entities import ModelEntry
+from radar.models_radar.history import ModelHistoryEvent, load_model_events
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.research_radar.entities import ImplKind, TechniqueEntry
 from radar.research_radar.history import load_technique_events
@@ -45,6 +46,7 @@ from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import latest_tool_scan_meta, summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth, summarize_source_health
+from radar.web.tenure import model_tenure, project_tenure
 from radar.web.trending_summary import summarize_trending
 
 
@@ -86,6 +88,11 @@ def create_app(root: Path) -> FastAPI:
     def _model_entries() -> list[ModelEntry]:
         """Load model entries from the latest models run; empty list if none."""
         return [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
+
+    def _model_events_for(model_id: str) -> list[ModelHistoryEvent]:
+        """A single model's ring-change events, oldest-first; [] if none recorded."""
+        all_events = load_model_events(root / "data" / "model-history.jsonl")
+        return [e for e in all_events if e.model_id == model_id]
 
     def _technique_entries() -> list[TechniqueEntry]:
         """Load technique entries from the latest research run; empty list if none."""
@@ -141,10 +148,17 @@ def create_app(root: Path) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
+        from datetime import UTC, datetime
+
         db.initialize()
         cards = db.list_cards()
         meta = latest_tool_scan_meta(run_store)
         mh, th = _hub_sections()
+        history.initialize()
+        now = datetime.now(UTC)
+        tenure_by_project = {
+            c.project: project_tenure(history.history_for(c.project), now) for c in cards
+        }
         return TEMPLATES.TemplateResponse(
             request,
             "index.html",
@@ -161,6 +175,7 @@ def create_app(root: Path) -> FastAPI:
                 "trending_href": "/trending",
                 "top_model": next((r for r in mh if not r.is_new), None),
                 "top_technique": next((r for r in th if not r.is_new), None),
+                "tenure_by_project": tenure_by_project,
             },
         )
 
@@ -180,6 +195,8 @@ def create_app(root: Path) -> FastAPI:
 
     @app.get("/project/{name}", response_class=HTMLResponse)
     def project_detail(request: Request, name: str):
+        from datetime import UTC, datetime
+
         db.initialize()
         # Exact match first; fall back to case-insensitive so the URL is forgiving.
         card = db.get_card(name)
@@ -208,6 +225,7 @@ def create_app(root: Path) -> FastAPI:
                 "metrics": metric_rows,
                 "pedigree": _project_pedigree(card.project) or None,
                 "technique_hrefs": _technique_hrefs(),
+                "tenure": project_tenure(events, datetime.now(UTC)),
             },
         )
 
@@ -294,6 +312,8 @@ def create_app(root: Path) -> FastAPI:
 
     @app.get("/model/{model_id}", response_class=HTMLResponse)
     def model_detail(request: Request, model_id: str):
+        from datetime import UTC, datetime
+
         entry = next((e for e in _model_entries() if e.id == model_id), None)
         if entry is None:
             return HTMLResponse("Model not found", status_code=404)
@@ -305,6 +325,9 @@ def create_app(root: Path) -> FastAPI:
                 "fit_by_tier": fit_by_tier(entry),
                 "pedigree": _model_pedigree(model_id) or None,
                 "technique_hrefs": _technique_hrefs(),
+                "model_tenure_line": model_tenure(
+                    _model_events_for(model_id), datetime.now(UTC)
+                ),
             },
         )
 

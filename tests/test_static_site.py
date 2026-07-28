@@ -1036,3 +1036,68 @@ def test_export_emits_no_empty_table_wrap(tmp_path):
     assert "No trending techniques this week." in trending_page
     assert "No emerging models yet." in trending_page
     assert "No emerging papers yet." in trending_page
+
+
+# ---------------------------------------------------------------------------
+# Tenure credential (Task 1, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_static_index_shows_tenure_and_backcompat(tmp_path: Path):
+    from radar.web.tenure import TenureLine
+
+    tenure = {"vLLM": TenureLine(days_on_radar=77, ring="adopt",
+                                 ring_since="2026-05-12", change_count=2)}
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC), tenure_by_project=tenure)
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "On radar 77 days · ADOPT since 2026-05-12 · 2 ring changes" in index
+
+    # Back-compat: omitting the kwarg renders without tenure chrome.
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site2",
+                       datetime(2026, 7, 28, tzinfo=UTC))
+    index2 = (tmp_path / "_site2" / "index.html").read_text(encoding="utf-8")
+    assert 'class="tenure"' not in index2
+
+
+def test_static_project_page_shows_tenure(tmp_path: Path):
+    from radar.web.tenure import TenureLine
+
+    tenure = {"vLLM": TenureLine(days_on_radar=77, ring="adopt",
+                                 ring_since="2026-05-12", change_count=2)}
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC), tenure_by_project=tenure)
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "On radar 77 days · ADOPT since 2026-05-12 · 2 ring changes" in page
+    assert 'class="tenure"' in page
+
+
+def test_static_project_page_tenure_backcompat(tmp_path: Path):
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC))
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert 'class="tenure"' not in page
+
+
+def test_static_model_page_shows_tenure(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+    from radar.web.tenure import TenureLine
+
+    model = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")
+    model_tenure = {"qwen3-8b": TenureLine(days_on_radar=40, ring="pilot",
+                                           ring_since="2026-06-18", change_count=1)}
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model], model_tenure_by_id=model_tenure)
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert "On radar 40 days · PILOT since 2026-06-18 · 1 ring change" in page
+    assert 'class="tenure"' in page
+
+
+def test_static_model_page_tenure_backcompat(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+
+    model = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model])
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert 'class="tenure"' not in page

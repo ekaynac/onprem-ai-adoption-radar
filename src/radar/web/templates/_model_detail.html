@@ -1,9 +1,11 @@
-{# Shared model-detail body. Context: model (ModelEntry) #}
+{# Shared model-detail body. Context: model (ModelEntry),
+   model_tenure_line (TenureLine | None) #}
 <h2>{{ model.name }} <small>{{ model.family }}</small></h2>
 <p>Ring: <strong>{{ model.ring.value if model.ring else '-' }}</strong> ·
    Hardware: <strong>{{ model.hardware_tier.value }}</strong> ·
    Modality: {{ model.modality.value }}{% if model.license %} · License: {{ model.license }}{% endif %}
    {% if model.use_case %} · Use case: {{ model.use_case }}{% endif %}</p>
+{% if model_tenure_line %}<div class="tenure">{{ model_tenure_line.text }}</div>{% endif %}
 <p>Params: {{ '%.1fB'|format(model.params_total / 1e9) if model.params_total else '?' }}{% if not (model.provenance.get("params_total") and model.provenance["params_total"].verified) %} <em class="prov-unverified" title="number not human-verified">unverified</em>{% endif %}{% if model.params_active %} (active {{ '%.1fB'|format(model.params_active / 1e9) }}){% endif %}
    {% if model.context_length %} · Context: {{ '{:,}'.format(model.context_length) }}{% endif %}
    {% if model.release_date %} · Released: {{ model.release_date }}{% endif %}</p>

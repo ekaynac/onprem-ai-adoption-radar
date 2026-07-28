@@ -51,6 +51,8 @@
               {% if card.pinned %}<span class="badge badge-pinned" title="{{ card.pinned_reason }}">📌 pinned{% if card.computed_ring %} (was {{ card.computed_ring.value }}){% endif %}</span>{% endif %}
               {% if card.upgrade_risk == 'high' %}<span class="badge badge-risk">⚠ upgrade risk</span>{% elif card.upgrade_risk == 'low' %}<span class="badge badge-risk-low">upgrade notes</span>{% endif %}
               {{ card.summary }}
+              {% set tl = tenure_by_project.get(card.project) if tenure_by_project else none %}
+              {% if tl %}<div class="tenure">{{ tl.text }}</div>{% endif %}
               {% if card.evidence_notes %}
               <ul class="evidence">
                 {% for note in card.evidence_notes %}<li>{{ note }}</li>{% endfor %}

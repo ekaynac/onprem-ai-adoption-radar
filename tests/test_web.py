@@ -1478,3 +1478,104 @@ def test_sortable_headers_keyboard_operable(tmp_path: Path):
     assert techniques_text.count('tabindex="0"') == 6
     assert techniques_text.count('aria-sort="none"') == 6
     assert "keydown" in techniques_text
+
+
+# ---------------------------------------------------------------------------
+# Tenure credential (Task 1, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_index_shows_tenure_credential(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.pipeline.delta import ChangeType
+    from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    history.initialize()
+    history.add_events([ProjectHistoryEvent(
+        project="vLLM", category=Category.MODEL_SERVING, change_type=ChangeType.NEW,
+        ring=Ring.ADOPT, previous_ring=None, run_id="r1",
+        observed_at=datetime(2026, 5, 12, tzinfo=UTC), reasons=[])])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert "ADOPT since 2026-05-12" in text
+    assert 'class="tenure"' in text
+
+
+def test_index_no_tenure_without_history(tmp_path: Path):
+    """A card with no recorded history renders without a tenure line at all."""
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert 'class="tenure"' not in text
+
+
+def test_project_detail_shows_tenure_credential(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.pipeline.delta import ChangeType
+    from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    history.initialize()
+    history.add_events([ProjectHistoryEvent(
+        project="vLLM", category=Category.MODEL_SERVING, change_type=ChangeType.NEW,
+        ring=Ring.ADOPT, previous_ring=None, run_id="r1",
+        observed_at=datetime(2026, 5, 12, tzinfo=UTC), reasons=[])])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert "ADOPT since 2026-05-12" in text
+    assert 'class="tenure"' in text
+
+
+def test_project_detail_no_tenure_without_history(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert 'class="tenure"' not in text
+
+
+def test_model_detail_shows_tenure_credential(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.models_radar.history import ModelHistoryEvent, append_model_events
+    from radar.pipeline.delta import ChangeType
+
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    append_model_events(tmp_path / "data" / "model-history.jsonl", [
+        ModelHistoryEvent(model_id="qwen3-8b", family="Qwen3", change_type=ChangeType.NEW,
+                          ring=Ring.ADOPT, previous_ring=None, run_id="r1",
+                          observed_at=datetime(2026, 5, 12, tzinfo=UTC), reasons=[]),
+    ])
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+    assert "ADOPT since 2026-05-12" in text
+    assert 'class="tenure"' in text
+
+
+def test_model_detail_no_tenure_without_history(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+    assert 'class="tenure"' not in text

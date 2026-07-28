@@ -1944,7 +1944,7 @@ def export(
 
     from radar.mcp_server.model_queries import _latest_model_cards
     from radar.models_radar.entities import ModelEntry
-    from radar.models_radar.history import load_model_events
+    from radar.models_radar.history import ModelHistoryEvent, load_model_events
     from radar.storage.config import ConfigError, load_config
     from radar.storage.digest_log import load_digests
     from radar.storage.history_store import HistoryStore
@@ -1965,6 +1965,18 @@ def export(
         {"summary": s, "events": history.history_for(s.project)}
         for s in sorted(history.all_summaries(), key=lambda s: s.last_change_at, reverse=True)
     ]
+
+    # Tenure credential (Task 1, differentiation pass): "On radar N days ·
+    # RING since <date> · N ring changes", computed over the effective
+    # (outage-corrected) timeline. None entries (fully-corrected projects)
+    # are dropped rather than threaded through as null tenure lines.
+    from radar.web.tenure import model_tenure, project_tenure
+
+    tenure_by_project = {
+        c.project: line
+        for c in cards
+        if (line := project_tenure(history.history_for(c.project), datetime.now(UTC)))
+    }
 
     metrics = MetricsStore(root / "data" / "radar.db")
     metrics.initialize()
@@ -1991,6 +2003,18 @@ def export(
     # Model entries + events (optional: only present after a `radar models scan`).
     model_entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
     model_events = load_model_events(root / "data" / "model-history.jsonl")
+
+    # Tenure credential for model detail pages: group the model-history log
+    # by model_id, then compute one tenure line per model (no corrections
+    # concept for models — see radar.web.tenure.model_tenure).
+    model_events_by_id: dict[str, list[ModelHistoryEvent]] = {}
+    for event in model_events:
+        model_events_by_id.setdefault(event.model_id, []).append(event)
+    model_tenure_by_id = {
+        model_id: line
+        for model_id, events in model_events_by_id.items()
+        if (line := model_tenure(events, datetime.now(UTC)))
+    }
 
     # Copy model-history.jsonl into the site so it's available as a download.
     model_history_src = root / "data" / "model-history.jsonl"
@@ -2131,6 +2155,8 @@ def export(
         model_candidates=_model_candidates or None,
         technique_candidates=_technique_candidates or None,
         card_staleness=orchestrator.database.card_staleness_note(),
+        tenure_by_project=tenure_by_project or None,
+        model_tenure_by_id=model_tenure_by_id or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
