@@ -255,11 +255,16 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
 
     import httpx
 
-    from radar.models_radar.entities import ModelSeed
+    from radar.models_radar.entities import ModelEntry, ModelSeed
     from radar.models_radar.pipeline import persist_model_scan, score_entries
     from radar.models_radar.scan import run_model_scan
     from radar.models_radar.seed import load_model_seed
-    from radar.models_radar.validate import seed_advisories, validate_seed
+    from radar.models_radar.validate import (
+        entry_advisories,
+        seed_advisories,
+        validate_entry,
+        validate_seed,
+    )
     from radar.storage.run_store import RunStore
 
     seed_path = root / "config" / "model-seed.yaml"
@@ -293,27 +298,59 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
             )
 
     entries = asyncio.run(_run())
-    entries = score_entries(entries)
+
+    # Post-assembly quarantine gate: an entry whose params are known but whose
+    # specs never resolve to a usable minimum-viable memory number (e.g. no HF
+    # data, no ollama, empty quants) is excluded from scoring/persistence, but
+    # stays visible in the model_cards stage — its problems folded into
+    # warnings — so operators can see exactly why. Mirrors the seed gate
+    # above, one stage later.
+    entry_quarantined: dict[str, list[str]] = {}
+    entry_advisory_notes: list[str] = []
+    valid_entries: list[ModelEntry] = []
+    kept_entries: list[ModelEntry] = []
+    for entry in entries:
+        problems = validate_entry(entry)
+        if problems:
+            entry_quarantined[entry.id] = problems
+            kept_entries.append(
+                entry.model_copy(update={"warnings": [*entry.warnings, *problems]})
+            )
+            continue
+        entry_advisory_notes.extend(entry_advisories(entry))
+        valid_entries.append(entry)
+        kept_entries.append(entry)
+    for entry_id, problems in entry_quarantined.items():
+        console.print(f"[red]QUARANTINED {entry_id}:[/red] {'; '.join(problems)}")
+    for advisory in entry_advisory_notes:
+        console.print(f"[yellow]note:[/yellow] {advisory}")
+
+    scored_entries = score_entries(valid_entries)
+    scored_by_id = {e.id: e for e in scored_entries}
+    final_entries = [scored_by_id.get(e.id, e) for e in kept_entries]
+
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
     # Stamp the kind up front: a crashed scan must never masquerade as a tool run
     # (latest_tool_scan_meta filters on the absence of "kind").
     run_store.update_meta(run_id, {"kind": "models"})
-    if quarantined or advisories:
-        run_store.update_meta(run_id, {
-            "model_validation_warnings": [
-                *(p for ps in quarantined.values() for p in ps), *advisories,
-            ],
-        })
+    all_warnings = [
+        *(p for ps in quarantined.values() for p in ps), *advisories,
+        *(p for ps in entry_quarantined.values() for p in ps), *entry_advisory_notes,
+    ]
+    if all_warnings:
+        run_store.update_meta(run_id, {"model_validation_warnings": all_warnings})
     observed_at = datetime.now(UTC)
     persist_model_scan(
-        entries, run_id, observed_at,
+        scored_entries, run_id, observed_at,
         root / "data" / "radar.db", root / "data" / "model-history.jsonl",
         metrics_log_path=root / "data" / "model-metrics.jsonl",
     )
-    run_store.save_stage(run_id, "model_cards", [m.model_dump(mode="json") for m in entries])
-    run_store.update_meta(run_id, {"kind": "models", "model_count": len(entries)})
-    console.print(f"Scanned {len(entries)} models → run {run_id}")
+    run_store.save_stage(
+        run_id, "model_cards", [m.model_dump(mode="json") for m in final_entries]
+    )
+    run_store.update_meta(run_id, {"kind": "models", "model_count": len(final_entries)})
+    console.print(f"Scanned {len(final_entries)} models → run {run_id}")
 
 
 candidates_app = typer.Typer(help="Untracked model-candidate discovery.", no_args_is_help=True)
