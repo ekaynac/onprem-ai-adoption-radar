@@ -114,11 +114,15 @@ class RadarOrchestrator:
         # Human decisions: pinned rings + trial journal (portable YAML).
         self.overrides_path = self.data_dir / "overrides.yaml"
 
-    def scan(self, days: int, profile: str | None = None) -> ScanResult:
+    def scan(
+        self, days: int, profile: str | None = None, publish_history: bool = False
+    ) -> ScanResult:
         """Run the scan pipeline synchronously for CLI callers."""
-        return asyncio.run(self._scan(days, profile))
+        return asyncio.run(self._scan(days, profile, publish_history))
 
-    async def _scan(self, days: int, profile: str | None = None) -> ScanResult:
+    async def _scan(
+        self, days: int, profile: str | None = None, publish_history: bool = False
+    ) -> ScanResult:
         config = load_config(self.config_path)
         weights = resolve_weights(config.profiles, profile) if profile else None
         self.database.initialize()
@@ -182,7 +186,7 @@ class RadarOrchestrator:
         # reflects what changed since the last scan.
         previous_cards = self.database.list_cards()
         deltas = compute_deltas(previous=previous_cards, current=filtered_cards)
-        self._persist_history(deltas, run_id)
+        self._persist_history(deltas, run_id, publish_history)
 
         # Momentum reads metrics + ring history INCLUDING this scan, so it runs
         # after both were persisted; trend is attached before cards persist.
@@ -375,7 +379,9 @@ class RadarOrchestrator:
         self.metrics.record(list(current_metrics.values()))
         return evidence
 
-    def _persist_history(self, deltas: list[CardDelta], run_id: str) -> None:
+    def _persist_history(
+        self, deltas: list[CardDelta], run_id: str, publish_history: bool
+    ) -> None:
         """Append ring-change events to the DB and durable log.
 
         Drops "new" events for projects already in the timeline: after a
@@ -388,7 +394,15 @@ class RadarOrchestrator:
         ]
         events = deltas_to_events(persistable, run_id=run_id, observed_at=datetime.now(UTC))
         self.history.add_events(events)
-        append_events(self.history_log, events)
+        # D5 (2026-07-27 spec): only CI writes the committed timeline. Local
+        # scans keep the DB projection + reports but log to an ignored lane,
+        # so laptop runs never pollute the shared history.
+        target = (
+            self.history_log
+            if publish_history
+            else self.data_dir / "local" / "history.jsonl"
+        )
+        append_events(target, events)
 
     def _attach_pedigree(self, cards: list[DecisionCard], config: Config) -> list[DecisionCard]:
         """Append a research-pedigree evidence line per card. Best-effort:

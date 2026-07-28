@@ -137,7 +137,9 @@ def test_history_survives_database_wipe_via_durable_log(tmp_path: Path):
     _write_manual_config(tmp_path)
 
     # First scan records the project as NEW and writes the durable JSONL log.
-    RadarOrchestrator(root=tmp_path).scan(days=2)
+    # This test pins committed-lane (data/history.jsonl) behavior, so it opts
+    # into that lane explicitly.
+    RadarOrchestrator(root=tmp_path).scan(days=2, publish_history=True)
     log = tmp_path / "data" / "history.jsonl"
     assert log.exists()
     assert "Model Context Protocol" in log.read_text(encoding="utf-8")
@@ -147,7 +149,7 @@ def test_history_survives_database_wipe_via_durable_log(tmp_path: Path):
 
     # Re-scan: history is rebuilt from the log, and the project is NOT recorded
     # as NEW again (no duplicate timeline event).
-    RadarOrchestrator(root=tmp_path).scan(days=2)
+    RadarOrchestrator(root=tmp_path).scan(days=2, publish_history=True)
 
     events = HistoryStore(tmp_path / "data" / "radar.db").history_for(
         "Model Context Protocol"
@@ -163,12 +165,14 @@ def test_legacy_db_history_is_backfilled_to_log(tmp_path: Path):
     _write_manual_config(tmp_path)
 
     # Simulate a legacy install: DB has history but the durable log does not.
-    RadarOrchestrator(root=tmp_path).scan(days=2)
+    # This test pins committed-lane (data/history.jsonl) behavior, so it opts
+    # into that lane explicitly.
+    RadarOrchestrator(root=tmp_path).scan(days=2, publish_history=True)
     log = tmp_path / "data" / "history.jsonl"
     log.unlink()
 
     # Next scan must backfill the log from the existing DB history.
-    RadarOrchestrator(root=tmp_path).scan(days=2)
+    RadarOrchestrator(root=tmp_path).scan(days=2, publish_history=True)
 
     assert log.exists()
     projects = {e.project for e in load_events(log)}
@@ -372,3 +376,22 @@ scoring:
 
     assert not any("tracked research technique" in n
                    for n in result.cards[0].evidence_notes)
+
+
+def test_local_scan_writes_local_history_lane(tmp_path: Path):
+    initialize_project(tmp_path)
+    _write_manual_config(tmp_path)
+
+    RadarOrchestrator(root=tmp_path).scan(days=2)  # default: local lane
+
+    assert not (tmp_path / "data" / "history.jsonl").exists()
+    assert (tmp_path / "data" / "local" / "history.jsonl").exists()
+
+
+def test_publish_history_writes_committed_lane(tmp_path: Path):
+    initialize_project(tmp_path)
+    _write_manual_config(tmp_path)
+
+    RadarOrchestrator(root=tmp_path).scan(days=2, publish_history=True)
+
+    assert (tmp_path / "data" / "history.jsonl").exists()

@@ -29,7 +29,9 @@ def _scanned_root(tmp_path: Path) -> tuple[RadarOrchestrator, str]:
     initialize_project(tmp_path)
     (tmp_path / "data" / "config.yaml").write_text(MANUAL_CONFIG, encoding="utf-8")
     orchestrator = RadarOrchestrator(root=tmp_path)
-    result = orchestrator.scan(days=2)
+    # publish_history=True: several tests below pin data/history.jsonl (the
+    # committed lane) to assert replay/rescore never touch it.
+    result = orchestrator.scan(days=2, publish_history=True)
     return orchestrator, result.run_id
 
 

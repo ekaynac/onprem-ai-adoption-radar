@@ -25,6 +25,17 @@ This is deliberately boring and portable: no external database, no cloud service
 no lock-in. A laptop, a Raspberry Pi, a CI runner, and an air-gapped server all
 persist history the same way — a single text file you own.
 
+## Who writes the log
+
+To keep the committed timeline free of local noise (spec D5), `radar scan`
+defaults to a **local lane**: ring-change events always reach the SQLite
+projection, but the JSONL append goes to `data/local/history.jsonl` — a
+gitignored, disposable file — instead of the committed `data/history.jsonl`.
+Only `radar scan --publish-history` appends to the committed log, and the
+`publish.yml` CI workflow is the one caller that passes it. This makes CI the
+sole writer of the shared timeline, so laptop/dev scans never diverge it from
+what's committed.
+
 ## Guarantees
 
 - **Delete the database, keep the timeline.** `rm data/radar.db` then

@@ -42,7 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           uv run radar init --root .
-          uv run radar scan --root . --days 7
+          uv run radar scan --root . --days 7 --publish-history
           uv run radar models scan --root .
           uv run radar models candidates scan --root .
           uv run radar research scan --root .

@@ -99,6 +99,11 @@ def scan(
     profile: str = typer.Option(
         "", help="Score through a named profile from config (re-weighted dimensions)."
     ),
+    publish_history: bool = typer.Option(
+        False,
+        "--publish-history",
+        help="Append ring changes to the committed data/history.jsonl (CI only).",
+    ),
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Collect signals, score them, and write run artifacts."""
@@ -115,7 +120,9 @@ def scan(
         return
     orchestrator = RadarOrchestrator(root)
     try:
-        result = orchestrator.scan(days=days, profile=profile or None)
+        result = orchestrator.scan(
+            days=days, profile=profile or None, publish_history=publish_history
+        )
     except UnknownProfileError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
