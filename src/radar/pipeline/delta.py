@@ -32,6 +32,7 @@ class ChangeType(str, Enum):
     PROMOTED = "promoted"
     DEMOTED = "demoted"
     UPDATED = "updated"
+    CORRECTED = "corrected"
 
 
 # Stable display/sort order: new projects first, then promotions, then the rest.

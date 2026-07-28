@@ -17,6 +17,11 @@ from radar.models import Signal, SourceConfig
 logger = logging.getLogger(__name__)
 
 
+def _reason(exc: Exception) -> str:
+    """Non-empty failure reason: some httpx errors stringify to ''."""
+    return str(exc).strip() or exc.__class__.__name__
+
+
 class GitHubCollector(BaseCollector):
     """Collect release and repository snapshot signals from GitHub repositories."""
 
@@ -24,6 +29,12 @@ class GitHubCollector(BaseCollector):
         self.sources = sources
         self.client = client
         self.base_url = "https://api.github.com"
+        # Per-source soft failures, harvested by the orchestrator into the
+        # run's collector_warnings (same contract as RSSCollector.warnings).
+        self.warnings: list[str] = []
+        # Sources whose fetch errored (vs. legitimately returned nothing) —
+        # feeds source-health outcome recording.
+        self.failed_source_ids: set[str] = set()
 
     def _headers(self) -> dict[str, str]:
         headers = {
@@ -38,12 +49,19 @@ class GitHubCollector(BaseCollector):
     async def fetch(self, since: datetime) -> list[Signal]:
         """Fetch releases and repo snapshots for all enabled GitHub repo sources."""
         signals: list[Signal] = []
+        enabled = [s for s in self.sources if s.enabled]
+        if os.getenv("GITHUB_TOKEN") is None and len(enabled) > 5:
+            self.warnings.append(
+                f"github: GITHUB_TOKEN not set; {len(enabled)} repo sources "
+                "share the 60 req/hr unauthenticated limit"
+            )
         for source in self.sources:
             if not source.enabled:
                 continue
             owner_repo = self._owner_repo(str(source.url))
             if owner_repo is None:
                 logger.warning("Skipping invalid GitHub URL for source %s", source.id)
+                self.warnings.append(f"github {source.id}: invalid GitHub URL, skipped")
                 continue
             owner, repo = owner_repo
             repo_snapshot = await self._fetch_repo_snapshot(source, owner, repo, since)
@@ -72,7 +90,10 @@ class GitHubCollector(BaseCollector):
             response.raise_for_status()
             payload = response.json()
         except (KeyError, httpx.HTTPError) as exc:
-            logger.warning("GitHub repo snapshot %s failed: %s", source.id, exc)
+            message = f"github {source.id}: repo snapshot failed: {_reason(exc)}"
+            logger.warning(message)
+            self.warnings.append(message)
+            self.failed_source_ids.add(source.id)
             return None
 
         pushed_at_raw = payload.get("pushed_at")
@@ -123,7 +144,10 @@ class GitHubCollector(BaseCollector):
             response.raise_for_status()
             releases = response.json()
         except httpx.HTTPError as exc:
-            logger.warning("GitHub source %s failed: %s", source.id, exc)
+            message = f"github {source.id}: releases fetch failed: {_reason(exc)}"
+            logger.warning(message)
+            self.warnings.append(message)
+            self.failed_source_ids.add(source.id)
             return []
 
         signals: list[Signal] = []

@@ -16,6 +16,7 @@ from radar.analysis.backtest import (
     build_backtest_report,
 )
 from radar.collectors.registry import build_collectors
+from radar.constants import DEGRADED_SOURCE_ERROR_THRESHOLD
 from radar.enrichment.runner import run_enrichment
 from radar.models import Backer, Config, DecisionCard, ScoredSignal, Signal
 from radar.notify.webhook import send_notification
@@ -36,10 +37,16 @@ from radar.scoring.profiles import resolve_weights, reweight_cards
 from radar.storage.config import load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_log import append_events, load_events
-from radar.storage.history_store import HistoryStore, deltas_to_events
+from radar.storage.history_store import HistoryStore, apply_corrections, deltas_to_events
 from radar.storage.metrics_store import MetricsStore
 from radar.storage.overrides_store import OverridesStore, apply_overrides
 from radar.storage.run_store import RunStore
+from radar.storage.source_health_log import (
+    SourceHealthRecord,
+    SourceOutcome,
+    append_source_health,
+    load_source_health,
+)
 from radar.storage.source_health_store import SourceHealthStore
 
 
@@ -49,6 +56,20 @@ logger = logging.getLogger(__name__)
 def _backers_by_project(config: Config) -> dict[str, Backer]:
     """Map each configured project to its backer, skipping uncurated sources."""
     return {s.project: s.backer for s in config.sources if s.backer is not None}
+
+
+@dataclass(frozen=True)
+class CollectionHealth:
+    """How collection went: the input for the degraded-run gate."""
+
+    total_sources: int
+    errored_sources: int
+
+    @property
+    def error_fraction(self) -> float:
+        if self.total_sources == 0:
+            return 0.0
+        return self.errored_sources / self.total_sources
 
 
 @dataclass(frozen=True)
@@ -70,6 +91,8 @@ class ScanResult:
     delta_report_path: Path
     history_report_path: Path
     deltas: list[CardDelta]
+    degraded: bool = False
+    degraded_reason: str | None = None
 
 
 class RadarOrchestrator:
@@ -86,23 +109,45 @@ class RadarOrchestrator:
         self.source_health = SourceHealthStore(self.data_dir / "radar.db")
         # Durable, portable source of truth for the timeline (the DB is a cache).
         self.history_log = self.data_dir / "history.jsonl"
+        # Durable, portable source of truth for source health (the DB is a cache).
+        self.source_health_log = self.data_dir / "source-health.jsonl"
         # Human decisions: pinned rings + trial journal (portable YAML).
         self.overrides_path = self.data_dir / "overrides.yaml"
 
-    def scan(self, days: int, profile: str | None = None) -> ScanResult:
+    def scan(
+        self, days: int, profile: str | None = None, publish_history: bool = False
+    ) -> ScanResult:
         """Run the scan pipeline synchronously for CLI callers."""
-        return asyncio.run(self._scan(days, profile))
+        return asyncio.run(self._scan(days, profile, publish_history))
 
-    async def _scan(self, days: int, profile: str | None = None) -> ScanResult:
+    async def _scan(
+        self, days: int, profile: str | None = None, publish_history: bool = False
+    ) -> ScanResult:
         config = load_config(self.config_path)
         weights = resolve_weights(config.profiles, profile) if profile else None
         self.database.initialize()
         self.history.initialize()
         self._reconcile_history()
+        self.source_health.initialize()
+        self.source_health.import_records(load_source_health(self.source_health_log))
         run_id = self.run_store.create_run()
         since = datetime.now(UTC) - timedelta(days=days)
 
-        raw = await self._collect_raw(config, run_id, since)
+        raw, health = await self._collect_raw(config, run_id, since, publish_history)
+        if health.error_fraction >= DEGRADED_SOURCE_ERROR_THRESHOLD:
+            reason = (
+                f"collection outage: {health.errored_sources}/{health.total_sources} "
+                "sources failed — run recorded but not scored"
+            )
+            self.run_store.update_meta(run_id, {"degraded": True, "degraded_reason": reason})
+            report_path = self.run_store.save_report(
+                run_id, f"# Degraded run\n\n{reason}\n"
+            )
+            return ScanResult(
+                run_id=run_id, cards=[], report_path=report_path,
+                delta_report_path=report_path, history_report_path=report_path,
+                deltas=[], degraded=True, degraded_reason=reason,
+            )
         deduped = self._classify(config, raw, run_id)
         evidence = await self._assemble_evidence(config, deduped, run_id, since)
         scored: list[ScoredSignal] = [
@@ -141,7 +186,7 @@ class RadarOrchestrator:
         # reflects what changed since the last scan.
         previous_cards = self.database.list_cards()
         deltas = compute_deltas(previous=previous_cards, current=filtered_cards)
-        self._persist_history(deltas, run_id)
+        self._persist_history(deltas, run_id, publish_history)
 
         # Momentum reads metrics + ring history INCLUDING this scan, so it runs
         # after both were persisted; trend is attached before cards persist.
@@ -167,7 +212,7 @@ class RadarOrchestrator:
         delta_report_path = self.run_store.save_try_this_week(run_id, delta_report)
 
         history_report = render_history_report(
-            summaries=self.history.summaries(),
+            summaries=self.history.all_summaries(),
             events_by_project=self._history_by_project(),
             title="Adoption History",
         )
@@ -186,6 +231,13 @@ class RadarOrchestrator:
 
     # --- scan phases (extracted from _scan for readability) -----------------
 
+    def reconcile_history(self) -> None:
+        """Public entry point for callers outside the scan pipeline (e.g. CLI).
+
+        Delegates to `_reconcile_history`; see there for what "reconcile" means.
+        """
+        self._reconcile_history()
+
     def _reconcile_history(self) -> None:
         """Reconcile the durable JSONL log (source of truth) with the DB.
 
@@ -198,7 +250,9 @@ class RadarOrchestrator:
         elif self.history.has_events():
             append_events(self.history_log, self.history.all_events())
 
-    async def _collect_raw(self, config, run_id: str, since: datetime) -> list[Signal]:
+    async def _collect_raw(
+        self, config, run_id: str, since: datetime, publish_history: bool
+    ) -> tuple[list[Signal], CollectionHealth]:
         """Fetch from all collectors, persist raw signals, record source health.
 
         A failing collector costs at most its own signals; the failure is
@@ -208,14 +262,20 @@ class RadarOrchestrator:
             collectors = build_collectors(config, client)
             raw: list[Signal] = []
             collector_warnings: list[str] = []
+            failed_source_ids: set[str] = set()
             for collector in collectors:
                 try:
                     raw.extend(await collector.fetch(since))
                 except Exception as exc:
                     collector_warnings.append(f"{collector.__class__.__name__}: {exc}")
+                    # The whole collector died: every enabled source it owns errored.
+                    failed_source_ids.update(
+                        s.id for s in getattr(collector, "sources", []) if s.enabled
+                    )
                 # Per-source soft failures (e.g. a feed that returned an HTML
                 # challenge) are surfaced without aborting the whole collector.
                 collector_warnings.extend(getattr(collector, "warnings", []))
+                failed_source_ids.update(getattr(collector, "failed_source_ids", set()))
             if collector_warnings:
                 self.run_store.update_meta(run_id, {"collector_warnings": collector_warnings})
 
@@ -229,8 +289,42 @@ class RadarOrchestrator:
         for signal in raw:
             if signal.source_id in source_counts:
                 source_counts[signal.source_id] += 1
-        self.source_health.record(run_id, datetime.now(UTC), source_counts)
-        return raw
+        statuses = {
+            source_id: (
+                "error" if source_id in failed_source_ids
+                else "ok" if count > 0
+                else "empty"
+            )
+            for source_id, count in source_counts.items()
+        }
+        self.source_health.record(run_id, datetime.now(UTC), source_counts, statuses)
+        # D5 (2026-07-27 spec): only CI writes the committed source-health
+        # lane. Local scans still record evidence (this runs BEFORE the
+        # degraded-run gate, so outages are never silently dropped) but to the
+        # gitignored `data/local/source-health.jsonl` lane, same as history.jsonl,
+        # so laptop runs never diverge the committed timeline (see D5's
+        # rationale in `_persist_history`).
+        target = (
+            self.source_health_log
+            if publish_history
+            else self.data_dir / "local" / "source-health.jsonl"
+        )
+        append_source_health(
+            target,
+            SourceHealthRecord(
+                run_id=run_id,
+                observed_at=datetime.now(UTC),
+                sources={
+                    sid: SourceOutcome(count=count, status=statuses[sid])
+                    for sid, count in source_counts.items()
+                },
+            ),
+        )
+        health = CollectionHealth(
+            total_sources=len(source_counts),
+            errored_sources=sum(1 for s in statuses.values() if s == "error"),
+        )
+        return raw, health
 
     def _classify(self, config, raw: list[Signal], run_id: str) -> list[Signal]:
         """Re-attribute firehose entries to tracked projects, then dedupe.
@@ -296,7 +390,9 @@ class RadarOrchestrator:
         self.metrics.record(list(current_metrics.values()))
         return evidence
 
-    def _persist_history(self, deltas: list[CardDelta], run_id: str) -> None:
+    def _persist_history(
+        self, deltas: list[CardDelta], run_id: str, publish_history: bool
+    ) -> None:
         """Append ring-change events to the DB and durable log.
 
         Drops "new" events for projects already in the timeline: after a
@@ -309,7 +405,15 @@ class RadarOrchestrator:
         ]
         events = deltas_to_events(persistable, run_id=run_id, observed_at=datetime.now(UTC))
         self.history.add_events(events)
-        append_events(self.history_log, events)
+        # D5 (2026-07-27 spec): only CI writes the committed timeline. Local
+        # scans keep the DB projection + reports but log to an ignored lane,
+        # so laptop runs never pollute the shared history.
+        target = (
+            self.history_log
+            if publish_history
+            else self.data_dir / "local" / "history.jsonl"
+        )
+        append_events(target, events)
 
     def _attach_pedigree(self, cards: list[DecisionCard], config: Config) -> list[DecisionCard]:
         """Append a research-pedigree evidence line per card. Best-effort:
@@ -352,7 +456,7 @@ class RadarOrchestrator:
             card.project: compute_momentum(
                 card.project,
                 metric_rows=self.metrics.history_for(card.project),
-                ring_events=self.history.history_for(card.project),
+                ring_events=apply_corrections(self.history.history_for(card.project)),
             )
             for card in cards
         }
@@ -493,10 +597,15 @@ class RadarOrchestrator:
         return [DecisionCard.model_validate(item) for item in payload]
 
     def _history_by_project(self) -> dict[str, list]:
-        """Group all recorded history events by project for report rendering."""
+        """Group all recorded history events by project for report rendering.
+
+        Uses `all_summaries()` (never omits a project), not `summaries()`, so
+        a project whose entire timeline was corrected away still gets its raw
+        events rendered in the report — the raw view must never drop a row.
+        """
         return {
             summary.project: self.history.history_for(summary.project)
-            for summary in self.history.summaries()
+            for summary in self.history.all_summaries()
         }
 
     def latest_cards(self, profile: str | None = None) -> list[DecisionCard]:

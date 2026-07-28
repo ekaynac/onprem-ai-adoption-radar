@@ -194,8 +194,8 @@ async def test_downloads_persistent_429_degrades_to_none(monkeypatch):
     with pytest.raises(RuntimeError):
         await fetch_weekly_downloads(PackageRef(ecosystem="PyPI", name="ray"), client)
 
-    # 1 initial attempt + retry.MAX_RETRIES (3) retries.
-    assert client.calls == 4
+    # 1 initial attempt + retry.MAX_RETRIES (4) retries.
+    assert client.calls == 5
 
 
 @pytest.mark.asyncio
@@ -367,3 +367,64 @@ async def test_arxiv_skipped_without_paper_query():
     result = await run_enrichment(cfg, sources, metrics, since=SINCE2, now=NOW2, client=client)
     assert result.metrics["Ray"].paper_mentions is None
     assert "Ray" not in result.papers
+
+
+@pytest.mark.asyncio
+async def test_safe_warning_reason_never_empty():
+    import httpx
+
+    from radar.enrichment.runner import _safe
+
+    async def _boom():
+        raise httpx.ConnectError("")  # stringifies to ""
+
+    warnings: list[str] = []
+    result = await _safe(_boom(), "osv:Aider", warnings)
+    assert result is None
+    assert warnings == ["enrichment osv:Aider failed: ConnectError"]
+
+
+class _Flaky429Client:
+    """First call returns 429, second succeeds — retry must absorb the 429."""
+
+    def __init__(self, payload):
+        self.payload = payload
+        self.calls = 0
+
+    def _response(self):
+        self.calls += 1
+        status = 429 if self.calls == 1 else 200
+        return _StatusResponse(status, self.payload, retry_after=0)
+
+    async def get(self, url, **kwargs):
+        return self._response()
+
+    async def post(self, url, **kwargs):
+        return self._response()
+
+
+@pytest.mark.asyncio
+async def test_hn_mentions_retries_429(monkeypatch):
+    async def fake_sleep(delay):
+        return None
+
+    monkeypatch.setattr("radar.enrichment.retry.asyncio.sleep", fake_sleep)
+    client = _Flaky429Client({"nbHits": 7})
+    count = await fetch_hn_mentions("vLLM", client, since=datetime(2026, 1, 1, tzinfo=UTC))
+    assert count == 7
+    assert client.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_osv_retries_429(monkeypatch):
+    async def fake_sleep(delay):
+        return None
+
+    monkeypatch.setattr("radar.enrichment.retry.asyncio.sleep", fake_sleep)
+    client = _Flaky429Client({"vulns": []})
+    found = await fetch_recent_advisories(
+        PackageRef(ecosystem="PyPI", name="vllm"), client,
+        now=datetime(2026, 1, 1, tzinfo=UTC), window_days=90,
+    )
+    assert found == []
+    assert client.calls == 2

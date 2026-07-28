@@ -2,6 +2,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
 import pytest
 
 from radar.collectors.github import GitHubCollector
@@ -233,3 +234,43 @@ def test_release_highlights_drop_bot_attribution_trailers():
     highlights = GitHubCollector.extract_release_highlights(body)
 
     assert highlights == ["chore: refresh npm lockfile after v0.5.5"]
+
+
+class _FailingClient:
+    async def get(self, url, **kwargs):
+        raise httpx.ConnectError("boom")
+
+
+def _gh_source(i: int = 1) -> SourceConfig:
+    return SourceConfig(
+        id=f"github-proj{i}",
+        type=SourceType.GITHUB_REPO,
+        project=f"Proj{i}",
+        category=Category.GENERAL_AGENTS,
+        url=f"https://github.com/org/proj{i}",
+    )
+
+
+@pytest.mark.asyncio
+async def test_failed_repo_fetch_records_warning_and_failed_source(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    collector = GitHubCollector([_gh_source()], client=_FailingClient())
+
+    signals = await collector.fetch(datetime(2026, 1, 1, tzinfo=UTC))
+
+    assert signals == []
+    assert "github-proj1" in collector.failed_source_ids
+    assert any("github-proj1" in w for w in collector.warnings)
+
+
+@pytest.mark.asyncio
+async def test_missing_token_warning_only_with_many_sources(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    many = GitHubCollector([_gh_source(i) for i in range(1, 7)], client=_FailingClient())
+    await many.fetch(datetime(2026, 1, 1, tzinfo=UTC))
+    assert any("GITHUB_TOKEN not set" in w for w in many.warnings)
+
+    few = GitHubCollector([_gh_source(1)], client=_FailingClient())
+    await few.fetch(datetime(2026, 1, 1, tzinfo=UTC))
+    assert not any("GITHUB_TOKEN" in w for w in few.warnings)

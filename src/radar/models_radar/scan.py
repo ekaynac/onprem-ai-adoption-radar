@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from radar.models_radar.assemble import build_model_entry
 from radar.models_radar.collectors.huggingface import fetch_hf_model
 from radar.models_radar.collectors.ollama import fetch_ollama_quants
-from radar.models_radar.entities import ModelEntry
-from radar.models_radar.seed import load_model_seed
+from radar.models_radar.entities import ModelEntry, ModelSeed
 
 
-async def run_model_scan(seed_path: Path, client: Any) -> list[ModelEntry]:
-    """Collect + assemble one ModelEntry per enabled seed. Best-effort per model."""
-    seeds = load_model_seed(seed_path)
+async def run_model_scan(seeds: list[ModelSeed], client: Any) -> list[ModelEntry]:
+    """Collect + assemble one ModelEntry per enabled seed. Best-effort per model.
+
+    Callers load the seed file and filter out quarantined seeds (see
+    ``radar.models_radar.validate``) before calling this — invalid seeds must
+    never reach collection or scoring.
+    """
     entries: list[ModelEntry] = []
     for seed in seeds:
         if not seed.enabled:

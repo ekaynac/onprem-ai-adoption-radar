@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Protocol
 
+from radar.enrichment.retry import get_with_retry
+
 
 HN_SEARCH_URL = "https://hn.algolia.com/api/v1/search"
 
@@ -19,8 +21,10 @@ async def fetch_hn_mentions(
     since: datetime,
 ) -> int:
     """Number of HN stories mentioning the exact project name since a date."""
-    response = await client.get(
+    response = await get_with_retry(
+        client,
         HN_SEARCH_URL,
+        label=f"hackernews {project}",
         params={
             "query": f'"{project}"',  # quoted: exact-phrase match
             "tags": "story",
@@ -28,6 +32,5 @@ async def fetch_hn_mentions(
             "hitsPerPage": 0,  # only the count is needed
         },
     )
-    response.raise_for_status()
     payload = response.json()
     return int(payload.get("nbHits") or 0)

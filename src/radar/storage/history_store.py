@@ -54,6 +54,7 @@ class ProjectHistoryEvent(BaseModel):
     run_id: str
     observed_at: datetime
     reasons: list[str] = Field(default_factory=list)
+    corrects_run_id: str | None = None
 
 
 class ProjectHistorySummary(BaseModel):
@@ -66,6 +67,27 @@ class ProjectHistorySummary(BaseModel):
     last_change_at: datetime
     last_change_type: ChangeType
     change_count: int
+
+
+def apply_corrections(events: list[ProjectHistoryEvent]) -> list[ProjectHistoryEvent]:
+    """The effective timeline: corrected (project, run) pairs removed.
+
+    A `corrected` event neutralizes every event its project recorded in
+    `corrects_run_id`'s run (a proven collection-outage artifact). Marker
+    events themselves are also excluded — they are display-only. Raw readers
+    (feeds, the timeline page) still see everything via the unfiltered list.
+    """
+    corrected_pairs = {
+        (e.project, e.corrects_run_id)
+        for e in events
+        if e.change_type == ChangeType.CORRECTED and e.corrects_run_id
+    }
+    return [
+        e
+        for e in events
+        if e.change_type != ChangeType.CORRECTED
+        and (e.project, e.run_id) not in corrected_pairs
+    ]
 
 
 class HistoryStore:
@@ -97,6 +119,15 @@ class HistoryStore:
                 "CREATE INDEX IF NOT EXISTS idx_history_project "
                 "ON project_history(project, id)"
             )
+            # Migration: pre-2026-07 tables lack the corrects_run_id column.
+            # ALTER is idempotent-by-exception: "duplicate column name" means done.
+            try:
+                conn.execute(
+                    "ALTER TABLE project_history ADD COLUMN corrects_run_id TEXT"
+                )
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" not in str(exc):
+                    raise
 
     def record_deltas(
         self,
@@ -116,8 +147,8 @@ class HistoryStore:
                 """
                 INSERT INTO project_history(
                     project, category, change_type, ring, previous_ring,
-                    run_id, observed_at, reasons
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    run_id, observed_at, reasons, corrects_run_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 [self._event_row(event) for event in events],
             )
@@ -145,7 +176,7 @@ class HistoryStore:
             rows = conn.execute(
                 """
                 SELECT project, category, change_type, ring, previous_ring,
-                       run_id, observed_at, reasons
+                       run_id, observed_at, reasons, corrects_run_id
                 FROM project_history
                 ORDER BY id
                 """
@@ -181,6 +212,7 @@ class HistoryStore:
             event.run_id,
             event.observed_at.isoformat(),
             json.dumps(event.reasons),
+            event.corrects_run_id,
         )
 
     def history_for(self, project: str) -> list[ProjectHistoryEvent]:
@@ -189,7 +221,7 @@ class HistoryStore:
             rows = conn.execute(
                 """
                 SELECT project, category, change_type, ring, previous_ring,
-                       run_id, observed_at, reasons
+                       run_id, observed_at, reasons, corrects_run_id
                 FROM project_history
                 WHERE project = ?
                 ORDER BY id
@@ -199,12 +231,53 @@ class HistoryStore:
         return [self._row_to_event(row) for row in rows]
 
     def summaries(self) -> list[ProjectHistorySummary]:
-        """Return one aggregated summary per project, ordered by project name."""
+        """Return one aggregated summary per project, ordered by project name.
+
+        Computed over the *effective* view: corrected (project, run) pairs are
+        removed via `apply_corrections`. A project with no effective events
+        after filtering (e.g. its only history was a collection-outage
+        artifact) is omitted entirely. Raw timeline surfaces (reports, feeds,
+        `radar history`, `radar calibration`) that must never drop a project
+        use `all_summaries()` instead — corrections stay visible there.
+        """
+        summaries = []
+        for project, raw in self._grouped_events().items():
+            events = apply_corrections(raw)
+            if not events:
+                continue
+            summaries.append(self._summarize(project, events))
+        return sorted(summaries, key=lambda s: s.project.lower())
+
+    def all_summaries(self) -> list[ProjectHistorySummary]:
+        """Return one summary per project with ANY recorded history.
+
+        Unlike `summaries()`, this never omits a project: one whose entire
+        timeline was corrected away (a promoted event plus the corrected
+        marker that neutralizes it, and nothing else) still gets a summary,
+        synthesized from its raw, unfiltered events instead of the empty
+        effective view. Used by raw timeline surfaces — the cumulative
+        history report, the `/history` web and static pages, change feeds,
+        `radar history`, `radar calibration` — which must keep showing every
+        project regardless of correction.
+        """
+        summaries = []
+        for project, raw in self._grouped_events().items():
+            events = apply_corrections(raw) or raw
+            summaries.append(self._summarize(project, events))
+        return sorted(summaries, key=lambda s: s.project.lower())
+
+    def _grouped_events(self) -> dict[str, list[ProjectHistoryEvent]]:
+        """Every project's events, oldest-first by observed_at.
+
+        Order by observed_at, not insertion order: logs merged from several
+        machines (or rehydrated from a concatenated JSONL file) may arrive
+        out of chronological order. Stable sort keeps within-run order.
+        """
         with sqlite3.connect(self.path) as conn:
             rows = conn.execute(
                 """
                 SELECT project, category, change_type, ring, previous_ring,
-                       run_id, observed_at, reasons
+                       run_id, observed_at, reasons, corrects_run_id
                 FROM project_history
                 ORDER BY id
                 """
@@ -214,25 +287,23 @@ class HistoryStore:
         for row in rows:
             event = self._row_to_event(row)
             events_by_project.setdefault(event.project, []).append(event)
+        return {
+            project: sorted(events, key=lambda e: e.observed_at)
+            for project, events in events_by_project.items()
+        }
 
-        # Order by observed_at, not insertion order: logs merged from several
-        # machines (or rehydrated from a concatenated JSONL file) may arrive
-        # out of chronological order. Stable sort keeps within-run order.
-        summaries = []
-        for project, unordered in events_by_project.items():
-            events = sorted(unordered, key=lambda e: e.observed_at)
-            summaries.append(
-                ProjectHistorySummary(
-                    project=project,
-                    category=events[-1].category,
-                    current_ring=events[-1].ring,
-                    first_seen=events[0].observed_at,
-                    last_change_at=events[-1].observed_at,
-                    last_change_type=events[-1].change_type,
-                    change_count=len(events),
-                )
-            )
-        return sorted(summaries, key=lambda s: s.project.lower())
+    @staticmethod
+    def _summarize(project: str, events: list[ProjectHistoryEvent]) -> ProjectHistorySummary:
+        """Aggregate a chronologically-sorted, non-empty event list."""
+        return ProjectHistorySummary(
+            project=project,
+            category=events[-1].category,
+            current_ring=events[-1].ring,
+            first_seen=events[0].observed_at,
+            last_change_at=events[-1].observed_at,
+            last_change_type=events[-1].change_type,
+            change_count=len(events),
+        )
 
     @staticmethod
     def _row_to_event(row: tuple) -> ProjectHistoryEvent:
@@ -245,4 +316,5 @@ class HistoryStore:
             run_id=row[5],
             observed_at=datetime.fromisoformat(row[6]),
             reasons=json.loads(row[7]),
+            corrects_run_id=row[8],
         )

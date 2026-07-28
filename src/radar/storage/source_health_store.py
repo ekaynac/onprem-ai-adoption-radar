@@ -11,6 +11,11 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from radar.storage.source_health_log import SourceHealthRecord
 
 
 # Scans run daily, so a 7-scan window means "produced nothing for ~a week"
@@ -43,22 +48,42 @@ class SourceHealthStore:
                 "CREATE INDEX IF NOT EXISTS idx_source_health_source "
                 "ON source_health(source_id, observed_at)"
             )
+            # Migration: pre-2026-07 tables lack the status column. ALTER is
+            # idempotent-by-exception: "duplicate column name" means done.
+            try:
+                conn.execute("ALTER TABLE source_health ADD COLUMN status TEXT")
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" not in str(exc):
+                    raise
 
     def record(
         self,
         run_id: str,
         observed_at: datetime,
         counts: dict[str, int],
+        statuses: dict[str, str] | None = None,
     ) -> None:
-        """Record one row per source for this scan. No-op for an empty dict."""
+        """One row per source for this scan. status: ok|empty|error.
+
+        Without an explicit status a source is 'ok' if it produced signals,
+        'empty' otherwise. 'error' means the fetch failed — an empty result
+        that must NOT count as evidence the feed is dead.
+        """
         if not counts:
             return
+        statuses = statuses or {}
         with sqlite3.connect(self.path) as conn:
             conn.executemany(
-                "INSERT INTO source_health(source_id, run_id, observed_at, signal_count) "
-                "VALUES (?, ?, ?, ?)",
+                "INSERT INTO source_health(source_id, run_id, observed_at, signal_count, status) "
+                "VALUES (?, ?, ?, ?, ?)",
                 [
-                    (source_id, run_id, observed_at.isoformat(), count)
+                    (
+                        source_id,
+                        run_id,
+                        observed_at.isoformat(),
+                        count,
+                        statuses.get(source_id, "ok" if count > 0 else "empty"),
+                    )
                     for source_id, count in counts.items()
                 ],
             )
@@ -95,9 +120,38 @@ class SourceHealthStore:
             for source_id in source_ids:
                 recent = conn.execute(
                     "SELECT signal_count FROM source_health WHERE source_id = ? "
+                    "AND (status IS NULL OR status != 'error') "
                     "ORDER BY observed_at DESC, id DESC LIMIT ?",
                     (source_id, window),
                 ).fetchall()
                 if len(recent) >= window and all(count == 0 for (count,) in recent):
                     stale.add(source_id)
         return stale
+
+    def import_records(self, records: list[SourceHealthRecord]) -> int:
+        """Insert rows not already present (idempotent rehydration from JSONL).
+
+        Natural key: (source_id, run_id) — a run records each source once.
+        """
+        with sqlite3.connect(self.path) as conn:
+            existing = {
+                (row[0], row[1])
+                for row in conn.execute("SELECT source_id, run_id FROM source_health")
+            }
+        inserted = 0
+        for record in records:
+            fresh = {
+                source_id: outcome
+                for source_id, outcome in record.sources.items()
+                if (source_id, record.run_id) not in existing
+            }
+            if not fresh:
+                continue
+            self.record(
+                record.run_id,
+                record.observed_at,
+                {sid: o.count for sid, o in fresh.items()},
+                {sid: o.status for sid, o in fresh.items()},
+            )
+            inserted += len(fresh)
+        return inserted

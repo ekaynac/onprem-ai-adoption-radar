@@ -912,3 +912,110 @@ def test_research_scan_threads_metrics_log_path(tmp_path, monkeypatch):
     assert result.exit_code == 0, result.stdout
     assert captured["metrics_log_path"].name == "technique-metrics.jsonl"
     assert captured["metrics_log_path"] == tmp_path / "data" / "technique-metrics.jsonl"
+
+
+def test_scan_health_check_fails_on_degraded_run(tmp_path):
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "raw_signals", [])
+    store.update_meta(run_id, {"degraded": True, "degraded_reason": "outage"})
+
+    result = runner.invoke(app, ["scan-health", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 1
+    assert "degraded" in result.output.lower()
+    assert "outage" in result.output
+
+
+def test_scan_health_check_fails_below_signal_floor(tmp_path):
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "raw_signals", [{"id": "s1"}] * 5)
+
+    result = runner.invoke(
+        app, ["scan-health", "--root", str(tmp_path), "--check", "--min-signals", "20"]
+    )
+    assert result.exit_code == 1
+
+    ok = runner.invoke(
+        app, ["scan-health", "--root", str(tmp_path), "--check", "--min-signals", "3"]
+    )
+    assert ok.exit_code == 0
+
+
+def test_scan_health_without_check_exits_zero_with_printed_problems(tmp_path):
+    from radar.storage.run_store import RunStore
+
+    runner = CliRunner()
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "raw_signals", [{"id": "s1"}])
+
+    result = runner.invoke(
+        app, ["scan-health", "--root", str(tmp_path), "--min-signals", "10"]
+    )
+    assert result.exit_code == 0
+    assert "UNHEALTHY" in result.output
+    assert "only 1 raw signals" in result.output
+
+
+def test_scan_health_persisted_meta_contains_degraded_reason(tmp_path):
+    import json as json_module
+
+    from radar.storage.run_store import RunStore
+
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.create_run()
+    store.save_stage(run_id, "raw_signals", [])
+    store.update_meta(run_id, {"degraded": True, "degraded_reason": "network timeout"})
+
+    meta_path = tmp_path / "data" / "runs" / run_id / "meta.json"
+    meta = json_module.loads(meta_path.read_text(encoding="utf-8"))
+    assert meta["degraded_reason"] == "network timeout"
+
+
+def test_scan_exits_code_2_when_degraded(tmp_path):
+    """CLI-level test: radar scan exits 2 on degraded run with unreachable RSS source."""
+    from radar.init_project import initialize_project
+
+    initialize_project(tmp_path)
+    # Unreachable RSS config trick: 1 dead RSS source creates degraded run
+    (tmp_path / "data" / "config.yaml").write_text(
+        """
+version: "1.0"
+sources:
+  - id: rss-dead
+    type: rss
+    enabled: true
+    project: DeadFeed
+    category: model_serving
+    url: http://127.0.0.1:1/feed.xml
+    tags: []
+quotas:
+  model_serving: 4
+scoring:
+  default_ring: watch
+""",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["scan", "--root", str(tmp_path), "--days", "2"])
+
+    assert result.exit_code == 2
+    assert "degraded" in result.output.lower()
+    # The degraded_reason should be in the output
+    import json as json_module
+
+    from radar.storage.run_store import RunStore
+
+    store = RunStore(tmp_path / "data" / "runs")
+    run_id = store.latest_run_of_kind(None)
+    if run_id:
+        meta = json_module.loads((tmp_path / "data" / "runs" / run_id / "meta.json").read_text())
+        assert "degraded_reason" in meta

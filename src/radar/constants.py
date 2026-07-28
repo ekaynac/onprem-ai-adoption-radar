@@ -14,3 +14,8 @@ RSS_USER_AGENT = (
 RSS_ACCEPT = (
     "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8"
 )
+
+# A scan whose source error-rate reaches this fraction is a collection outage:
+# it is recorded (raw signals + meta) but never scored — scoring near-empty
+# input produces artificial ring churn (see 2026-07-27 hardening spec).
+DEGRADED_SOURCE_ERROR_THRESHOLD = 0.5

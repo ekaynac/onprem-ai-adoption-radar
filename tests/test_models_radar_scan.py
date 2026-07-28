@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from radar.models_radar.scan import run_model_scan
+from radar.models_radar.seed import load_model_seed
 
 
 class FakeResp:
@@ -40,7 +41,7 @@ async def test_scan_assembles_entries_for_seed(tmp_path: Path):
         "raw/main/config.json": {"num_hidden_layers": 32, "hidden_size": 4096,
                                  "max_position_embeddings": 131072},
     })
-    entries = await run_model_scan(seed, client)
+    entries = await run_model_scan(load_model_seed(seed), client)
     assert len(entries) == 1
     m = entries[0]
     assert m.id == "llama-3.1-8b" and m.params_total == 8000000000

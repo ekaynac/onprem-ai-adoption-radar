@@ -63,6 +63,31 @@ def test_publish_runs_paper_candidate_scan_and_commits_store():
     assert "data/technique-candidate-observations.jsonl" in text
 
 
+def test_publish_scan_health_gate_before_scoring_quality_gate():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+
+    scan_health_idx = text.index("Scan health gate")
+    scoring_idx = text.index("Scoring quality gate")
+
+    assert scan_health_idx < scoring_idx
+    assert "radar scan-health --root . --check" in text
+
+
+def test_publish_scan_step_uses_publish_history_flag():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+
+    # Pinned: without --publish-history the scan would write to the
+    # gitignored local lane (D5) and the committed timeline would never
+    # advance, even though the persist step below force-adds it every run.
+    assert "radar scan --root . --days 7 --publish-history" in text
+
+
+def test_publish_persist_step_force_adds_source_health_log():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+
+    assert "git add -f data/source-health.jsonl" in text
+
+
 def test_publish_deploy_retries_on_transient_pages_failure():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
 

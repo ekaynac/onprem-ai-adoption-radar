@@ -99,6 +99,11 @@ def scan(
     profile: str = typer.Option(
         "", help="Score through a named profile from config (re-weighted dimensions)."
     ),
+    publish_history: bool = typer.Option(
+        False,
+        "--publish-history",
+        help="Append ring changes to the committed data/history.jsonl (CI only).",
+    ),
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Collect signals, score them, and write run artifacts."""
@@ -115,10 +120,16 @@ def scan(
         return
     orchestrator = RadarOrchestrator(root)
     try:
-        result = orchestrator.scan(days=days, profile=profile or None)
+        result = orchestrator.scan(
+            days=days, profile=profile or None, publish_history=publish_history
+        )
     except UnknownProfileError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
+    if result.degraded:
+        console.print(f"[red]DEGRADED:[/red] {result.degraded_reason}")
+        console.print("No cards, history, or metrics were written.")
+        raise typer.Exit(code=2)
     console.print(f"Run: {result.run_id}")
     console.print(f"Cards: {len(result.cards)}")
     console.print(f"Report: {result.report_path}")
@@ -244,8 +255,11 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
 
     import httpx
 
+    from radar.models_radar.entities import ModelSeed
     from radar.models_radar.pipeline import persist_model_scan, score_entries
     from radar.models_radar.scan import run_model_scan
+    from radar.models_radar.seed import load_model_seed
+    from radar.models_radar.validate import seed_advisories, validate_seed
     from radar.storage.run_store import RunStore
 
     seed_path = root / "config" / "model-seed.yaml"
@@ -253,9 +267,28 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
         # fall back to the packaged seed
         seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
 
+    seeds = load_model_seed(seed_path)
+
+    # Quarantine gate: absurd seeds (e.g. a mis-scraped params_total wildly off
+    # the name's size token) never reach collection, scoring, or ranking.
+    quarantined: dict[str, list[str]] = {}
+    advisories: list[str] = []
+    valid_seeds: list[ModelSeed] = []
+    for seed in seeds:
+        problems = validate_seed(seed)
+        if problems:
+            quarantined[seed.id] = problems
+            continue
+        advisories.extend(seed_advisories(seed))
+        valid_seeds.append(seed)
+    for seed_id, problems in quarantined.items():
+        console.print(f"[red]QUARANTINED {seed_id}:[/red] {'; '.join(problems)}")
+    for advisory in advisories:
+        console.print(f"[yellow]note:[/yellow] {advisory}")
+
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            return await run_model_scan(seed_path, client)
+            return await run_model_scan(valid_seeds, client)
 
     entries = asyncio.run(_run())
     entries = score_entries(entries)
@@ -264,6 +297,12 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     # Stamp the kind up front: a crashed scan must never masquerade as a tool run
     # (latest_tool_scan_meta filters on the absence of "kind").
     run_store.update_meta(run_id, {"kind": "models"})
+    if quarantined or advisories:
+        run_store.update_meta(run_id, {
+            "model_validation_warnings": [
+                *(p for ps in quarantined.values() for p in ps), *advisories,
+            ],
+        })
     observed_at = datetime.now(UTC)
     persist_model_scan(
         entries, run_id, observed_at,
@@ -1212,22 +1251,82 @@ def discover(
         )
 
 
-@app.command()
+history_app = typer.Typer(help="Project ring timeline.", invoke_without_command=True)
+app.add_typer(history_app, name="history")
+
+
+@history_app.callback()
 def history(
+    ctx: typer.Context,
     project: str = typer.Option("", help="Limit to a single project (optional)."),
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Print the cumulative per-project observation history."""
+    if ctx.invoked_subcommand is not None:
+        return
     from radar.reports.history import render_history_report
     from radar.storage.history_store import HistoryStore
 
     store = HistoryStore(root / "data" / "radar.db")
     store.initialize()
-    summaries = store.summaries()
+    # all_summaries(), not summaries(): a project entirely corrected away
+    # must still show its raw timeline here.
+    summaries = store.all_summaries()
     if project:
         summaries = [s for s in summaries if s.project == project]
     events = {s.project: store.history_for(s.project) for s in summaries}
     console.print(render_history_report(summaries, events, "Adoption History"))
+
+
+@history_app.command("repair")
+def history_repair(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show corrections, write nothing."),
+) -> None:
+    """Neutralize ring changes from collection-outage runs (append-only)."""
+    import sqlite3
+    from datetime import UTC, datetime
+
+    from radar.orchestrator import RadarOrchestrator
+    from radar.storage.history_log import append_events, load_events
+    from radar.storage.history_repair import build_corrections, outage_run_ids
+
+    orchestrator = RadarOrchestrator(root)
+    orchestrator.history.initialize()
+    # Legacy backfill only: if the log is missing/empty but the DB has real
+    # history, this regenerates the log from the DB (see docs/persistence.md).
+    # It does NOT make the DB authoritative going forward — the log below is.
+    orchestrator.reconcile_history()
+    # The durable JSONL log is truth, not the SQLite projection: both the
+    # event stream corrections are derived from AND the "already corrected"
+    # idempotence set must come from `load_events`, never from
+    # `orchestrator.history.all_events()`. The DB can get ahead of the log
+    # (e.g. a `corrected` marker written to the DB whose log append never
+    # landed) — reading the DB there would make that drift permanently
+    # unhealable, which is exactly the 2026-07-27 incident this guards against.
+    events = load_events(orchestrator.history_log)
+    try:
+        outages = outage_run_ids(root / "data" / "radar.db")
+    except sqlite3.OperationalError:
+        # Fresh root: no scan has ever run, so source_health doesn't exist yet.
+        console.print("No outage evidence recorded.")
+        return
+    corrections = build_corrections(events, outages, datetime.now(UTC))
+    console.print(f"Outage runs detected: {len(outages)}")
+    console.print(f"Corrections to append: {len(corrections)}")
+    for c in corrections:
+        previous_ring = c.previous_ring.value if c.previous_ring else "?"
+        console.print(f"  {c.project}: {previous_ring} -> {c.ring.value} ({c.corrects_run_id})")
+    if dry_run or not corrections:
+        return
+    # The log append is unconditional (it's the log's own idempotence check
+    # above that decided these corrections are new); the DB insert is
+    # deduped separately via import_events's natural key so a correction
+    # already present in the DB (again, today's exact drift) isn't
+    # double-inserted there.
+    orchestrator.history.import_events(corrections)
+    append_events(orchestrator.history_log, corrections)
+    console.print(f"Appended {len(corrections)} corrected events.")
 
 
 @app.command()
@@ -1426,7 +1525,9 @@ def calibrate_report(
 
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
-    events = [e for s in history.summaries() for e in history.history_for(s.project)]
+    # seen_projects(), not summaries(): calibration must see raw history for
+    # every project, including one entirely corrected away.
+    events = [e for p in history.seen_projects() for e in history.history_for(p)]
 
     report = build_calibration_report(scored, ring_by_project, history_events=events)
     console.print(render_calibration_markdown(report))
@@ -1437,6 +1538,38 @@ def calibrate_report(
             "[red]Quality gate failed:[/red] rings do not discriminate."
         )
         raise typer.Exit(code=1)
+
+
+@app.command("scan-health")
+def scan_health_cmd(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    check: bool = typer.Option(False, "--check", help="Exit non-zero if unhealthy."),
+    min_signals: int = typer.Option(20, help="Minimum raw signals for a publishable run."),
+) -> None:
+    """Health of the latest main scan run (the publish gate reads this)."""
+    from radar.storage.run_store import RunStore
+
+    run_store = RunStore(root / "data" / "runs")
+    run_id = run_store.latest_run_of_kind(None)
+    if run_id is None:
+        console.print("[red]No main scan run found.[/red]")
+        raise typer.Exit(code=1 if check else 0)
+
+    meta = run_store.read_meta(run_id)
+    problems: list[str] = []
+    if meta.get("degraded"):
+        problems.append(f"run is degraded: {meta.get('degraded_reason', 'unknown reason')}")
+    try:
+        raw = run_store.load_stage(run_id, "raw_signals")
+    except FileNotFoundError:
+        raw = []
+    if len(raw) < min_signals:
+        problems.append(f"only {len(raw)} raw signals (< {min_signals})")
+    if problems:
+        for problem in problems:
+            console.print(f"[red]UNHEALTHY:[/red] {problem}")
+        raise typer.Exit(code=1 if check else 0)
+    console.print(f"OK: {run_id} — {len(raw)} raw signals, not degraded")
 
 
 def _latest_scored_signals(root: Path):
@@ -1610,9 +1743,11 @@ def export(
 
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
+    # all_summaries(), not summaries(): a project entirely corrected away
+    # must still show its raw timeline and feed entries here.
     timelines = [
         {"summary": s, "events": history.history_for(s.project)}
-        for s in sorted(history.summaries(), key=lambda s: s.last_change_at, reverse=True)
+        for s in sorted(history.all_summaries(), key=lambda s: s.last_change_at, reverse=True)
     ]
 
     metrics = MetricsStore(root / "data" / "radar.db")
@@ -1779,6 +1914,7 @@ def export(
         top_technique=next((r for r in _technique_hub if not r.is_new), None),
         model_candidates=_model_candidates or None,
         technique_candidates=_technique_candidates or None,
+        card_staleness=orchestrator.database.card_staleness_note(),
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

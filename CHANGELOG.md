@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Hardening (sub-project A)
+- **Outage-aware collection & scoring** — new degraded-run gate ensures outages
+  never corrupt the score by collecting observations but explicitly excluding
+  them from ranking; per-source ok/empty/error outcomes track collection health
+  instead of the one-flag model.
+- **GitHub collector warnings** — network issues are logged without blocking the
+  scan.
+- **History corrections & repair command** — erroneous history entries from
+  earlier runs can now be corrected with `radar history repair`, which uses a
+  corrective-event log to track fixes. The command lists expected corrections
+  before applying them (dry-run aware).
+- **Source-health JSONL log** — per-source collection outcomes (ok/empty/error)
+  are now also recorded to a durable, append-only `data/source-health.jsonl`
+  log mirroring `history.jsonl`, with idempotent DB rehydration on scan.
+- **Card staleness detection** — dashboard + static site show a mixed-age
+  decision-cards note when persisted cards span multiple scan days.
+- **Catalog validation gate** — ensures data constraints are enforced before the
+  daily build.
+- **CI-only history lane** — local non-published scans log to a separate
+  `data/local/history.jsonl` lane so test/dev runs don't pollute the
+  production-published history.
+- **Retry budget & warning fixes** — enricher retry budgets raised; OSV/HN
+  enricher retries are now enforced; stray files and config de-duplication
+  complete the hardening sweep.
+
 ### Fixed
 - **Frontend readability pass (18 findings)** — an accessibility/contrast audit
   of the web UI surfaced 18 findability and readability issues, all now fixed:

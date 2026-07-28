@@ -191,3 +191,117 @@ def test_summaries_use_timestamps_not_insertion_order(tmp_path: Path):
     assert summary.last_change_at == _at(12)
     assert summary.current_ring == Ring.ADOPT
     assert summary.last_change_type == ChangeType.PROMOTED
+
+
+def _event(project, change_type, ring, previous_ring, run_id, corrects=None):
+    from datetime import UTC, datetime
+
+    from radar.models import Category, Ring
+    from radar.pipeline.delta import ChangeType
+    from radar.storage.history_store import ProjectHistoryEvent
+
+    return ProjectHistoryEvent(
+        project=project,
+        category=Category.MCP_TOOLING,
+        change_type=ChangeType(change_type),
+        ring=Ring(ring),
+        previous_ring=Ring(previous_ring) if previous_ring else None,
+        run_id=run_id,
+        observed_at=datetime(2026, 7, 1, tzinfo=UTC),
+        reasons=[],
+        corrects_run_id=corrects,
+    )
+
+
+def test_apply_corrections_drops_artifact_and_marker():
+    from radar.storage.history_store import apply_corrections
+
+    events = [
+        _event("MCP", "new", "watch", None, "run-a"),
+        _event("MCP", "promoted", "pilot", "watch", "run-outage"),   # artifact
+        _event("MCP", "demoted", "watch", "pilot", "run-b"),
+        _event("MCP", "corrected", "watch", "pilot", "repair:run-outage",
+               corrects="run-outage"),
+    ]
+    effective = apply_corrections(events)
+    assert [e.run_id for e in effective] == ["run-a", "run-b"]
+
+
+def test_summaries_use_effective_view(tmp_path):
+    from radar.storage.history_store import HistoryStore
+
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.add_events([
+        _event("MCP", "new", "watch", None, "run-a"),
+        _event("MCP", "promoted", "adopt", "watch", "run-outage"),
+        _event("MCP", "corrected", "watch", "adopt", "repair:run-outage",
+               corrects="run-outage"),
+    ])
+    (summary,) = store.summaries()
+    assert summary.current_ring.value == "watch"
+    assert summary.change_count == 1
+
+
+def test_corrects_run_id_roundtrips_through_db_and_jsonl(tmp_path):
+    from radar.storage.history_log import append_events, load_events
+    from radar.storage.history_store import HistoryStore
+
+    marker = _event("MCP", "corrected", "watch", "adopt", "repair:run-x", corrects="run-x")
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.add_events([marker])
+    assert store.all_events()[0].corrects_run_id == "run-x"
+
+    log = tmp_path / "history.jsonl"
+    append_events(log, [marker])
+    assert load_events(log)[0].corrects_run_id == "run-x"
+
+
+def test_all_summaries_includes_project_absent_from_summaries(tmp_path):
+    """A project whose entire history was corrected away (a promoted event
+    plus the corrected marker that neutralizes it, and nothing else) has no
+    effective events, so `summaries()` — used for scoring/momentum — omits it
+    entirely. Raw timeline surfaces must never drop a project like this, so
+    `all_summaries()` is the enumeration primitive they use instead."""
+    from radar.storage.history_store import HistoryStore
+
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.add_events([
+        _event("Outaged", "promoted", "adopt", "watch", "run-outage"),
+        _event("Outaged", "corrected", "watch", "adopt", "repair:run-outage",
+               corrects="run-outage"),
+    ])
+
+    assert store.summaries() == []
+
+    (summary,) = store.all_summaries()
+    assert summary.project == "Outaged"
+    assert summary.change_count == 2  # both raw events counted, nothing dropped
+
+
+def test_all_summaries_keeps_fully_corrected_project_in_history_report(tmp_path):
+    """End-to-end: a fully-corrected project still renders on the raw
+    timeline (the cumulative Adoption History report), even though it is
+    absent from `summaries()`."""
+    from radar.reports.history import render_history_report
+    from radar.storage.history_store import HistoryStore
+
+    store = HistoryStore(tmp_path / "radar.db")
+    store.initialize()
+    store.add_events([
+        _event("Outaged", "promoted", "adopt", "watch", "run-outage"),
+        _event("Outaged", "corrected", "watch", "adopt", "repair:run-outage",
+               corrects="run-outage"),
+    ])
+
+    all_summaries = store.all_summaries()
+    report = render_history_report(
+        summaries=all_summaries,
+        events_by_project={"Outaged": store.history_for("Outaged")},
+        title="Adoption History",
+    )
+
+    assert "Outaged" in report
+    assert "corrected" in report

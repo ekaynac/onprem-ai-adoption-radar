@@ -68,3 +68,23 @@ class RadarDatabase:
                 "SELECT payload FROM decision_cards WHERE project = ?", (project,)
             ).fetchone()
         return DecisionCard.model_validate_json(row[0]) if row else None
+
+    def card_staleness_note(self) -> str | None:
+        """Human-readable note when persisted cards span multiple scan days.
+
+        The cards table upserts per-project, so after a partial/degraded scan
+        the 'latest' view silently mixes ages. None = homogeneous (or empty).
+        """
+        with sqlite3.connect(self.path) as conn:
+            rows = conn.execute("SELECT updated_at FROM decision_cards").fetchall()
+        if not rows:
+            return None
+        dates = sorted({row[0][:10] for row in rows})
+        if len(dates) == 1:
+            return None
+        newest = dates[-1]
+        stale = sum(1 for (stamp,) in rows if stamp[:10] != newest)
+        return (
+            f"{stale} of {len(rows)} cards predate the latest scan "
+            f"(oldest {dates[0]}, newest {newest})"
+        )
