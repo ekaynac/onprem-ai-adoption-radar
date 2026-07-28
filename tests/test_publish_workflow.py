@@ -88,6 +88,12 @@ def test_publish_persist_step_force_adds_source_health_log():
     assert "git add -f data/source-health.jsonl" in text
 
 
+def test_spec_verify_workflow_runs_check():
+    text = Path(".github/workflows/spec-verify.yml").read_text(encoding="utf-8")
+    assert "radar models verify --root . --check" in text
+    assert "schedule:" in text
+
+
 def test_publish_deploy_retries_on_transient_pages_failure():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
 

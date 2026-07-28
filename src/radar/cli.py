@@ -14,6 +14,11 @@ from rich.console import Console
 from radar import __version__
 from radar.constants import APP_NAME
 from radar.init_project import initialize_project
+
+# Imported at module level (not function-local, unlike this file's other
+# commands) so tests can monkeypatch `radar.cli._verify_fetch_hf_model`
+# directly — the seam `models verify` uses to stay offline in tests.
+from radar.models_radar.collectors.huggingface import fetch_hf_model as _verify_fetch_hf_model
 from radar.orchestrator import RadarOrchestrator
 from radar.reports.markdown import render_markdown_report
 from radar.scoring.profiles import UnknownProfileError
@@ -36,6 +41,18 @@ app.add_typer(trending_app, name="trending")
 digest_app = typer.Typer(help="Weekly digest (page + cards + feeds + webhook).", no_args_is_help=True)
 app.add_typer(digest_app, name="digest")
 console = Console()
+
+# `models verify`'s params_total drift check: some HF repos (NVIDIA's
+# NVFP4/FP4-packed quant checkpoints) report a safetensors element count that
+# is roughly half the real, published param total — a packing artifact, not
+# real drift. Observed 2026-07-28 across three spec_verified seeds
+# (hf-deepseek-v4-flash, hf-deepseek-v4-pro, hf-glm-5-2-nvfp4): ratios 1.80x,
+# 1.86x, 1.98x. Below this ratio a mismatch is reported as DRIFT; at or above
+# it, it's reported as a note and never trips --check — otherwise the weekly
+# gate would go permanently red for a known, documented, deliberate
+# seed/HF disagreement (a YAML comment records the correction, but comments
+# aren't machine-parseable, so this ratio is the deterministic proxy).
+_PACKED_QUANT_RATIO = 1.5
 
 
 @app.callback()
@@ -351,6 +368,88 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
     )
     run_store.update_meta(run_id, {"kind": "models", "model_count": len(final_entries)})
     console.print(f"Scanned {len(final_entries)} models → run {run_id}")
+
+
+@models_app.command("verify")
+def models_verify(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    check: bool = typer.Option(
+        False, "--check", help="Exit 1 on drift in a spec_verified seed."
+    ),
+) -> None:
+    """Diff seed spec numbers against fresh HF data. Never modifies seeds."""
+    import asyncio
+
+    import httpx
+
+    from radar.models_radar.collectors.huggingface import HFModelData
+    from radar.models_radar.entities import ArchitectureSpec
+    from radar.models_radar.seed import load_model_seed
+
+    seed_path = root / "config" / "model-seed.yaml"
+    if not seed_path.exists():
+        # fall back to the packaged seed
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+
+    seeds = [s for s in load_model_seed(seed_path) if s.enabled and s.hf_repo]
+
+    async def _collect() -> dict[str, HFModelData | None]:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            return {
+                s.id: await _verify_fetch_hf_model(s.hf_repo, client)  # type: ignore[arg-type]
+                for s in seeds
+            }
+
+    fetched = asyncio.run(_collect())
+    drift_verified = 0
+    drift_total = 0
+    for seed in seeds:
+        hf = fetched.get(seed.id)
+        if hf is None:
+            console.print(f"[yellow]skip {seed.id}: HF unreachable[/yellow]")
+            continue
+        rows: list[tuple[str, object, object]] = []
+
+        seed_pt, hf_pt = seed.params_total, hf.params_total
+        if seed_pt is not None and hf_pt is not None and seed_pt != hf_pt:
+            low, high = sorted((seed_pt, hf_pt))
+            ratio = (high / low) if low else float("inf")
+            if ratio > _PACKED_QUANT_RATIO:
+                # Known artifact (see _PACKED_QUANT_RATIO above): report it,
+                # but never as DRIFT — the seed's total is the deliberately
+                # corrected, cited value.
+                console.print(
+                    f"[yellow]note {seed.id}: params_total differs by {ratio:.2f}x "
+                    "(packed-quant artifact, seed carries published total)[/yellow]"
+                )
+            else:
+                rows.append(("params_total", seed_pt, hf_pt))
+
+        seed_ctx, hf_ctx = seed.context_length, hf.context_length
+        if seed_ctx is not None and hf_ctx is not None and seed_ctx != hf_ctx:
+            rows.append(("context_length", seed_ctx, hf_ctx))
+
+        if seed.architecture is not None and hf.architecture is not None:
+            for field in ArchitectureSpec.model_fields:
+                if field == "attention_kind":
+                    continue  # derived, not a number to drift-check
+                seed_value = getattr(seed.architecture, field)
+                hf_value = getattr(hf.architecture, field)
+                if seed_value is not None and hf_value is not None and seed_value != hf_value:
+                    rows.append((f"architecture.{field}", seed_value, hf_value))
+
+        for field, seed_value, hf_value in rows:
+            drift_total += 1
+            if seed.spec_verified:
+                drift_verified += 1
+            console.print(
+                f"[red]DRIFT {seed.id}.{field}:[/red] seed={seed_value} hf={hf_value}"
+            )
+
+    if drift_total == 0:
+        console.print(f"OK: {len(seeds)} seeds verified, no drift")
+    if check and drift_verified:
+        raise typer.Exit(code=1)
 
 
 candidates_app = typer.Typer(help="Untracked model-candidate discovery.", no_args_is_help=True)

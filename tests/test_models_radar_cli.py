@@ -323,3 +323,159 @@ def test_models_promote_no_params_qualifies_nothing(tmp_path: Path, monkeypatch)
     assert after_text == original_text, "file must not change when no models qualify"
 
     assert "No new models qualified" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# models verify tests
+# ---------------------------------------------------------------------------
+
+
+def _write_model_seed(tmp_path: Path, models_yaml_body: str) -> None:
+    """Write a minimal config/model-seed.yaml with the given `models:` list body."""
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "model-seed.yaml").write_text(
+        f'version: "1.0"\nmodels:\n{models_yaml_body}', encoding="utf-8"
+    )
+
+
+def test_models_verify_reports_drift_and_check_exits_1(tmp_path: Path, monkeypatch):
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+    from radar.models_radar.entities import ArchitectureSpec
+
+    _write_model_seed(tmp_path, """\
+  - id: drift-model
+    name: Drift-7B
+    family: Drift
+    hf_repo: org/drift
+    params_total: 7000000000
+    spec_verified: true
+    architecture:
+      num_key_value_heads: 8
+""")
+
+    async def fake_fetch(repo, client):
+        return HFModelData(
+            params_total=7_600_000_000,   # drifts from the seed's 7.0B (ratio ~1.09x)
+            architecture=ArchitectureSpec(num_key_value_heads=4),
+        )
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path)])
+    assert result.exit_code == 0, result.stdout           # report-only without --check
+    assert "DRIFT drift-model.params_total" in result.stdout
+    assert "DRIFT drift-model.architecture.num_key_value_heads" in result.stdout
+
+    checked = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert checked.exit_code == 1                         # verified seed drifted
+
+
+def test_models_verify_no_drift_reports_ok(tmp_path: Path, monkeypatch):
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    _write_model_seed(tmp_path, """\
+  - id: stable-model
+    name: Stable-7B
+    family: Stable
+    hf_repo: org/stable
+    params_total: 7000000000
+    spec_verified: true
+""")
+
+    async def fake_fetch(repo, client):
+        return HFModelData(params_total=7_000_000_000)
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 0, result.stdout
+    assert "OK: 1 seeds verified, no drift" in result.stdout
+
+
+def test_models_verify_unreachable_repo_is_skip_not_failure(tmp_path: Path, monkeypatch):
+    import radar.cli as cli_mod
+
+    _write_model_seed(tmp_path, """\
+  - id: unreachable-model
+    name: Unreachable-7B
+    family: Unreachable
+    hf_repo: org/unreachable
+    params_total: 7000000000
+    spec_verified: true
+""")
+
+    async def fake_fetch(repo, client):
+        return None
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 0, result.stdout            # unreachable never fails the command
+    assert "skip unreachable-model" in result.stdout
+
+
+def test_models_verify_never_modifies_seed_file(tmp_path: Path, monkeypatch):
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    _write_model_seed(tmp_path, """\
+  - id: drift-model
+    name: Drift-7B
+    family: Drift
+    hf_repo: org/drift
+    params_total: 7000000000
+    spec_verified: true
+""")
+    original_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
+
+    async def fake_fetch(repo, client):
+        return HFModelData(params_total=7_600_000_000)
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+
+    after_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
+    assert after_text == original_text, "verify must never modify the seed file"
+
+
+def test_models_verify_packed_quant_params_total_is_note_not_drift(
+    tmp_path: Path, monkeypatch
+):
+    """FP4/NVFP4-packed HF repos report a safetensors element count roughly
+    1.5x-2x below the real published param total (see config/model-seed.yaml's
+    hf-deepseek-v4-flash/-pro and hf-glm-5-2-nvfp4 comments, corrected
+    2026-07-28: observed ratios 1.80x, 1.86x, 1.98x). Treating that as DRIFT on
+    a spec_verified seed would make the weekly --check gate permanently red for
+    a known, documented, deliberate seed/HF disagreement — so params_total
+    comparisons beyond the packed-quant ratio threshold are reported as a note,
+    never DRIFT, and never trip --check.
+    """
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    _write_model_seed(tmp_path, """\
+  - id: packed-model
+    name: Packed-284B
+    family: Packed
+    hf_repo: org/packed
+    params_total: 284000000000
+    spec_verified: true
+""")
+
+    async def fake_fetch(repo, client):
+        return HFModelData(params_total=158_069_433_298)  # ~1.80x, matches hf-deepseek-v4-flash
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 0, result.stdout
+    assert "DRIFT" not in result.stdout
+    assert "note packed-model: params_total differs by" in result.stdout
