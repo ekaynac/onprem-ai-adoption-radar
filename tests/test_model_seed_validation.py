@@ -83,6 +83,21 @@ def test_entry_with_computable_memory_passes():
     assert validate_entry(_entry(params_total=8_000_000_000, quants=[quant])) == []
 
 
+def test_entry_with_only_sub_viable_quants_is_blocking():
+    """Non-empty quants (e.g. a repo publishing only Q2/Q3 GGUFs) still blocks:
+    minimum_viable_quant filters out anything below the quality floor, so
+    memory comes back None even though every quant has an est_memory_gb_4k."""
+    from radar.models_radar.entities import QuantVariant
+    from radar.models_radar.validate import validate_entry
+
+    quants = [
+        QuantVariant(format="Q2_K", bits_per_weight=2.6, est_memory_gb_4k=22.0),
+        QuantVariant(format="Q3_K_S", bits_per_weight=3.4, est_memory_gb_4k=28.0),
+    ]
+    problems = validate_entry(_entry(params_total=70_000_000_000, quants=quants))
+    assert any("minimum viable memory" in p for p in problems)
+
+
 def test_big_model_without_architecture_is_advisory():
     from radar.models_radar.validate import entry_advisories
 
