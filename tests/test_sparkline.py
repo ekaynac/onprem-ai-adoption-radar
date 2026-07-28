@@ -35,6 +35,13 @@ def test_label_is_escaped():
     assert "a&lt;b&amp;c" in svg
 
 
+def test_label_with_quote_stays_wellformed():
+    svg = sparkline_svg([1, 2, 3], label='say "hi" & bye')
+    parseString(svg)
+    assert "&quot;" in svg
+    assert "&amp;" in svg
+
+
 def test_deterministic():
     a = sparkline_svg([1, 2, 3, 10], label="d")
     assert a == sparkline_svg([1, 2, 3, 10], label="d")

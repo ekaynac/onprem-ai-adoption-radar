@@ -35,7 +35,7 @@ def sparkline_svg(values: Sequence[float], *, label: str) -> str:
     ]
     pts = " ".join(f"{x},{y}" for x, y in points)
     end_x, end_y = points[-1]
-    safe_label = escape(label)
+    safe_label = escape(label, {'"': "&quot;"})
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{_W}" height="{_H}" '
         f'viewBox="0 0 {_W} {_H}" role="img" aria-label="{safe_label}">'
