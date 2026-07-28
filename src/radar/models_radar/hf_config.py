@@ -29,7 +29,15 @@ _QUANT_METHOD_FORMATS = {
 
 
 def parse_architecture(cfg: dict) -> ArchitectureSpec:
-    """Extract attention/MoE geometry. Missing keys stay None — never guess."""
+    """Extract attention/MoE geometry. Missing keys stay None — never guess.
+
+    `cfg` is expected to be a dict, but this is the boundary where a live
+    HF fetch (Task 3) lands raw JSON — a malformed response (empty body,
+    a JSON array/string/null instead of an object) must degrade to
+    ArchitectureSpec(), never raise.
+    """
+    if not isinstance(cfg, dict):
+        return ArchitectureSpec()
     heads = _int(cfg.get("num_attention_heads"))
     kv_heads = _int(cfg.get("num_key_value_heads")) or _int(cfg.get("multi_query_group_num"))
     hidden = _int(cfg.get("hidden_size"))
@@ -68,6 +76,8 @@ def parse_quant_format(cfg: dict) -> str | None:
     `config_groups`. Such repos are still NVFP4 releases in every practical
     sense, so we look past the top-level label when it says MIXED_PRECISION.
     """
+    if not isinstance(cfg, dict):
+        return None
     qc = cfg.get("quantization_config")
     if not isinstance(qc, dict):
         return None

@@ -97,6 +97,15 @@ def test_mha_when_counts_equal_and_unknown_when_empty():
     assert parse_architecture({}).attention_kind is AttentionKind.UNKNOWN
 
 
+def test_never_raises_on_non_dict_junk():
+    """Task 3's collector hands this whatever a live HTTP fetch returns —
+    a malformed config.json could parse to None/a list/a bare string. This
+    must degrade quietly, never raise, per the pure-parser contract."""
+    for junk in (None, [], "not a dict", 42, "", {}):
+        assert parse_architecture(junk).attention_kind is AttentionKind.UNKNOWN
+        assert parse_quant_format(junk) is None
+
+
 def test_quant_format_detection():
     assert parse_quant_format(
         {"quantization_config": {"quant_method": "fp8"}}) == "FP8"
