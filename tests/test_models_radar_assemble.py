@@ -118,3 +118,83 @@ def test_synthesized_ladder_includes_mlx_and_q6():
     assert {"Q4_K_M", "Q6_K", "Q8_0", "FP16"} <= formats
     assert any(q.platform == Platform.APPLE_MLX for q in m.quants)
     assert {"MLX-4bit", "MLX-8bit"} <= formats
+
+
+def test_fp8_repo_gets_real_variant_not_synth_ladder():
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    seed = ModelSeed(id="m-fp8", name="M-FP8", family="M", hf_repo="org/m-fp8")
+    hf = HFModelData(params_total=8_000_000_000, repo_quant_format="FP8")
+    entry = build_model_entry(seed, hf, [], retrieved_at="2026-07-28")
+
+    formats = [q.format for q in entry.quants]
+    assert formats == ["FP8"]                    # no synthesized GGUF/MLX ladder
+    assert entry.quants[0].bits_per_weight == 8.0
+    assert entry.quants[0].source == "hf:org/m-fp8"
+
+
+def test_nvfp4_bits():
+    from radar.models_radar.assemble import bits_for_format
+
+    assert bits_for_format("NVFP4") == 4.25
+    assert bits_for_format("MXFP4") == 4.25
+    assert bits_for_format("FP8") == 8.0
+
+
+def test_architecture_merge_seed_field_wins():
+    from radar.models_radar.assemble import merge_architecture
+    from radar.models_radar.entities import ArchitectureSpec, AttentionKind
+
+    seed_arch = ArchitectureSpec(num_key_value_heads=4)   # curated correction
+    hf_arch = ArchitectureSpec(
+        attention_kind=AttentionKind.GQA, num_attention_heads=32,
+        num_key_value_heads=8,
+    )
+    merged, from_seed = merge_architecture(seed_arch, hf_arch)
+    assert merged.num_key_value_heads == 4      # seed wins per-field
+    assert merged.num_attention_heads == 32     # hf fills the rest
+    assert from_seed == {"num_key_value_heads"}
+
+
+def test_provenance_stamped_per_source():
+    from radar.models_radar.collectors.huggingface import HFModelData
+    from radar.models_radar.entities import ArchitectureSpec
+
+    seed = ModelSeed(
+        id="m-p", name="M-P", family="M", hf_repo="org/m-p",
+        params_active=3_000_000_000, spec_verified=True,
+    )
+    hf = HFModelData(
+        params_total=30_000_000_000, context_length=32768,
+        architecture=ArchitectureSpec(num_key_value_heads=8, num_attention_heads=32),
+    )
+    entry = build_model_entry(seed, hf, [], retrieved_at="2026-07-28")
+
+    assert entry.provenance["params_active"].source == "seed"
+    assert entry.provenance["params_active"].verified is True
+    assert entry.provenance["params_total"].source == "hf-api"
+    assert entry.provenance["params_total"].retrieved_at == "2026-07-28"
+    assert entry.provenance["params_total"].url == "https://huggingface.co/org/m-p"
+    assert entry.provenance["architecture.num_key_value_heads"].source == "hf-config"
+    assert entry.architecture.num_key_value_heads == 8
+
+
+def test_gated_flag_sets_openness_gated_when_seed_silent():
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    seed = ModelSeed(id="m-g", name="M-G", family="M", hf_repo="org/m-g")
+    hf = HFModelData(params_total=8_000_000_000, license="llama3.1", gated=True)
+    entry = build_model_entry(seed, hf, [])
+    assert entry.openness == Openness.GATED
+
+
+def test_seed_openness_wins_over_gated_flag():
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    seed = ModelSeed(
+        id="m-g2", name="M-G2", family="M", hf_repo="org/m-g2",
+        openness=Openness.OPEN_RESTRICTED,
+    )
+    hf = HFModelData(params_total=8_000_000_000, license="llama3.1", gated=True)
+    entry = build_model_entry(seed, hf, [])
+    assert entry.openness == Openness.OPEN_RESTRICTED

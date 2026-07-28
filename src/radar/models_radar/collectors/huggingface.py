@@ -7,6 +7,9 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from radar.models_radar.entities import ArchitectureSpec
+from radar.models_radar.hf_config import parse_architecture, parse_quant_format
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +34,9 @@ class HFModelData:
     likes: int | None = None
     last_modified: str | None = None
     quant_formats: list[str] = field(default_factory=list)
+    architecture: ArchitectureSpec | None = None
+    repo_quant_format: str | None = None
+    gated: bool = False
 
 
 def quant_formats_from_siblings(filenames: list[str]) -> list[str]:
@@ -60,6 +66,8 @@ async def fetch_hf_model(hf_repo: str, client: _AsyncClient) -> HFModelData | No
     safet = meta.get("safetensors") or {}
 
     num_layers = hidden = context = None
+    architecture = None
+    repo_quant_format = None
     try:
         cfg_resp = await client.get(HF_CONFIG_URL.format(repo=hf_repo))
         cfg_resp.raise_for_status()
@@ -67,8 +75,12 @@ async def fetch_hf_model(hf_repo: str, client: _AsyncClient) -> HFModelData | No
         num_layers = cfg.get("num_hidden_layers")
         hidden = cfg.get("hidden_size")
         context = cfg.get("max_position_embeddings")
+        architecture = parse_architecture(cfg)
+        repo_quant_format = parse_quant_format(cfg)
     except Exception as exc:
         logger.warning("HF config fetch failed (%s): %s", hf_repo, exc)
+
+    gated = bool(meta.get("gated"))
 
     return HFModelData(
         params_total=safet.get("total"),
@@ -81,4 +93,7 @@ async def fetch_hf_model(hf_repo: str, client: _AsyncClient) -> HFModelData | No
         likes=meta.get("likes"),
         last_modified=meta.get("lastModified"),
         quant_formats=quant_formats_from_siblings(siblings),
+        architecture=architecture,
+        repo_quant_format=repo_quant_format,
+        gated=gated,
     )

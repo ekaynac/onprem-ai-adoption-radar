@@ -64,3 +64,63 @@ async def test_fetch_hf_model_degrades_to_none_on_error():
     class Boom:
         async def get(self, url, **kw): raise RuntimeError("network down")
     assert await fetch_hf_model("x/y", Boom()) is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_parses_architecture_and_quant_format():
+    """Test that architecture and quant format are parsed from config."""
+    config = {
+        "num_hidden_layers": 32, "hidden_size": 4096,
+        "num_attention_heads": 32, "num_key_value_heads": 8,
+        "max_position_embeddings": 131072,
+        "quantization_config": {"quant_method": "fp8"},
+    }
+    meta = {"downloads": 5, "siblings": []}
+    client = FakeClient({
+        "api/models/org/model": meta,
+        "raw/main/config.json": config,
+    })
+    data = await fetch_hf_model("org/model", client)
+
+    assert data is not None
+    assert data.architecture is not None
+    assert data.architecture.num_key_value_heads == 8
+    assert data.architecture.attention_kind.value == "gqa"
+    assert data.repo_quant_format == "FP8"
+    assert data.gated is False
+
+
+@pytest.mark.asyncio
+async def test_fetch_parses_gated_flag():
+    """Test that gated flag is parsed from meta response."""
+    config = {"num_hidden_layers": 32}
+    meta_gated = {"gated": "manual", "siblings": []}
+    meta_not_gated = {"gated": False, "siblings": []}
+    meta_missing_gated = {"siblings": []}
+
+    # Test gated=True from "manual" string
+    client = FakeClient({
+        "api/models/org/model": meta_gated,
+        "raw/main/config.json": config,
+    })
+    data = await fetch_hf_model("org/model", client)
+    assert data is not None
+    assert data.gated is True
+
+    # Test gated=False from false value
+    client = FakeClient({
+        "api/models/org/model": meta_not_gated,
+        "raw/main/config.json": config,
+    })
+    data = await fetch_hf_model("org/model", client)
+    assert data is not None
+    assert data.gated is False
+
+    # Test gated=False from missing key
+    client = FakeClient({
+        "api/models/org/model": meta_missing_gated,
+        "raw/main/config.json": config,
+    })
+    data = await fetch_hf_model("org/model", client)
+    assert data is not None
+    assert data.gated is False

@@ -14,6 +14,11 @@ from rich.console import Console
 from radar import __version__
 from radar.constants import APP_NAME
 from radar.init_project import initialize_project
+
+# Imported at module level (not function-local, unlike this file's other
+# commands) so tests can monkeypatch `radar.cli._verify_fetch_hf_model`
+# directly — the seam `models verify` uses to stay offline in tests.
+from radar.models_radar.collectors.huggingface import fetch_hf_model as _verify_fetch_hf_model
 from radar.orchestrator import RadarOrchestrator
 from radar.reports.markdown import render_markdown_report
 from radar.scoring.profiles import UnknownProfileError
@@ -36,6 +41,35 @@ app.add_typer(trending_app, name="trending")
 digest_app = typer.Typer(help="Weekly digest (page + cards + feeds + webhook).", no_args_is_help=True)
 app.add_typer(digest_app, name="digest")
 console = Console()
+
+# `models verify`'s params_total drift check has three deterministic bands,
+# widest-tolerance first:
+#
+# 1. Small relative differences (<= 3%) are the normal published-vs-measured
+#    gap: HF model cards quote a rounded headline total ("671B") while the
+#    HF API's safetensors element count is the exact figure ("684.53B").
+#    Reported as a note, never DRIFT.
+# 2. A bounded ratio band [1.4x, 2.5x] catches NVIDIA's NVFP4/FP4-packed
+#    quant checkpoints, whose safetensors element count is roughly half the
+#    real, published param total — a packing artifact, not real drift.
+#    Observed 2026-07-28 across spec_verified seeds (hf-deepseek-v4-flash,
+#    hf-glm-5-2-nvfp4) and unverified ones (hf-qwen3-6-27b-nvfp4):
+#    ratios 1.53x-1.98x. Reported as a "packed-quant artifact" note, never
+#    DRIFT — otherwise the weekly gate would go permanently red for a known,
+#    documented, deliberate seed/HF disagreement (a YAML comment records the
+#    correction, but comments aren't machine-parseable, so this band is the
+#    deterministic proxy). The band has margin above and below the observed
+#    range rather than pinning to it exactly.
+# 3. Ratios above the band (e.g. a seed/HF repo mismatch, a since-renamed
+#    model) are NOT assumed to be packed-quant — that would assert a false
+#    cause. Reported as a neutral "differs by <ratio>x — investigate" note;
+#    still never DRIFT, since a fetch pointed at the wrong data is not
+#    something --check can act on either.
+#
+# Ratios below the band (and above the 3% tolerance) are real drift.
+_PARAMS_TOTAL_TOLERANCE = 0.03
+_PACKED_QUANT_RATIO_LOW = 1.4
+_PACKED_QUANT_RATIO_HIGH = 2.5
 
 
 @app.callback()
@@ -255,11 +289,16 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
 
     import httpx
 
-    from radar.models_radar.entities import ModelSeed
+    from radar.models_radar.entities import ModelEntry, ModelSeed
     from radar.models_radar.pipeline import persist_model_scan, score_entries
     from radar.models_radar.scan import run_model_scan
     from radar.models_radar.seed import load_model_seed
-    from radar.models_radar.validate import seed_advisories, validate_seed
+    from radar.models_radar.validate import (
+        entry_advisories,
+        seed_advisories,
+        validate_entry,
+        validate_seed,
+    )
     from radar.storage.run_store import RunStore
 
     seed_path = root / "config" / "model-seed.yaml"
@@ -288,30 +327,207 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
 
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            return await run_model_scan(valid_seeds, client)
+            return await run_model_scan(
+                valid_seeds, client, retrieved_at=datetime.now(UTC).date().isoformat()
+            )
 
     entries = asyncio.run(_run())
-    entries = score_entries(entries)
+
+    # Post-assembly quarantine gate: an entry whose params are known but whose
+    # specs never resolve to a usable minimum-viable memory number (e.g. no HF
+    # data, no ollama, empty quants) is excluded from scoring/persistence, but
+    # stays visible in the model_cards stage — its problems folded into
+    # warnings — so operators can see exactly why. Mirrors the seed gate
+    # above, one stage later.
+    entry_quarantined: dict[str, list[str]] = {}
+    entry_advisory_notes: list[str] = []
+    valid_entries: list[ModelEntry] = []
+    kept_entries: list[ModelEntry] = []
+    for entry in entries:
+        problems = validate_entry(entry)
+        if problems:
+            entry_quarantined[entry.id] = problems
+            kept_entries.append(
+                entry.model_copy(update={"warnings": [*entry.warnings, *problems]})
+            )
+            continue
+        entry_advisory_notes.extend(entry_advisories(entry))
+        valid_entries.append(entry)
+        kept_entries.append(entry)
+    for entry_id, problems in entry_quarantined.items():
+        console.print(f"[red]QUARANTINED {entry_id}:[/red] {'; '.join(problems)}")
+    for advisory in entry_advisory_notes:
+        console.print(f"[yellow]note:[/yellow] {advisory}")
+
+    scored_entries = score_entries(valid_entries)
+    scored_by_id = {e.id: e for e in scored_entries}
+    final_entries = [scored_by_id.get(e.id, e) for e in kept_entries]
+
     run_store = RunStore(root / "data" / "runs")
     run_id = run_store.create_run()
     # Stamp the kind up front: a crashed scan must never masquerade as a tool run
     # (latest_tool_scan_meta filters on the absence of "kind").
     run_store.update_meta(run_id, {"kind": "models"})
-    if quarantined or advisories:
-        run_store.update_meta(run_id, {
-            "model_validation_warnings": [
-                *(p for ps in quarantined.values() for p in ps), *advisories,
-            ],
-        })
+    all_warnings = [
+        *(p for ps in quarantined.values() for p in ps), *advisories,
+        *(p for ps in entry_quarantined.values() for p in ps), *entry_advisory_notes,
+    ]
+    if all_warnings:
+        run_store.update_meta(run_id, {"model_validation_warnings": all_warnings})
     observed_at = datetime.now(UTC)
     persist_model_scan(
-        entries, run_id, observed_at,
+        scored_entries, run_id, observed_at,
         root / "data" / "radar.db", root / "data" / "model-history.jsonl",
         metrics_log_path=root / "data" / "model-metrics.jsonl",
     )
-    run_store.save_stage(run_id, "model_cards", [m.model_dump(mode="json") for m in entries])
-    run_store.update_meta(run_id, {"kind": "models", "model_count": len(entries)})
-    console.print(f"Scanned {len(entries)} models → run {run_id}")
+    run_store.save_stage(
+        run_id, "model_cards", [m.model_dump(mode="json") for m in final_entries]
+    )
+    run_store.update_meta(run_id, {"kind": "models", "model_count": len(final_entries)})
+    console.print(f"Scanned {len(final_entries)} models → run {run_id}")
+
+
+@models_app.command("verify")
+def models_verify(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    check: bool = typer.Option(
+        False, "--check", help="Exit 1 on drift in a spec_verified seed."
+    ),
+) -> None:
+    """Diff seed spec numbers against fresh HF data. Never modifies seeds.
+
+    params_total policy: differences within 3% are reported as a note
+    (published-rounded total vs exact safetensors count), never DRIFT.
+    Differences with a ratio in [1.4x, 2.5x] are reported as a "packed-quant
+    artifact" note (NVFP4/FP4-packed checkpoints), never DRIFT. Larger
+    ratios are reported as a neutral "investigate" note — never assumed to
+    be packed-quant — and also never DRIFT. See `_PARAMS_TOTAL_TOLERANCE`
+    and `_PACKED_QUANT_RATIO_LOW`/`_PACKED_QUANT_RATIO_HIGH` above.
+
+    context_length policy: NEVER reported as DRIFT. The seed's
+    context_length carries the model card's usable/advertised context,
+    while HF's config.json max_position_embeddings is a different
+    quantity — often larger, reflecting YaRN/RoPE-scaling headroom rather
+    than the context the card recommends. A mismatch is always reported as
+    a note, so it's visible without ever failing the weekly --check gate.
+    """
+    import asyncio
+
+    import httpx
+
+    from radar.models_radar.collectors.huggingface import HFModelData
+    from radar.models_radar.entities import ArchitectureSpec
+    from radar.models_radar.seed import load_model_seed
+
+    seed_path = root / "config" / "model-seed.yaml"
+    if not seed_path.exists():
+        # fall back to the packaged seed
+        seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+
+    seeds = [s for s in load_model_seed(seed_path) if s.enabled and s.hf_repo]
+
+    # Populated with an exception's class name whenever a per-seed fetch
+    # raises instead of returning None — so one bad repo (a malformed API
+    # body, an unexpected exception in the fetcher) never crashes the whole
+    # command and loses every other seed's report.
+    skip_reasons: dict[str, str] = {}
+
+    async def _collect() -> dict[str, HFModelData | None]:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+
+            async def _fetch_one(seed_id: str, hf_repo: str) -> HFModelData | None:
+                try:
+                    return await _verify_fetch_hf_model(hf_repo, client)  # type: ignore[arg-type]
+                except Exception as exc:  # never let one seed's crash lose the rest
+                    skip_reasons[seed_id] = f"{type(exc).__name__}: {exc}"
+                    return None
+
+            return {
+                s.id: await _fetch_one(s.id, s.hf_repo)  # type: ignore[arg-type]
+                for s in seeds
+            }
+
+    fetched = asyncio.run(_collect())
+    drift_verified = 0
+    drift_total = 0
+    skipped = 0
+    for seed in seeds:
+        hf = fetched.get(seed.id)
+        if hf is None:
+            skipped += 1
+            reason = skip_reasons.get(seed.id, "HF unreachable")
+            console.print(f"[yellow]skip {seed.id}: {reason}[/yellow]")
+            continue
+        rows: list[tuple[str, object, object]] = []
+
+        seed_pt, hf_pt = seed.params_total, hf.params_total
+        if seed_pt is not None and hf_pt is not None and seed_pt != hf_pt:
+            low, high = sorted((seed_pt, hf_pt))
+            ratio = (high / low) if low else float("inf")
+            rel_diff = ratio - 1
+            if rel_diff <= _PARAMS_TOTAL_TOLERANCE:
+                # Published-rounded card total vs the exact safetensors
+                # count — never real drift.
+                console.print(
+                    f"[yellow]note {seed.id}: params_total differs by "
+                    f"{rel_diff * 100:.1f}% (published-rounded total)[/yellow]"
+                )
+            elif _PACKED_QUANT_RATIO_LOW <= ratio <= _PACKED_QUANT_RATIO_HIGH:
+                # Known artifact (see the band comment above): report it,
+                # but never as DRIFT — the seed's total is the deliberately
+                # corrected, cited value.
+                console.print(
+                    f"[yellow]note {seed.id}: params_total differs by {ratio:.2f}x "
+                    "(packed-quant artifact, seed carries published total)[/yellow]"
+                )
+            elif ratio > _PACKED_QUANT_RATIO_HIGH:
+                # Beyond the packed-quant band — do not invent a cause.
+                console.print(
+                    f"[yellow]note {seed.id}: params_total differs by {ratio:.2f}x "
+                    "— investigate[/yellow]"
+                )
+            else:
+                rows.append(("params_total", seed_pt, hf_pt))
+
+        seed_ctx, hf_ctx = seed.context_length, hf.context_length
+        if seed_ctx is not None and hf_ctx is not None and seed_ctx != hf_ctx:
+            # Never DRIFT (see docstring): the seed carries the card's usable
+            # context, config.json's max_position_embeddings is a different
+            # quantity (often YaRN/RoPE-scaling headroom).
+            console.print(
+                f"[yellow]note {seed.id}: context_length seed={seed_ctx} vs "
+                f"config max_position_embeddings={hf_ctx}[/yellow]"
+            )
+
+        if seed.architecture is not None and hf.architecture is not None:
+            for field in ArchitectureSpec.model_fields:
+                if field == "attention_kind":
+                    continue  # derived, not a number to drift-check
+                seed_value = getattr(seed.architecture, field)
+                hf_value = getattr(hf.architecture, field)
+                if seed_value is not None and hf_value is not None and seed_value != hf_value:
+                    rows.append((f"architecture.{field}", seed_value, hf_value))
+
+        for field, seed_value, hf_value in rows:
+            drift_total += 1
+            if seed.spec_verified:
+                drift_verified += 1
+            console.print(
+                f"[red]DRIFT {seed.id}.{field}:[/red] seed={seed_value} hf={hf_value}"
+            )
+
+    if drift_total == 0:
+        if skipped == 0:
+            seed_noun = "seed" if len(seeds) == 1 else "seeds"
+            console.print(f"OK: {len(seeds)} {seed_noun} verified, no drift")
+        else:
+            # Never claim a skipped (unreachable) seed was verified.
+            console.print(
+                f"checked {len(seeds) - skipped} of {len(seeds)} seeds, no drift "
+                f"({skipped} unreachable)"
+            )
+    if check and drift_verified:
+        raise typer.Exit(code=1)
 
 
 candidates_app = typer.Typer(help="Untracked model-candidate discovery.", no_args_is_help=True)

@@ -4,7 +4,7 @@
    Hardware: <strong>{{ model.hardware_tier.value }}</strong> ·
    Modality: {{ model.modality.value }}{% if model.license %} · License: {{ model.license }}{% endif %}
    {% if model.use_case %} · Use case: {{ model.use_case }}{% endif %}</p>
-<p>Params: {{ '%.1fB'|format(model.params_total / 1e9) if model.params_total else '?' }}{% if model.params_active %} (active {{ '%.1fB'|format(model.params_active / 1e9) }}){% endif %}
+<p>Params: {{ '%.1fB'|format(model.params_total / 1e9) if model.params_total else '?' }}{% if not (model.provenance.get("params_total") and model.provenance["params_total"].verified) %} <em class="prov-unverified" title="number not human-verified">unverified</em>{% endif %}{% if model.params_active %} (active {{ '%.1fB'|format(model.params_active / 1e9) }}){% endif %}
    {% if model.context_length %} · Context: {{ '{:,}'.format(model.context_length) }}{% endif %}
    {% if model.release_date %} · Released: {{ model.release_date }}{% endif %}</p>
 <div class="table-wrap">
@@ -16,6 +16,31 @@
 <td>{{ q.platform.value }}</td></tr>{% endfor %}
 </tbody></table>
 </div>
+{% if model.architecture %}
+<h3>Architecture</h3>
+<div class="table-wrap">
+<table><tbody>
+<tr><th>Attention</th><td>{{ model.architecture.attention_kind.value }}</td></tr>
+{% if model.architecture.num_key_value_heads %}
+<tr><th>KV heads</th><td>{{ model.architecture.num_key_value_heads }}{% if model.architecture.num_attention_heads %} / {{ model.architecture.num_attention_heads }} heads{% endif %}</td></tr>
+{% endif %}
+{% if model.architecture.kv_lora_rank %}
+<tr><th>MLA</th><td>kv_lora_rank {{ model.architecture.kv_lora_rank }}{% if model.architecture.qk_rope_head_dim %}, rope {{ model.architecture.qk_rope_head_dim }}{% endif %}</td></tr>
+{% endif %}
+{% if model.architecture.num_experts %}
+<tr><th>MoE</th><td>{{ model.architecture.num_experts }} experts, {{ model.architecture.experts_per_token if model.architecture.experts_per_token is not none else "?" }} active</td></tr>
+{% endif %}
+</tbody></table>
+</div>
+{% endif %}
+{% if model.benchmarks %}
+<h3>Benchmarks (curated)</h3>
+<ul>
+{% for b in model.benchmarks %}
+<li>{{ b.name }}: {{ b.score }} <a href="{{ b.source_url }}">source ↗</a></li>
+{% endfor %}
+</ul>
+{% endif %}
 {% if fit_by_tier %}
 <h3>Runs on</h3>
 <div class="table-wrap">

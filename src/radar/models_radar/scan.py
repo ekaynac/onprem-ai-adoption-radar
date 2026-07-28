@@ -10,7 +10,9 @@ from radar.models_radar.collectors.ollama import fetch_ollama_quants
 from radar.models_radar.entities import ModelEntry, ModelSeed
 
 
-async def run_model_scan(seeds: list[ModelSeed], client: Any) -> list[ModelEntry]:
+async def run_model_scan(
+    seeds: list[ModelSeed], client: Any, retrieved_at: str | None = None
+) -> list[ModelEntry]:
     """Collect + assemble one ModelEntry per enabled seed. Best-effort per model.
 
     Callers load the seed file and filter out quarantined seeds (see
@@ -23,5 +25,5 @@ async def run_model_scan(seeds: list[ModelSeed], client: Any) -> list[ModelEntry
             continue
         hf = await fetch_hf_model(seed.hf_repo, client) if seed.hf_repo else None
         ollama = await fetch_ollama_quants(seed.ollama_name, client) if seed.ollama_name else []
-        entries.append(build_model_entry(seed, hf, ollama))
+        entries.append(build_model_entry(seed, hf, ollama, retrieved_at=retrieved_at))
     return sorted(entries, key=lambda m: m.id)

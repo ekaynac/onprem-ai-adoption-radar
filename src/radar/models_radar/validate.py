@@ -8,7 +8,7 @@ entry (664,944-param "35B") from ever ranking again.
 from __future__ import annotations
 
 from radar.discovery.model_promotion import plausible_params
-from radar.models_radar.entities import ModelSeed
+from radar.models_radar.entities import ModelEntry, ModelSeed
 
 
 def validate_seed(seed: ModelSeed) -> list[str]:
@@ -40,4 +40,41 @@ def seed_advisories(seed: ModelSeed) -> list[str]:
         advisories.append(
             f"{seed.id}: no hf_repo — Hugging Face link missing from model surfaces"
         )
+    return advisories
+
+
+_BIG_MODEL_PARAMS = 70_000_000_000  # ≥70B with no architecture ⇒ D-phase answers wrong
+
+
+def validate_entry(entry: ModelEntry) -> list[str]:
+    """Blocking post-assembly problems; quarantined from scoring like bad seeds."""
+    from radar.models_radar.memory import minimum_viable_quant
+
+    problems: list[str] = []
+    if entry.params_total is not None:
+        mv = minimum_viable_quant(entry.quants)
+        memory = mv.est_memory_gb_4k if mv else None
+        if memory is None or memory <= 0:
+            problems.append(
+                f"{entry.id}: params known but minimum viable memory computed "
+                f"as {memory} — spec data implausible"
+            )
+    return problems
+
+
+def entry_advisories(entry: ModelEntry) -> list[str]:
+    """Warn-only data-quality gaps on assembled entries."""
+    advisories: list[str] = []
+    if (
+        entry.params_total is not None
+        and entry.params_total >= _BIG_MODEL_PARAMS
+        and entry.architecture is None
+    ):
+        advisories.append(
+            f"{entry.id}: ≥70B model with no architecture data — "
+            "capacity answers will be wrong"
+        )
+    for field in ("params_total", "context_length"):
+        if getattr(entry, field) is not None and field not in entry.provenance:
+            advisories.append(f"{entry.id}: {field} has no provenance")
     return advisories

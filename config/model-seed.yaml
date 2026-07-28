@@ -236,12 +236,26 @@ models:
     ollama_name: deepseek-r1
     backer: {name: "DeepSeek", type: startup}
     params_total: 671000000000
+    # "37B activated" — README table row "DeepSeek-R1 | 671B | 37B | 128K":
+    # https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/main/README.md (verified 2026-07-28)
     params_active: 37000000000
     context_length: 163840
     license: mit
     openness: open-permissive
     release_date: "2025-01"
     use_case: reasoning (MoE)
+    spec_verified: true
+    # All fields below verified against config.json:
+    # https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/main/config.json (verified 2026-07-28)
+    architecture:
+      attention_kind: mla   # kv_lora_rank present -> classic DeepSeek MLA
+      num_attention_heads: 128
+      num_key_value_heads: 128
+      kv_lora_rank: 512
+      qk_rope_head_dim: 64
+      num_experts: 256          # n_routed_experts
+      experts_per_token: 8      # num_experts_per_tok
+      vocab_size: 129280
 
   - id: deepseek-v3
     name: DeepSeek-V3
@@ -250,12 +264,26 @@ models:
     ollama_name: deepseek-v3
     backer: {name: "DeepSeek", type: startup}
     params_total: 671000000000
+    # "671B total parameters with 37B activated for each token":
+    # https://huggingface.co/deepseek-ai/DeepSeek-V3/raw/main/README.md (verified 2026-07-28)
     params_active: 37000000000
     context_length: 131072
     license: deepseek
     openness: open-restricted
     release_date: "2024-12"
     use_case: general chat, high capability (MoE)
+    spec_verified: true
+    # All fields below verified against config.json:
+    # https://huggingface.co/deepseek-ai/DeepSeek-V3/raw/main/config.json (verified 2026-07-28)
+    architecture:
+      attention_kind: mla   # kv_lora_rank present -> classic DeepSeek MLA
+      num_attention_heads: 128
+      num_key_value_heads: 128
+      kv_lora_rank: 512
+      qk_rope_head_dim: 64
+      num_experts: 256          # n_routed_experts
+      experts_per_token: 8      # num_experts_per_tok
+      vocab_size: 129280
 
   - id: command-r-35b
     name: Command R 35B
@@ -415,6 +443,24 @@ models:
     license: apache-2.0
     openness: open-permissive
     release_date: 2025-08
+    # "117B parameters with 5.1B active parameters":
+    # https://huggingface.co/openai/gpt-oss-120b/raw/main/README.md (verified 2026-07-28)
+    params_active: 5100000000
+    spec_verified: true
+    # All fields below verified against config.json:
+    # https://huggingface.co/openai/gpt-oss-120b/raw/main/config.json (verified 2026-07-28)
+    architecture:
+      # layer_types alternates sliding_attention/full_attention (2 distinct
+      # values) -> HYBRID per this codebase's own auto-ingest heuristic
+      # (radar.models_radar.hf_config._attention_kind).
+      attention_kind: hybrid
+      num_attention_heads: 64
+      num_key_value_heads: 8
+      head_dim: 64
+      num_experts: 128          # num_local_experts
+      experts_per_token: 4      # num_experts_per_tok
+      sliding_window: 128
+      vocab_size: 201088
 
   - id: hf-gemma-4-26b-a4b-nvfp4
     name: Gemma-4-26B-A4B-NVFP4
@@ -436,7 +482,14 @@ models:
     family: deepseek-ai
     hf_repo: deepseek-ai/DeepSeek-V4-Flash
     backer: {name: "DeepSeek", type: startup}
-    params_total: 158069433298
+    # params_total corrected 2026-07-28: HF API safetensors.total for this
+    # FP4+FP8-mixed checkpoint reports 158,069,433,298 — a 4-bit-packing
+    # artifact (same pattern as hf-qwen3-6-35b-a3b-nvfp4/hf-gemma-4-26b-a4b-nvfp4
+    # above), not the real parameter count. The model's own README Model
+    # Downloads table states "DeepSeek-V4-Flash | 284B | 13B | 1M":
+    # https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/raw/main/README.md
+    # (verified 2026-07-28); using that.
+    params_total: 284000000000
     num_layers: 43
     hidden_size: 4096
     context_length: 1048576
@@ -444,13 +497,49 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-06
+    # "DeepSeek-V4-Flash | 284B | 13B | 1M | FP4 + FP8 Mixed" — README
+    # Model Downloads table: https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/raw/main/README.md
+    # (verified 2026-07-28)
+    params_active: 13000000000
+    spec_verified: true
+    architecture:
+      # README "Hybrid Attention Architecture" section: "a hybrid attention
+      # mechanism combining Compressed Sparse Attention (CSA) and Heavily
+      # Compressed Attention (HCA)" — https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/raw/main/README.md
+      # (verified 2026-07-28). NOT classic MLA: config.json (below) has no
+      # kv_lora_rank key, unlike DeepSeek-R1/V3/GLM-5.2.
+      attention_kind: hybrid
+      # Remaining fields verified against config.json:
+      # https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/raw/main/config.json (verified 2026-07-28)
+      num_attention_heads: 64
+      num_key_value_heads: 1
+      head_dim: 512
+      qk_rope_head_dim: 64
+      num_experts: 256          # n_routed_experts
+      experts_per_token: 6      # num_experts_per_tok
+      sliding_window: 128
+      vocab_size: 129280
+      # kv_lora_rank: not published — no kv_lora_rank key in config.json as of
+      # 2026-07-28; V4's compression scheme (CSA/HCA) is not exposed under
+      # that name. Left out rather than guessed.
 
   - id: hf-deepseek-v4-pro
     name: DeepSeek-V4-Pro
     family: deepseek-ai
     hf_repo: deepseek-ai/DeepSeek-V4-Pro
     backer: {name: "DeepSeek", type: startup}
-    params_total: 861608274846
+    # params_total corrected 2026-07-28: HF API safetensors.total for this
+    # FP4+FP8-mixed checkpoint reported 861,608,274,846 as of that date — a
+    # 4-bit-packing artifact (same pattern as hf-deepseek-v4-flash above),
+    # not the real parameter count. As of 2026-07-28 (re-checked), HF now
+    # reports safetensors.total as 1,598,839,674,782 for this repo — no
+    # longer the packed ~861B figure this comment originally cited, and
+    # within 0.07% of the published 1.6T total below (a published-rounded
+    # vs exact-count gap, not drift). The model's own README Model Downloads
+    # table states "DeepSeek-V4-Pro | 1.6T | 49B | 1M":
+    # https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/README.md
+    # (verified 2026-07-28); using that.
+    params_total: 1600000000000
     num_layers: 61
     hidden_size: 7168
     context_length: 1048576
@@ -458,6 +547,29 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-06
+    # "DeepSeek-V4-Pro | 1.6T | 49B | 1M | FP4 + FP8 Mixed" — README
+    # Model Downloads table: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/README.md
+    # (verified 2026-07-28)
+    params_active: 49000000000
+    spec_verified: true
+    architecture:
+      # README "Hybrid Attention Architecture" section (shared across the V4
+      # series): https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/README.md
+      # (verified 2026-07-28). NOT classic MLA: config.json (below) has no
+      # kv_lora_rank key, unlike DeepSeek-R1/V3/GLM-5.2.
+      attention_kind: hybrid
+      # Remaining fields verified against config.json:
+      # https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/config.json (verified 2026-07-28)
+      num_attention_heads: 128
+      num_key_value_heads: 1
+      head_dim: 512
+      qk_rope_head_dim: 64
+      num_experts: 384          # n_routed_experts
+      experts_per_token: 6      # num_experts_per_tok
+      sliding_window: 128
+      vocab_size: 129280
+      # kv_lora_rank: not published — no kv_lora_rank key in config.json as of
+      # 2026-07-28; left out rather than guessed (see hf-deepseek-v4-flash).
 
   - id: hf-minicpm5-1b
     name: MiniCPM5-1B
@@ -493,7 +605,16 @@ models:
     family: nvidia
     hf_repo: nvidia/GLM-5.2-NVFP4
     backer: {name: "NVIDIA", type: big_tech}
-    params_total: 380989135104
+    # params_total corrected 2026-07-28: HF API safetensors.total for this
+    # NVFP4 checkpoint reports 380,989,135,104 — a 4-bit-packing artifact
+    # (same pattern as hf-qwen3-6-35b-a3b-nvfp4/hf-gemma-4-26b-a4b-nvfp4
+    # above), not the real parameter count. NVIDIA's own model card states
+    # "753B in total" for this checkpoint's base architecture —
+    # https://huggingface.co/nvidia/GLM-5.2-NVFP4/raw/main/README.md
+    # (verified 2026-07-28) — matching the sibling hf-glm-5-2 entry's exact
+    # verified params_total (753,329,940,480) for the same base model;
+    # using that.
+    params_total: 753329940480
     num_layers: 78
     hidden_size: 6144
     context_length: 1048576
@@ -501,6 +622,24 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-06
+    # NVIDIA model card "Number of Model Parameters: 753B in total and 40B
+    # activated" (Network Architecture: GLM-5.2, base model this checkpoint
+    # quantizes — quantization does not change active-param count):
+    # https://huggingface.co/nvidia/GLM-5.2-NVFP4/raw/main/README.md (verified 2026-07-28)
+    params_active: 40000000000
+    spec_verified: true
+    architecture:
+      attention_kind: mla   # kv_lora_rank present -> DeepSeek-style MLA (+ DSA indexer)
+      # All fields verified against config.json:
+      # https://huggingface.co/nvidia/GLM-5.2-NVFP4/raw/main/config.json (verified 2026-07-28)
+      num_attention_heads: 64
+      num_key_value_heads: 64
+      head_dim: 192
+      kv_lora_rank: 512
+      qk_rope_head_dim: 64
+      num_experts: 256          # n_routed_experts
+      experts_per_token: 8      # num_experts_per_tok
+      vocab_size: 154880
 
   - id: hf-ornith-1-0-35b
     name: Ornith-1.0-35B
@@ -526,6 +665,25 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-07
+    # zai-org/GLM-5.2's own README/model card does not state an activated-
+    # params figure. NVIDIA's card for the NVFP4 quantization of this same
+    # model states "753B in total and 40B activated" (quantization doesn't
+    # change active-param count, and 753B matches this entry's params_total):
+    # https://huggingface.co/nvidia/GLM-5.2-NVFP4/raw/main/README.md (verified 2026-07-28)
+    params_active: 40000000000
+    spec_verified: true
+    architecture:
+      attention_kind: mla   # kv_lora_rank present -> DeepSeek-style MLA (+ DSA indexer)
+      # All fields verified against config.json:
+      # https://huggingface.co/zai-org/GLM-5.2/raw/main/config.json (verified 2026-07-28)
+      num_attention_heads: 64
+      num_key_value_heads: 64
+      head_dim: 192
+      kv_lora_rank: 512
+      qk_rope_head_dim: 64
+      num_experts: 256          # n_routed_experts
+      experts_per_token: 8      # num_experts_per_tok
+      vocab_size: 154880
 
   - id: hf-qwythos-9b-claude-mythos-5-1m
     name: Qwythos-9B-Claude-Mythos-5-1M

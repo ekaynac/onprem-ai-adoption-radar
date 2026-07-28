@@ -1,0 +1,23 @@
+name: Verify model specs against HF
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC, after the weekend autopilot
+  workflow_dispatch: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Install package
+        run: uv venv && uv pip install -e .
+      # A red run IS the drift flag — a human updates the seed (or the model
+      # card changed and the seed is right; either way, eyes on it).
+      - name: Verify specs
+        run: uv run radar models verify --root . --check

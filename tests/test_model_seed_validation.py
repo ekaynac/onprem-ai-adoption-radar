@@ -53,3 +53,64 @@ def test_every_shipped_seed_passes_blocking_validation():
     failures = {s.id: validate_seed(s) for s in seeds}
     failures = {k: v for k, v in failures.items() if v}
     assert failures == {}, f"shipped seeds must validate: {failures}"
+
+
+# ---------------------------------------------------------------------------
+# ENTRY-level (post-assembly) validation
+# ---------------------------------------------------------------------------
+
+
+def _entry(**overrides):
+    from radar.models_radar.entities import ModelEntry
+
+    base = {"id": "e-1", "name": "E", "family": "F"}
+    return ModelEntry(**{**base, **overrides})
+
+
+def test_entry_with_params_but_no_viable_memory_is_blocking():
+    from radar.models_radar.validate import validate_entry
+
+    entry = _entry(params_total=35_000_000_000, quants=[])  # nothing computable
+    problems = validate_entry(entry)
+    assert any("minimum viable memory" in p for p in problems)
+
+
+def test_entry_with_computable_memory_passes():
+    from radar.models_radar.entities import QuantVariant
+    from radar.models_radar.validate import validate_entry
+
+    quant = QuantVariant(format="FP8", bits_per_weight=8.0, est_memory_gb_4k=9.6)
+    assert validate_entry(_entry(params_total=8_000_000_000, quants=[quant])) == []
+
+
+def test_entry_with_only_sub_viable_quants_is_blocking():
+    """Non-empty quants (e.g. a repo publishing only Q2/Q3 GGUFs) still blocks:
+    minimum_viable_quant filters out anything below the quality floor, so
+    memory comes back None even though every quant has an est_memory_gb_4k."""
+    from radar.models_radar.entities import QuantVariant
+    from radar.models_radar.validate import validate_entry
+
+    quants = [
+        QuantVariant(format="Q2_K", bits_per_weight=2.6, est_memory_gb_4k=22.0),
+        QuantVariant(format="Q3_K_S", bits_per_weight=3.4, est_memory_gb_4k=28.0),
+    ]
+    problems = validate_entry(_entry(params_total=70_000_000_000, quants=quants))
+    assert any("minimum viable memory" in p for p in problems)
+
+
+def test_big_model_without_architecture_is_advisory():
+    from radar.models_radar.validate import entry_advisories
+
+    advisories = entry_advisories(_entry(params_total=671_000_000_000))
+    assert any("no architecture" in a for a in advisories)
+    assert entry_advisories(_entry(params_total=8_000_000_000)) == [] or all(
+        "no architecture" not in a
+        for a in entry_advisories(_entry(params_total=8_000_000_000))
+    )
+
+
+def test_missing_provenance_is_advisory():
+    from radar.models_radar.validate import entry_advisories
+
+    advisories = entry_advisories(_entry(params_total=8_000_000_000))
+    assert any("no provenance" in a for a in advisories)
