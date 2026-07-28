@@ -1815,6 +1815,18 @@ def test_project_detail_page_has_badge_section(tmp_path: Path):
     assert "/project/vLLM" in text
 
 
+def test_project_detail_badge_heading_notes_pinned_decision(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low", pinned=True,
+                                  pinned_reason="team override")])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert '<h2 title="Reflects the pinned decision: team override">Badge</h2>' in text
+
+
 def test_model_detail_page_has_ring_and_fit_badge_sections(tmp_path: Path):
     (tmp_path / "data").mkdir(parents=True)
     _seed_models(tmp_path)
