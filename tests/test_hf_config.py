@@ -106,6 +106,14 @@ def test_never_raises_on_non_dict_junk():
         assert parse_quant_format(junk) is None
 
 
+def test_never_raises_on_unhashable_layer_types():
+    """layer_types is normally a list of strings, but junk could put
+    unhashable entries (nested dicts/lists) in there — set() would raise
+    TypeError on those; the parser must not."""
+    arch = parse_architecture({"layer_types": [{"weird": 1}, {"weird": 2}]})
+    assert arch.attention_kind is AttentionKind.HYBRID
+
+
 def test_quant_format_detection():
     assert parse_quant_format(
         {"quantization_config": {"quant_method": "fp8"}}) == "FP8"

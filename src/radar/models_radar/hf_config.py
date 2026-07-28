@@ -107,11 +107,23 @@ def _attention_kind(
     if kv_lora_rank:
         return AttentionKind.MLA
     layer_types = cfg.get("layer_types")
-    if isinstance(layer_types, list) and len(set(layer_types)) > 1:
+    if isinstance(layer_types, list) and _distinct_count(layer_types) > 1:
         return AttentionKind.HYBRID
     if heads and kv_heads:
         return AttentionKind.GQA if kv_heads < heads else AttentionKind.MHA
     return AttentionKind.UNKNOWN
+
+
+def _distinct_count(values: list) -> int:
+    """len(set(values)) that tolerates unhashable junk entries (e.g. dicts)."""
+    try:
+        return len(set(values))
+    except TypeError:
+        seen: list = []
+        for v in values:
+            if v not in seen:
+                seen.append(v)
+        return len(seen)
 
 
 def _int(value: object) -> int | None:
