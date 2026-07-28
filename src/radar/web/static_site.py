@@ -37,6 +37,7 @@ from radar.research_radar.timeline import build_technique_timeline
 from radar.storage.digest_log import DigestLogEntry
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
+from radar.storage.model_metrics_store import ModelMetrics
 from radar.web.backer_badge import backer_badge
 from radar.web.hub_sections import HubRow
 from radar.web.models_summary import summarize_models
@@ -45,6 +46,7 @@ from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth
+from radar.web.spark_series import downloads_sparkline, star_sparkline, trending_sparklines
 from radar.web.tenure import TenureLine
 from radar.web.trending_summary import summarize_trending
 
@@ -88,6 +90,7 @@ def render_static_site(
     card_staleness: str | None = None,
     tenure_by_project: dict[str, TenureLine] | None = None,
     model_tenure_by_id: dict[str, TenureLine] | None = None,
+    model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -132,6 +135,9 @@ def render_static_site(
     credential line ("On radar N days · RING since <date> · N ring changes")
     on the index page's project rows and each project/model detail page;
     omitting either renders that surface without the tenure chrome.
+    ``model_metrics_by_id`` (optional) supplies each model page's download
+    history, rendered as a sparkline beside the download stat; omitting it
+    renders that page without the sparkline (differentiation pass, Task 3).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -191,6 +197,7 @@ def render_static_site(
         logger.warning("Trending derivation failed during export: %s", exc)
         trending_entries = []
     trending_summary = summarize_trending(trending_entries) if trending_entries else None
+    spark_by_repo = trending_sparklines(trending_observations or [])
 
     # One slug per model/technique, shared by the trending-hub detail links so
     # they can never disagree with the per-entity pages' own filenames.
@@ -248,6 +255,7 @@ def render_static_site(
             env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp,
             pedigree_by_model=pedigree_by_model or {}, technique_hrefs=technique_hrefs or {},
             model_tenure_by_id=model_tenure_by_id or {},
+            model_metrics_by_id=model_metrics_by_id or {},
         )
 
     if technique_entries:
@@ -264,6 +272,7 @@ def render_static_site(
             model_slugs=model_slugs, technique_slugs=technique_slugs,
             model_candidates=model_candidates or [],
             technique_candidates=technique_candidates or [],
+            spark_by_repo=spark_by_repo,
         )
 
     # Publish the generated weekly digests (page + cards + feeds) alongside
@@ -295,7 +304,8 @@ def _write_project_pages(
     }
     template = env.get_template("static_project.html")
     for card in cards:
-        metrics = list(reversed(metrics_by_project.get(card.project, [])))  # newest-first
+        metrics_oldest_first = metrics_by_project.get(card.project, [])
+        metrics = list(reversed(metrics_oldest_first))  # newest-first
         (out_dir / f"project_{slug_by_project[card.project]}.html").write_text(
             template.render(
                 card=card,
@@ -304,6 +314,7 @@ def _write_project_pages(
                 pedigree=(pedigree_by_project.get(card.project) or None),
                 technique_hrefs=technique_hrefs,
                 tenure=(tenure_by_project or {}).get(card.project),
+                star_spark=star_sparkline(metrics_oldest_first),
             ),
             encoding="utf-8",
         )
@@ -350,6 +361,7 @@ def _write_model_pages(
     pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
     technique_hrefs: dict[str, str] | None = None,
     model_tenure_by_id: dict[str, TenureLine] | None = None,
+    model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
 ) -> None:
     """Render models.html, per-model pages, and model feed files."""
     slug_by_model = build_slug_map([m.id for m in model_entries])
@@ -374,6 +386,7 @@ def _write_model_pages(
                 pedigree=(pedigree_by_model or {}).get(entry.id) or None,
                 technique_hrefs=technique_hrefs or {},
                 model_tenure_line=(model_tenure_by_id or {}).get(entry.id),
+                download_spark=downloads_sparkline((model_metrics_by_id or {}).get(entry.id, [])),
             ),
             encoding="utf-8",
         )
@@ -457,6 +470,7 @@ def _write_trending_page(
     technique_slugs: dict[str, str] | None = None,
     model_candidates: list[ModelCandidateEntry] | None = None,
     technique_candidates: list[TechniqueCandidateEntry] | None = None,
+    spark_by_repo: dict[str, str] | None = None,
 ) -> None:
     """Render trending.html (repo lanes + Models/Techniques hub sections)."""
     onprem = [e for e in trending_entries if e.lane == Lane.ONPREM]
@@ -468,6 +482,7 @@ def _write_trending_page(
             model_slugs=model_slugs or {}, technique_slugs=technique_slugs or {},
             model_candidates=model_candidates or [],
             technique_candidates=technique_candidates or [],
+            spark_by_repo=spark_by_repo or {},
         ),
         encoding="utf-8",
     )

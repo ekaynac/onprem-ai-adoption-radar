@@ -174,6 +174,26 @@ def test_export_writes_per_project_pages_with_metrics(tmp_path: Path):
     assert "54,321" in text or "54321" in text
 
 
+def test_static_project_page_shows_star_sparkline(tmp_path: Path):
+    cards = [_card("vLLM", Ring.ADOPT)]
+    metrics_by_project = {
+        "vLLM": [
+            ProjectMetrics(project="vLLM", run_id=f"run-{d}",
+                           observed_at=datetime(2026, 6, d, tzinfo=UTC), stars=100 * d)
+            for d in (1, 2, 3)
+        ]
+    }
+
+    render_static_site(
+        cards, tmp_path / "_site", datetime(2026, 6, 13, tzinfo=UTC),
+        metrics_by_project=metrics_by_project,
+    )
+
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert 'class="spark"' in page
+    assert "stars, last 3 scans" in page
+
+
 def test_static_index_links_to_project_pages(tmp_path: Path):
     render_static_site(
         [_card("vLLM", Ring.ADOPT)],
@@ -335,6 +355,48 @@ def test_model_page_has_runs_on_table(tmp_path):
     page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
     assert "Runs on" in page
     assert "RTX 4090 (24GB)" in page  # one of the COMMON_DEVICE_TIERS
+
+
+def test_static_model_page_shows_download_sparkline(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import HardwareTier, ModelEntry, Openness
+    from radar.storage.model_metrics_store import ModelMetrics
+    from radar.web.static_site import render_static_site
+
+    m = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+                   hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[])
+    model_metrics_by_id = {
+        "qwen3-8b": [
+            ModelMetrics(model_id="qwen3-8b", run_id=f"run-{d}",
+                        observed_at=datetime(2026, 6, d, tzinfo=UTC), downloads=1000 * d)
+            for d in (1, 2, 3)
+        ]
+    }
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC),
+                       model_entries=[m], model_metrics_by_id=model_metrics_by_id)
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert 'class="spark"' in page
+    assert "downloads, last 3 scans" in page
+
+
+def test_static_model_page_download_sparkline_backcompat(tmp_path):
+    """Omitting model_metrics_by_id must not break the export (house pattern)."""
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import HardwareTier, ModelEntry, Openness
+    from radar.web.static_site import render_static_site
+
+    m = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+                   hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[])
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC),
+                       model_entries=[m])  # no model_metrics_by_id
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert 'class="spark"' not in page
 
 
 def test_static_model_page_renders_architecture_benchmarks_and_unverified_marker(tmp_path):
@@ -626,6 +688,25 @@ def test_static_site_renders_trending_page(tmp_path):
     index = (site / "index.html").read_text(encoding="utf-8")
     assert 'href="trending.html"' in index
     assert "Trending:" in index
+
+
+def test_static_trending_page_shows_sparklines(tmp_path):
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+
+    # third observation so acme/rocket clears the 3-point floor
+    obs = [*_trending_obs(), TrendingObservation(
+        repo="acme/rocket", lane=Lane.ONPREM, stars=500,
+        observed_at=datetime(2026, 7, 5, 7, 0, tzinfo=UTC),
+        repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+        description="fast serving", topics=["llm"], license="MIT",
+    )]
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+        trending_observations=obs,
+    )
+
+    page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+    assert 'class="spark"' in page
 
 
 def test_static_site_backcompat_without_trending(tmp_path):

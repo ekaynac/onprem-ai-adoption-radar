@@ -1949,6 +1949,7 @@ def export(
     from radar.storage.digest_log import load_digests
     from radar.storage.history_store import HistoryStore
     from radar.storage.metrics_store import MetricsStore
+    from radar.storage.model_metrics_store import ModelMetricsStore
     from radar.storage.source_health_store import SourceHealthStore
     from radar.web.scan_health import latest_tool_scan_meta
     from radar.web.source_health import summarize_source_health
@@ -2003,6 +2004,12 @@ def export(
     # Model entries + events (optional: only present after a `radar models scan`).
     model_entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
     model_events = load_model_events(root / "data" / "model-history.jsonl")
+
+    # Model download history (Task 3, differentiation pass): drives the
+    # sparkline on each model detail page.
+    model_metrics_store = ModelMetricsStore(root / "data" / "radar.db")
+    model_metrics_store.initialize()
+    model_metrics_by_id = {e.id: model_metrics_store.history_for(e.id) for e in model_entries}
 
     # Tenure credential for model detail pages: group the model-history log
     # by model_id, then compute one tenure line per model (no corrections
@@ -2157,6 +2164,7 @@ def export(
         card_staleness=orchestrator.database.card_staleness_note(),
         tenure_by_project=tenure_by_project or None,
         model_tenure_by_id=model_tenure_by_id or None,
+        model_metrics_by_id=model_metrics_by_id or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

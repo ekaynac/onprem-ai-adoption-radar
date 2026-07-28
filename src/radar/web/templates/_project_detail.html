@@ -1,7 +1,7 @@
 {# Shared project-detail body. Context: card, events (oldest-first),
    metrics (newest-first),
    pedigree (list[TechniquePedigree] | None), technique_hrefs (dict),
-   tenure (TenureLine | None). #}
+   tenure (TenureLine | None), star_spark (str, sparkline SVG or ""). #}
 <h1>{{ card.project }}</h1>
 {% set b = backer_badge(card.backer) %}
 {% if b %}<p class="backer-line">Backed by <span class="backer backer-{{ b.type }}" title="{{ b.title }}">{{ b.emoji }} {{ b.name }}</span> <span class="backer-type-label">({{ b.label }})</span></p>{% endif %}
@@ -91,7 +91,7 @@
 <ul>{% for step in card.try_next %}<li>{{ step }}</li>{% endfor %}</ul>
 {% endif %}
 
-<h2>Metrics history</h2>
+<h2>Metrics history {% if star_spark %}<span class="spark">{{ star_spark | safe }}</span>{% endif %}</h2>
 {% if metrics %}
 <div class="table-wrap">
 <table>

@@ -20,7 +20,7 @@
       <h2>{{ section }}</h2>
       <div class="table-wrap">
       <table>
-        <thead><tr><th>Repo</th><th class="num">Stars</th><th class="num">Velocity (stars/day)</th><th>Status</th>
+        <thead><tr><th>Repo</th><th class="num">Stars</th><th class="num">Velocity (stars/day)</th><th>14d</th><th>Status</th>
                    <th>First seen</th><th>Description</th></tr></thead>
         <tbody>
           {% for e in rows %}
@@ -28,6 +28,7 @@
             <td><a href="https://github.com/{{ e.repo }}">{{ e.repo }}</a></td>
             <td class="num">{{ e.stars }}</td>
             <td class="num">{% if e.velocity_per_day is not none %}{{ e.velocity_per_day }}{% else %}—{% endif %}</td>
+            <td class="spark">{{ (spark_by_repo or {}).get(e.repo, "") | safe }}</td>
             <td>{% if e.is_new %}NEW{% endif %}</td>
             <td>{{ e.first_seen }}</td>
             <td>{{ e.description }}</td>

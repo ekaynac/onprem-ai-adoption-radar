@@ -406,6 +406,37 @@ def test_project_page_shows_metrics_and_history(tmp_path: Path):
     assert "2026-06-10" in text  # history event date
 
 
+def test_project_detail_shows_star_sparkline(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.storage.metrics_store import MetricsStore, ProjectMetrics
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="s", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+    metrics = MetricsStore(tmp_path / "data" / "radar.db")
+    metrics.initialize()
+    metrics.record(
+        [
+            ProjectMetrics(project="vLLM", run_id=f"run-{d}",
+                           observed_at=datetime(2026, 7, d, tzinfo=UTC), stars=100 * d)
+            for d in (1, 2, 3)
+        ]
+    )
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+
+    assert 'class="spark"' in text
+    assert "stars, last 3 scans" in text  # aria-label made it through
+
+
 def test_index_links_to_project_page(tmp_path: Path):
     db = RadarDatabase(tmp_path / "data" / "radar.db")
     db.initialize()
@@ -624,6 +655,29 @@ def test_model_detail_route_unknown_returns_404(tmp_path):
     (tmp_path / "data").mkdir(parents=True)
     client = TestClient(create_app(tmp_path))
     assert client.get("/model/does-not-exist").status_code == 404
+
+
+def test_model_detail_shows_download_sparkline(tmp_path):
+    from datetime import datetime
+
+    from radar.storage.model_metrics_store import ModelMetrics, ModelMetricsStore
+
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    store = ModelMetricsStore(tmp_path / "data" / "radar.db")
+    store.initialize()
+    store.record(
+        [
+            ModelMetrics(model_id="qwen3-8b", run_id=f"run-{d}",
+                        observed_at=datetime(2026, 7, d, tzinfo=UTC), downloads=1000 * d)
+            for d in (1, 2, 3)
+        ]
+    )
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+
+    assert 'class="spark"' in text
+    assert "downloads, last 3 scans" in text  # aria-label made it through
 
 
 def test_model_detail_route_renders_architecture_benchmarks_and_unverified_marker(tmp_path):
@@ -1094,6 +1148,26 @@ def test_trending_route_shows_both_lanes(tmp_path):
     assert "On-prem radar candidates" in r.text
     assert "Elsewhere in AI" in r.text
     assert 'href="https://github.com/acme/rocket"' in r.text
+
+
+def test_trending_rows_show_sparklines(tmp_path: Path):
+    _seed_trending_obs(tmp_path)
+    # third observation so acme/rocket clears the 3-point floor
+    from datetime import datetime as _dt
+
+    from radar.discovery.trending_entities import Lane as _L
+    from radar.discovery.trending_entities import TrendingObservation as _O
+    from radar.storage.trending_observations_log import append_observations
+
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [
+        _O(repo="acme/rocket", lane=_L.ONPREM, stars=500,
+           observed_at=_dt(2026, 7, 5, 7, 0, tzinfo=UTC),
+           repo_created_at=_dt(2026, 6, 1, tzinfo=UTC),
+           description="fast serving", topics=["llm"], license="MIT"),
+    ])
+    text = TestClient(create_app(tmp_path)).get("/trending").text
+    assert 'class="spark"' in text
+    assert "acme/rocket stars" in text  # aria-label made it through
 
 
 def test_trending_route_empty_without_store(tmp_path):

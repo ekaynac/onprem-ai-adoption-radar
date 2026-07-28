@@ -35,9 +35,11 @@ from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
 from radar.storage.metrics_store import MetricsStore
+from radar.storage.model_metrics_store import ModelMetricsStore
 from radar.storage.run_store import RunStore
 from radar.storage.seed_store import SeedError, add_seed
 from radar.storage.source_health_store import SourceHealthStore
+from radar.storage.trending_observations_log import load_observations
 from radar.web.backer_badge import backer_badge
 from radar.web.hub_sections import load_hub_sections
 from radar.web.models_summary import summarize_models
@@ -46,6 +48,7 @@ from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import latest_tool_scan_meta, summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth, summarize_source_health
+from radar.web.spark_series import downloads_sparkline, star_sparkline, trending_sparklines
 from radar.web.tenure import model_tenure, project_tenure
 from radar.web.trending_summary import summarize_trending
 
@@ -68,6 +71,7 @@ def create_app(root: Path) -> FastAPI:
     db = RadarDatabase(root / "data" / "radar.db")
     history = HistoryStore(root / "data" / "radar.db")
     metrics = MetricsStore(root / "data" / "radar.db")
+    model_metrics = ModelMetricsStore(root / "data" / "radar.db")
     run_store = RunStore(root / "data" / "runs")
     source_health = SourceHealthStore(root / "data" / "radar.db")
     config_path = root / "data" / "config.yaml"
@@ -215,7 +219,8 @@ def create_app(root: Path) -> FastAPI:
         history.initialize()
         metrics.initialize()
         events = history.history_for(card.project)
-        metric_rows = list(reversed(metrics.history_for(card.project)))  # newest-first
+        metric_rows_oldest_first = metrics.history_for(card.project)
+        metric_rows = list(reversed(metric_rows_oldest_first))  # newest-first
         return TEMPLATES.TemplateResponse(
             request,
             "project.html",
@@ -226,6 +231,7 @@ def create_app(root: Path) -> FastAPI:
                 "pedigree": _project_pedigree(card.project) or None,
                 "technique_hrefs": _technique_hrefs(),
                 "tenure": project_tenure(events, datetime.now(UTC)),
+                "star_spark": star_sparkline(metric_rows_oldest_first),
             },
         )
 
@@ -317,6 +323,7 @@ def create_app(root: Path) -> FastAPI:
         entry = next((e for e in _model_entries() if e.id == model_id), None)
         if entry is None:
             return HTMLResponse("Model not found", status_code=404)
+        model_metrics.initialize()
         return TEMPLATES.TemplateResponse(
             request,
             "model.html",
@@ -328,6 +335,7 @@ def create_app(root: Path) -> FastAPI:
                 "model_tenure_line": model_tenure(
                     _model_events_for(model_id), datetime.now(UTC)
                 ),
+                "download_spark": downloads_sparkline(model_metrics.history_for(model_id)),
             },
         )
 
@@ -344,11 +352,13 @@ def create_app(root: Path) -> FastAPI:
         onprem = [e for e in entries if e.lane == Lane.ONPREM]
         broader = [e for e in entries if e.lane == Lane.BROADER]
         model_hub, technique_hub = _hub_sections()
+        observations = load_observations(root / "data" / "trending-observations.jsonl")
         return TEMPLATES.TemplateResponse(request, "trending.html", {
             "onprem": onprem, "broader": broader,
             "model_hub": model_hub, "technique_hub": technique_hub,
             "model_candidates": _model_candidates(),
             "technique_candidates": _technique_candidates(),
+            "spark_by_repo": trending_sparklines(observations),
         })
 
     @app.get("/technique/{technique_id}", response_class=HTMLResponse)
