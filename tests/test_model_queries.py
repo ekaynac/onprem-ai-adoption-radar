@@ -5,12 +5,16 @@ from pathlib import Path
 from radar.mcp_server.model_queries import ModelQueryService, _latest_model_cards
 from radar.models import Category, Ring
 from radar.models_radar.entities import (
+    ArchitectureSpec,
+    AttentionKind,
+    BenchmarkScore,
     HardwareTier,
     Modality,
     ModelEntry,
     Openness,
     Platform,
     QuantVariant,
+    SpecProvenance,
 )
 from radar.storage.run_store import RunStore
 
@@ -77,6 +81,34 @@ def test_get_model_returns_full_with_quants(tmp_path: Path):
     assert m is not None and m["id"] == "qwen3-8b"
     assert m["quants"] and m["quants"][0]["format"] == "Q4_K_M"
     assert svc.get_model("nope") is None
+
+
+def test_get_model_exposes_architecture_and_provenance(tmp_path: Path):
+    """Task 8: MCP get_model payload gains architecture/benchmarks/provenance."""
+    run_store = RunStore(tmp_path / "data" / "runs")
+    rid = run_store.create_run()
+    entry = ModelEntry(
+        id="m-arch", name="Arch Model", family="F",
+        architecture=ArchitectureSpec(
+            attention_kind=AttentionKind.MLA, kv_lora_rank=512,
+            num_experts=256, experts_per_token=8,
+        ),
+        benchmarks=[BenchmarkScore(name="MMLU-Pro", score=0.81,
+                                   source_url="https://example.com/card")],
+        provenance={"params_total": SpecProvenance(source="seed", verified=True)},
+    )
+    run_store.save_stage(rid, "model_cards", [entry.model_dump(mode="json")])
+    run_store.update_meta(rid, {"kind": "models", "model_count": 1})
+    svc = ModelQueryService(tmp_path)
+
+    payload = svc.get_model("m-arch")
+
+    assert payload is not None
+    assert payload["architecture"]["kv_lora_rank"] == 512
+    assert payload["architecture"]["attention_kind"] == "mla"
+    assert payload["benchmarks"][0]["name"] == "MMLU-Pro"
+    assert payload["provenance"]["params_total"]["source"] == "seed"
+    assert payload["provenance"]["params_total"]["verified"] is True
 
 
 def test_no_model_run_returns_empty(tmp_path: Path):

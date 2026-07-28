@@ -626,6 +626,51 @@ def test_model_detail_route_unknown_returns_404(tmp_path):
     assert client.get("/model/does-not-exist").status_code == 404
 
 
+def test_model_detail_route_renders_architecture_benchmarks_and_unverified_marker(tmp_path):
+    """Task 8: architecture spec rows, curated benchmarks, and the
+    provenance-driven 'unverified' marker on the live /model/<id> page.
+
+    provenance={} (no params_total entry at all) exercises the "missing"
+    half of the unverified-marker contract, not just "verified=False".
+    """
+    from radar.models_radar.entities import (
+        ArchitectureSpec,
+        AttentionKind,
+        BenchmarkScore,
+        HardwareTier,
+        Modality,
+        ModelEntry,
+        Openness,
+    )
+    (tmp_path / "data").mkdir(parents=True)
+    rs = RunStore(tmp_path / "data" / "runs")
+    rid = rs.create_run()
+    e = ModelEntry(
+        id="deepseek-v3-arch", name="DeepSeek V3", family="DeepSeek",
+        params_total=671_000_000_000,
+        openness=Openness.OPEN_PERMISSIVE, hardware_tier=HardwareTier.DATACENTER,
+        ring=Ring.ADOPT, score=4.0, modality=Modality.TEXT,
+        architecture=ArchitectureSpec(
+            attention_kind=AttentionKind.MLA, kv_lora_rank=512,
+            num_experts=256, experts_per_token=8,
+        ),
+        benchmarks=[BenchmarkScore(name="MMLU-Pro", score=0.81,
+                                   source_url="https://example.com/card")],
+        provenance={},
+    )
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json")])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/model/deepseek-v3-arch")
+
+    assert r.status_code == 200
+    assert "mla" in r.text.lower()
+    assert "256 experts, 8 active" in r.text
+    assert "MMLU-Pro" in r.text
+    assert "unverified" in r.text
+
+
 def test_models_page_is_styled_and_filterable(tmp_path):
     """Live /models page must have the shell, filter bar, and richer table."""
     (tmp_path / "data").mkdir(parents=True)

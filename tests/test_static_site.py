@@ -337,6 +337,43 @@ def test_model_page_has_runs_on_table(tmp_path):
     assert "RTX 4090 (24GB)" in page  # one of the COMMON_DEVICE_TIERS
 
 
+def test_static_model_page_renders_architecture_benchmarks_and_unverified_marker(tmp_path):
+    """Task 8 parity: the static export renders the same _model_detail.html
+    partial as the live app, so architecture/benchmarks/unverified must show
+    here too (see test_web.py's live-route sibling for the same contract)."""
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        ArchitectureSpec,
+        AttentionKind,
+        BenchmarkScore,
+        HardwareTier,
+        ModelEntry,
+        Openness,
+    )
+    from radar.web.static_site import render_static_site
+
+    m = ModelEntry(
+        id="deepseek-v3-arch", name="DeepSeek V3", family="DeepSeek",
+        params_total=671_000_000_000,
+        ring=Ring.ADOPT, hardware_tier=HardwareTier.DATACENTER, openness=Openness.OPEN_PERMISSIVE,
+        architecture=ArchitectureSpec(
+            attention_kind=AttentionKind.MLA, kv_lora_rank=512,
+            num_experts=256, experts_per_token=8,
+        ),
+        benchmarks=[BenchmarkScore(name="MMLU-Pro", score=0.81,
+                                   source_url="https://example.com/card")],
+        provenance={},
+    )
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC), model_entries=[m])
+    page = (tmp_path / "_site" / "model_deepseek-v3-arch.html").read_text(encoding="utf-8")
+    assert "mla" in page.lower()
+    assert "256 experts, 8 active" in page
+    assert "MMLU-Pro" in page
+    assert "unverified" in page
+
+
 def test_fit_by_tier_returns_verdicts():
     from radar.models_radar.entities import ModelEntry, Platform, QuantVariant
     from radar.web.picker_context import fit_by_tier
