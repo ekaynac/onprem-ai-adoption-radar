@@ -56,6 +56,11 @@ def test_digest_page_links_up_one_level(tmp_path):
     assert "../trending.html" in page
     assert "../static/brand/favicon.png" in page   # favicon resolves up one level
     assert 'href="index.html"' not in page  # no shallow root-relative link remains
+    assert 'class="positioning"' in page
+    assert (
+        "Trending tells you what&#39;s hot. The radar tells you what to adopt "
+        "— and what it takes to run it."
+    ) in page
 
 
 def test_digest_webhook_fires_once_per_week(tmp_path, monkeypatch):

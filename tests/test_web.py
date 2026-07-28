@@ -121,6 +121,17 @@ def test_dashboard_renders_hero_stats_and_download_link(tmp_path: Path):
     assert 'href="/history.jsonl"' in text  # footer download link
 
 
+def test_index_shows_positioning_line(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert 'class="positioning"' in text
+    assert (
+        "Trending tells you what&#39;s hot. The radar tells you what to adopt "
+        "— and what it takes to run it."
+    ) in text
+
+
 def _init_project(tmp_path: Path) -> None:
     from radar.init_project import initialize_project
 
@@ -627,6 +638,16 @@ def test_models_route_empty_when_no_scan(tmp_path):
     (tmp_path / "data").mkdir(parents=True)
     client = TestClient(create_app(tmp_path))
     assert client.get("/models").status_code == 200  # renders "no models yet", no crash
+
+
+def test_models_route_has_no_positioning_line(tmp_path):
+    """Pages that don't set `positioning` must render no `.positioning` element."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/models")
+    assert r.status_code == 200
+    assert 'class="positioning"' not in r.text
 
 
 def test_models_route_links_to_live_model_paths(tmp_path):

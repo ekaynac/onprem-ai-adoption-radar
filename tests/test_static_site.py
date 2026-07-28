@@ -135,6 +135,11 @@ def test_static_index_renders_hero_stats_and_legend(tmp_path: Path):
     assert 'class="legend"' in index  # rings/backer legend
     assert 'class="footer"' in index
     assert 'class="ring-pill ring-adopt"' in index  # ring rendered as a pill
+    assert 'class="positioning"' in index
+    assert (
+        "Trending tells you what&#39;s hot. The radar tells you what to adopt "
+        "— and what it takes to run it."
+    ) in index
 
 
 def test_static_index_renders_em_dash_for_uncurated_backer(tmp_path: Path):
