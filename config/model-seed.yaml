@@ -482,16 +482,14 @@ models:
     family: deepseek-ai
     hf_repo: deepseek-ai/DeepSeek-V4-Flash
     backer: {name: "DeepSeek", type: startup}
-    # UNRESOLVED DISCREPANCY (flagged 2026-07-28, not corrected by this task —
-    # out of Task 6's scope, which only adds params_active/architecture):
-    # the model's own README table states "284B" total params —
+    # params_total corrected 2026-07-28: HF API safetensors.total for this
+    # FP4+FP8-mixed checkpoint reports 158,069,433,298 — a 4-bit-packing
+    # artifact (same pattern as hf-qwen3-6-35b-a3b-nvfp4/hf-gemma-4-26b-a4b-nvfp4
+    # above), not the real parameter count. The model's own README Model
+    # Downloads table states "DeepSeek-V4-Flash | 284B | 13B | 1M":
     # https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/raw/main/README.md
-    # (verified 2026-07-28) — nearly 2x this HF-API-derived figure. Likely the
-    # same FP4-packing artifact documented elsewhere in this file (e.g.
-    # hf-qwen3-6-35b-a3b-nvfp4): this repo's weights are "FP4 + FP8 Mixed"
-    # per the same README, so a safetensors byte-count undercounts true
-    # parameter count. Needs human review before capacity math trusts it.
-    params_total: 158069433298
+    # (verified 2026-07-28); using that.
+    params_total: 284000000000
     num_layers: 43
     hidden_size: 4096
     context_length: 1048576
@@ -530,13 +528,14 @@ models:
     family: deepseek-ai
     hf_repo: deepseek-ai/DeepSeek-V4-Pro
     backer: {name: "DeepSeek", type: startup}
-    # UNRESOLVED DISCREPANCY (flagged 2026-07-28, not corrected by this task —
-    # out of Task 6's scope): the model's own README table states "1.6T"
-    # total params — https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/README.md
-    # (verified 2026-07-28) — nearly 2x this HF-API-derived figure. Same
-    # likely FP4-packing artifact as hf-deepseek-v4-flash above. Needs human
-    # review before capacity math trusts it.
-    params_total: 861608274846
+    # params_total corrected 2026-07-28: HF API safetensors.total for this
+    # FP4+FP8-mixed checkpoint reports 861,608,274,846 — a 4-bit-packing
+    # artifact (same pattern as hf-deepseek-v4-flash above), not the real
+    # parameter count. The model's own README Model Downloads table states
+    # "DeepSeek-V4-Pro | 1.6T | 49B | 1M":
+    # https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/README.md
+    # (verified 2026-07-28); using that.
+    params_total: 1600000000000
     num_layers: 61
     hidden_size: 7168
     context_length: 1048576
@@ -602,14 +601,16 @@ models:
     family: nvidia
     hf_repo: nvidia/GLM-5.2-NVFP4
     backer: {name: "NVIDIA", type: big_tech}
-    # UNRESOLVED DISCREPANCY (flagged 2026-07-28, not corrected by this task —
-    # out of Task 6's scope): NVIDIA's own model card states "753B in total"
-    # for this checkpoint's base architecture —
+    # params_total corrected 2026-07-28: HF API safetensors.total for this
+    # NVFP4 checkpoint reports 380,989,135,104 — a 4-bit-packing artifact
+    # (same pattern as hf-qwen3-6-35b-a3b-nvfp4/hf-gemma-4-26b-a4b-nvfp4
+    # above), not the real parameter count. NVIDIA's own model card states
+    # "753B in total" for this checkpoint's base architecture —
     # https://huggingface.co/nvidia/GLM-5.2-NVFP4/raw/main/README.md
-    # (verified 2026-07-28) — roughly 2x this HF-API-derived figure. Likely
-    # the same FP4-packing artifact documented for other NVFP4 repos in this
-    # file (e.g. hf-qwen3-6-35b-a3b-nvfp4). Needs human review.
-    params_total: 380989135104
+    # (verified 2026-07-28) — matching the sibling hf-glm-5-2 entry's exact
+    # verified params_total (753,329,940,480) for the same base model;
+    # using that.
+    params_total: 753329940480
     num_layers: 78
     hidden_size: 6144
     context_length: 1048576
