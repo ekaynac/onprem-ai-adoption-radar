@@ -130,19 +130,54 @@ def test_quant_format_detection():
 
 
 def test_quant_format_modelopt_mixed_precision_resolves_nvfp4():
-    """nvidia/Qwen3.6-27B-NVFP4 (verified live 2026-07-28): the repo's own
-    top-level quant_algo is "MIXED_PRECISION", not "NVFP4" — modelopt keeps
-    some layers (attention, embeddings) at FP8 for stability and only the
-    bulk of MLP weights at NVFP4. The per-layer signal lives nested under
-    config_groups. The repo is still an NVFP4 release in every practical
-    sense, so the parser must look past the top-level algo label."""
+    """nvidia/Qwen3.6-27B-NVFP4 (re-verified live 2026-07-28 with a direct
+    JSON parse, not just grep): the repo's own top-level quant_algo is
+    "MIXED_PRECISION", not "NVFP4" — ModelOpt keeps attention layers at FP8
+    for stability and the bulk of MLP weights at NVFP4. The real per-layer
+    signal lives at `quantized_layers.<layer path>.quant_algo` (401 entries
+    in the live repo, values "FP8" / "W4A16_NVFP4" / "W4A16_NVFP4_AWQ");
+    `config_groups` there only carries bit-width/type, no algo string. This
+    fixture trims that real shape down to two representative entries. The
+    repo is still an NVFP4 release in every practical sense, so the parser
+    must look past the top-level algo label — but only by inspecting the
+    known config_groups/quantized_layers sub-trees' quant_algo values, never
+    the whole quantization_config blindly (see the false-positive test
+    below)."""
     assert parse_quant_format({
         "quantization_config": {
             "quant_method": "modelopt",
             "quant_algo": "MIXED_PRECISION",
+            "quantized_layers": {
+                "model.language_model.layers.0.self_attn.q_proj": {"quant_algo": "FP8"},
+                "model.language_model.layers.0.mlp.gate_proj": {
+                    "quant_algo": "W4A16_NVFP4", "group_size": 16,
+                },
+            },
             "config_groups": {
                 "group_0": {"weights": {"num_bits": 8, "type": "float"}},
-                "group_1": {"weights": {"quant_algo": "W4A16_NVFP4"}},
             },
+            "producer": {"name": "modelopt", "version": "0.45.0"},
         }
     }) == "NVFP4"
+
+
+def test_quant_format_mixed_precision_ignores_unrelated_nvfp4_mentions():
+    """Regression for a whole-object substring scan: a MIXED_PRECISION repo
+    whose actual per-layer algos are all FP8 (no NVFP4 anywhere real) must
+    not be mislabeled NVFP4 just because the word appears elsewhere in the
+    quantization_config, e.g. a stray boolean flag or free-text field."""
+    assert parse_quant_format({
+        "quantization_config": {
+            "quant_method": "modelopt",
+            "quant_algo": "MIXED_PRECISION",
+            "quantized_layers": {
+                "model.language_model.layers.0.self_attn.q_proj": {"quant_algo": "FP8"},
+                "model.language_model.layers.0.mlp.gate_proj": {"quant_algo": "FP8"},
+            },
+            "config_groups": {
+                "group_0": {"weights": {"num_bits": 8, "type": "float"}},
+            },
+            "supports_nvfp4": False,
+            "description": "no NVFP4 here, FP8 only",
+        }
+    }) is None

@@ -15,8 +15,6 @@ nvidia/Qwen3.6-27B-NVFP4's quantization_config (modelopt MIXED_PRECISION).
 
 from __future__ import annotations
 
-import json
-
 from radar.models_radar.entities import ArchitectureSpec, AttentionKind
 
 
@@ -72,9 +70,14 @@ def parse_quant_format(cfg: dict) -> str | None:
     releases (verified live: nvidia/Qwen3.6-27B-NVFP4) instead report a
     top-level `quant_algo` of "MIXED_PRECISION" — a handful of layers (attention,
     embeddings) stay FP8 for numerical stability while the bulk of the MLP
-    weights are NVFP4, and that per-layer detail is nested under
-    `config_groups`. Such repos are still NVFP4 releases in every practical
-    sense, so we look past the top-level label when it says MIXED_PRECISION.
+    weights are NVFP4, and that per-layer detail lives nested under
+    `quantized_layers.<layer path>.quant_algo` (values like "W4A16_NVFP4",
+    "FP8") and/or `config_groups.<group>.quant_algo`. Such repos are still
+    NVFP4 releases in every practical sense, so we look past the top-level
+    label when it says MIXED_PRECISION — but only at those two known
+    sub-trees' `quant_algo` values, never a blind scan of the whole
+    quantization_config (an unrelated free-text field or a boolean flag
+    mentioning "nvfp4" must not cause a false positive).
     """
     if not isinstance(cfg, dict):
         return None
@@ -88,17 +91,46 @@ def parse_quant_format(cfg: dict) -> str | None:
     direct = _QUANT_METHOD_FORMATS.get(method)
     if direct:
         return direct
-    if algo == "MIXED_PRECISION" and _nested_contains_nvfp4(qc):
+    if algo == "MIXED_PRECISION" and any(
+        "NVFP4" in a.upper() for a in _mixed_precision_quant_algos(qc)
+    ):
         return "NVFP4"
     return None
 
 
-def _nested_contains_nvfp4(qc: dict) -> bool:
-    """True if any per-layer entry under quantization_config names NVFP4."""
-    try:
-        return "NVFP4" in json.dumps(qc).upper()
-    except (TypeError, ValueError):
-        return False
+def _mixed_precision_quant_algos(qc: dict) -> list[str]:
+    """Per-layer/per-group `quant_algo` strings from ModelOpt's mixed-precision
+    sub-trees only — `config_groups` and `quantized_layers` — verified against
+    the live nvidia/Qwen3.6-27B-NVFP4 shape, where
+    `quantized_layers.<layer>.quant_algo` carries values like "W4A16_NVFP4"
+    and "FP8" (config_groups itself only carries bit-width/type there, but
+    other ModelOpt schema versions may put a `quant_algo` per group, so both
+    sub-trees are walked). Deliberately scoped: no other key of
+    quantization_config (e.g. "ignore", "producer", a hypothetical
+    "description") is inspected.
+    """
+    algos: list[str] = []
+    for section_key in ("config_groups", "quantized_layers"):
+        section = qc.get(section_key)
+        if isinstance(section, dict):
+            for entry in section.values():
+                algos.extend(_collect_quant_algo_values(entry))
+    return algos
+
+
+def _collect_quant_algo_values(node: object) -> list[str]:
+    """Recursively pull string values found under a `quant_algo` key."""
+    values: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "quant_algo" and isinstance(value, str):
+                values.append(value)
+            else:
+                values.extend(_collect_quant_algo_values(value))
+    elif isinstance(node, list):
+        for item in node:
+            values.extend(_collect_quant_algo_values(item))
+    return values
 
 
 def _attention_kind(
