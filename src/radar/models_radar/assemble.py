@@ -9,12 +9,15 @@ from radar.models_radar.collectors.ollama import (
     tag_param_billions,
 )
 from radar.models_radar.entities import (
+    ArchitectureSpec,
+    AttentionKind,
     Modality,
     ModelEntry,
     ModelSeed,
     Openness,
     Platform,
     QuantVariant,
+    SpecProvenance,
 )
 from radar.models_radar.memory import estimate_memory_gb, hardware_tier, minimum_viable_quant
 
@@ -24,6 +27,9 @@ _BITS_BY_FORMAT = {
     "q2": 2.6, "q3": 3.4, "q4": 4.5, "q5": 5.5, "q6": 6.6,
     "q8": 8.0, "fp16": 16.0, "f16": 16.0, "bf16": 16.0,
     "awq": 4.0, "gptq": 4.0, "mlx-4bit": 4.5, "mlx-8bit": 8.0,
+    # Datacenter formats: fp8 is weight bits; nvfp4/mxfp4 are 4-bit + block
+    # scales (~0.25 bit overhead). Matched before "q4" etc. via key order.
+    "fp8": 8.0, "nvfp4": 4.25, "mxfp4": 4.25,
 }
 _REF_4K = 4096
 _REF_32K = 32768
@@ -62,6 +68,35 @@ def openness_from_license(license: str | None) -> Openness | None:
     return Openness.OPEN_RESTRICTED
 
 
+def merge_architecture(
+    seed_arch: ArchitectureSpec | None,
+    hf_arch: ArchitectureSpec | None,
+) -> tuple[ArchitectureSpec | None, set[str]]:
+    """Per-field merge, seed wins; returns (merged, fields-that-came-from-seed).
+
+    attention_kind counts as seed-provided only when the seed explicitly set
+    it (not the UNKNOWN default).
+    """
+    if seed_arch is None and hf_arch is None:
+        return None, set()
+    base = hf_arch or ArchitectureSpec()
+    if seed_arch is None:
+        return base, set()
+    updates: dict[str, object] = {}
+    from_seed: set[str] = set()
+    for field in ArchitectureSpec.model_fields:
+        seed_value = getattr(seed_arch, field)
+        if field == "attention_kind":
+            if seed_value is not AttentionKind.UNKNOWN:
+                updates[field] = seed_value
+                from_seed.add(field)
+            continue
+        if seed_value is not None:
+            updates[field] = seed_value
+            from_seed.add(field)
+    return base.model_copy(update=updates), from_seed
+
+
 def _modality(seed: ModelSeed, hf: HFModelData | None) -> Modality:
     if seed.modality is not None:
         return seed.modality
@@ -77,6 +112,7 @@ def build_model_entry(
     seed: ModelSeed,
     hf: HFModelData | None,
     ollama_quants: list[OllamaQuant],
+    retrieved_at: str | None = None,
 ) -> ModelEntry:
     """Merge order: manual seed overrides win over collected HF/Ollama data."""
     params_total = seed.params_total or (hf.params_total if hf else None)
@@ -84,7 +120,41 @@ def build_model_entry(
     hidden = seed.hidden_size or (hf.hidden_size if hf else None)
     context = seed.context_length or (hf.context_length if hf else None)
     license_ = seed.license or (hf.license if hf else None)
-    openness = seed.openness or openness_from_license(license_)
+    openness = seed.openness or (
+        Openness.GATED if (hf and hf.gated) else openness_from_license(license_)
+    )
+
+    architecture, arch_from_seed = merge_architecture(
+        seed.architecture, hf.architecture if hf else None
+    )
+    hf_url = f"https://huggingface.co/{seed.hf_repo}" if seed.hf_repo else None
+
+    def _prov(from_seed: bool, source_kind: str) -> SpecProvenance:
+        if from_seed:
+            return SpecProvenance(source="seed", verified=seed.spec_verified)
+        return SpecProvenance(
+            source=source_kind, url=hf_url, retrieved_at=retrieved_at
+        )
+
+    provenance: dict[str, SpecProvenance] = {}
+    if params_total is not None:
+        provenance["params_total"] = _prov(seed.params_total is not None, "hf-api")
+    if seed.params_active is not None:
+        provenance["params_active"] = _prov(True, "hf-api")
+    if context is not None:
+        provenance["context_length"] = _prov(seed.context_length is not None, "hf-config")
+    if license_ is not None:
+        provenance["license"] = _prov(seed.license is not None, "hf-api")
+    if architecture is not None:
+        for field in ArchitectureSpec.model_fields:
+            value = getattr(architecture, field)
+            populated = value is not None and (
+                field != "attention_kind" or value is not AttentionKind.UNKNOWN
+            )
+            if populated:
+                provenance[f"architecture.{field}"] = _prov(
+                    field in arch_from_seed, "hf-config"
+                )
 
     quants: list[QuantVariant] = []
     seen: set[tuple[str, Platform]] = set()
@@ -126,6 +196,15 @@ def build_model_entry(
     if hf:
         for fmt in hf.quant_formats:
             add(fmt, bits_for_format(fmt), Platform.GENERIC, f"hf:{seed.hf_repo}")
+    if hf and hf.repo_quant_format:
+        # The repo's own weights are quantized (FP8/NVFP4/...) — one real
+        # variant; never pretend a GGUF ladder exists for these.
+        add(
+            hf.repo_quant_format,
+            bits_for_format(hf.repo_quant_format),
+            Platform.GENERIC,
+            f"hf:{seed.hf_repo}",
+        )
     for oq in _ollama_quants_for_size(ollama_quants, params_total):
         add(
             f"Ollama {oq.tag}",
@@ -159,6 +238,7 @@ def build_model_entry(
         params_active=seed.params_active,
         num_layers=num_layers,
         hidden_size=hidden,
+        architecture=architecture,
         context_length=context,
         modality=_modality(seed, hf),
         license=license_,
@@ -171,6 +251,8 @@ def build_model_entry(
         hardware_tier=tier,
         quants=quants,
         warnings=warnings,
+        provenance=provenance,
+        benchmarks=seed.benchmarks,
     )
 
 

@@ -15,7 +15,7 @@ def test_models_list_reads_latest_scan(tmp_path: Path, monkeypatch):
     # Stub the scan so the CLI test stays offline.
     from radar.models_radar.entities import HardwareTier, ModelEntry, QuantVariant
 
-    async def fake_scan(seed_path, client):
+    async def fake_scan(seed_path, client, retrieved_at=None):
         return [ModelEntry(id="llama-3.1-8b", name="Llama 3.1 8B", family="Llama",
                            hardware_tier=HardwareTier.LAPTOP,
                            quants=[QuantVariant(format="GGUF Q4_K_M", bits_per_weight=4.5,
@@ -107,7 +107,7 @@ def test_models_scan_persists_rings_and_list_shows_them(tmp_path, monkeypatch):
     runner = CliRunner()
     runner.invoke(app, ["init", "--root", str(tmp_path)])
 
-    async def fake_scan(seed_path, client):
+    async def fake_scan(seed_path, client, retrieved_at=None):
         return [ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3",
                            params_total=8_000_000_000, openness=Openness.OPEN_PERMISSIVE,
                            hardware_tier=HardwareTier.LAPTOP, hf_downloads=1_000_000,

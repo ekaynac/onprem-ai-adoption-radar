@@ -288,7 +288,9 @@ def models_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> N
 
     async def _run():
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            return await run_model_scan(valid_seeds, client)
+            return await run_model_scan(
+                valid_seeds, client, retrieved_at=datetime.now(UTC).date().isoformat()
+            )
 
     entries = asyncio.run(_run())
     entries = score_entries(entries)
