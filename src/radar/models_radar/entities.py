@@ -37,6 +37,58 @@ class HardwareTier(str, Enum):
     UNKNOWN = "unknown"
 
 
+class AttentionKind(str, Enum):
+    """How the model attends — determines the KV-cache formula (sub-project D)."""
+
+    MHA = "mha"          # classic multi-head: kv_heads == heads
+    GQA = "gqa"          # grouped-query: kv_heads < heads
+    MLA = "mla"          # DeepSeek latent attention: compressed KV
+    HYBRID = "hybrid"    # explicit mixed layer types (e.g. Gemma 3 local/global)
+    UNKNOWN = "unknown"
+
+
+class ArchitectureSpec(BaseModel):
+    """Attention/MoE geometry from config.json (or a curated seed override).
+
+    All fields optional: a seed may override just one number, and old
+    persisted entries carry none. Consumed by the capacity engine (D).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    attention_kind: AttentionKind = AttentionKind.UNKNOWN
+    num_attention_heads: int | None = None
+    num_key_value_heads: int | None = None
+    head_dim: int | None = None
+    kv_lora_rank: int | None = None       # MLA latent dim (DeepSeek family)
+    qk_rope_head_dim: int | None = None   # MLA rope sub-dim
+    num_experts: int | None = None        # MoE routed experts
+    experts_per_token: int | None = None  # MoE active experts per token
+    sliding_window: int | None = None
+    vocab_size: int | None = None
+
+
+class SpecProvenance(BaseModel):
+    """Where a spec number came from — every capacity answer cites this."""
+
+    model_config = ConfigDict(frozen=True)
+
+    source: str                      # "seed" | "hf-config" | "hf-api" | "synthesized"
+    url: str | None = None
+    retrieved_at: str | None = None  # ISO date of collection; None for seed values
+    verified: bool = False           # True = human-checked against the model card
+
+
+class BenchmarkScore(BaseModel):
+    """One curated, cited benchmark result (never scraped)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    score: float
+    source_url: str
+
+
 class QuantVariant(BaseModel):
     """One quantization of a model."""
 
@@ -80,6 +132,7 @@ class ModelEntry(BaseModel):
     params_active: int | None = None      # < total for MoE; None → treated as dense
     num_layers: int | None = None
     hidden_size: int | None = None
+    architecture: ArchitectureSpec | None = None
     context_length: int | None = None
     modality: Modality = Modality.TEXT
     license: str | None = None
@@ -92,6 +145,8 @@ class ModelEntry(BaseModel):
     hardware_tier: HardwareTier = HardwareTier.UNKNOWN
     quants: list[QuantVariant] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    provenance: dict[str, SpecProvenance] = Field(default_factory=dict)
+    benchmarks: list[BenchmarkScore] = Field(default_factory=list)
     score: float | None = None
     score_breakdown: ModelScore | None = None
     ring: Ring | None = None
@@ -115,6 +170,7 @@ class ModelSeed(BaseModel):
     params_active: int | None = None
     num_layers: int | None = None
     hidden_size: int | None = None
+    architecture: ArchitectureSpec | None = None
     context_length: int | None = None
     modality: Modality | None = None
     license: str | None = None
@@ -122,3 +178,5 @@ class ModelSeed(BaseModel):
     release_date: str | None = None   # ISO date "YYYY-MM" or "YYYY-MM-DD"
     use_case: str | None = None        # short note, e.g. "reasoning", "coding", "general chat"
     manual_quants: list[QuantVariant] = Field(default_factory=list)
+    benchmarks: list[BenchmarkScore] = Field(default_factory=list)
+    spec_verified: bool = False
