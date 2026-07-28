@@ -48,3 +48,26 @@ def test_seed_ornith_params_corrected():
     seeds = load_model_seed(_REPO_ROOT / "config" / "model-seed.yaml")
     ornith = next(s for s in seeds if s.id == "hf-ornith-1-0-35b")
     assert ornith.params_total == 35_000_000_000
+
+
+def test_datacenter_moe_seeds_carry_active_params_or_documented_absence():
+    seeds = {s.id: s for s in load_model_seed(_REPO_ROOT / "config" / "model-seed.yaml")}
+    # The two flagship DeepSeek-V4 seeds drove this program — they must carry
+    # curated MoE data (or the YAML documents why not, which fails this test
+    # deliberately so a human revisits it when the numbers get published).
+    #
+    # Step-1 finding (2026-07-28): DeepSeek-V4-Flash/Pro's own model card
+    # (https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash, "Hybrid Attention
+    # Architecture" section) states the V4 series uses a *new* mechanism —
+    # "Compressed Sparse Attention (CSA) + Heavily Compressed Attention (HCA)"
+    # — not the classic MLA used by V3/R1. Their config.json also lacks the
+    # `kv_lora_rank` key that marks MLA in this codebase's own auto-ingest
+    # heuristic (radar.models_radar.hf_config._attention_kind). So the
+    # brief's illustrative "mla" assertion is replaced with "hybrid" here —
+    # verified against the primary source, not invented.
+    for seed_id in ("hf-deepseek-v4-flash", "hf-deepseek-v4-pro"):
+        seed = seeds[seed_id]
+        assert seed.params_active is not None, f"{seed_id} lacks params_active"
+        assert seed.architecture is not None, f"{seed_id} lacks architecture"
+        assert seed.architecture.attention_kind.value == "hybrid"
+        assert seed.spec_verified is True
