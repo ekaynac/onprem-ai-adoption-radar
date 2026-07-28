@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from urllib.parse import quote
 
@@ -15,7 +16,8 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from radar.discovery.trending_entities import Lane, TrendingEntry
+from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
+from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.mcp_server.model_queries import _latest_model_cards
 from radar.mcp_server.technique_queries import load_technique_entries
 from radar.mcp_server.trending_queries import load_trending_entries
@@ -52,6 +54,8 @@ from radar.web.spark_series import downloads_sparkline, star_sparkline, trending
 from radar.web.tenure import model_tenure, project_tenure
 from radar.web.trending_summary import summarize_trending
 
+
+logger = logging.getLogger(__name__)
 
 _WEB_DIR = Path(__file__).parent
 STATIC_DIR = _WEB_DIR / "static"
@@ -105,6 +109,12 @@ def create_app(root: Path) -> FastAPI:
     def _trending_entries() -> list[TrendingEntry]:
         from datetime import UTC, datetime
         return load_trending_entries(root, datetime.now(UTC))
+
+    def _trending_observations() -> list[TrendingObservation]:
+        """Raw observations backing /trending's per-window rebuild and its
+        window-independent spark map; [] when the store is absent or corrupt
+        (guarded by ``load_observations`` itself)."""
+        return load_observations(root / "data" / "trending-observations.jsonl")
 
     def _hub_sections():
         from datetime import UTC, datetime
@@ -347,18 +357,30 @@ def create_app(root: Path) -> FastAPI:
         )
 
     @app.get("/trending", response_class=HTMLResponse)
-    def trending_page(request: Request):
-        entries = _trending_entries()
+    def trending_page(request: Request, window: str = "7d"):
+        from datetime import UTC, datetime
+
+        days = TRENDING_WINDOWS.get(window)
+        if days is None:
+            window, days = "7d", TRENDING_WINDOWS["7d"]
+        observations = _trending_observations()
+        try:
+            entries = build_trending(observations, datetime.now(UTC), window_days=days)
+        except Exception as exc:
+            logger.warning("Trending derivation failed for window=%s: %s", window, exc)
+            entries = []
         onprem = [e for e in entries if e.lane == Lane.ONPREM]
         broader = [e for e in entries if e.lane == Lane.BROADER]
         model_hub, technique_hub = _hub_sections()
-        observations = load_observations(root / "data" / "trending-observations.jsonl")
         return TEMPLATES.TemplateResponse(request, "trending.html", {
             "onprem": onprem, "broader": broader,
             "model_hub": model_hub, "technique_hub": technique_hub,
             "model_candidates": _model_candidates(),
             "technique_candidates": _technique_candidates(),
             "spark_by_repo": trending_sparklines(observations),
+            "active_window": window,
+            "windows": list(TRENDING_WINDOWS),
+            "window_hrefs": {w: f"/trending?window={w}" for w in TRENDING_WINDOWS},
         })
 
     @app.get("/technique/{technique_id}", response_class=HTMLResponse)

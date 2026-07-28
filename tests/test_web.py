@@ -1417,6 +1417,61 @@ def test_trending_status_headers(tmp_path):
     assert "<th></th>" not in r.text
 
 
+# ---------------------------------------------------------------------------
+# Trending time-window tabs: 7d/30d/90d (differentiation pass, Task 4)
+# ---------------------------------------------------------------------------
+
+
+def test_trending_route_default_window_is_7d(tmp_path):
+    r = TestClient(create_app(tmp_path)).get("/trending")
+
+    assert r.status_code == 200
+    assert 'tab-active">7d' in r.text
+    assert 'href="/trending?window=30d"' in r.text
+    assert 'href="/trending?window=90d"' in r.text
+
+
+def test_trending_route_window_param_switches_active_tab(tmp_path):
+    r = TestClient(create_app(tmp_path)).get("/trending?window=30d")
+
+    assert r.status_code == 200
+    assert 'tab-active">30d' in r.text
+    assert 'href="/trending?window=7d"' in r.text
+
+
+def test_trending_route_unknown_window_falls_back_to_7d(tmp_path):
+    r = TestClient(create_app(tmp_path)).get("/trending?window=1h")
+
+    assert r.status_code == 200
+    assert 'tab-active">7d' in r.text
+
+
+def test_trending_route_window_changes_velocity_value(tmp_path):
+    from datetime import UTC, datetime, timedelta
+
+    from radar.discovery.trending_entities import Lane as _L
+    from radar.discovery.trending_entities import TrendingObservation as _O
+    from radar.storage.trending_observations_log import append_observations
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    now = datetime.now(UTC)
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [
+        _O(repo="win/test", lane=_L.ONPREM, stars=stars,
+           observed_at=now - timedelta(days=days_ago),
+           repo_created_at=now - timedelta(days=200),
+           description="d", topics=["llm"], license="MIT")
+        for days_ago, stars in ((20, 100), (1, 400))  # +300 over 19 days = 15.8/day
+    ])
+    client = TestClient(create_app(tmp_path))
+
+    r7 = client.get("/trending")
+    r30 = client.get("/trending?window=30d")
+
+    assert "win/test" in r7.text and "win/test" in r30.text
+    assert "15.8" not in r7.text   # only the 1d-ago row qualifies for 7d -> velocity None
+    assert "15.8" in r30.text      # both rows qualify for 30d -> a real velocity
+
+
 def test_index_legend_has_risk_column(tmp_path: Path):
     r = TestClient(create_app(tmp_path)).get("/")
     assert "<h4>Risk</h4>" in r.text

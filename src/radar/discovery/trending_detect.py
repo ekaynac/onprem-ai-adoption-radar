@@ -14,10 +14,13 @@ from radar.discovery.trending_entities import TrendingEntry, TrendingObservation
 
 VELOCITY_WINDOW_DAYS = 7
 NEW_WINDOW_DAYS = 14
+TRENDING_WINDOWS: dict[str, int] = {"7d": 7, "30d": 30, "90d": 90}
 
-def star_velocity(rows: list[TrendingObservation], now: datetime) -> float | None:
+def star_velocity(
+    rows: list[TrendingObservation], now: datetime, window_days: int = VELOCITY_WINDOW_DAYS
+) -> float | None:
     """Stars/day across in-window rows; None with <2 rows or a zero day-span."""
-    cutoff = now - timedelta(days=VELOCITY_WINDOW_DAYS)
+    cutoff = now - timedelta(days=window_days)
     in_window = sorted(
         (r for r in rows if r.observed_at >= cutoff), key=lambda r: r.observed_at
     )
@@ -34,7 +37,9 @@ def is_new(repo_created_at: datetime, now: datetime) -> bool:
 
 
 def build_trending(
-    observations: list[TrendingObservation], now: datetime
+    observations: list[TrendingObservation],
+    now: datetime,
+    window_days: int = VELOCITY_WINDOW_DAYS,
 ) -> list[TrendingEntry]:
     by_repo: dict[str, list[TrendingObservation]] = {}
     for obs in observations:
@@ -45,7 +50,7 @@ def build_trending(
         latest = ordered[-1]
         entries.append(TrendingEntry(
             repo=repo, lane=latest.lane, stars=latest.stars,
-            velocity_per_day=star_velocity(ordered, now),
+            velocity_per_day=star_velocity(ordered, now, window_days=window_days),
             is_new=is_new(latest.repo_created_at, now),
             first_seen=ordered[0].observed_at.date().isoformat(),
             description=latest.description, topics=latest.topics, license=latest.license,

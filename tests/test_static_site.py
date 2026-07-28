@@ -709,6 +709,62 @@ def test_static_trending_page_shows_sparklines(tmp_path):
     assert 'class="spark"' in page
 
 
+def test_static_trending_writes_three_window_variants(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        trending_observations=_trending_obs(),
+    )
+    site = tmp_path / "_site"
+
+    assert (site / "trending.html").exists()
+    assert (site / "trending-30d.html").exists()
+    assert (site / "trending-90d.html").exists()
+
+
+def test_static_trending_variants_show_active_tab_and_cross_link(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        trending_observations=_trending_obs(),
+    )
+    site = tmp_path / "_site"
+
+    default_page = (site / "trending.html").read_text(encoding="utf-8")
+    assert 'tab-active">7d' in default_page
+    assert 'href="trending-30d.html"' in default_page
+    assert 'href="trending-90d.html"' in default_page
+
+    page_30d = (site / "trending-30d.html").read_text(encoding="utf-8")
+    assert 'tab-active">30d' in page_30d
+    assert 'href="trending.html"' in page_30d   # links back to the 7d (default-named) page
+
+    page_90d = (site / "trending-90d.html").read_text(encoding="utf-8")
+    assert 'tab-active">90d' in page_90d
+
+
+def test_static_trending_window_changes_velocity_value(tmp_path):
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+
+    obs = [
+        TrendingObservation(
+            repo="win/test", lane=Lane.ONPREM, stars=stars,
+            observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+            repo_created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            description="d", topics=["llm"], license="MIT")
+        for day, stars in ((8, 100), (27, 400))  # +300 over 19 days = 15.8/day
+    ]
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        trending_observations=obs,
+    )
+    site = tmp_path / "_site"
+
+    page_7d = (site / "trending.html").read_text(encoding="utf-8")
+    page_30d = (site / "trending-30d.html").read_text(encoding="utf-8")
+
+    assert "15.8" not in page_7d   # only the day-27 row is within the default 7d window
+    assert "15.8" in page_30d      # both rows qualify for 30d -> a real velocity
+
+
 def test_static_site_backcompat_without_trending(tmp_path):
     render_static_site([], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC))
 

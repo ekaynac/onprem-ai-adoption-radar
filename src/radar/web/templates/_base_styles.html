@@ -192,6 +192,19 @@
     background: var(--surface); color: var(--text); cursor: pointer;
   }
 
+  /* Window tabs (velocity 7d/30d/90d) — mirrors the filter-bar pill styling */
+  .tabs { display: flex; gap: 0.4rem; margin: 0.5rem 0 1rem; flex-wrap: wrap; }
+  .tab {
+    display: inline-block; padding: 0.3rem 0.85rem; border: 1px solid var(--border-mid);
+    border-radius: 999px; background: var(--surface); color: var(--text);
+    font-size: 0.85rem; text-decoration: none;
+  }
+  .tab:hover { border-color: var(--blue); }
+  .tab-active {
+    background: rgba(0,159,218,0.12); color: var(--blue-dark);
+    border-color: rgba(0,159,218,0.35); font-weight: 700;
+  }
+
   /* Legend */
   .legend { margin: 0.5rem 0 1.5rem; font-size: 0.9rem; }
   .legend summary { cursor: pointer; color: var(--muted); font-weight: 700; }

@@ -18,7 +18,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from radar.discovery.model_candidate_detect import ModelCandidateEntry
 from radar.discovery.technique_candidate_detect import TechniqueCandidateEntry
-from radar.discovery.trending_detect import build_trending
+from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.models import Category, DecisionCard, Ring
 from radar.models_radar.entities import ModelEntry
@@ -111,9 +111,13 @@ def render_static_site(
     technique's resolved-implementation ref to its project/model page href,
     driving the technique pages' "Implementations" links. When
     ``trending_observations`` is provided, derives trending entries and writes
-    ``trending.html`` (two lanes: on-prem candidates and broader AI heat).
+    three velocity-window variants — ``trending.html`` (7d, the back-compat
+    default filename), ``trending-30d.html``, ``trending-90d.html`` — each with
+    a tab nav cross-linking the others (two lanes per page: on-prem candidates
+    and broader AI heat; repo membership is identical across variants, only
+    each entry's velocity_per_day differs by window).
     ``model_hub``/``technique_hub`` (optional) supply the "Trending Models"/
-    "Trending Techniques" sections on that same page — ``trending.html`` is
+    "Trending Techniques" sections identically on all three pages — they are
     written whenever any of ``trending_observations``, ``model_hub``,
     ``technique_hub``, ``model_candidates``, or ``technique_candidates``
     yields data. ``top_model``/``top_technique`` (optional) drive the
@@ -188,14 +192,21 @@ def render_static_site(
     # Summarize models for the index page banner (None when no models yet).
     models_summary = summarize_models(model_entries) if model_entries else None
     techniques_summary = summarize_techniques(technique_entries) if technique_entries else None
+    # One set of entries per velocity window (7d/30d/90d) — window_days only
+    # changes each entry's velocity_per_day, never repo membership, so the
+    # write-guard/summary below can keep using the 7d set unchanged.
     try:
-        trending_entries = (
-            build_trending(trending_observations, generated_at)
-            if trending_observations else []
+        trending_entries_by_window = (
+            {
+                key: build_trending(trending_observations, generated_at, window_days=days)
+                for key, days in TRENDING_WINDOWS.items()
+            }
+            if trending_observations else {key: [] for key in TRENDING_WINDOWS}
         )
     except Exception as exc:
         logger.warning("Trending derivation failed during export: %s", exc)
-        trending_entries = []
+        trending_entries_by_window = {key: [] for key in TRENDING_WINDOWS}
+    trending_entries = trending_entries_by_window["7d"]
     trending_summary = summarize_trending(trending_entries) if trending_entries else None
     spark_by_repo = trending_sparklines(trending_observations or [])
 
@@ -266,14 +277,18 @@ def render_static_site(
         )
 
     if trending_entries or model_hub or technique_hub or model_candidates or technique_candidates:
-        _write_trending_page(
-            env, out_dir, trending_entries, stamp,
-            model_hub=model_hub or [], technique_hub=technique_hub or [],
-            model_slugs=model_slugs, technique_slugs=technique_slugs,
-            model_candidates=model_candidates or [],
-            technique_candidates=technique_candidates or [],
-            spark_by_repo=spark_by_repo,
-        )
+        for window_key in TRENDING_WINDOWS:
+            filename = "trending.html" if window_key == "7d" else f"trending-{window_key}.html"
+            _write_trending_page(
+                env, out_dir, trending_entries_by_window[window_key], stamp,
+                model_hub=model_hub or [], technique_hub=technique_hub or [],
+                model_slugs=model_slugs, technique_slugs=technique_slugs,
+                model_candidates=model_candidates or [],
+                technique_candidates=technique_candidates or [],
+                spark_by_repo=spark_by_repo,
+                filename=filename,
+                active_window=window_key,
+            )
 
     # Publish the generated weekly digests (page + cards + feeds) alongside
     # the site. Only offered when the directory exists — back-compat for
@@ -471,11 +486,22 @@ def _write_trending_page(
     model_candidates: list[ModelCandidateEntry] | None = None,
     technique_candidates: list[TechniqueCandidateEntry] | None = None,
     spark_by_repo: dict[str, str] | None = None,
+    filename: str = "trending.html",
+    active_window: str = "7d",
 ) -> None:
-    """Render trending.html (repo lanes + Models/Techniques hub sections)."""
+    """Render one trending page variant (repo lanes + Models/Techniques hub
+    sections). Called once per velocity window (Task 4) — ``filename``/
+    ``active_window`` select which of trending.html (7d, back-compat name)/
+    trending-30d.html/trending-90d.html gets written and which tab shows as
+    active; the tab nav always links across all three filenames so the pages
+    cross-link like the live route's ``?window=`` query param."""
     onprem = [e for e in trending_entries if e.lane == Lane.ONPREM]
     broader = [e for e in trending_entries if e.lane == Lane.BROADER]
-    (out_dir / "trending.html").write_text(
+    window_hrefs = {
+        key: ("trending.html" if key == "7d" else f"trending-{key}.html")
+        for key in TRENDING_WINDOWS
+    }
+    (out_dir / filename).write_text(
         env.get_template("static_trending.html").render(
             onprem=onprem, broader=broader, generated_at=generated_at,
             model_hub=model_hub or [], technique_hub=technique_hub or [],
@@ -483,6 +509,9 @@ def _write_trending_page(
             model_candidates=model_candidates or [],
             technique_candidates=technique_candidates or [],
             spark_by_repo=spark_by_repo or {},
+            active_window=active_window,
+            windows=list(TRENDING_WINDOWS),
+            window_hrefs=window_hrefs,
         ),
         encoding="utf-8",
     )
