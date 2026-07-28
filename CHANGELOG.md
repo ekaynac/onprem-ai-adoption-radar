@@ -17,12 +17,11 @@ All notable changes to this project are documented here. The format follows
   earlier runs can now be corrected with `radar history repair`, which uses a
   corrective-event log to track fixes. The command lists expected corrections
   before applying them (dry-run aware).
-- **Source-health JSONL & web UI** — a durable log records per-source collection
-  outcomes; the web UI displays source health on the dashboard and sources page,
-  making data-quality issues visible.
-- **Card staleness detection** — emerging models/techniques that stop appearing
-  in daily scans are marked STALE on the trending page so stale numbers aren't
-  misleading.
+- **Source-health JSONL log** — per-source collection outcomes (ok/empty/error)
+  are now also recorded to a durable, append-only `data/source-health.jsonl`
+  log mirroring `history.jsonl`, with idempotent DB rehydration on scan.
+- **Card staleness detection** — dashboard + static site show a mixed-age
+  decision-cards note when persisted cards span multiple scan days.
 - **Catalog validation gate** — ensures data constraints are enforced before the
   daily build.
 - **CI-only history lane** — local non-published scans log to a separate

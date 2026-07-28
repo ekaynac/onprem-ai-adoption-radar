@@ -34,7 +34,11 @@ gitignored, disposable file — instead of the committed `data/history.jsonl`.
 Only `radar scan --publish-history` appends to the committed log, and the
 `publish.yml` CI workflow is the one caller that passes it. This makes CI the
 sole writer of the shared timeline *in the common case*, so laptop/dev scans
-never diverge it from what's committed.
+never diverge it from what's committed. `data/source-health.jsonl` (per-source
+collection outcomes) follows the identical rule: `--publish-history` scans
+append to the committed file, everything else appends to the gitignored
+`data/local/source-health.jsonl` lane instead — but a scan always rehydrates
+the DB projection from the committed log only, never the local one.
 
 One exception: if the committed log is ever missing or empty while the
 database still has events, the next scan's legacy backfill (below) regenerates
