@@ -1734,3 +1734,107 @@ def test_model_detail_no_tenure_without_history(tmp_path: Path):
 
     text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
     assert 'class="tenure"' not in text
+
+
+# ---------------------------------------------------------------------------
+# Embeddable badges (Task 5)
+# ---------------------------------------------------------------------------
+
+
+def test_project_badge_route_serves_svg(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    r = TestClient(create_app(tmp_path)).get("/badge/vllm.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/svg+xml"
+    assert "ADOPT" in r.text
+
+
+def test_project_badge_route_unknown_slug_404s(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/badge/does-not-exist.svg")
+    assert r.status_code == 404
+
+
+def test_model_ring_badge_route_serves_svg(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/badge/model-qwen3-8b.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/svg+xml"
+    assert "ADOPT" in r.text
+
+
+def test_model_ring_badge_route_404_when_unknown_model(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    client = TestClient(create_app(tmp_path))
+    assert client.get("/badge/model-does-not-exist.svg").status_code == 404
+
+
+def test_model_fit_badge_route_serves_svg_with_quant(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/badge/fit-qwen3-8b.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/svg+xml"
+    assert "laptop" in r.text and "Q4_K_M" in r.text
+
+
+def test_model_fit_badge_route_404_when_hardware_tier_unknown(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+    from radar.storage.run_store import RunStore
+
+    (tmp_path / "data").mkdir(parents=True)
+    rs = RunStore(tmp_path / "data" / "runs")
+    rid = rs.create_run()
+    e = ModelEntry(id="mystery", name="Mystery", family="F")  # hardware_tier defaults unknown
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json")])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+    client = TestClient(create_app(tmp_path))
+    assert client.get("/badge/fit-mystery.svg").status_code == 404
+
+
+def test_project_detail_page_has_badge_section(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert "<h2>Badge</h2>" in text
+    assert 'class="badge-snippet"' in text
+    assert "/badge/vllm.svg" in text
+    assert "/project/vLLM" in text
+
+
+def test_model_detail_page_has_ring_and_fit_badge_sections(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+    assert "<h2>Badge</h2>" in text
+    assert "/badge/model-qwen3-8b.svg" in text
+    assert "/badge/fit-qwen3-8b.svg" in text
+
+
+def test_model_detail_page_omits_badge_section_when_unringed_and_unknown_tier(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+    from radar.storage.run_store import RunStore
+
+    (tmp_path / "data").mkdir(parents=True)
+    rs = RunStore(tmp_path / "data" / "runs")
+    rid = rs.create_run()
+    e = ModelEntry(id="mystery", name="Mystery", family="F")
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json")])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+    text = TestClient(create_app(tmp_path)).get("/model/mystery").text
+    assert "<h2>Badge</h2>" not in text

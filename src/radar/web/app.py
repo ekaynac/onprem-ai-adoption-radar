@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, Response
 from fastapi.responses import (
     FileResponse,
     HTMLResponse,
@@ -22,8 +22,9 @@ from radar.mcp_server.model_queries import _latest_model_cards
 from radar.mcp_server.technique_queries import load_technique_entries
 from radar.mcp_server.trending_queries import load_trending_entries
 from radar.models import Category, SourceType
-from radar.models_radar.entities import ModelEntry
+from radar.models_radar.entities import HardwareTier, ModelEntry
 from radar.models_radar.history import ModelHistoryEvent, load_model_events
+from radar.models_radar.memory import minimum_viable_quant
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.research_radar.entities import ImplKind, TechniqueEntry
 from radar.research_radar.history import load_technique_events
@@ -43,6 +44,7 @@ from radar.storage.seed_store import SeedError, add_seed
 from radar.storage.source_health_store import SourceHealthStore
 from radar.storage.trending_observations_log import load_observations
 from radar.web.backer_badge import backer_badge
+from radar.web.badge import badge_markdown, fit_badge_svg, ring_badge_svg
 from radar.web.hub_sections import load_hub_sections
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
@@ -207,16 +209,50 @@ def create_app(root: Path) -> FastAPI:
             filename="radar-history.jsonl",
         )
 
+    # Model badge routes are registered before the generic project-slug route
+    # below so their literal "model-"/"fit-" prefixes win the match — the
+    # slug route's pattern would otherwise swallow them too.
+    @app.get("/badge/model-{model_id}.svg")
+    def model_ring_badge(model_id: str):
+        """Serve a model's ring badge (shields-style SVG), or 404 if unknown/unringed."""
+        entry = next((e for e in _model_entries() if e.id == model_id), None)
+        if entry is None or entry.ring is None:
+            return PlainTextResponse("Unknown model badge", status_code=404)
+        return Response(content=ring_badge_svg(entry.ring.value), media_type="image/svg+xml")
+
+    @app.get("/badge/fit-{model_id}.svg")
+    def model_fit_badge(model_id: str):
+        """Serve a model's fit badge (hardware tier + min-viable quant), or 404."""
+        entry = next((e for e in _model_entries() if e.id == model_id), None)
+        if entry is None or entry.hardware_tier == HardwareTier.UNKNOWN:
+            return PlainTextResponse("Unknown model fit badge", status_code=404)
+        quant = minimum_viable_quant(entry.quants)
+        svg = fit_badge_svg(entry.hardware_tier.value, quant.format if quant else None)
+        return Response(content=svg, media_type="image/svg+xml")
+
+    @app.get("/badge/{slug}.svg")
+    def project_badge(slug: str):
+        """Serve a tracked project's ring badge (shields-style SVG), or 404 if unknown."""
+        db.initialize()
+        cards = db.list_cards()
+        slug_map = build_slug_map([c.project for c in cards])
+        card = next((c for c in cards if slug_map[c.project] == slug), None)
+        if card is None:
+            return PlainTextResponse("Unknown project badge", status_code=404)
+        return Response(content=ring_badge_svg(card.ring.value), media_type="image/svg+xml")
+
     @app.get("/project/{name}", response_class=HTMLResponse)
     def project_detail(request: Request, name: str):
         from datetime import UTC, datetime
 
         db.initialize()
+        all_cards = db.list_cards()
+        slug_by_project = build_slug_map([c.project for c in all_cards])
         # Exact match first; fall back to case-insensitive so the URL is forgiving.
         card = db.get_card(name)
         if card is None:
             card = next(
-                (c for c in db.list_cards() if c.project.lower() == name.lower()),
+                (c for c in all_cards if c.project.lower() == name.lower()),
                 None,
             )
         if card is None:
@@ -231,6 +267,12 @@ def create_app(root: Path) -> FastAPI:
         events = history.history_for(card.project)
         metric_rows_oldest_first = metrics.history_for(card.project)
         metric_rows = list(reversed(metric_rows_oldest_first))  # newest-first
+        slug = slug_by_project[card.project]
+        badge_snippet = badge_markdown(
+            f"/badge/{slug}.svg",
+            f"/project/{quote(card.project, safe='')}",
+            f"On-Prem Radar: {card.ring.value.upper()}",
+        )
         return TEMPLATES.TemplateResponse(
             request,
             "project.html",
@@ -242,6 +284,8 @@ def create_app(root: Path) -> FastAPI:
                 "technique_hrefs": _technique_hrefs(),
                 "tenure": project_tenure(events, datetime.now(UTC)),
                 "star_spark": star_sparkline(metric_rows_oldest_first),
+                "badge_svg": ring_badge_svg(card.ring.value),
+                "badge_snippet": badge_snippet,
             },
         )
 
@@ -334,6 +378,26 @@ def create_app(root: Path) -> FastAPI:
         if entry is None:
             return HTMLResponse("Model not found", status_code=404)
         model_metrics.initialize()
+        badge_svg = ring_badge_svg(entry.ring.value) if entry.ring else None
+        badge_snippet = (
+            badge_markdown(
+                f"/badge/model-{entry.id}.svg", f"/model/{entry.id}",
+                f"On-Prem Radar: {entry.ring.value.upper()}",
+            )
+            if entry.ring else None
+        )
+        mv_quant = minimum_viable_quant(entry.quants)
+        fit_svg = (
+            fit_badge_svg(entry.hardware_tier.value, mv_quant.format if mv_quant else None)
+            if entry.hardware_tier != HardwareTier.UNKNOWN else None
+        )
+        fit_snippet = (
+            badge_markdown(
+                f"/badge/fit-{entry.id}.svg", f"/model/{entry.id}",
+                f"On-Prem Radar: runs on {entry.hardware_tier.value}",
+            )
+            if entry.hardware_tier != HardwareTier.UNKNOWN else None
+        )
         return TEMPLATES.TemplateResponse(
             request,
             "model.html",
@@ -346,6 +410,10 @@ def create_app(root: Path) -> FastAPI:
                     _model_events_for(model_id), datetime.now(UTC)
                 ),
                 "download_spark": downloads_sparkline(model_metrics.history_for(model_id)),
+                "badge_svg": badge_svg,
+                "badge_snippet": badge_snippet,
+                "fit_badge_svg": fit_svg,
+                "fit_badge_snippet": fit_snippet,
             },
         )
 

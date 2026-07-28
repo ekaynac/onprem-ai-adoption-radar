@@ -21,8 +21,9 @@ from radar.discovery.technique_candidate_detect import TechniqueCandidateEntry
 from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.models import Category, DecisionCard, Ring
-from radar.models_radar.entities import ModelEntry
+from radar.models_radar.entities import HardwareTier, ModelEntry
 from radar.models_radar.history import ModelHistoryEvent
+from radar.models_radar.memory import minimum_viable_quant
 from radar.models_radar.reports import model_events_to_feed_atom, model_events_to_feed_json
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
@@ -39,6 +40,7 @@ from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.storage.model_metrics_store import ModelMetrics
 from radar.web.backer_badge import backer_badge
+from radar.web.badge import badge_markdown, fit_badge_svg, ring_badge_svg
 from radar.web.hub_sections import HubRow
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
@@ -142,6 +144,16 @@ def render_static_site(
     ``model_metrics_by_id`` (optional) supplies each model page's download
     history, rendered as a sparkline beside the download stat; omitting it
     renders that page without the sparkline (differentiation pass, Task 3).
+    A ``badges/`` directory is always written (Task 5): one ring badge per
+    project (``badges/<slug>.svg``), plus — per model entry — a ring badge
+    when it has a ring (``badges/model-<id>.svg``) and a fit badge when its
+    ``hardware_tier`` is known (``badges/fit-<id>.svg``, quant label from
+    ``minimum_viable_quant``). Empty ``cards``/``model_entries`` just leave
+    the directory empty. Each project/model page's "Badge" section threads
+    ``badge_svg``/``badge_snippet`` (model pages also get
+    ``fit_badge_svg``/``fit_badge_snippet``) built from these same URLs,
+    qualified with ``self_base_url`` when given so the copied Markdown
+    resolves from anywhere, or left site-relative otherwise.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -257,9 +269,10 @@ def render_static_site(
     _write_project_pages(
         env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {},
         pedigree_by_project=pedigree_by_project or {}, technique_hrefs=technique_hrefs or {},
-        tenure_by_project=tenure_by_project or {},
+        tenure_by_project=tenure_by_project or {}, self_base_url=self_base_url,
     )
     _write_feeds(out_dir, timelines or [], site_title, self_base_url)
+    _write_badges(out_dir, cards, slug_by_project, model_entries or [])
 
     if model_entries:
         _write_model_pages(
@@ -302,6 +315,11 @@ def render_static_site(
     return index
 
 
+def _badge_url(base: str, path: str) -> str:
+    """``{base}/{path}`` when a base URL is given, else the bare relative ``path``."""
+    return f"{base}/{path}" if base else path
+
+
 def _write_project_pages(
     env: Environment,
     out_dir: Path,
@@ -312,16 +330,24 @@ def _write_project_pages(
     pedigree_by_project: dict[str, list[TechniquePedigree]],
     technique_hrefs: dict[str, str],
     tenure_by_project: dict[str, TenureLine] | None = None,
+    self_base_url: str = "",
 ) -> None:
     """Render one self-contained project_<slug>.html per card."""
     events_by_project: dict[str, list[ProjectHistoryEvent]] = {
         t["summary"].project: t.get("events") or [] for t in timelines
     }
+    base = self_base_url.rstrip("/") if self_base_url else ""
     template = env.get_template("static_project.html")
     for card in cards:
         metrics_oldest_first = metrics_by_project.get(card.project, [])
         metrics = list(reversed(metrics_oldest_first))  # newest-first
-        (out_dir / f"project_{slug_by_project[card.project]}.html").write_text(
+        slug = slug_by_project[card.project]
+        badge_snippet = badge_markdown(
+            _badge_url(base, f"badges/{slug}.svg"),
+            _badge_url(base, f"project_{slug}.html"),
+            f"On-Prem Radar: {card.ring.value.upper()}",
+        )
+        (out_dir / f"project_{slug}.html").write_text(
             template.render(
                 card=card,
                 events=events_by_project.get(card.project, []),
@@ -330,6 +356,8 @@ def _write_project_pages(
                 technique_hrefs=technique_hrefs,
                 tenure=(tenure_by_project or {}).get(card.project),
                 star_spark=star_sparkline(metrics_oldest_first),
+                badge_svg=ring_badge_svg(card.ring.value),
+                badge_snippet=badge_snippet,
             ),
             encoding="utf-8",
         )
@@ -365,6 +393,39 @@ def _write_feeds(
     )
 
 
+def _write_badges(
+    out_dir: Path,
+    cards: list[DecisionCard],
+    slug_by_project: dict[str, str],
+    model_entries: list[ModelEntry],
+) -> None:
+    """Write badges/*.svg: one ring badge per project, plus ring/fit badges per model.
+
+    Path-only URLs (``badges/<slug>.svg``, ``badges/model-<id>.svg``,
+    ``badges/fit-<id>.svg``) so a future change to fit-badge *content* (e.g.
+    sub-project D's GPU-count badges) never needs a URL change. Empty
+    ``cards``/``model_entries`` just leave the directory empty.
+    """
+    badges_dir = out_dir / "badges"
+    badges_dir.mkdir(parents=True, exist_ok=True)
+    for card in cards:
+        slug = slug_by_project[card.project]
+        (badges_dir / f"{slug}.svg").write_text(
+            ring_badge_svg(card.ring.value), encoding="utf-8"
+        )
+    for entry in model_entries:
+        if entry.ring is not None:
+            (badges_dir / f"model-{entry.id}.svg").write_text(
+                ring_badge_svg(entry.ring.value), encoding="utf-8"
+            )
+        if entry.hardware_tier != HardwareTier.UNKNOWN:
+            quant = minimum_viable_quant(entry.quants)
+            (badges_dir / f"fit-{entry.id}.svg").write_text(
+                fit_badge_svg(entry.hardware_tier.value, quant.format if quant else None),
+                encoding="utf-8",
+            )
+
+
 def _write_model_pages(
     env: Environment,
     out_dir: Path,
@@ -380,6 +441,7 @@ def _write_model_pages(
 ) -> None:
     """Render models.html, per-model pages, and model feed files."""
     slug_by_model = build_slug_map([m.id for m in model_entries])
+    base = self_base_url.rstrip("/") if self_base_url else ""
 
     (out_dir / "models.html").write_text(
         env.get_template("static_models.html").render(
@@ -393,7 +455,29 @@ def _write_model_pages(
 
     model_template = env.get_template("static_model.html")
     for entry in model_entries:
-        (out_dir / f"model_{slug_by_model[entry.id]}.html").write_text(
+        slug = slug_by_model[entry.id]
+        target_url = _badge_url(base, f"model_{slug}.html")
+        badge_svg = ring_badge_svg(entry.ring.value) if entry.ring else None
+        badge_snippet = (
+            badge_markdown(
+                _badge_url(base, f"badges/model-{entry.id}.svg"), target_url,
+                f"On-Prem Radar: {entry.ring.value.upper()}",
+            )
+            if entry.ring else None
+        )
+        mv_quant = minimum_viable_quant(entry.quants)
+        fit_svg = (
+            fit_badge_svg(entry.hardware_tier.value, mv_quant.format if mv_quant else None)
+            if entry.hardware_tier != HardwareTier.UNKNOWN else None
+        )
+        fit_snippet = (
+            badge_markdown(
+                _badge_url(base, f"badges/fit-{entry.id}.svg"), target_url,
+                f"On-Prem Radar: runs on {entry.hardware_tier.value}",
+            )
+            if entry.hardware_tier != HardwareTier.UNKNOWN else None
+        )
+        (out_dir / f"model_{slug}.html").write_text(
             model_template.render(
                 model=entry,
                 fit_by_tier=fit_by_tier(entry),
@@ -402,6 +486,10 @@ def _write_model_pages(
                 technique_hrefs=technique_hrefs or {},
                 model_tenure_line=(model_tenure_by_id or {}).get(entry.id),
                 download_spark=downloads_sparkline((model_metrics_by_id or {}).get(entry.id, [])),
+                badge_svg=badge_svg,
+                badge_snippet=badge_snippet,
+                fit_badge_svg=fit_svg,
+                fit_badge_snippet=fit_snippet,
             ),
             encoding="utf-8",
         )

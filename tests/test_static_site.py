@@ -1238,3 +1238,67 @@ def test_static_model_page_tenure_backcompat(tmp_path: Path):
                        model_entries=[model])
     page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
     assert 'class="tenure"' not in page
+
+
+def test_static_export_writes_badges_and_snippet(tmp_path: Path):
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC),
+                       self_base_url="https://radar.example")
+    badge = tmp_path / "_site" / "badges" / "vllm.svg"
+    assert badge.exists() and "ADOPT" in badge.read_text(encoding="utf-8")
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "https://radar.example/badges/vllm.svg" in page  # snippet uses base url
+
+
+def test_static_export_badge_snippet_relative_without_base_url(tmp_path: Path):
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC))
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "badges/vllm.svg" in page
+    assert "https://" not in page.split("badge-snippet")[1].split("</pre>")[0]
+
+
+def test_static_export_writes_model_ring_and_fit_badges(tmp_path: Path):
+    from radar.models_radar.entities import HardwareTier, ModelEntry, Platform, QuantVariant
+
+    model = ModelEntry(
+        id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+        hardware_tier=HardwareTier.LAPTOP,
+        quants=[QuantVariant(format="Q5_K_M", bits_per_weight=5.5, est_memory_gb_4k=6.0,
+                             platform=Platform.GENERIC, source="hf:x")],
+    )
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model], self_base_url="https://radar.example")
+
+    ring_badge = tmp_path / "_site" / "badges" / "model-qwen3-8b.svg"
+    fit_badge = tmp_path / "_site" / "badges" / "fit-qwen3-8b.svg"
+    assert ring_badge.exists() and "ADOPT" in ring_badge.read_text(encoding="utf-8")
+    assert fit_badge.exists()
+    fit_text = fit_badge.read_text(encoding="utf-8")
+    assert "laptop" in fit_text and "Q5_K_M" in fit_text
+
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert "https://radar.example/badges/model-qwen3-8b.svg" in page
+    assert "https://radar.example/badges/fit-qwen3-8b.svg" in page
+
+
+def test_static_export_model_badges_backcompat_when_unringed_and_unknown_tier(tmp_path: Path):
+    """A model with no ring and unknown hardware_tier gets no badge files/section."""
+    from radar.models_radar.entities import ModelEntry
+
+    model = ModelEntry(id="mystery", name="Mystery", family="F")
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model])
+
+    assert not (tmp_path / "_site" / "badges" / "model-mystery.svg").exists()
+    assert not (tmp_path / "_site" / "badges" / "fit-mystery.svg").exists()
+    page = (tmp_path / "_site" / "model_mystery.html").read_text(encoding="utf-8")
+    assert "<h2>Badge</h2>" not in page
+
+
+def test_static_export_badges_dir_empty_without_cards_or_models(tmp_path: Path):
+    """Back-compat: an export with no cards/models still creates an empty badges/ dir."""
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC))
+    badges_dir = tmp_path / "_site" / "badges"
+    assert badges_dir.is_dir()
+    assert list(badges_dir.iterdir()) == []

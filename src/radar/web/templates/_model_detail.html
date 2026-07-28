@@ -1,6 +1,8 @@
 {# Shared model-detail body. Context: model (ModelEntry),
    model_tenure_line (TenureLine | None),
-   download_spark (str, sparkline SVG or "") #}
+   download_spark (str, sparkline SVG or ""),
+   badge_svg (str | None, inline ring-badge SVG), badge_snippet (str | None),
+   fit_badge_svg (str | None, inline fit-badge SVG), fit_badge_snippet (str | None) #}
 <h2>{{ model.name }} <small>{{ model.family }}</small></h2>
 <p>Ring: <strong>{{ model.ring.value if model.ring else '-' }}</strong> ·
    Hardware: <strong>{{ model.hardware_tier.value }}</strong> ·
@@ -62,4 +64,18 @@
       {% if t.citation_count is not none %} · {{ t.citation_count }} citations{% endif %}</li>
   {% endfor %}
 </ul>
+{% endif %}
+
+{% if badge_svg or fit_badge_svg %}
+<h2>Badge</h2>
+{% if badge_svg %}
+<h3>Ring badge</h3>
+<p>{{ badge_svg | safe }}</p>
+<pre class="badge-snippet">{{ badge_snippet }}</pre>
+{% endif %}
+{% if fit_badge_svg %}
+<h3>Fit badge</h3>
+<p>{{ fit_badge_svg | safe }}</p>
+<pre class="badge-snippet">{{ fit_badge_snippet }}</pre>
+{% endif %}
 {% endif %}
