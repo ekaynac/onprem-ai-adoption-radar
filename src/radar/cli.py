@@ -393,20 +393,37 @@ def models_verify(
 
     seeds = [s for s in load_model_seed(seed_path) if s.enabled and s.hf_repo]
 
+    # Populated with an exception's class name whenever a per-seed fetch
+    # raises instead of returning None — so one bad repo (a malformed API
+    # body, an unexpected exception in the fetcher) never crashes the whole
+    # command and loses every other seed's report.
+    skip_reasons: dict[str, str] = {}
+
     async def _collect() -> dict[str, HFModelData | None]:
         async with httpx.AsyncClient(timeout=15.0) as client:
+
+            async def _fetch_one(seed_id: str, hf_repo: str) -> HFModelData | None:
+                try:
+                    return await _verify_fetch_hf_model(hf_repo, client)  # type: ignore[arg-type]
+                except Exception as exc:  # never let one seed's crash lose the rest
+                    skip_reasons[seed_id] = f"{type(exc).__name__}: {exc}"
+                    return None
+
             return {
-                s.id: await _verify_fetch_hf_model(s.hf_repo, client)  # type: ignore[arg-type]
+                s.id: await _fetch_one(s.id, s.hf_repo)  # type: ignore[arg-type]
                 for s in seeds
             }
 
     fetched = asyncio.run(_collect())
     drift_verified = 0
     drift_total = 0
+    skipped = 0
     for seed in seeds:
         hf = fetched.get(seed.id)
         if hf is None:
-            console.print(f"[yellow]skip {seed.id}: HF unreachable[/yellow]")
+            skipped += 1
+            reason = skip_reasons.get(seed.id, "HF unreachable")
+            console.print(f"[yellow]skip {seed.id}: {reason}[/yellow]")
             continue
         rows: list[tuple[str, object, object]] = []
 
@@ -447,7 +464,14 @@ def models_verify(
             )
 
     if drift_total == 0:
-        console.print(f"OK: {len(seeds)} seeds verified, no drift")
+        if skipped == 0:
+            console.print(f"OK: {len(seeds)} seeds verified, no drift")
+        else:
+            # Never claim a skipped (unreachable) seed was verified.
+            console.print(
+                f"checked {len(seeds) - skipped} of {len(seeds)} seeds, no drift "
+                f"({skipped} unreachable)"
+            )
     if check and drift_verified:
         raise typer.Exit(code=1)
 

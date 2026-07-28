@@ -417,6 +417,47 @@ def test_models_verify_unreachable_repo_is_skip_not_failure(tmp_path: Path, monk
     result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout            # unreachable never fails the command
     assert "skip unreachable-model" in result.stdout
+    # A fully-skipped run must never claim seeds were verified.
+    assert "OK:" not in result.stdout
+    assert "checked 0 of 1 seeds, no drift (1 unreachable)" in result.stdout
+
+
+def test_models_verify_fetch_exception_is_skip_not_crash(tmp_path: Path, monkeypatch):
+    """One seed's fetcher raising (e.g. a malformed API body) must not crash the
+    whole command and lose every other seed's report — it's caught in the CLI
+    layer and reported as a skip, same as an ordinary unreachable repo."""
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    _write_model_seed(tmp_path, """\
+  - id: crash-model
+    name: Crash-7B
+    family: Crash
+    hf_repo: org/crash
+    params_total: 7000000000
+    spec_verified: true
+
+  - id: ok-model
+    name: Ok-7B
+    family: Ok
+    hf_repo: org/ok
+    params_total: 7000000000
+    spec_verified: true
+""")
+
+    async def fake_fetch(repo, client):
+        if repo == "org/crash":
+            raise AttributeError("'NoneType' object has no attribute 'get'")
+        return HFModelData(params_total=7_000_000_000)
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 0, result.stdout        # a raising fetcher never fails the command
+    assert "skip crash-model: AttributeError" in result.stdout
+    # ok-model was still fetched and reported (no drift, and not lumped in as unreachable).
+    assert "checked 1 of 2 seeds, no drift (1 unreachable)" in result.stdout
 
 
 def test_models_verify_never_modifies_seed_file(tmp_path: Path, monkeypatch):
