@@ -393,7 +393,7 @@ def test_models_verify_no_drift_reports_ok(tmp_path: Path, monkeypatch):
     runner = CliRunner()
     result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout
-    assert "OK: 1 seeds verified, no drift" in result.stdout
+    assert "OK: 1 seed verified, no drift" in result.stdout
 
 
 def test_models_verify_unreachable_repo_is_skip_not_failure(tmp_path: Path, monkeypatch):
@@ -491,12 +491,13 @@ def test_models_verify_packed_quant_params_total_is_note_not_drift(
 ):
     """FP4/NVFP4-packed HF repos report a safetensors element count roughly
     1.5x-2x below the real published param total (see config/model-seed.yaml's
-    hf-deepseek-v4-flash/-pro and hf-glm-5-2-nvfp4 comments, corrected
-    2026-07-28: observed ratios 1.80x, 1.86x, 1.98x). Treating that as DRIFT on
-    a spec_verified seed would make the weekly --check gate permanently red for
-    a known, documented, deliberate seed/HF disagreement — so params_total
-    comparisons beyond the packed-quant ratio threshold are reported as a note,
-    never DRIFT, and never trip --check.
+    hf-deepseek-v4-flash and hf-glm-5-2-nvfp4 comments, corrected 2026-07-28:
+    observed ratios 1.53x-1.98x). Treating that as DRIFT on a spec_verified
+    seed would make the weekly --check gate permanently red for a known,
+    documented, deliberate seed/HF disagreement — so params_total comparisons
+    with a ratio inside the packed-quant band ([1.4x, 2.5x], with margin above
+    and below the observed range) are reported as a note, never DRIFT, and
+    never trip --check.
     """
     import radar.cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
@@ -520,3 +521,106 @@ def test_models_verify_packed_quant_params_total_is_note_not_drift(
     assert result.exit_code == 0, result.stdout
     assert "DRIFT" not in result.stdout
     assert "note packed-model: params_total differs by" in result.stdout
+    assert "packed-quant artifact" in result.stdout
+
+
+def test_models_verify_small_params_total_diff_is_note_not_drift(
+    tmp_path: Path, monkeypatch
+):
+    """Published model cards quote a rounded headline total ("671B") while HF's
+    safetensors element count is exact ("684.53B") — a ~2% gap that is not real
+    drift (see deepseek-r1/deepseek-v3, corrected 2026-07-28). Differences
+    within 3% are reported as a note and never trip --check."""
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    _write_model_seed(tmp_path, """\
+  - id: rounded-model
+    name: Rounded-671B
+    family: Rounded
+    hf_repo: org/rounded
+    params_total: 671000000000
+    spec_verified: true
+""")
+
+    async def fake_fetch(repo, client):
+        return HFModelData(params_total=684_531_386_000)  # ~+2.0%, matches deepseek-r1/-v3
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 0, result.stdout
+    assert "DRIFT" not in result.stdout
+    assert "note rounded-model: params_total differs by 2.0% (published-rounded total)" in (
+        result.stdout
+    )
+
+
+def test_models_verify_context_length_mismatch_is_note_never_drift(
+    tmp_path: Path, monkeypatch
+):
+    """config.json's max_position_embeddings is a different quantity than the
+    seed's card-derived context_length (often YaRN/RoPE-scaling headroom, see
+    deepseek-v3: card says 131072, config.json's max_position_embeddings is
+    163840). A mismatch is always a note, never DRIFT, even on a spec_verified
+    seed — so it can never trip --check."""
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    _write_model_seed(tmp_path, """\
+  - id: context-model
+    name: Context-7B
+    family: Context
+    hf_repo: org/context
+    params_total: 7000000000
+    context_length: 131072
+    spec_verified: true
+""")
+
+    async def fake_fetch(repo, client):
+        return HFModelData(params_total=7_000_000_000, context_length=163840)
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 0, result.stdout
+    assert "DRIFT" not in result.stdout
+    # Rich may wrap the line at the console width, so check the pieces rather
+    # than one contiguous substring.
+    assert "note context-model: context_length seed=131072 vs config" in result.stdout
+    assert "max_position_embeddings=163840" in result.stdout
+
+
+def test_models_verify_out_of_band_ratio_is_neutral_investigate_note(
+    tmp_path: Path, monkeypatch
+):
+    """A mismatch far outside the packed-quant band (e.g. a since-renamed repo
+    or a fetch pointed at the wrong model) must not be mislabeled as a
+    "packed-quant artifact" — that asserts a false cause. It's reported as a
+    neutral note instead, and still never DRIFT."""
+    import radar.cli as cli_mod
+    from radar.models_radar.collectors.huggingface import HFModelData
+
+    _write_model_seed(tmp_path, """\
+  - id: mismatched-model
+    name: Mismatched-35B
+    family: Mismatched
+    hf_repo: org/mismatched
+    params_total: 35000000000
+    spec_verified: true
+""")
+
+    async def fake_fetch(repo, client):
+        return HFModelData(params_total=665_000)  # ratio ~52631x, matches hf-ornith-1-0-35b's order of magnitude
+
+    monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    assert result.exit_code == 0, result.stdout
+    assert "DRIFT" not in result.stdout
+    assert "packed-quant" not in result.stdout
+    assert "note mismatched-model: params_total differs by" in result.stdout
+    assert "— investigate" in result.stdout

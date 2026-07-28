@@ -529,10 +529,14 @@ models:
     hf_repo: deepseek-ai/DeepSeek-V4-Pro
     backer: {name: "DeepSeek", type: startup}
     # params_total corrected 2026-07-28: HF API safetensors.total for this
-    # FP4+FP8-mixed checkpoint reports 861,608,274,846 — a 4-bit-packing
-    # artifact (same pattern as hf-deepseek-v4-flash above), not the real
-    # parameter count. The model's own README Model Downloads table states
-    # "DeepSeek-V4-Pro | 1.6T | 49B | 1M":
+    # FP4+FP8-mixed checkpoint reported 861,608,274,846 as of that date — a
+    # 4-bit-packing artifact (same pattern as hf-deepseek-v4-flash above),
+    # not the real parameter count. As of 2026-07-28 (re-checked), HF now
+    # reports safetensors.total as 1,598,839,674,782 for this repo — no
+    # longer the packed ~861B figure this comment originally cited, and
+    # within 0.07% of the published 1.6T total below (a published-rounded
+    # vs exact-count gap, not drift). The model's own README Model Downloads
+    # table states "DeepSeek-V4-Pro | 1.6T | 49B | 1M":
     # https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/README.md
     # (verified 2026-07-28); using that.
     params_total: 1600000000000

@@ -42,17 +42,34 @@ digest_app = typer.Typer(help="Weekly digest (page + cards + feeds + webhook).",
 app.add_typer(digest_app, name="digest")
 console = Console()
 
-# `models verify`'s params_total drift check: some HF repos (NVIDIA's
-# NVFP4/FP4-packed quant checkpoints) report a safetensors element count that
-# is roughly half the real, published param total — a packing artifact, not
-# real drift. Observed 2026-07-28 across three spec_verified seeds
-# (hf-deepseek-v4-flash, hf-deepseek-v4-pro, hf-glm-5-2-nvfp4): ratios 1.80x,
-# 1.86x, 1.98x. Below this ratio a mismatch is reported as DRIFT; at or above
-# it, it's reported as a note and never trips --check — otherwise the weekly
-# gate would go permanently red for a known, documented, deliberate
-# seed/HF disagreement (a YAML comment records the correction, but comments
-# aren't machine-parseable, so this ratio is the deterministic proxy).
-_PACKED_QUANT_RATIO = 1.5
+# `models verify`'s params_total drift check has three deterministic bands,
+# widest-tolerance first:
+#
+# 1. Small relative differences (<= 3%) are the normal published-vs-measured
+#    gap: HF model cards quote a rounded headline total ("671B") while the
+#    HF API's safetensors element count is the exact figure ("684.53B").
+#    Reported as a note, never DRIFT.
+# 2. A bounded ratio band [1.4x, 2.5x] catches NVIDIA's NVFP4/FP4-packed
+#    quant checkpoints, whose safetensors element count is roughly half the
+#    real, published param total — a packing artifact, not real drift.
+#    Observed 2026-07-28 across spec_verified seeds (hf-deepseek-v4-flash,
+#    hf-glm-5-2-nvfp4) and unverified ones (hf-qwen3-6-27b-nvfp4):
+#    ratios 1.53x-1.98x. Reported as a "packed-quant artifact" note, never
+#    DRIFT — otherwise the weekly gate would go permanently red for a known,
+#    documented, deliberate seed/HF disagreement (a YAML comment records the
+#    correction, but comments aren't machine-parseable, so this band is the
+#    deterministic proxy). The band has margin above and below the observed
+#    range rather than pinning to it exactly.
+# 3. Ratios above the band (e.g. a seed/HF repo mismatch, a since-renamed
+#    model) are NOT assumed to be packed-quant — that would assert a false
+#    cause. Reported as a neutral "differs by <ratio>x — investigate" note;
+#    still never DRIFT, since a fetch pointed at the wrong data is not
+#    something --check can act on either.
+#
+# Ratios below the band (and above the 3% tolerance) are real drift.
+_PARAMS_TOTAL_TOLERANCE = 0.03
+_PACKED_QUANT_RATIO_LOW = 1.4
+_PACKED_QUANT_RATIO_HIGH = 2.5
 
 
 @app.callback()
@@ -377,7 +394,23 @@ def models_verify(
         False, "--check", help="Exit 1 on drift in a spec_verified seed."
     ),
 ) -> None:
-    """Diff seed spec numbers against fresh HF data. Never modifies seeds."""
+    """Diff seed spec numbers against fresh HF data. Never modifies seeds.
+
+    params_total policy: differences within 3% are reported as a note
+    (published-rounded total vs exact safetensors count), never DRIFT.
+    Differences with a ratio in [1.4x, 2.5x] are reported as a "packed-quant
+    artifact" note (NVFP4/FP4-packed checkpoints), never DRIFT. Larger
+    ratios are reported as a neutral "investigate" note — never assumed to
+    be packed-quant — and also never DRIFT. See `_PARAMS_TOTAL_TOLERANCE`
+    and `_PACKED_QUANT_RATIO_LOW`/`_PACKED_QUANT_RATIO_HIGH` above.
+
+    context_length policy: NEVER reported as DRIFT. The seed's
+    context_length carries the model card's usable/advertised context,
+    while HF's config.json max_position_embeddings is a different
+    quantity — often larger, reflecting YaRN/RoPE-scaling headroom rather
+    than the context the card recommends. A mismatch is always reported as
+    a note, so it's visible without ever failing the weekly --check gate.
+    """
     import asyncio
 
     import httpx
@@ -400,7 +433,7 @@ def models_verify(
     skip_reasons: dict[str, str] = {}
 
     async def _collect() -> dict[str, HFModelData | None]:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
 
             async def _fetch_one(seed_id: str, hf_repo: str) -> HFModelData | None:
                 try:
@@ -431,20 +464,40 @@ def models_verify(
         if seed_pt is not None and hf_pt is not None and seed_pt != hf_pt:
             low, high = sorted((seed_pt, hf_pt))
             ratio = (high / low) if low else float("inf")
-            if ratio > _PACKED_QUANT_RATIO:
-                # Known artifact (see _PACKED_QUANT_RATIO above): report it,
+            rel_diff = ratio - 1
+            if rel_diff <= _PARAMS_TOTAL_TOLERANCE:
+                # Published-rounded card total vs the exact safetensors
+                # count — never real drift.
+                console.print(
+                    f"[yellow]note {seed.id}: params_total differs by "
+                    f"{rel_diff * 100:.1f}% (published-rounded total)[/yellow]"
+                )
+            elif _PACKED_QUANT_RATIO_LOW <= ratio <= _PACKED_QUANT_RATIO_HIGH:
+                # Known artifact (see the band comment above): report it,
                 # but never as DRIFT — the seed's total is the deliberately
                 # corrected, cited value.
                 console.print(
                     f"[yellow]note {seed.id}: params_total differs by {ratio:.2f}x "
                     "(packed-quant artifact, seed carries published total)[/yellow]"
                 )
+            elif ratio > _PACKED_QUANT_RATIO_HIGH:
+                # Beyond the packed-quant band — do not invent a cause.
+                console.print(
+                    f"[yellow]note {seed.id}: params_total differs by {ratio:.2f}x "
+                    "— investigate[/yellow]"
+                )
             else:
                 rows.append(("params_total", seed_pt, hf_pt))
 
         seed_ctx, hf_ctx = seed.context_length, hf.context_length
         if seed_ctx is not None and hf_ctx is not None and seed_ctx != hf_ctx:
-            rows.append(("context_length", seed_ctx, hf_ctx))
+            # Never DRIFT (see docstring): the seed carries the card's usable
+            # context, config.json's max_position_embeddings is a different
+            # quantity (often YaRN/RoPE-scaling headroom).
+            console.print(
+                f"[yellow]note {seed.id}: context_length seed={seed_ctx} vs "
+                f"config max_position_embeddings={hf_ctx}[/yellow]"
+            )
 
         if seed.architecture is not None and hf.architecture is not None:
             for field in ArchitectureSpec.model_fields:
@@ -465,7 +518,8 @@ def models_verify(
 
     if drift_total == 0:
         if skipped == 0:
-            console.print(f"OK: {len(seeds)} seeds verified, no drift")
+            seed_noun = "seed" if len(seeds) == 1 else "seeds"
+            console.print(f"OK: {len(seeds)} {seed_noun} verified, no drift")
         else:
             # Never claim a skipped (unreachable) seed was verified.
             console.print(
