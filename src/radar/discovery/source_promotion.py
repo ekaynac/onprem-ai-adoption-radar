@@ -14,7 +14,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict
 
 from radar.discovery.trending_entities import Lane, TrendingObservation
-from radar.models import Category, SourceConfig, SourceType
+from radar.models import Backer, BackerType, Category, SourceConfig, SourceType
 from radar.web.slugs import project_slug
 
 
@@ -168,9 +168,14 @@ def build_source(
     else:
         return None
     tags = [*latest.topics[:MAX_TAGS], "auto-added"]
+    # Every tracked source must carry a backer (test_seed_config pins this).
+    # The sweep can't tell a person from a company, so auto-adds default to
+    # the repo owner as `community` — curators refine the type later.
+    owner = repo.split("/")[0]
     return SourceConfig(
         id=candidate, type=SourceType.GITHUB_REPO, enabled=True, project=name,
         category=category, url=f"https://github.com/{repo}", tags=tags,
+        backer=Backer(name=owner, type=BackerType.COMMUNITY),
     )
 
 
@@ -191,8 +196,13 @@ def source_to_yaml_block(source: SourceConfig) -> str:
         f"    category: {source.category.value}",
         f"    url: {source.url}",
         f"    tags: [{tags}]",
-        "",
     ]
+    if source.backer is not None:
+        lines.append(
+            "    backer: {name: "
+            f"{_yaml_str(source.backer.name)}, type: {source.backer.type.value}}}"
+        )
+    lines.append("")
     return "\n".join(lines)
 
 

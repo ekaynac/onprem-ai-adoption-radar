@@ -194,7 +194,9 @@ def test_build_source_fields_and_auto_added_tag():
     assert str(source.url) == "https://github.com/acme/rocket"
     assert source.category == Category.MODEL_SERVING
     assert "auto-added" in source.tags
-    assert source.backer is None
+    # Auto-adds default to owner-as-community so the every-source-has-a-backer
+    # invariant holds without curator intervention (curators refine the type).
+    assert source.backer is not None
 
 
 def test_build_source_resolves_id_collision():
@@ -248,3 +250,27 @@ def test_splice_appends_when_sources_is_last_section(tmp_path):
     seed.write_text(spliced, encoding="utf-8")
 
     assert {s.id for s in load_config(seed).sources} == {"github-cline", "github-rocket"}
+
+
+def test_build_source_defaults_backer_to_owner_as_community():
+    source = build_source("acme/rocket", _sustained("acme/rocket"), existing_ids=set())
+    assert source is not None
+    assert source.backer is not None
+    assert source.backer.name == "acme"
+    assert source.backer.type.value == "community"
+
+
+def test_yaml_block_emits_backer_and_roundtrips(tmp_path):
+    source = build_source("acme/rocket", _sustained("acme/rocket"), existing_ids=set())
+    block = source_to_yaml_block(source)
+    assert "backer: {name: acme, type: community}" in block
+    # Round-trip through the real config loader: an auto-added block must
+    # satisfy the every-source-has-a-backer invariant.
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "version: \"1.0\"\nsources:\n" + block + "quotas:\n  coding_agents: 4\n",
+        encoding="utf-8",
+    )
+    config = load_config(config_path)
+    assert config.sources[0].backer is not None
+    assert config.sources[0].backer.name == "acme"

@@ -629,6 +629,7 @@ sources:
     category: general_agents
     url: https://github.com/oomol-lab/open-connector
     tags: [agent-tools, ai-agents, api-gateway, automation, auto-added]
+    backer: {name: oomol-lab, type: community}
   - id: github-fable-method
     type: github_repo
     enabled: true
@@ -636,6 +637,7 @@ sources:
     category: coding_agents
     url: https://github.com/Sahir619/fable-method
     tags: [agent-skills, ai-agents, claude, claude-code, auto-added]
+    backer: {name: Sahir619, type: community}
   - id: github-waggle
     type: github_repo
     enabled: true
@@ -643,6 +645,7 @@ sources:
     category: general_agents
     url: https://github.com/modiqo/waggle
     tags: [ai-agents, harness-engineering, llm-tools, loop-engineering, auto-added]
+    backer: {name: modiqo, type: community}
   - id: github-img2threejs
     type: github_repo
     enabled: true
@@ -650,6 +653,7 @@ sources:
     category: general_agents
     url: https://github.com/hoainho/img2threejs
     tags: [3d, ai-agents, claude-code, computer-graphics, auto-added]
+    backer: {name: hoainho, type: community}
   - id: github-video-shotcraft
     type: github_repo
     enabled: true
@@ -657,6 +661,7 @@ sources:
     category: general_agents
     url: https://github.com/Vincentwei1021/video-shotcraft
     tags: [agent-skills, ai-agents, ai-video, claude-code, auto-added]
+    backer: {name: Vincentwei1021, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
