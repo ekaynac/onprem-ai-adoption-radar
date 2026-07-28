@@ -135,6 +135,11 @@ def test_static_index_renders_hero_stats_and_legend(tmp_path: Path):
     assert 'class="legend"' in index  # rings/backer legend
     assert 'class="footer"' in index
     assert 'class="ring-pill ring-adopt"' in index  # ring rendered as a pill
+    assert 'class="positioning"' in index
+    assert (
+        "Trending tells you what&#39;s hot. The radar tells you what to adopt "
+        "— and what it takes to run it."
+    ) in index
 
 
 def test_static_index_renders_em_dash_for_uncurated_backer(tmp_path: Path):
@@ -172,6 +177,26 @@ def test_export_writes_per_project_pages_with_metrics(tmp_path: Path):
     text = vllm_page.read_text(encoding="utf-8")
     assert "vLLM" in text
     assert "54,321" in text or "54321" in text
+
+
+def test_static_project_page_shows_star_sparkline(tmp_path: Path):
+    cards = [_card("vLLM", Ring.ADOPT)]
+    metrics_by_project = {
+        "vLLM": [
+            ProjectMetrics(project="vLLM", run_id=f"run-{d}",
+                           observed_at=datetime(2026, 6, d, tzinfo=UTC), stars=100 * d)
+            for d in (1, 2, 3)
+        ]
+    }
+
+    render_static_site(
+        cards, tmp_path / "_site", datetime(2026, 6, 13, tzinfo=UTC),
+        metrics_by_project=metrics_by_project,
+    )
+
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert 'class="spark"' in page
+    assert "stars, last 3 scans" in page
 
 
 def test_static_index_links_to_project_pages(tmp_path: Path):
@@ -335,6 +360,48 @@ def test_model_page_has_runs_on_table(tmp_path):
     page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
     assert "Runs on" in page
     assert "RTX 4090 (24GB)" in page  # one of the COMMON_DEVICE_TIERS
+
+
+def test_static_model_page_shows_download_sparkline(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import HardwareTier, ModelEntry, Openness
+    from radar.storage.model_metrics_store import ModelMetrics
+    from radar.web.static_site import render_static_site
+
+    m = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+                   hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[])
+    model_metrics_by_id = {
+        "qwen3-8b": [
+            ModelMetrics(model_id="qwen3-8b", run_id=f"run-{d}",
+                        observed_at=datetime(2026, 6, d, tzinfo=UTC), downloads=1000 * d)
+            for d in (1, 2, 3)
+        ]
+    }
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC),
+                       model_entries=[m], model_metrics_by_id=model_metrics_by_id)
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert 'class="spark"' in page
+    assert "downloads, last 3 scans" in page
+
+
+def test_static_model_page_download_sparkline_backcompat(tmp_path):
+    """Omitting model_metrics_by_id must not break the export (house pattern)."""
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import HardwareTier, ModelEntry, Openness
+    from radar.web.static_site import render_static_site
+
+    m = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+                   hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[])
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC),
+                       model_entries=[m])  # no model_metrics_by_id
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert 'class="spark"' not in page
 
 
 def test_static_model_page_renders_architecture_benchmarks_and_unverified_marker(tmp_path):
@@ -626,6 +693,81 @@ def test_static_site_renders_trending_page(tmp_path):
     index = (site / "index.html").read_text(encoding="utf-8")
     assert 'href="trending.html"' in index
     assert "Trending:" in index
+
+
+def test_static_trending_page_shows_sparklines(tmp_path):
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+
+    # third observation so acme/rocket clears the 3-point floor
+    obs = [*_trending_obs(), TrendingObservation(
+        repo="acme/rocket", lane=Lane.ONPREM, stars=500,
+        observed_at=datetime(2026, 7, 5, 7, 0, tzinfo=UTC),
+        repo_created_at=datetime(2026, 6, 1, tzinfo=UTC),
+        description="fast serving", topics=["llm"], license="MIT",
+    )]
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 8, tzinfo=UTC),
+        trending_observations=obs,
+    )
+
+    page = (tmp_path / "_site" / "trending.html").read_text(encoding="utf-8")
+    assert 'class="spark"' in page
+
+
+def test_static_trending_writes_three_window_variants(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        trending_observations=_trending_obs(),
+    )
+    site = tmp_path / "_site"
+
+    assert (site / "trending.html").exists()
+    assert (site / "trending-30d.html").exists()
+    assert (site / "trending-90d.html").exists()
+
+
+def test_static_trending_variants_show_active_tab_and_cross_link(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        trending_observations=_trending_obs(),
+    )
+    site = tmp_path / "_site"
+
+    default_page = (site / "trending.html").read_text(encoding="utf-8")
+    assert 'tab-active">7d' in default_page
+    assert 'href="trending-30d.html"' in default_page
+    assert 'href="trending-90d.html"' in default_page
+
+    page_30d = (site / "trending-30d.html").read_text(encoding="utf-8")
+    assert 'tab-active">30d' in page_30d
+    assert 'href="trending.html"' in page_30d   # links back to the 7d (default-named) page
+
+    page_90d = (site / "trending-90d.html").read_text(encoding="utf-8")
+    assert 'tab-active">90d' in page_90d
+
+
+def test_static_trending_window_changes_velocity_value(tmp_path):
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+
+    obs = [
+        TrendingObservation(
+            repo="win/test", lane=Lane.ONPREM, stars=stars,
+            observed_at=datetime(2026, 7, day, 7, 0, tzinfo=UTC),
+            repo_created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            description="d", topics=["llm"], license="MIT")
+        for day, stars in ((8, 100), (27, 400))  # +300 over 19 days = 15.8/day
+    ]
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        trending_observations=obs,
+    )
+    site = tmp_path / "_site"
+
+    page_7d = (site / "trending.html").read_text(encoding="utf-8")
+    page_30d = (site / "trending-30d.html").read_text(encoding="utf-8")
+
+    assert "15.8" not in page_7d   # only the day-27 row is within the default 7d window
+    assert "15.8" in page_30d      # both rows qualify for 30d -> a real velocity
 
 
 def test_static_site_backcompat_without_trending(tmp_path):
@@ -1036,3 +1178,171 @@ def test_export_emits_no_empty_table_wrap(tmp_path):
     assert "No trending techniques this week." in trending_page
     assert "No emerging models yet." in trending_page
     assert "No emerging papers yet." in trending_page
+
+
+# ---------------------------------------------------------------------------
+# Tenure credential (Task 1, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_static_index_shows_tenure_and_backcompat(tmp_path: Path):
+    from radar.web.tenure import TenureLine
+
+    tenure = {"vLLM": TenureLine(days_on_radar=77, ring="adopt",
+                                 ring_since="2026-05-12", change_count=2)}
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC), tenure_by_project=tenure)
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "On radar 77 days · ADOPT since 2026-05-12 · 2 ring changes" in index
+
+    # Back-compat: omitting the kwarg renders without tenure chrome.
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site2",
+                       datetime(2026, 7, 28, tzinfo=UTC))
+    index2 = (tmp_path / "_site2" / "index.html").read_text(encoding="utf-8")
+    assert 'class="tenure"' not in index2
+
+
+def test_static_project_page_shows_tenure(tmp_path: Path):
+    from radar.web.tenure import TenureLine
+
+    tenure = {"vLLM": TenureLine(days_on_radar=77, ring="adopt",
+                                 ring_since="2026-05-12", change_count=2)}
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC), tenure_by_project=tenure)
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "On radar 77 days · ADOPT since 2026-05-12 · 2 ring changes" in page
+    assert 'class="tenure"' in page
+
+
+def test_static_project_page_tenure_backcompat(tmp_path: Path):
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC))
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert 'class="tenure"' not in page
+
+
+def test_static_model_page_shows_tenure(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+    from radar.web.tenure import TenureLine
+
+    model = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")
+    model_tenure = {"qwen3-8b": TenureLine(days_on_radar=40, ring="pilot",
+                                           ring_since="2026-06-18", change_count=1)}
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model], model_tenure_by_id=model_tenure)
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert "On radar 40 days · PILOT since 2026-06-18 · 1 ring change" in page
+    assert 'class="tenure"' in page
+
+
+def test_static_model_page_tenure_backcompat(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+
+    model = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model])
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert 'class="tenure"' not in page
+
+
+def test_static_export_writes_badges_and_snippet(tmp_path: Path):
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC),
+                       self_base_url="https://radar.example")
+    badge = tmp_path / "_site" / "badges" / "vllm.svg"
+    assert badge.exists() and "ADOPT" in badge.read_text(encoding="utf-8")
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "https://radar.example/badges/vllm.svg" in page  # snippet uses base url
+
+
+def test_static_export_badge_snippet_relative_without_base_url(tmp_path: Path):
+    render_static_site([_card("vLLM", Ring.ADOPT)], tmp_path / "_site",
+                       datetime(2026, 7, 28, tzinfo=UTC))
+    page = (tmp_path / "_site" / "project_vllm.html").read_text(encoding="utf-8")
+    assert "badges/vllm.svg" in page
+    assert "https://" not in page.split("badge-snippet")[1].split("</pre>")[0]
+
+
+def test_static_export_writes_model_ring_and_fit_badges(tmp_path: Path):
+    from radar.models_radar.entities import HardwareTier, ModelEntry, Platform, QuantVariant
+
+    model = ModelEntry(
+        id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+        hardware_tier=HardwareTier.LAPTOP,
+        quants=[QuantVariant(format="Q5_K_M", bits_per_weight=5.5, est_memory_gb_4k=6.0,
+                             platform=Platform.GENERIC, source="hf:x")],
+    )
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model], self_base_url="https://radar.example")
+
+    ring_badge = tmp_path / "_site" / "badges" / "model-qwen3-8b.svg"
+    fit_badge = tmp_path / "_site" / "badges" / "fit-qwen3-8b.svg"
+    assert ring_badge.exists() and "ADOPT" in ring_badge.read_text(encoding="utf-8")
+    assert fit_badge.exists()
+    fit_text = fit_badge.read_text(encoding="utf-8")
+    assert "laptop" in fit_text and "Q5_K_M" in fit_text
+
+    page = (tmp_path / "_site" / "model_qwen3-8b.html").read_text(encoding="utf-8")
+    assert "https://radar.example/badges/model-qwen3-8b.svg" in page
+    assert "https://radar.example/badges/fit-qwen3-8b.svg" in page
+
+
+def test_static_export_model_badges_backcompat_when_unringed_and_unknown_tier(tmp_path: Path):
+    """A model with no ring and unknown hardware_tier gets no badge files/section."""
+    from radar.models_radar.entities import ModelEntry
+
+    model = ModelEntry(id="mystery", name="Mystery", family="F")
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+                       model_entries=[model])
+
+    assert not (tmp_path / "_site" / "badges" / "model-mystery.svg").exists()
+    assert not (tmp_path / "_site" / "badges" / "fit-mystery.svg").exists()
+    page = (tmp_path / "_site" / "model_mystery.html").read_text(encoding="utf-8")
+    assert "<h2>Badge</h2>" not in page
+
+
+def test_static_export_badges_dir_empty_without_cards_or_models(tmp_path: Path):
+    """Back-compat: an export with no cards/models still creates an empty badges/ dir."""
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC))
+    badges_dir = tmp_path / "_site" / "badges"
+    assert badges_dir.is_dir()
+    assert list(badges_dir.iterdir()) == []
+
+
+# ---------------------------------------------------------------------------
+# Receipts-first cards + HN chip (Task 6, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_static_index_caps_evidence_and_shows_hn_chip(tmp_path: Path):
+    """Both the "Try This Week" table and the "All Tracked Projects" table
+    cap evidence to the top two notes with a "+N more" link; the HN chip
+    renders in the summary-bearing "Try This Week" cell only."""
+    card = _card("vLLM", Ring.ADOPT).model_copy(
+        update={"evidence_notes": ["note one", "note two", "note three"]}
+    )
+    render_static_site(
+        [card], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        hn_by_project={"vLLM": 12},
+    )
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    # Appears once in "Try This Week", once in "All Tracked Projects".
+    assert index.count("note one") == 2
+    assert index.count("note two") == 2
+    assert "note three" not in index
+    assert index.count("+1 more") == 2
+    assert ">12 HN<" in index
+    assert 'href="project_vllm.html">+1 more' in index
+
+
+def test_static_index_hn_chip_backcompat(tmp_path: Path):
+    """Back-compat: omitting hn_by_project renders no HN chip at all."""
+    card = _card("vLLM", Ring.ADOPT).model_copy(
+        update={"evidence_notes": ["note one", "note two", "note three"]}
+    )
+    render_static_site([card], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC))
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "chip-hn" not in index
+    # Evidence cap still applies regardless of the HN chip.
+    assert "note three" not in index
+    assert index.count("+1 more") == 2

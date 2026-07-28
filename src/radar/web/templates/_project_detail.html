@@ -1,6 +1,9 @@
 {# Shared project-detail body. Context: card, events (oldest-first),
    metrics (newest-first),
-   pedigree (list[TechniquePedigree] | None), technique_hrefs (dict). #}
+   pedigree (list[TechniquePedigree] | None), technique_hrefs (dict),
+   tenure (TenureLine | None), star_spark (str, sparkline SVG or ""),
+   badge_svg (str, inline ring-badge SVG), badge_snippet (str, copy-ready
+   Markdown). #}
 <h1>{{ card.project }}</h1>
 {% set b = backer_badge(card.backer) %}
 {% if b %}<p class="backer-line">Backed by <span class="backer backer-{{ b.type }}" title="{{ b.title }}">{{ b.emoji }} {{ b.name }}</span> <span class="backer-type-label">({{ b.label }})</span></p>{% endif %}
@@ -12,6 +15,7 @@
   · trend {% if card.trend == 'rising' %}↑ rising{% elif card.trend == 'falling' %}↓ falling{% else %}→ steady{% endif %}
   {% if card.score %}· score {{ card.score }}{% endif %}
 </p>
+{% if tenure %}<div class="tenure">{{ tenure.text }}</div>{% endif %}
 
 {% if card.pinned and card.pinned_reason %}
 <p class="pinned-note">Pinned decision: {{ card.pinned_reason }}</p>
@@ -89,7 +93,7 @@
 <ul>{% for step in card.try_next %}<li>{{ step }}</li>{% endfor %}</ul>
 {% endif %}
 
-<h2>Metrics history</h2>
+<h2>Metrics history {% if star_spark %}<span class="spark">{{ star_spark | safe }}</span>{% endif %}</h2>
 {% if metrics %}
 <div class="table-wrap">
 <table>
@@ -138,4 +142,10 @@
 {% if card.evidence %}
 <h2>Sources</h2>
 <ul>{% for url in card.evidence %}<li><a href="{{ url }}">{{ url }}</a></li>{% endfor %}</ul>
+{% endif %}
+
+{% if badge_svg %}
+<h2{% if card.pinned %} title="Reflects the pinned decision{% if card.pinned_reason %}: {{ card.pinned_reason }}{% endif %}"{% endif %}>Badge</h2>
+<p>{{ badge_svg | safe }}</p>
+<pre class="badge-snippet">{{ badge_snippet }}</pre>
 {% endif %}

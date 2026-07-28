@@ -10,6 +10,7 @@
   <body>
     {% set page_title = "On-Prem AI Adoption Radar" %}
     {% set tagline = "Which AI agent & tooling projects to adopt, pilot, watch, or avoid for on-prem — decided from observed evidence." %}
+    {% set positioning = "Trending tells you what's hot. The radar tells you what to adopt — and what it takes to run it." %}
     {% set nav = {"Radar": "/", "Models": "/models", "Research": "/research", "Trending": "/trending", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
     {% set downloads = {"History (JSONL)": "/history.jsonl"} %}
     {% include "_hero.html" %}
@@ -50,12 +51,17 @@
             <td>
               {% if card.pinned %}<span class="badge badge-pinned" title="{{ card.pinned_reason }}">📌 pinned{% if card.computed_ring %} (was {{ card.computed_ring.value }}){% endif %}</span>{% endif %}
               {% if card.upgrade_risk == 'high' %}<span class="badge badge-risk">⚠ upgrade risk</span>{% elif card.upgrade_risk == 'low' %}<span class="badge badge-risk-low">upgrade notes</span>{% endif %}
+              {% set hn = hn_by_project.get(card.project) if hn_by_project else none %}
+              {% if hn %}<span class="chip chip-hn" title="Hacker News mentions in the scan window">{{ hn }} HN</span>{% endif %}
               {{ card.summary }}
               {% if card.evidence_notes %}
               <ul class="evidence">
-                {% for note in card.evidence_notes %}<li>{{ note }}</li>{% endfor %}
+                {% for note in card.evidence_notes[:2] %}<li>{{ note }}</li>{% endfor %}
+                {% if card.evidence_notes|length > 2 %}<li class="evidence-more"><a href="/project/{{ card.project | urlencode }}">+{{ card.evidence_notes|length - 2 }} more →</a></li>{% endif %}
               </ul>
               {% endif %}
+              {% set tl = tenure_by_project.get(card.project) if tenure_by_project else none %}
+              {% if tl %}<div class="tenure">{{ tl.text }}</div>{% endif %}
             </td>
           </tr>
           {% else %}

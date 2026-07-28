@@ -121,6 +121,17 @@ def test_dashboard_renders_hero_stats_and_download_link(tmp_path: Path):
     assert 'href="/history.jsonl"' in text  # footer download link
 
 
+def test_index_shows_positioning_line(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert 'class="positioning"' in text
+    assert (
+        "Trending tells you what&#39;s hot. The radar tells you what to adopt "
+        "— and what it takes to run it."
+    ) in text
+
+
 def _init_project(tmp_path: Path) -> None:
     from radar.init_project import initialize_project
 
@@ -406,6 +417,37 @@ def test_project_page_shows_metrics_and_history(tmp_path: Path):
     assert "2026-06-10" in text  # history event date
 
 
+def test_project_detail_shows_star_sparkline(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.storage.metrics_store import MetricsStore, ProjectMetrics
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards(
+        [
+            DecisionCard(
+                project="vLLM", category=Category.MODEL_SERVING, ring=Ring.ADOPT,
+                summary="s", workflow_fit={}, risk_level="low",
+            )
+        ]
+    )
+    metrics = MetricsStore(tmp_path / "data" / "radar.db")
+    metrics.initialize()
+    metrics.record(
+        [
+            ProjectMetrics(project="vLLM", run_id=f"run-{d}",
+                           observed_at=datetime(2026, 7, d, tzinfo=UTC), stars=100 * d)
+            for d in (1, 2, 3)
+        ]
+    )
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+
+    assert 'class="spark"' in text
+    assert "stars, last 3 scans" in text  # aria-label made it through
+
+
 def test_index_links_to_project_page(tmp_path: Path):
     db = RadarDatabase(tmp_path / "data" / "radar.db")
     db.initialize()
@@ -598,6 +640,16 @@ def test_models_route_empty_when_no_scan(tmp_path):
     assert client.get("/models").status_code == 200  # renders "no models yet", no crash
 
 
+def test_models_route_has_no_positioning_line(tmp_path):
+    """Pages that don't set `positioning` must render no `.positioning` element."""
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/models")
+    assert r.status_code == 200
+    assert 'class="positioning"' not in r.text
+
+
 def test_models_route_links_to_live_model_paths(tmp_path):
     """Live /models catalog must link to /model/<id>, not model_*.html."""
     (tmp_path / "data").mkdir(parents=True)
@@ -624,6 +676,29 @@ def test_model_detail_route_unknown_returns_404(tmp_path):
     (tmp_path / "data").mkdir(parents=True)
     client = TestClient(create_app(tmp_path))
     assert client.get("/model/does-not-exist").status_code == 404
+
+
+def test_model_detail_shows_download_sparkline(tmp_path):
+    from datetime import datetime
+
+    from radar.storage.model_metrics_store import ModelMetrics, ModelMetricsStore
+
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    store = ModelMetricsStore(tmp_path / "data" / "radar.db")
+    store.initialize()
+    store.record(
+        [
+            ModelMetrics(model_id="qwen3-8b", run_id=f"run-{d}",
+                        observed_at=datetime(2026, 7, d, tzinfo=UTC), downloads=1000 * d)
+            for d in (1, 2, 3)
+        ]
+    )
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+
+    assert 'class="spark"' in text
+    assert "downloads, last 3 scans" in text  # aria-label made it through
 
 
 def test_model_detail_route_renders_architecture_benchmarks_and_unverified_marker(tmp_path):
@@ -1096,6 +1171,26 @@ def test_trending_route_shows_both_lanes(tmp_path):
     assert 'href="https://github.com/acme/rocket"' in r.text
 
 
+def test_trending_rows_show_sparklines(tmp_path: Path):
+    _seed_trending_obs(tmp_path)
+    # third observation so acme/rocket clears the 3-point floor
+    from datetime import datetime as _dt
+
+    from radar.discovery.trending_entities import Lane as _L
+    from radar.discovery.trending_entities import TrendingObservation as _O
+    from radar.storage.trending_observations_log import append_observations
+
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [
+        _O(repo="acme/rocket", lane=_L.ONPREM, stars=500,
+           observed_at=_dt(2026, 7, 5, 7, 0, tzinfo=UTC),
+           repo_created_at=_dt(2026, 6, 1, tzinfo=UTC),
+           description="fast serving", topics=["llm"], license="MIT"),
+    ])
+    text = TestClient(create_app(tmp_path)).get("/trending").text
+    assert 'class="spark"' in text
+    assert "acme/rocket stars" in text  # aria-label made it through
+
+
 def test_trending_route_empty_without_store(tmp_path):
     (tmp_path / "data").mkdir(parents=True, exist_ok=True)
     client = TestClient(create_app(tmp_path))
@@ -1343,6 +1438,87 @@ def test_trending_status_headers(tmp_path):
     assert "<th></th>" not in r.text
 
 
+# ---------------------------------------------------------------------------
+# Trending time-window tabs: 7d/30d/90d (differentiation pass, Task 4)
+# ---------------------------------------------------------------------------
+
+
+def test_trending_route_default_window_is_7d(tmp_path):
+    r = TestClient(create_app(tmp_path)).get("/trending")
+
+    assert r.status_code == 200
+    assert 'tab-active">7d' in r.text
+    assert 'href="/trending?window=30d"' in r.text
+    assert 'href="/trending?window=90d"' in r.text
+
+
+def test_trending_route_window_param_switches_active_tab(tmp_path):
+    r = TestClient(create_app(tmp_path)).get("/trending?window=30d")
+
+    assert r.status_code == 200
+    assert 'tab-active">30d' in r.text
+    assert 'href="/trending?window=7d"' in r.text
+
+
+def test_trending_route_unknown_window_falls_back_to_7d(tmp_path):
+    r = TestClient(create_app(tmp_path)).get("/trending?window=1h")
+
+    assert r.status_code == 200
+    assert 'tab-active">7d' in r.text
+
+
+def test_trending_route_window_changes_velocity_value(tmp_path):
+    from datetime import UTC, datetime, timedelta
+
+    from radar.discovery.trending_entities import Lane as _L
+    from radar.discovery.trending_entities import TrendingObservation as _O
+    from radar.storage.trending_observations_log import append_observations
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    now = datetime.now(UTC)
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [
+        _O(repo="win/test", lane=_L.ONPREM, stars=stars,
+           observed_at=now - timedelta(days=days_ago),
+           repo_created_at=now - timedelta(days=200),
+           description="d", topics=["llm"], license="MIT")
+        for days_ago, stars in ((20, 100), (1, 400))  # +300 over 19 days = 15.8/day
+    ])
+    client = TestClient(create_app(tmp_path))
+
+    r7 = client.get("/trending")
+    r30 = client.get("/trending?window=30d")
+
+    assert "win/test" in r7.text and "win/test" in r30.text
+    assert "15.8" not in r7.text   # only the 1d-ago row qualifies for 7d -> velocity None
+    assert "15.8" in r30.text      # both rows qualify for 30d -> a real velocity
+
+
+def test_trending_route_survives_naive_datetime_observation(tmp_path):
+    """A corrupt/merge-mangled row with a tz-naive repo_created_at crashes
+    is_new() inside build_trending (naive vs. aware comparison) — the live
+    route's per-window rebuild must degrade to an empty page, not 500.
+    Mirrors test_export_survives_naive_datetime_observation (static side)."""
+    from datetime import datetime
+
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+    from radar.storage.trending_observations_log import append_observations
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    naive = TrendingObservation(
+        repo="acme/rocket", lane=Lane.ONPREM, stars=400,
+        observed_at=datetime(2026, 7, 4, 7, 0),
+        repo_created_at=datetime(2026, 6, 1, 7, 0),  # tz-naive -> would crash build_trending
+        description="d", topics=["llm"], license="MIT",
+    )
+    append_observations(tmp_path / "data" / "trending-observations.jsonl", [naive])
+
+    r = TestClient(create_app(tmp_path)).get("/trending")
+
+    assert r.status_code == 200
+    assert "No trending observations yet." in r.text
+    assert 'tab-active">7d' in r.text
+
+
 def test_index_legend_has_risk_column(tmp_path: Path):
     r = TestClient(create_app(tmp_path)).get("/")
     assert "<h4>Risk</h4>" in r.text
@@ -1478,3 +1654,262 @@ def test_sortable_headers_keyboard_operable(tmp_path: Path):
     assert techniques_text.count('tabindex="0"') == 6
     assert techniques_text.count('aria-sort="none"') == 6
     assert "keydown" in techniques_text
+
+
+# ---------------------------------------------------------------------------
+# Tenure credential (Task 1, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_index_shows_tenure_credential(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.pipeline.delta import ChangeType
+    from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    history.initialize()
+    history.add_events([ProjectHistoryEvent(
+        project="vLLM", category=Category.MODEL_SERVING, change_type=ChangeType.NEW,
+        ring=Ring.ADOPT, previous_ring=None, run_id="r1",
+        observed_at=datetime(2026, 5, 12, tzinfo=UTC), reasons=[])])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert "ADOPT since 2026-05-12" in text
+    assert 'class="tenure"' in text
+
+
+def test_index_no_tenure_without_history(tmp_path: Path):
+    """A card with no recorded history renders without a tenure line at all."""
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert 'class="tenure"' not in text
+
+
+def test_project_detail_shows_tenure_credential(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.pipeline.delta import ChangeType
+    from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    history.initialize()
+    history.add_events([ProjectHistoryEvent(
+        project="vLLM", category=Category.MODEL_SERVING, change_type=ChangeType.NEW,
+        ring=Ring.ADOPT, previous_ring=None, run_id="r1",
+        observed_at=datetime(2026, 5, 12, tzinfo=UTC), reasons=[])])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert "ADOPT since 2026-05-12" in text
+    assert 'class="tenure"' in text
+
+
+def test_project_detail_no_tenure_without_history(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert 'class="tenure"' not in text
+
+
+def test_model_detail_shows_tenure_credential(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.models_radar.history import ModelHistoryEvent, append_model_events
+    from radar.pipeline.delta import ChangeType
+
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    append_model_events(tmp_path / "data" / "model-history.jsonl", [
+        ModelHistoryEvent(model_id="qwen3-8b", family="Qwen3", change_type=ChangeType.NEW,
+                          ring=Ring.ADOPT, previous_ring=None, run_id="r1",
+                          observed_at=datetime(2026, 5, 12, tzinfo=UTC), reasons=[]),
+    ])
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+    assert "ADOPT since 2026-05-12" in text
+    assert 'class="tenure"' in text
+
+
+def test_model_detail_no_tenure_without_history(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+    assert 'class="tenure"' not in text
+
+
+# ---------------------------------------------------------------------------
+# Embeddable badges (Task 5)
+# ---------------------------------------------------------------------------
+
+
+def test_project_badge_route_serves_svg(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    r = TestClient(create_app(tmp_path)).get("/badge/vllm.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/svg+xml"
+    assert "ADOPT" in r.text
+
+
+def test_project_badge_route_unknown_slug_404s(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/badge/does-not-exist.svg")
+    assert r.status_code == 404
+
+
+def test_model_ring_badge_route_serves_svg(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/badge/model-qwen3-8b.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/svg+xml"
+    assert "ADOPT" in r.text
+
+
+def test_model_ring_badge_route_404_when_unknown_model(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    client = TestClient(create_app(tmp_path))
+    assert client.get("/badge/model-does-not-exist.svg").status_code == 404
+
+
+def test_model_fit_badge_route_serves_svg_with_quant(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    r = TestClient(create_app(tmp_path)).get("/badge/fit-qwen3-8b.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/svg+xml"
+    assert "laptop" in r.text and "Q4_K_M" in r.text
+
+
+def test_model_fit_badge_route_404_when_hardware_tier_unknown(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+    from radar.storage.run_store import RunStore
+
+    (tmp_path / "data").mkdir(parents=True)
+    rs = RunStore(tmp_path / "data" / "runs")
+    rid = rs.create_run()
+    e = ModelEntry(id="mystery", name="Mystery", family="F")  # hardware_tier defaults unknown
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json")])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+    client = TestClient(create_app(tmp_path))
+    assert client.get("/badge/fit-mystery.svg").status_code == 404
+
+
+def test_project_detail_page_has_badge_section(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert "<h2>Badge</h2>" in text
+    assert 'class="badge-snippet"' in text
+    assert "/badge/vllm.svg" in text
+    assert "/project/vLLM" in text
+
+
+def test_project_detail_badge_heading_notes_pinned_decision(tmp_path: Path):
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low", pinned=True,
+                                  pinned_reason="team override")])
+
+    text = TestClient(create_app(tmp_path)).get("/project/vLLM").text
+    assert '<h2 title="Reflects the pinned decision: team override">Badge</h2>' in text
+
+
+def test_model_detail_page_has_ring_and_fit_badge_sections(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+
+    text = TestClient(create_app(tmp_path)).get("/model/qwen3-8b").text
+    assert "<h2>Badge</h2>" in text
+    assert "/badge/model-qwen3-8b.svg" in text
+    assert "/badge/fit-qwen3-8b.svg" in text
+
+
+def test_model_detail_page_omits_badge_section_when_unringed_and_unknown_tier(tmp_path: Path):
+    from radar.models_radar.entities import ModelEntry
+    from radar.storage.run_store import RunStore
+
+    (tmp_path / "data").mkdir(parents=True)
+    rs = RunStore(tmp_path / "data" / "runs")
+    rid = rs.create_run()
+    e = ModelEntry(id="mystery", name="Mystery", family="F")
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json")])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+    text = TestClient(create_app(tmp_path)).get("/model/mystery").text
+    assert "<h2>Badge</h2>" not in text
+
+
+# ---------------------------------------------------------------------------
+# Receipts-first cards + HN chip (Task 6, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_index_caps_evidence_and_shows_hn_chip(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.storage.metrics_store import MetricsStore, ProjectMetrics
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    card = DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                        ring=Ring.ADOPT, summary="s", workflow_fit={},
+                        risk_level="low",
+                        evidence_notes=["note one", "note two", "note three"])
+    db.upsert_cards([card])
+    metrics = MetricsStore(tmp_path / "data" / "radar.db")
+    metrics.initialize()
+    metrics.record([ProjectMetrics(project="vLLM", run_id="r1",
+                                   observed_at=datetime(2026, 7, 28, tzinfo=UTC),
+                                   hn_mentions=12)])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert "note one" in text and "note two" in text
+    assert "note three" not in text
+    assert "+1 more" in text
+    assert ">12 HN<" in text
+
+
+def test_index_no_hn_chip_without_mentions(tmp_path: Path):
+    """A card with no metrics recorded (or hn_mentions=0) renders no HN chip."""
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert "chip-hn" not in text

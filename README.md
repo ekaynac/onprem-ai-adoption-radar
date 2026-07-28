@@ -2,6 +2,13 @@
 
 **A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
 
+> **Trending tells you what's hot. The radar tells you what to adopt — and what it takes to run it.**
+
+**How this differs from trending trackers:**
+- 🧭 **Computed, not sponsored** — rings come from a deterministic rubric and an append-only, auditable timeline. Placement cannot be bought.
+- 🧾 **Every number cited** — model specs carry per-number provenance (source, date, human-verified flag); a weekly job re-verifies them against upstream.
+- 🤖 **Agent-queryable** — a built-in MCP server lets Claude/Codex/any MCP client ask the radar questions mid-task.
+
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![Tests](https://img.shields.io/badge/tests-1004%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)

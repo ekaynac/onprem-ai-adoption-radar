@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from radar.discovery.trending_detect import (
     NEW_WINDOW_DAYS,
+    TRENDING_WINDOWS,
     build_trending,
     is_new,
     star_velocity,
@@ -83,6 +84,29 @@ def test_build_trending_marks_new_repo():
         _obs("new/repo", 90, 7, created="2026-07-01"),
     ], NOW)[0]
     assert entry.is_new is True
+
+
+def test_velocity_window_parameter():
+    now = datetime(2026, 7, 28, 7, 0, tzinfo=UTC)
+    rows = [_obs("a/r", 100, 8), _obs("a/r", 400, 27)]  # 20d and 1d before `now`
+    assert star_velocity(rows, now) is None            # default 7d window: only 1 row qualifies
+    v30 = star_velocity(rows, now, window_days=30)
+    assert v30 is not None and v30 > 0
+
+
+def test_trending_windows_mapping():
+    assert TRENDING_WINDOWS == {"7d": 7, "30d": 30, "90d": 90}
+
+
+def test_build_trending_threads_window_days():
+    observations = [_obs("a/r", 100, 8), _obs("a/r", 400, 27)]
+    now = datetime(2026, 7, 28, 7, 0, tzinfo=UTC)
+
+    entries_7d = build_trending(observations, now)
+    entries_30d = build_trending(observations, now, window_days=30)
+
+    assert entries_7d[0].velocity_per_day is None
+    assert entries_30d[0].velocity_per_day is not None and entries_30d[0].velocity_per_day > 0
 
 
 def test_build_trending_negative_velocity_sorts_before_unknown():

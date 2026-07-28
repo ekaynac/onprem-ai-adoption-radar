@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, Response
 from fastapi.responses import (
     FileResponse,
     HTMLResponse,
@@ -15,12 +16,15 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from radar.discovery.trending_entities import Lane, TrendingEntry
+from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
+from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.mcp_server.model_queries import _latest_model_cards
 from radar.mcp_server.technique_queries import load_technique_entries
 from radar.mcp_server.trending_queries import load_trending_entries
 from radar.models import Category, SourceType
-from radar.models_radar.entities import ModelEntry
+from radar.models_radar.entities import HardwareTier, ModelEntry
+from radar.models_radar.history import ModelHistoryEvent, load_model_events
+from radar.models_radar.memory import minimum_viable_quant
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.research_radar.entities import ImplKind, TechniqueEntry
 from radar.research_radar.history import load_technique_events
@@ -34,10 +38,13 @@ from radar.storage.config import ConfigError, load_config
 from radar.storage.database import RadarDatabase
 from radar.storage.history_store import HistoryStore
 from radar.storage.metrics_store import MetricsStore
+from radar.storage.model_metrics_store import ModelMetricsStore
 from radar.storage.run_store import RunStore
 from radar.storage.seed_store import SeedError, add_seed
 from radar.storage.source_health_store import SourceHealthStore
+from radar.storage.trending_observations_log import load_observations
 from radar.web.backer_badge import backer_badge
+from radar.web.badge import badge_markdown, fit_badge_svg, ring_badge_svg
 from radar.web.hub_sections import load_hub_sections
 from radar.web.models_summary import summarize_models
 from radar.web.picker_context import fit_by_tier, picker_context
@@ -45,8 +52,12 @@ from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import latest_tool_scan_meta, summarize_meta
 from radar.web.slugs import build_slug_map
 from radar.web.source_health import SourceHealth, summarize_source_health
+from radar.web.spark_series import downloads_sparkline, star_sparkline, trending_sparklines
+from radar.web.tenure import model_tenure, project_tenure
 from radar.web.trending_summary import summarize_trending
 
+
+logger = logging.getLogger(__name__)
 
 _WEB_DIR = Path(__file__).parent
 STATIC_DIR = _WEB_DIR / "static"
@@ -66,6 +77,7 @@ def create_app(root: Path) -> FastAPI:
     db = RadarDatabase(root / "data" / "radar.db")
     history = HistoryStore(root / "data" / "radar.db")
     metrics = MetricsStore(root / "data" / "radar.db")
+    model_metrics = ModelMetricsStore(root / "data" / "radar.db")
     run_store = RunStore(root / "data" / "runs")
     source_health = SourceHealthStore(root / "data" / "radar.db")
     config_path = root / "data" / "config.yaml"
@@ -87,6 +99,11 @@ def create_app(root: Path) -> FastAPI:
         """Load model entries from the latest models run; empty list if none."""
         return [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
 
+    def _model_events_for(model_id: str) -> list[ModelHistoryEvent]:
+        """A single model's ring-change events, oldest-first; [] if none recorded."""
+        all_events = load_model_events(root / "data" / "model-history.jsonl")
+        return [e for e in all_events if e.model_id == model_id]
+
     def _technique_entries() -> list[TechniqueEntry]:
         """Load technique entries from the latest research run; empty list if none."""
         return load_technique_entries(root)
@@ -94,6 +111,12 @@ def create_app(root: Path) -> FastAPI:
     def _trending_entries() -> list[TrendingEntry]:
         from datetime import UTC, datetime
         return load_trending_entries(root, datetime.now(UTC))
+
+    def _trending_observations() -> list[TrendingObservation]:
+        """Raw observations backing /trending's per-window rebuild and its
+        window-independent spark map; [] when the store is absent or corrupt
+        (guarded by ``load_observations`` itself)."""
+        return load_observations(root / "data" / "trending-observations.jsonl")
 
     def _hub_sections():
         from datetime import UTC, datetime
@@ -141,10 +164,25 @@ def create_app(root: Path) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
+        from datetime import UTC, datetime
+
         db.initialize()
         cards = db.list_cards()
         meta = latest_tool_scan_meta(run_store)
         mh, th = _hub_sections()
+        history.initialize()
+        metrics.initialize()
+        now = datetime.now(UTC)
+        tenure_by_project = {
+            c.project: project_tenure(history.history_for(c.project), now) for c in cards
+        }
+        # HN chip (Task 6, differentiation pass): only projects with a
+        # positive latest hn_mentions get a chip.
+        hn_by_project = {
+            c.project: latest.hn_mentions
+            for c in cards
+            if (latest := metrics.latest(c.project)) and latest.hn_mentions
+        }
         return TEMPLATES.TemplateResponse(
             request,
             "index.html",
@@ -161,6 +199,8 @@ def create_app(root: Path) -> FastAPI:
                 "trending_href": "/trending",
                 "top_model": next((r for r in mh if not r.is_new), None),
                 "top_technique": next((r for r in th if not r.is_new), None),
+                "tenure_by_project": tenure_by_project,
+                "hn_by_project": hn_by_project,
             },
         )
 
@@ -178,14 +218,50 @@ def create_app(root: Path) -> FastAPI:
             filename="radar-history.jsonl",
         )
 
+    # Model badge routes are registered before the generic project-slug route
+    # below so their literal "model-"/"fit-" prefixes win the match — the
+    # slug route's pattern would otherwise swallow them too.
+    @app.get("/badge/model-{model_id}.svg")
+    def model_ring_badge(model_id: str):
+        """Serve a model's ring badge (shields-style SVG), or 404 if unknown/unringed."""
+        entry = next((e for e in _model_entries() if e.id == model_id), None)
+        if entry is None or entry.ring is None:
+            return PlainTextResponse("Unknown model badge", status_code=404)
+        return Response(content=ring_badge_svg(entry.ring.value), media_type="image/svg+xml")
+
+    @app.get("/badge/fit-{model_id}.svg")
+    def model_fit_badge(model_id: str):
+        """Serve a model's fit badge (hardware tier + min-viable quant), or 404."""
+        entry = next((e for e in _model_entries() if e.id == model_id), None)
+        if entry is None or entry.hardware_tier == HardwareTier.UNKNOWN:
+            return PlainTextResponse("Unknown model fit badge", status_code=404)
+        quant = minimum_viable_quant(entry.quants)
+        svg = fit_badge_svg(entry.hardware_tier.value, quant.format if quant else None)
+        return Response(content=svg, media_type="image/svg+xml")
+
+    @app.get("/badge/{slug}.svg")
+    def project_badge(slug: str):
+        """Serve a tracked project's ring badge (shields-style SVG), or 404 if unknown."""
+        db.initialize()
+        cards = db.list_cards()
+        slug_map = build_slug_map([c.project for c in cards])
+        card = next((c for c in cards if slug_map[c.project] == slug), None)
+        if card is None:
+            return PlainTextResponse("Unknown project badge", status_code=404)
+        return Response(content=ring_badge_svg(card.ring.value), media_type="image/svg+xml")
+
     @app.get("/project/{name}", response_class=HTMLResponse)
     def project_detail(request: Request, name: str):
+        from datetime import UTC, datetime
+
         db.initialize()
+        all_cards = db.list_cards()
+        slug_by_project = build_slug_map([c.project for c in all_cards])
         # Exact match first; fall back to case-insensitive so the URL is forgiving.
         card = db.get_card(name)
         if card is None:
             card = next(
-                (c for c in db.list_cards() if c.project.lower() == name.lower()),
+                (c for c in all_cards if c.project.lower() == name.lower()),
                 None,
             )
         if card is None:
@@ -198,7 +274,14 @@ def create_app(root: Path) -> FastAPI:
         history.initialize()
         metrics.initialize()
         events = history.history_for(card.project)
-        metric_rows = list(reversed(metrics.history_for(card.project)))  # newest-first
+        metric_rows_oldest_first = metrics.history_for(card.project)
+        metric_rows = list(reversed(metric_rows_oldest_first))  # newest-first
+        slug = slug_by_project[card.project]
+        badge_snippet = badge_markdown(
+            f"/badge/{slug}.svg",
+            f"/project/{quote(card.project, safe='')}",
+            f"On-Prem Radar: {card.ring.value.upper()}",
+        )
         return TEMPLATES.TemplateResponse(
             request,
             "project.html",
@@ -208,6 +291,10 @@ def create_app(root: Path) -> FastAPI:
                 "metrics": metric_rows,
                 "pedigree": _project_pedigree(card.project) or None,
                 "technique_hrefs": _technique_hrefs(),
+                "tenure": project_tenure(events, datetime.now(UTC)),
+                "star_spark": star_sparkline(metric_rows_oldest_first),
+                "badge_svg": ring_badge_svg(card.ring.value),
+                "badge_snippet": badge_snippet,
             },
         )
 
@@ -294,9 +381,32 @@ def create_app(root: Path) -> FastAPI:
 
     @app.get("/model/{model_id}", response_class=HTMLResponse)
     def model_detail(request: Request, model_id: str):
+        from datetime import UTC, datetime
+
         entry = next((e for e in _model_entries() if e.id == model_id), None)
         if entry is None:
             return HTMLResponse("Model not found", status_code=404)
+        model_metrics.initialize()
+        badge_svg = ring_badge_svg(entry.ring.value) if entry.ring else None
+        badge_snippet = (
+            badge_markdown(
+                f"/badge/model-{entry.id}.svg", f"/model/{entry.id}",
+                f"On-Prem Radar: {entry.ring.value.upper()}",
+            )
+            if entry.ring else None
+        )
+        mv_quant = minimum_viable_quant(entry.quants)
+        fit_svg = (
+            fit_badge_svg(entry.hardware_tier.value, mv_quant.format if mv_quant else None)
+            if entry.hardware_tier != HardwareTier.UNKNOWN else None
+        )
+        fit_snippet = (
+            badge_markdown(
+                f"/badge/fit-{entry.id}.svg", f"/model/{entry.id}",
+                f"On-Prem Radar: runs on {entry.hardware_tier.value}",
+            )
+            if entry.hardware_tier != HardwareTier.UNKNOWN else None
+        )
         return TEMPLATES.TemplateResponse(
             request,
             "model.html",
@@ -305,6 +415,14 @@ def create_app(root: Path) -> FastAPI:
                 "fit_by_tier": fit_by_tier(entry),
                 "pedigree": _model_pedigree(model_id) or None,
                 "technique_hrefs": _technique_hrefs(),
+                "model_tenure_line": model_tenure(
+                    _model_events_for(model_id), datetime.now(UTC)
+                ),
+                "download_spark": downloads_sparkline(model_metrics.history_for(model_id)),
+                "badge_svg": badge_svg,
+                "badge_snippet": badge_snippet,
+                "fit_badge_svg": fit_svg,
+                "fit_badge_snippet": fit_snippet,
             },
         )
 
@@ -316,8 +434,18 @@ def create_app(root: Path) -> FastAPI:
         )
 
     @app.get("/trending", response_class=HTMLResponse)
-    def trending_page(request: Request):
-        entries = _trending_entries()
+    def trending_page(request: Request, window: str = "7d"):
+        from datetime import UTC, datetime
+
+        days = TRENDING_WINDOWS.get(window)
+        if days is None:
+            window, days = "7d", TRENDING_WINDOWS["7d"]
+        observations = _trending_observations()
+        try:
+            entries = build_trending(observations, datetime.now(UTC), window_days=days)
+        except Exception as exc:
+            logger.warning("Trending derivation failed for window=%s: %s", window, exc)
+            entries = []
         onprem = [e for e in entries if e.lane == Lane.ONPREM]
         broader = [e for e in entries if e.lane == Lane.BROADER]
         model_hub, technique_hub = _hub_sections()
@@ -326,6 +454,10 @@ def create_app(root: Path) -> FastAPI:
             "model_hub": model_hub, "technique_hub": technique_hub,
             "model_candidates": _model_candidates(),
             "technique_candidates": _technique_candidates(),
+            "spark_by_repo": trending_sparklines(observations),
+            "active_window": window,
+            "windows": list(TRENDING_WINDOWS),
+            "window_hrefs": {w: f"/trending?window={w}" for w in TRENDING_WINDOWS},
         })
 
     @app.get("/technique/{technique_id}", response_class=HTMLResponse)

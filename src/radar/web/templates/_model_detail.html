@@ -1,9 +1,15 @@
-{# Shared model-detail body. Context: model (ModelEntry) #}
+{# Shared model-detail body. Context: model (ModelEntry),
+   model_tenure_line (TenureLine | None),
+   download_spark (str, sparkline SVG or ""),
+   badge_svg (str | None, inline ring-badge SVG), badge_snippet (str | None),
+   fit_badge_svg (str | None, inline fit-badge SVG), fit_badge_snippet (str | None) #}
 <h2>{{ model.name }} <small>{{ model.family }}</small></h2>
 <p>Ring: <strong>{{ model.ring.value if model.ring else '-' }}</strong> ·
    Hardware: <strong>{{ model.hardware_tier.value }}</strong> ·
    Modality: {{ model.modality.value }}{% if model.license %} · License: {{ model.license }}{% endif %}
    {% if model.use_case %} · Use case: {{ model.use_case }}{% endif %}</p>
+{% if model_tenure_line %}<div class="tenure">{{ model_tenure_line.text }}</div>{% endif %}
+{% if download_spark %}<h3>Download history <span class="spark">{{ download_spark | safe }}</span></h3>{% endif %}
 <p>Params: {{ '%.1fB'|format(model.params_total / 1e9) if model.params_total else '?' }}{% if not (model.provenance.get("params_total") and model.provenance["params_total"].verified) %} <em class="prov-unverified" title="number not human-verified">unverified</em>{% endif %}{% if model.params_active %} (active {{ '%.1fB'|format(model.params_active / 1e9) }}){% endif %}
    {% if model.context_length %} · Context: {{ '{:,}'.format(model.context_length) }}{% endif %}
    {% if model.release_date %} · Released: {{ model.release_date }}{% endif %}</p>
@@ -58,4 +64,18 @@
       {% if t.citation_count is not none %} · {{ t.citation_count }} citations{% endif %}</li>
   {% endfor %}
 </ul>
+{% endif %}
+
+{% if badge_svg or fit_badge_svg %}
+<h2>Badge</h2>
+{% if badge_svg %}
+<h3>Ring badge</h3>
+<p>{{ badge_svg | safe }}</p>
+<pre class="badge-snippet">{{ badge_snippet }}</pre>
+{% endif %}
+{% if fit_badge_svg %}
+<h3>Fit badge</h3>
+<p>{{ fit_badge_svg | safe }}</p>
+<pre class="badge-snippet">{{ fit_badge_snippet }}</pre>
+{% endif %}
 {% endif %}
