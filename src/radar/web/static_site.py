@@ -93,6 +93,7 @@ def render_static_site(
     tenure_by_project: dict[str, TenureLine] | None = None,
     model_tenure_by_id: dict[str, TenureLine] | None = None,
     model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
+    hn_by_project: dict[str, int] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -144,6 +145,12 @@ def render_static_site(
     ``model_metrics_by_id`` (optional) supplies each model page's download
     history, rendered as a sparkline beside the download stat; omitting it
     renders that page without the sparkline (differentiation pass, Task 3).
+    ``hn_by_project`` (optional, differentiation pass Task 6) maps project ->
+    latest Hacker News mention count; only positive counts should be passed,
+    each rendering a "N HN" chip beside that project's summary on the index
+    page's "Try This Week" table. Both index tables also cap evidence notes
+    to the top two, with a "+N more" link to the project page when there are
+    more.
     A ``badges/`` directory is always written (Task 5): one ring badge per
     project (``badges/<slug>.svg``), plus — per model entry — a ring badge
     when it has a ring (``badges/model-<id>.svg``) and a fit badge when its
@@ -245,6 +252,7 @@ def render_static_site(
             top_model=top_model,
             top_technique=top_technique,
             tenure_by_project=tenure_by_project,
+            hn_by_project=hn_by_project,
         ),
         encoding="utf-8",
     )

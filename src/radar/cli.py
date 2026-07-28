@@ -1983,6 +1983,14 @@ def export(
     metrics.initialize()
     metrics_by_project = {c.project: metrics.history_for(c.project) for c in cards}
 
+    # HN chip (Task 6, differentiation pass): only projects with a positive
+    # latest hn_mentions get a chip on the static index page.
+    hn_by_project = {
+        p: rows[-1].hn_mentions
+        for p, rows in metrics_by_project.items()
+        if rows and rows[-1].hn_mentions
+    }
+
     latest_scan_meta = latest_tool_scan_meta(orchestrator.run_store)
 
     # Source-health is best-effort: a missing config (e.g. a manual export
@@ -2165,6 +2173,7 @@ def export(
         tenure_by_project=tenure_by_project or None,
         model_tenure_by_id=model_tenure_by_id or None,
         model_metrics_by_id=model_metrics_by_id or None,
+        hn_by_project=hn_by_project or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"

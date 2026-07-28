@@ -1302,3 +1302,42 @@ def test_static_export_badges_dir_empty_without_cards_or_models(tmp_path: Path):
     badges_dir = tmp_path / "_site" / "badges"
     assert badges_dir.is_dir()
     assert list(badges_dir.iterdir()) == []
+
+
+# ---------------------------------------------------------------------------
+# Receipts-first cards + HN chip (Task 6, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_static_index_caps_evidence_and_shows_hn_chip(tmp_path: Path):
+    """Both the "Try This Week" table and the "All Tracked Projects" table
+    cap evidence to the top two notes with a "+N more" link; the HN chip
+    renders in the summary-bearing "Try This Week" cell only."""
+    card = _card("vLLM", Ring.ADOPT).model_copy(
+        update={"evidence_notes": ["note one", "note two", "note three"]}
+    )
+    render_static_site(
+        [card], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC),
+        hn_by_project={"vLLM": 12},
+    )
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    # Appears once in "Try This Week", once in "All Tracked Projects".
+    assert index.count("note one") == 2
+    assert index.count("note two") == 2
+    assert "note three" not in index
+    assert index.count("+1 more") == 2
+    assert ">12 HN<" in index
+    assert 'href="project_vllm.html">+1 more' in index
+
+
+def test_static_index_hn_chip_backcompat(tmp_path: Path):
+    """Back-compat: omitting hn_by_project renders no HN chip at all."""
+    card = _card("vLLM", Ring.ADOPT).model_copy(
+        update={"evidence_notes": ["note one", "note two", "note three"]}
+    )
+    render_static_site([card], tmp_path / "_site", datetime(2026, 7, 28, tzinfo=UTC))
+    index = (tmp_path / "_site" / "index.html").read_text(encoding="utf-8")
+    assert "chip-hn" not in index
+    # Evidence cap still applies regardless of the HN chip.
+    assert "note three" not in index
+    assert index.count("+1 more") == 2

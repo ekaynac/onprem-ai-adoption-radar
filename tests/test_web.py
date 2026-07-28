@@ -1850,3 +1850,45 @@ def test_model_detail_page_omits_badge_section_when_unringed_and_unknown_tier(tm
 
     text = TestClient(create_app(tmp_path)).get("/model/mystery").text
     assert "<h2>Badge</h2>" not in text
+
+
+# ---------------------------------------------------------------------------
+# Receipts-first cards + HN chip (Task 6, differentiation pass)
+# ---------------------------------------------------------------------------
+
+
+def test_index_caps_evidence_and_shows_hn_chip(tmp_path: Path):
+    from datetime import datetime
+
+    from radar.storage.metrics_store import MetricsStore, ProjectMetrics
+
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    card = DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                        ring=Ring.ADOPT, summary="s", workflow_fit={},
+                        risk_level="low",
+                        evidence_notes=["note one", "note two", "note three"])
+    db.upsert_cards([card])
+    metrics = MetricsStore(tmp_path / "data" / "radar.db")
+    metrics.initialize()
+    metrics.record([ProjectMetrics(project="vLLM", run_id="r1",
+                                   observed_at=datetime(2026, 7, 28, tzinfo=UTC),
+                                   hn_mentions=12)])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert "note one" in text and "note two" in text
+    assert "note three" not in text
+    assert "+1 more" in text
+    assert ">12 HN<" in text
+
+
+def test_index_no_hn_chip_without_mentions(tmp_path: Path):
+    """A card with no metrics recorded (or hn_mentions=0) renders no HN chip."""
+    db = RadarDatabase(tmp_path / "data" / "radar.db")
+    db.initialize()
+    db.upsert_cards([DecisionCard(project="vLLM", category=Category.MODEL_SERVING,
+                                  ring=Ring.ADOPT, summary="s", workflow_fit={},
+                                  risk_level="low")])
+
+    text = TestClient(create_app(tmp_path)).get("/").text
+    assert "chip-hn" not in text

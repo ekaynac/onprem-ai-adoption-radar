@@ -171,9 +171,17 @@ def create_app(root: Path) -> FastAPI:
         meta = latest_tool_scan_meta(run_store)
         mh, th = _hub_sections()
         history.initialize()
+        metrics.initialize()
         now = datetime.now(UTC)
         tenure_by_project = {
             c.project: project_tenure(history.history_for(c.project), now) for c in cards
+        }
+        # HN chip (Task 6, differentiation pass): only projects with a
+        # positive latest hn_mentions get a chip.
+        hn_by_project = {
+            c.project: latest.hn_mentions
+            for c in cards
+            if (latest := metrics.latest(c.project)) and latest.hn_mentions
         }
         return TEMPLATES.TemplateResponse(
             request,
@@ -192,6 +200,7 @@ def create_app(root: Path) -> FastAPI:
                 "top_model": next((r for r in mh if not r.is_new), None),
                 "top_technique": next((r for r in th if not r.is_new), None),
                 "tenure_by_project": tenure_by_project,
+                "hn_by_project": hn_by_project,
             },
         )
 
