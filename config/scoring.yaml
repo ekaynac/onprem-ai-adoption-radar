@@ -1,6 +1,0 @@
-default_ring: watch
-security_penalty_tags:
-  - terminal-access
-  - file-write-access
-  - persistent-agent
-  - browser-access

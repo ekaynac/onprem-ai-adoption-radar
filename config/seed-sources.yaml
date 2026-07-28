@@ -680,6 +680,7 @@ enrichment:
   osv: true
   hackernews: true
   downloads: true
+  arxiv: true  # arXiv paper-mention enricher (defaults on; listed so operators can see/toggle it)
   timeout_seconds: 15
   advisory_window_days: 90
 

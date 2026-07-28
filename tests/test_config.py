@@ -183,11 +183,15 @@ def test_seed_rss_feeds_build_into_rss_collector():
 
 
 def test_category_quotas_yaml_includes_new_categories(tmp_path: Path):
-    """Validate that category-quotas.yaml enumerates all new categories."""
+    """Validate that seed-sources.yaml quotas: mapping enumerates all Category members."""
     import yaml
 
-    raw = yaml.safe_load((_REPO_ROOT / "config" / "category-quotas.yaml").read_text())
-    assert "model_serving" in raw
-    assert "ai_infrastructure" in raw
-    assert "physical_ai_infrastructure" in raw
-    assert all(isinstance(v, int) and v > 0 for v in raw.values())
+    raw = yaml.safe_load((_REPO_ROOT / "config" / "seed-sources.yaml").read_text())
+    quotas = raw.get("quotas", {})
+
+    # Assert all Category enum members are in the quotas mapping
+    for category in Category:
+        assert category.value in quotas, f"Missing quota for category {category.value}"
+
+    # Assert all quota values are positive integers
+    assert all(isinstance(v, int) and v > 0 for v in quotas.values())

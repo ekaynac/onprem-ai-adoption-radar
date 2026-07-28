@@ -24,6 +24,9 @@ data/history.jsonl
 # committed. To version it (recommended for self-hosting durability),
 # `git add -f data/source-health.jsonl`. See docs/persistence.md.
 data/source-health.jsonl
+# Stray DB created by running radar with the wrong --root (the real one is
+# data/radar.db, covered by data/*.db above).
+/radar.db
 # Human decisions and discovery proposals (local runtime state).
 data/overrides.yaml
 data/proposed-seeds.yaml
