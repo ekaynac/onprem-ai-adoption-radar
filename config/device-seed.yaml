@@ -14,42 +14,327 @@ devices:
   - {id: rtx-4070-12gb, name: "RTX 4070 (12GB)", kind: gpu, total_memory_gb: 12}
   - {id: rtx-4070-ti-super-16gb, name: "RTX 4070 Ti Super (16GB)", kind: gpu, total_memory_gb: 16}
   - {id: rtx-4080-16gb, name: "RTX 4080 (16GB)", kind: gpu, total_memory_gb: 16}
-  - {id: rtx-4090-24gb, name: "RTX 4090 (24GB)", kind: gpu, total_memory_gb: 24}
+  - id: rtx-4090-24gb
+    name: "RTX 4090 (24GB)"
+    kind: gpu
+    total_memory_gb: 24
+    memory_bandwidth_gbs: 1008        # nvidia.com GeForce RTX 40 series page cites GDDR6X/384-bit; exact GB/s per en.wikipedia.org/wiki/GeForce_40_series (verified 2026-07-29)
+    tflops_fp16: 330.3                # dense; nvidia.com "1321 TOPS" AI headline is FP8 sparse (2x this), Wikipedia FP16 tensor sparse=660.6
+    tflops_fp8: 660.5                 # dense; = half of NVIDIA's "1321 AI TOPS" (FP8 sparse) headline figure
+    tdp_watts: 450
+    interconnect: "PCIe Gen4 x16 (no NVLink)"
+    indicative_price_usd: 1599        # launch MSRP, nvidia.com / en.wikipedia.org/wiki/GeForce_40_series
+    spec_url: https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/
+    verified: "2026-07-29"
   - {id: rtx-5070-12gb, name: "RTX 5070 (12GB)", kind: gpu, total_memory_gb: 12}
   - {id: rtx-5070-ti-16gb, name: "RTX 5070 Ti (16GB)", kind: gpu, total_memory_gb: 16}
   - {id: rtx-5080-16gb, name: "RTX 5080 (16GB)", kind: gpu, total_memory_gb: 16}
-  - {id: rtx-5090-32gb, name: "RTX 5090 (32GB)", kind: gpu, total_memory_gb: 32}
+  - id: rtx-5090-32gb
+    name: "RTX 5090 (32GB)"
+    kind: gpu
+    total_memory_gb: 32
+    memory_bandwidth_gbs: 1792        # nvidia.com GeForce RTX 5090; GB/s confirmed via en.wikipedia.org/wiki/GeForce_50_series desktop spec table (verified 2026-07-29)
+    tflops_fp16: 419.2                # dense; sparse 838.4 (Wikipedia GeForce 50 series table, Tensor compute column)
+    tflops_fp4: 1676                  # dense; nvidia.com lists "3352 AI TOPS" (5th-gen Tensor Core, FP4 with sparsity)
+    tdp_watts: 575
+    interconnect: "PCIe Gen5 x16 (no NVLink)"
+    indicative_price_usd: 1999        # launch MSRP, en.wikipedia.org/wiki/GeForce_50_series
+    spec_url: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+    verified: "2026-07-29"
+    # tflops_fp8 omitted: not separately published as of 2026-07-29 (NVIDIA headlines FP4; Wikipedia gives only one Tensor-compute column, mapped to FP16 above)
 
   # --- Pro / workstation NVIDIA ---
   - {id: rtx-a6000-48gb, name: "RTX A6000 (48GB)", kind: gpu, total_memory_gb: 48}
-  - {id: rtx-6000-ada-48gb, name: "RTX 6000 Ada (48GB)", kind: gpu, total_memory_gb: 48}
+  - id: rtx-6000-ada-48gb
+    name: "RTX 6000 Ada (48GB)"
+    kind: gpu
+    total_memory_gb: 48
+    memory_bandwidth_gbs: 960          # nvidia.com product page lacks a GB/s figure; per en.wikipedia.org/wiki/List_of_Nvidia_graphics_processing_units (960 GB/s, 384-bit GDDR6 @ 20 Gbps — math-consistent) (verified 2026-07-29)
+    tflops_fp8: 728.5                  # dense; nvidia.com lists "1457 AI TOPS" (Tensor Performance, footnoted "Theoretical FP8 TOPS using the sparsity feature")
+    tdp_watts: 300
+    interconnect: "PCIe Gen4 x16 (no NVLink)"
+    indicative_price_usd: 6799         # en.wikipedia.org/wiki/List_of_Nvidia_graphics_processing_units; NVIDIA does not list a price on its own product page
+    spec_url: https://www.nvidia.com/en-us/design-visualization/rtx-6000/
+    verified: "2026-07-29"
+    # tflops_fp16 omitted: not separately published as of 2026-07-29 (NVIDIA's page headlines only FP32 91.1 TFLOPS, RT-core 210.6 TFLOPS, and the FP8 figure above)
   - {id: a10-24gb, name: "A10 (24GB)", kind: gpu, total_memory_gb: 24}
   - {id: a40-48gb, name: "A40 (48GB)", kind: gpu, total_memory_gb: 48}
   - {id: l4-24gb, name: "L4 (24GB)", kind: gpu, total_memory_gb: 24}
-  - {id: l40s-48gb, name: "L40S (48GB)", kind: gpu, total_memory_gb: 48}
+  - id: l40s-48gb
+    name: "L40S (48GB)"
+    kind: gpu
+    total_memory_gb: 48
+    memory_bandwidth_gbs: 864          # nvidia.com L40S product page, GPU Specifications table (verified 2026-07-29)
+    tflops_fp16: 362.05                # dense; datasheet lists 733 sparse ("*With Sparsity")
+    tflops_fp8: 733                    # dense; datasheet lists 1466 sparse
+    tdp_watts: 350
+    interconnect: "PCIe Gen4 x16, 64 GB/s bidirectional (no NVLink)"
+    spec_url: https://www.nvidia.com/en-us/data-center/l40s/
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: rtx-pro-6000-blackwell-96gb
+    name: "RTX PRO 6000 Blackwell (96GB)"
+    kind: gpu
+    total_memory_gb: 96
+    memory_bandwidth_gbs: 1792         # nvidia.com RTX PRO 6000 Blackwell (Workstation Edition) spec table (verified 2026-07-29)
+    tflops_fp4: 2000                   # dense; datasheet lists "4000 AI TOPS" (footnoted "Theoretical FP4 TOPS using sparsity")
+    tdp_watts: 600
+    interconnect: "PCIe Gen5 (no NVLink)"
+    spec_url: https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000/
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: no public list price found on nvidia.com as of 2026-07-29
+    # tflops_fp8/fp16 omitted: page headlines only FP4 AI TOPS, RT-core 380 TFLOPS, and FP32 125 TFLOPS
   - {id: t4-16gb, name: "T4 (16GB)", kind: gpu, total_memory_gb: 16}
   - {id: v100-32gb, name: "V100 (32GB)", kind: gpu, total_memory_gb: 32}
 
   # --- Datacenter NVIDIA ---
-  - {id: a100-40gb, name: "A100 (40GB)", kind: gpu, total_memory_gb: 40}
-  - {id: a100-80gb, name: "A100 (80GB)", kind: gpu, total_memory_gb: 80}
-  - {id: h100-80gb, name: "H100 (80GB)", kind: gpu, total_memory_gb: 80}
-  - {id: h100-nvl-94gb, name: "H100 NVL (94GB)", kind: gpu, total_memory_gb: 94}
-  - {id: h200-141gb, name: "H200 (141GB)", kind: gpu, total_memory_gb: 141}
-  - {id: gh200-96gb, name: "GH200 (96GB)", kind: gpu, total_memory_gb: 96}
-  - {id: b200-192gb, name: "B200 (192GB)", kind: gpu, total_memory_gb: 192}
+  # SXM4 config assumed for a100-40gb/a100-80gb (id doesn't disambiguate form factor);
+  # PCIe variant differs slightly (see comments). Ampere (A100) has no FP8 Tensor Core.
+  - id: a100-40gb
+    name: "A100 (40GB)"
+    kind: gpu
+    total_memory_gb: 40
+    memory_bandwidth_gbs: 1555         # nvidia.com A100 datasheet (SXM4 and PCIe both 1555 GB/s for the 40GB SKU) (verified 2026-07-29)
+    tflops_fp16: 312                   # dense; datasheet lists 624 sparse ("*With sparsity")
+    tdp_watts: 400                     # SXM4; PCIe 40GB variant is 250W
+    interconnect: "NVLink 600 GB/s"
+    spec_url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+    verified: "2026-07-29"
+    datacenter: true
+    # tflops_fp8 omitted: Ampere Tensor Cores do not support FP8
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: a100-80gb
+    name: "A100 (80GB)"
+    kind: gpu
+    total_memory_gb: 80
+    memory_bandwidth_gbs: 2039         # nvidia.com A100 datasheet, SXM4 80GB row (PCIe 80GB variant is 1935 GB/s) (verified 2026-07-29)
+    tflops_fp16: 312                   # dense; datasheet lists 624 sparse ("*With sparsity"); compute is identical across 40GB/80GB SKUs
+    tdp_watts: 400                     # SXM4; PCIe 80GB variant is 300W
+    interconnect: "NVLink 600 GB/s"
+    spec_url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+    verified: "2026-07-29"
+    datacenter: true
+    # tflops_fp8 omitted: Ampere Tensor Cores do not support FP8
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: h100-80gb
+    name: "H100 (80GB)"
+    kind: gpu
+    total_memory_gb: 80
+    memory_bandwidth_gbs: 3350         # nvidia.com H100 datasheet, SXM row "3.35TB/s" (verified 2026-07-29)
+    tflops_fp16: 989.5                 # dense; datasheet lists 1979 sparse ("*With sparsity")
+    tflops_fp8: 1979                   # dense; datasheet lists 3958 sparse
+    tdp_watts: 700
+    interconnect: "NVLink 4 900 GB/s"  # 4th-gen NVLink confirmed in nvidia.com H100 page prose ("fourth-generation NVLink...900 gigabytes per second")
+    spec_url: https://www.nvidia.com/en-us/data-center/h100/
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: h100-nvl-94gb
+    name: "H100 NVL (94GB)"
+    kind: gpu
+    total_memory_gb: 94
+    memory_bandwidth_gbs: 3900         # nvidia.com H100 datasheet, NVL row "3.9TB/s" (verified 2026-07-29)
+    tflops_fp16: 835.5                 # dense; datasheet lists 1671 sparse
+    tflops_fp8: 1670.5                 # dense; datasheet lists 3341 sparse
+    tdp_watts: 400                     # "350-400W (configurable)"; upper bound recorded
+    interconnect: "NVLink bridge 600 GB/s"
+    spec_url: https://www.nvidia.com/en-us/data-center/h100/
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: h200-nvl-141gb
+    name: "H200 NVL (141GB)"
+    kind: gpu
+    total_memory_gb: 141
+    memory_bandwidth_gbs: 4800         # nvidia.com H200 datasheet, NVL column "4.8TB/s" (verified 2026-07-29)
+    tflops_fp16: 835.5                 # dense; datasheet lists 1671 sparse ("2 With sparsity")
+    tflops_fp8: 1670.5                 # dense; datasheet lists 3341 sparse
+    tdp_watts: 600                     # "Up to 600W (configurable)"
+    interconnect: "2/4-way NVLink bridge 900 GB/s"
+    spec_url: https://www.nvidia.com/en-us/data-center/h200/
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: h200-141gb
+    name: "H200 (141GB)"
+    kind: gpu
+    total_memory_gb: 141
+    memory_bandwidth_gbs: 4800        # nvidia.com H200 datasheet (verified 2026-07-29)
+    tflops_fp16: 989                  # dense; datasheet lists 1979 sparse
+    tflops_fp8: 1979
+    tdp_watts: 700
+    interconnect: "NVLink 4 900 GB/s"
+    spec_url: https://www.nvidia.com/en-us/data-center/h200/
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: gh200-96gb
+    name: "GH200 (96GB)"
+    kind: gpu
+    total_memory_gb: 96
+    memory_bandwidth_gbs: 4000         # NVIDIA GH200 datasheet, 96GB HBM3 config: "Up to 4TB/s" (verified 2026-07-29)
+    tflops_fp16: 990                   # dense; datasheet lists 1979 sparse ("*With sparsity")
+    tflops_fp8: 1979                   # dense; datasheet lists 3958 sparse
+    tdp_watts: 1000                    # combined CPU+GPU+memory superchip envelope, configurable 450-1000W (not a GPU-only TDP)
+    interconnect: "NVLink-C2C 900 GB/s"
+    spec_url: https://nvdam.widen.net/s/rrgqqnpbz8/grace-datasheet-gh200-grace-hopper-superchip-3773000
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: b200-192gb
+    name: "B200 (192GB)"
+    kind: gpu
+    total_memory_gb: 192
+    memory_bandwidth_gbs: 7700         # nvidia.com Blackwell architecture technical brief, Table 3 (HGX B200 per-GPU row: "Up to 192 GB HBM3e | 7.7 TB/s") (verified 2026-07-29)
+    tflops_fp4: 9000                   # dense; brief lists 18 PFLOPS sparse ("Dense/Sparse")
+    tflops_fp8: 4500                   # dense; brief lists 9 PFLOPS sparse
+    tflops_fp16: 2200                  # dense; brief lists 4.5 PFLOPS sparse
+    tdp_watts: 1000                    # "Each GPU is configurable up to 1000 Watts per GPU" (prose) + Table 3 Max TDP
+    interconnect: "NVLink 5 1.8 TB/s"  # 14.4 TB/s aggregate NVLink Switch Bandwidth / 8 GPUs
+    spec_url: https://nvdam.widen.net/s/xqt56dflgh/nvidia-blackwell-architecture-technical-brief
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+  - id: b300-288gb
+    name: "B300 (288GB)"
+    kind: gpu
+    total_memory_gb: 279               # NVIDIA's official Blackwell Ultra datasheet (Oct2025) lists 279GB HBM3e per GPU (GB300 NVL72 config) / 270GB (HGX B300 config); id retains "288gb" per early public/press references — 279 is the directly verified figure, not invented
+    memory_bandwidth_gbs: 8000         # Blackwell Ultra datasheet, "Individual Blackwell Ultra GPU Specifications": "279 GB HBM3E | 8 TB/s" (verified 2026-07-29)
+    tflops_fp4: 15000                  # dense; datasheet lists 20 PFLOPS sparse ("Specification in Sparse | Dense")
+    tflops_fp8: 5000                   # dense; datasheet lists 10 PFLOPS sparse ("Specification in sparse. Dense is 1/2 sparse spec shown")
+    tflops_fp16: 2500                  # dense; datasheet lists 5 PFLOPS sparse
+    tdp_watts: 1400                    # "Configurable up to 1,400 W"
+    interconnect: "NVLink 5 1.8 TB/s, PCIe Gen6 256 GB/s"
+    spec_url: https://nvdam.widen.net/s/p69fknmbpw/blackwell-datasheet-ultra-blackwell-4169750
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
+    # GB300 NVL72 (72x Blackwell Ultra GPU rack) is citable via the same datasheet above
+    # but is deferred to Task 3 as a Cluster/Node entity, not a Task 2 device row; no
+    # gb200-nvl72 node exists in this file yet (added in Task 3).
 
   # --- AMD ---
-  - {id: mi210-64gb, name: "MI210 (64GB)", kind: gpu, total_memory_gb: 64}
-  - {id: mi250-128gb, name: "MI250 (128GB)", kind: gpu, total_memory_gb: 128}
-  - {id: mi300x-192gb, name: "MI300X (192GB)", kind: gpu, total_memory_gb: 192}
+  - id: mi210-64gb
+    name: "MI210 (64GB)"
+    kind: gpu
+    total_memory_gb: 64
+    memory_bandwidth_gbs: 1600         # amd.com MI210 product page, "Peak Memory Bandwidth 1.6 TB/s" (verified 2026-07-29)
+    tflops_fp16: 181                   # amd.com "Peak Half Precision (FP16) Performance"; CDNA2 has no structured-sparsity acceleration, single figure
+    tdp_watts: 300                     # amd.com page lacks a TDP field as of 2026-07-29; per en.wikipedia.org/wiki/AMD_Instinct comparison table (reputable secondary, citing AMD's own published specs)
+    interconnect: "Infinity Fabric 100 GB/s x3 links"
+    spec_url: https://www.amd.com/en/products/accelerators/instinct/mi200/mi210.html
+    verified: "2026-07-29"
+    datacenter: true
+    # tflops_fp8 omitted: CDNA2 has no FP8 Tensor support
+    # indicative_price_usd omitted: AMD publishes no list price as of 2026-07-29
+  - id: mi250-128gb
+    name: "MI250 (128GB)"
+    kind: gpu
+    total_memory_gb: 128
+    memory_bandwidth_gbs: 3200         # amd.com MI250 product page, "Peak Memory Bandwidth 3.2 TB/s" (verified 2026-07-29)
+    tflops_fp16: 362.1                 # amd.com "Peak Half Precision (FP16) Performance"; CDNA2 has no structured-sparsity acceleration, single figure
+    tdp_watts: 500                     # amd.com "Thermal Design Power (TDP) 500W | 560W"; 560W is peak
+    interconnect: "Infinity Fabric 100 GB/s x8 links"
+    spec_url: https://www.amd.com/en/products/accelerators/instinct/mi200/mi250.html
+    verified: "2026-07-29"
+    datacenter: true
+    # tflops_fp8 omitted: CDNA2 has no FP8 Tensor support
+    # indicative_price_usd omitted: AMD publishes no list price as of 2026-07-29
+  - id: mi300x-192gb
+    name: "MI300X (192GB)"
+    kind: gpu
+    total_memory_gb: 192
+    memory_bandwidth_gbs: 5300         # amd.com MI300X product page, "Peak Memory Bandwidth 5.3 TB/s" (verified 2026-07-29)
+    tflops_fp16: 1300                  # dense; amd.com lists 2.61 PFLOPs sparse ("with Structured Sparsity")
+    tflops_fp8: 2610                   # dense; amd.com lists 5.22 PFLOPs sparse
+    tdp_watts: 750                     # "Typical Board Power (TBP)"
+    interconnect: "Infinity Fabric 128 GB/s x8 links"
+    spec_url: https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: AMD publishes no list price as of 2026-07-29
+  - id: mi325x-256gb
+    name: "MI325X (256GB)"
+    kind: gpu
+    total_memory_gb: 256
+    memory_bandwidth_gbs: 6000         # amd.com MI325X product page, "Peak Memory Bandwidth 6 TB/s" (verified 2026-07-29)
+    tflops_fp16: 1300                  # dense; amd.com lists 2.61 PFLOPs sparse; same CDNA3 compute die/clocks as MI300X, only memory upgraded to HBM3E
+    tflops_fp8: 2610                   # dense; amd.com lists 5.22 PFLOPs sparse
+    tdp_watts: 1000                    # "Typical Board Power (TBP)"
+    interconnect: "Infinity Fabric 128 GB/s x8 links"
+    spec_url: https://www.amd.com/en/products/accelerators/instinct/mi300/mi325x.html
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: AMD publishes no list price as of 2026-07-29
+  - id: mi355x-288gb
+    name: "MI355X (288GB)"
+    kind: gpu
+    total_memory_gb: 288
+    memory_bandwidth_gbs: 8000         # amd.com MI355X product page, "Peak Memory Bandwidth 8 TB/s" (verified 2026-07-29)
+    tflops_fp16: 2500                  # dense; amd.com lists 5 PFLOPs sparse ("Matrix Performance with Structured Sparsity")
+    tflops_fp8: 5000                   # dense; amd.com lists 10.1 PFLOPs sparse (OCP-FP8)
+    tflops_fp4: 5050                   # dense; amd.com lists only "10.1 PFLOPs" MXFP4 without an explicit dense/sparse split — matches the OCP-FP8 sparse rate exactly, so treated as sparse and halved per policy
+    tdp_watts: 1400                    # "Typical Board Power (TBP)"
+    interconnect: "Infinity Fabric 153 GB/s (scale-up) / 128 GB/s (scale-out)"
+    spec_url: https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: AMD publishes no list price as of 2026-07-29
+
+  # --- Intel Habana ---
+  - id: gaudi3-128gb
+    name: "Gaudi 3 (128GB)"
+    kind: gpu
+    total_memory_gb: 128
+    memory_bandwidth_gbs: 3700          # Intel Gaudi 3 AI Accelerator White Paper, Table 1: "HBM Bandwidth 3.7 TB/s" (verified 2026-07-29)
+    tflops_fp16: 1678                   # "BF16 MME TFLOPS" (mapped to fp16; Gaudi's MME has no separate FP16/BF16 split); no sparsity concept published
+    tflops_fp8: 1678                    # "FP8 MME TFLOPS"; same rate as BF16 on this MME, per Intel's own table
+    tdp_watts: 900                      # "supports up to 900W Total Device Power (TDP) with passive cooling and up to 900W TDP with liquid cooling"
+    interconnect: "24x 200GbE, 1200 GB/s bidirectional networking; PCIe Gen5 x16 (128 GB/s)"
+    spec_url: https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+    verified: "2026-07-29"
+    datacenter: true
+    # indicative_price_usd omitted: Intel publishes no list price as of 2026-07-29
+
+  # --- Huawei Ascend ---
+  # Huawei publishes sparsely for Ascend chips; figures below are corroborated via
+  # CSET (Georgetown Center for Security and Emerging Technology), a reputable
+  # secondary source specializing in Chinese semiconductor export-control analysis,
+  # since Huawei has no public datasheet. The Ascend 910B ships in several
+  # sub-variants (910B1/B2/B3/B4) with FP16 TFLOPS ranging ~280-400 across them;
+  # 313 TFLOPS (910B2/910B3, the commonly cited mainstream SKU) is used below.
+  - id: ascend-910b-64gb
+    name: "Ascend 910B (64GB)"
+    kind: gpu
+    total_memory_gb: 64
+    memory_bandwidth_gbs: 1600          # CSET: "910B1...reach this 1600 GB/s maximum with four stacks of 16 GB HBM (64 GB in total per chip)" (verified 2026-07-29)
+    tflops_fp16: 313                    # CSET: "910B3...313 TFLOPS" (25 cores x 1.8GHz); 910B1 variant reaches 400 TFLOPS
+    spec_url: https://cset.georgetown.edu/publication/pushing-the-limits-huaweis-ai-chip-tests-u-s-export-controls/
+    verified: "2026-07-29"
+    datacenter: true
+    # tdp_watts omitted: Huawei does not publish TDP for Ascend 910B; not found via CSET or other public reporting as of 2026-07-29
+    # tflops_fp8 omitted: no public source confirms FP8 Tensor support/throughput for Ascend 910B as of 2026-07-29
+    # indicative_price_usd omitted: Huawei publishes no list price as of 2026-07-29
+  # ascend-910c dropped as of 2026-07-29: Wikipedia (HiSilicon) confirms it combines
+  # two Ascend 910B dies and claims "~60% of H100 inference performance" (DeepSeek
+  # researchers), but neither that page, CSET, nor SemiAnalysis's Huawei CloudMatrix
+  # 910C teardown (via fibermall.com) publish a per-chip memory/bandwidth/TFLOPS/TDP
+  # figure — only cluster-level (CloudMatrix 384) aggregates. Per the cardinal rule,
+  # dropped rather than sourced from lower-tier aggregator blogs with no clear primary
+  # citation.
 
   # --- Multi-GPU rigs ---
   - {id: 2x-rtx-4090-24gb, name: "2x RTX 4090 (24GB)", kind: gpu, total_memory_gb: 24, gpu_count: 2}
   - {id: 4x-rtx-4090-24gb, name: "4x RTX 4090 (24GB)", kind: gpu, total_memory_gb: 24, gpu_count: 4}
-  - {id: 2x-a100-80gb, name: "2x A100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 2}
-  - {id: 4x-a100-80gb, name: "4x A100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 4}
-  - {id: 8x-h100-80gb, name: "8x H100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 8}
+  - {id: 2x-a100-80gb, name: "2x A100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 2, datacenter: true}
+  - {id: 4x-a100-80gb, name: "4x A100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 4, datacenter: true}
+  - {id: 8x-h100-80gb, name: "8x H100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 8, datacenter: true}
+  - {id: 4x-h100-80gb, name: "4x H100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 4, datacenter: true}
+  - {id: 8x-h200-141gb, name: "8x H200 (141GB)", kind: gpu, total_memory_gb: 141, gpu_count: 8, datacenter: true}
+  - {id: 8x-b200-192gb, name: "8x B200 (192GB)", kind: gpu, total_memory_gb: 192, gpu_count: 8, datacenter: true}
+  - {id: 8x-mi300x-192gb, name: "8x MI300X (192GB)", kind: gpu, total_memory_gb: 192, gpu_count: 8, datacenter: true}
 
   # --- Apple unified memory ---
   - {id: mac-16gb, name: "Mac (16GB unified)", kind: apple, total_memory_gb: 16}

@@ -51,3 +51,28 @@ def test_unknown_field_rejected(tmp_path: Path):
     )
     with pytest.raises(DeviceSeedError, match="validation failed"):
         load_device_seed(p)
+
+
+def test_new_datacenter_devices_present_with_cited_specs():
+    seeds = {s.id: s for s in load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml")}
+    for did in ("b300-288gb", "mi325x-256gb", "mi355x-288gb", "gaudi3-128gb",
+                "ascend-910b-64gb", "rtx-pro-6000-blackwell-96gb",
+                "8x-h200-141gb", "8x-b200-192gb", "8x-mi300x-192gb", "4x-h100-80gb"):
+        assert did in seeds, did
+        assert seeds[did].datacenter is True, did
+    h200 = seeds["h200-141gb"]
+    assert h200.memory_bandwidth_gbs and h200.memory_bandwidth_gbs > 1000
+    assert h200.spec_url and h200.verified
+
+
+def test_every_v2_number_is_cited():
+    seeds = load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml")
+    v2_fields = ("memory_bandwidth_gbs", "tflops_fp16", "tflops_fp8", "tflops_fp4",
+                 "tdp_watts", "indicative_price_usd")
+    for s in seeds:
+        if any(getattr(s, f) is not None for f in v2_fields):
+            assert s.spec_url, f"{s.id} has v2 numbers but no spec_url"
+            assert s.verified, f"{s.id} has v2 numbers but no verified date"
+        for f in v2_fields:
+            value = getattr(s, f)
+            assert value is None or value > 0, f"{s.id}.{f} must be positive"
