@@ -763,6 +763,55 @@ def test_models_page_is_styled_and_filterable(tmp_path):
     assert 'data-key="min-memory-gb" data-type="num"' in r.text
 
 
+def _seed_dc_model(root: Path):
+    """A single_node-tier model: PILOT/WATCH under default, ADOPT under dc-first."""
+    from radar.models_radar.entities import (
+        HardwareTier,
+        Modality,
+        ModelEntry,
+        Openness,
+        QuantVariant,
+    )
+    from radar.models_radar.pipeline import score_entries
+
+    rs = RunStore(root / "data" / "runs")
+    rid = rs.create_run()
+    entry = ModelEntry(
+        id="big-moe", name="Big-MoE-1T", family="Big",
+        params_total=1_000_000_000_000, openness=Openness.OPEN_PERMISSIVE,
+        hardware_tier=HardwareTier.SINGLE_NODE, modality=Modality.TEXT,
+        quants=[QuantVariant(format="FP8", bits_per_weight=8.0, est_memory_gb_4k=600.0)],
+    )
+    scored = score_entries([entry])
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json") for e in scored])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+
+def test_models_route_profile_param_shows_note_and_lifts_ring(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_dc_model(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    default = client.get("/models")
+    dc = client.get("/models?profile=datacenter-first")
+
+    assert default.status_code == 200 and dc.status_code == 200
+    assert "profile-note" not in default.text
+    assert "profile-note" in dc.text and "datacenter-first" in dc.text
+    # data-ring on the row (not the always-present ring legend) reflects the lens
+    assert 'data-ring="pilot"' in default.text
+    assert 'data-ring="adopt"' in dc.text
+
+
+def test_models_route_unknown_profile_falls_back_silently(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/models?profile=nope")
+    assert r.status_code == 200
+    assert "profile-note" not in r.text
+
+
 def _seed_techniques_run(root: Path) -> None:
     from radar.models import Category as _Cat
     from radar.models import Ring as _Ring

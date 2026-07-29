@@ -14,6 +14,7 @@ from radar.models_radar.entities import ModelEntry
 from radar.models_radar.history import load_model_events
 from radar.models_radar.memory import minimum_viable_quant
 from radar.models_radar.momentum import compute_model_momentum
+from radar.models_radar.scoring import rescore_entries
 from radar.storage.model_metrics_store import ModelMetricsStore
 from radar.storage.run_store import RunStore
 
@@ -53,9 +54,13 @@ class ModelQueryService:
         family: str | None = None,
         modality: str | None = None,
         detail: str = "compact",
+        profile: str | None = None,
     ) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
-        for entry in self._entries():
+        entries = self._entries()
+        if profile:
+            entries = rescore_entries(entries, profile)  # raises ModelProfileError if unknown
+        for entry in entries:
             if hardware_tier and entry.hardware_tier.value != hardware_tier.lower():
                 continue
             if family and entry.family.lower() != family.lower():

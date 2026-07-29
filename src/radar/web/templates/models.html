@@ -14,6 +14,11 @@
     {% include "_hero.html" %}
     <main class="container">
       {% if not models %}<p>No models scanned yet.</p>{% endif %}
+      {% if active_profile %}
+      <p class="profile-note">Viewing through the <strong>{{ active_profile }}</strong> lens — rings recomputed, not persisted. <a href="/models">default view</a></p>
+      {% else %}
+      <p class="profile-link"><a href="/models?profile=datacenter-first">View the datacenter-first lens</a></p>
+      {% endif %}
       {% include "_legend.html" %}
       {% include "_device_picker.html" %}
       {% include "_models_filter_bar.html" %}

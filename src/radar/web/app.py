@@ -25,6 +25,7 @@ from radar.models import Category, SourceType
 from radar.models_radar.entities import HardwareTier, ModelEntry
 from radar.models_radar.history import ModelHistoryEvent, load_model_events
 from radar.models_radar.memory import minimum_viable_quant
+from radar.models_radar.scoring import ModelProfileError, rescore_entries
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.research_radar.entities import ImplKind, TechniqueEntry
 from radar.research_radar.history import load_technique_events
@@ -370,13 +371,25 @@ def create_app(root: Path) -> FastAPI:
         )
 
     @app.get("/models", response_class=HTMLResponse)
-    def models_page(request: Request):
+    def models_page(request: Request, profile: str = ""):
         entries = _model_entries()
+        active_profile = ""
+        if profile and profile != "default":
+            try:
+                entries = rescore_entries(entries, profile)
+                active_profile = profile
+            except ModelProfileError:
+                pass  # unknown profile → default view, no note, no 500
         slug_by_model = build_slug_map([e.id for e in entries])
         return TEMPLATES.TemplateResponse(
             request,
             "models.html",
-            {"models": entries, "slug_by_model": slug_by_model, "device_picker": picker_context()},
+            {
+                "models": entries,
+                "slug_by_model": slug_by_model,
+                "device_picker": picker_context(),
+                "active_profile": active_profile,
+            },
         )
 
     @app.get("/model/{model_id}", response_class=HTMLResponse)

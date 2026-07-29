@@ -88,9 +88,16 @@ def build_mcp_server(root: Path) -> FastMCP:
         family: str | None = None,
         modality: str | None = None,
         detail: str = "compact",
+        profile: str | None = None,
     ) -> list[dict]:
-        """List tracked local models, optionally filtered by fit/family/modality."""
-        return models.list_models(max_memory_gb, hardware_tier, family, modality, detail)
+        """List tracked local models, optionally filtered by fit/family/modality.
+
+        `profile`: rescore through an alternate lens before filtering/shaping
+        (e.g. "datacenter-first" weights single/multi-node deployability
+        instead of penalizing it). Persisted rings are unaffected — this is
+        a view. Omit for the default (persisted) scoring.
+        """
+        return models.list_models(max_memory_gb, hardware_tier, family, modality, detail, profile)
 
     @mcp.tool()
     def get_model(model_id: str) -> dict | None:

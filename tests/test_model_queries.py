@@ -74,6 +74,40 @@ def test_list_models_tier_and_modality_filters_are_case_insensitive(tmp_path: Pa
     }
 
 
+def test_list_models_profile_lifts_ring_for_datacenter_first(tmp_path: Path):
+    from radar.models_radar.pipeline import score_entries
+
+    run_store = RunStore(tmp_path / "data" / "runs")
+    rid = run_store.create_run()
+    entry = ModelEntry(
+        id="big-moe", name="Big-MoE-1T", family="Big",
+        params_total=1_000_000_000_000, openness=Openness.OPEN_PERMISSIVE,
+        hardware_tier=HardwareTier.SINGLE_NODE, modality=Modality.TEXT,
+        quants=[QuantVariant(format="FP8", bits_per_weight=8.0, est_memory_gb_4k=600.0)],
+    )
+    scored = score_entries([entry])
+    run_store.save_stage(rid, "model_cards", [e.model_dump(mode="json") for e in scored])
+    run_store.update_meta(rid, {"kind": "models", "model_count": 1})
+
+    svc = ModelQueryService(tmp_path)
+    default_rows = svc.list_models()
+    dc_rows = svc.list_models(profile="datacenter-first")
+
+    assert default_rows[0]["ring"] != "adopt"
+    assert dc_rows[0]["ring"] == "adopt"
+
+
+def test_list_models_unknown_profile_raises(tmp_path: Path):
+    import pytest
+
+    from radar.models_radar.scoring import ModelProfileError
+
+    _seed(tmp_path)
+    svc = ModelQueryService(tmp_path)
+    with pytest.raises(ModelProfileError):
+        svc.list_models(profile="nope")
+
+
 def test_get_model_returns_full_with_quants(tmp_path: Path):
     _seed(tmp_path)
     svc = ModelQueryService(tmp_path)

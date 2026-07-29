@@ -53,10 +53,34 @@ def _ecosystem(entry: ModelEntry) -> int:
     return min(5, score)
 
 
-def score_model(entry: ModelEntry) -> ModelScore:
+class ModelProfileError(ValueError):
+    """Raised for an unknown model-scoring profile."""
+
+
+MODEL_PROFILES: dict[str, dict[HardwareTier, int]] = {
+    "default": _TIER_SCORE,
+    # Datacenter lens: single-node/multi-node deployability is the point,
+    # not a penalty. Laptop-class models still score fine on capability.
+    "datacenter-first": {
+        HardwareTier.LAPTOP: 2, HardwareTier.APPLE_HIGH_RAM: 2,
+        HardwareTier.SINGLE_GPU: 3, HardwareTier.WORKSTATION: 4,
+        HardwareTier.SINGLE_GPU_DC: 5, HardwareTier.SINGLE_NODE: 5,
+        HardwareTier.MULTI_NODE: 4, HardwareTier.DATACENTER: 4,
+        HardwareTier.UNKNOWN: 2,
+    },
+}
+
+
+def score_model(entry: ModelEntry, profile: str = "default") -> ModelScore:
+    tier_scores = MODEL_PROFILES.get(profile)
+    if tier_scores is None:
+        available = ", ".join(sorted(MODEL_PROFILES))
+        raise ModelProfileError(
+            f"Unknown model-scoring profile {profile!r}; available: {available}"
+        )
     openness = _OPENNESS_SCORE.get(entry.openness, 2) if entry.openness else 2
     mv = minimum_viable_quant(entry.quants)
-    runnability = _TIER_SCORE[entry.hardware_tier] if mv else 2
+    runnability = tier_scores[entry.hardware_tier] if mv else 2
     capability = _capability(entry)
     ecosystem = _ecosystem(entry)
     average = round((openness + runnability + capability + ecosystem) / 4, 2)
@@ -75,3 +99,23 @@ def model_ring(score: ModelScore) -> Ring:
     if score.average >= 3.0:
         return Ring.PILOT
     return Ring.WATCH
+
+
+def rescore_entries(entries: list[ModelEntry], profile: str) -> list[ModelEntry]:
+    """Recompute score/breakdown/ring per entry under an alternate scoring lens.
+
+    A view only — the input entries (and any persisted rings) are never
+    mutated; frozen `ModelEntry` copies are returned instead. `"default"` is
+    the identity transform: it returns the input list unchanged rather than
+    recomputing scores that are already current.
+    """
+    if profile == "default":
+        return entries
+    rescored: list[ModelEntry] = []
+    for entry in entries:
+        breakdown = score_model(entry, profile=profile)
+        ring = model_ring(breakdown)
+        rescored.append(entry.model_copy(update={
+            "score": breakdown.average, "score_breakdown": breakdown, "ring": ring,
+        }))
+    return rescored
