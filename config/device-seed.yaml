@@ -279,7 +279,7 @@ devices:
     memory_bandwidth_gbs: 8000         # amd.com MI355X product page, "Peak Memory Bandwidth 8 TB/s" (verified 2026-07-29)
     tflops_fp16: 2500                  # dense; amd.com lists 5 PFLOPs sparse ("Matrix Performance with Structured Sparsity")
     tflops_fp8: 5000                   # dense; amd.com lists 10.1 PFLOPs sparse (OCP-FP8)
-    tflops_fp4: 5050                   # dense; amd.com lists only "10.1 PFLOPs" MXFP4 without an explicit dense/sparse split — matches the OCP-FP8 sparse rate exactly, so treated as sparse and halved per policy
+    tflops_fp4: 10100                  # dense; amd.com's MXFP4 row is unqualified ("Peak Microscaling Four-bit Precision Matrix (MXFP4) Performance 10.1 PFLOPs") with no separate "with Structured Sparsity" variant — per the page's own convention, unqualified rows are dense (cf. FP16 2.5 dense/5.0 sparse, OCP-FP8 5.0 dense/10.1 sparse, both explicitly labeled "with Structured Sparsity" when sparse) — the 2x-over-FP8-dense rate is CDNA4's FP4-doubles-FP8 identity, not sparsity (re-verified 2026-07-29)
     tdp_watts: 1400                    # "Typical Board Power (TBP)"
     interconnect: "Infinity Fabric 153 GB/s (scale-up) / 128 GB/s (scale-out)"
     spec_url: https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html
