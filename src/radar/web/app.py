@@ -48,7 +48,7 @@ from radar.web.backer_badge import backer_badge
 from radar.web.badge import badge_markdown, fit_badge_svg, ring_badge_svg
 from radar.web.hub_sections import load_hub_sections
 from radar.web.models_summary import summarize_models
-from radar.web.picker_context import fit_by_tier, picker_context
+from radar.web.picker_context import datacenter_fit_rows, fit_by_tier, picker_context
 from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import latest_tool_scan_meta, summarize_meta
 from radar.web.slugs import build_slug_map
@@ -426,6 +426,7 @@ def create_app(root: Path) -> FastAPI:
             {
                 "model": entry,
                 "fit_by_tier": fit_by_tier(entry),
+                "datacenter_fit": datacenter_fit_rows(entry),
                 "pedigree": _model_pedigree(model_id) or None,
                 "technique_hrefs": _technique_hrefs(),
                 "model_tenure_line": model_tenure(

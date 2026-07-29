@@ -9,7 +9,13 @@ from typing import Any
 
 from radar.models_radar.device_fit import evaluate_fit
 from radar.models_radar.device_fit import fit_report as _fit_report
-from radar.models_radar.devices import DEVICE_PRESETS, resolve_device, usable_memory_gb
+from radar.models_radar.devices import (
+    CLUSTER_PRESETS,
+    DEVICE_PRESETS,
+    NODE_PRESETS,
+    resolve_device,
+    usable_memory_gb,
+)
 from radar.models_radar.entities import ModelEntry
 from radar.models_radar.history import load_model_events
 from radar.models_radar.memory import minimum_viable_quant
@@ -115,7 +121,7 @@ class ModelQueryService:
             {"id": key, "name": d.name, "kind": d.kind,
              "total_memory_gb": d.total_memory_gb, "gpu_count": d.gpu_count,
              "usable_gb": usable_memory_gb(d)}
-            for key, d in DEVICE_PRESETS.items()
+            for key, d in {**DEVICE_PRESETS, **NODE_PRESETS, **CLUSTER_PRESETS}.items()
         ]
 
     def can_run(self, model_id: str, device: str | dict[str, Any],

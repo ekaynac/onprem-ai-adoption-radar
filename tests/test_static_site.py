@@ -362,6 +362,53 @@ def test_model_page_has_runs_on_table(tmp_path):
     assert "RTX 4090 (24GB)" in page  # one of the COMMON_DEVICE_TIERS
 
 
+def test_model_page_datacenter_runs_on_table(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.web.static_site import render_static_site
+
+    big = ModelEntry(id="big-671b", name="Big 671B", family="Big", params_total=671_000_000_000,
+                     ring=Ring.ADOPT, hardware_tier=HardwareTier.SINGLE_NODE,
+                     openness=Openness.OPEN_PERMISSIVE,
+                     quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=350.0,
+                                          platform=Platform.GENERIC, source="x")])
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 29, tzinfo=UTC), model_entries=[big])
+    page = (tmp_path / "_site" / "model_big-671b.html").read_text(encoding="utf-8")
+    assert "Runs on — datacenter" in page
+    assert "H200 (141GB)" in page
+
+
+def test_model_page_small_model_has_no_datacenter_table(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.web.static_site import render_static_site
+
+    small = ModelEntry(id="small-8b", name="Small 8B", family="Small", params_total=8_000_000_000,
+                       ring=Ring.ADOPT, hardware_tier=HardwareTier.LAPTOP,
+                       openness=Openness.OPEN_PERMISSIVE,
+                       quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                                            platform=Platform.GENERIC, source="x")])
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 29, tzinfo=UTC), model_entries=[small])
+    page = (tmp_path / "_site" / "model_small-8b.html").read_text(encoding="utf-8")
+    assert "Runs on — datacenter" not in page
+
+
 def test_static_model_page_shows_download_sparkline(tmp_path):
     from datetime import UTC, datetime
 

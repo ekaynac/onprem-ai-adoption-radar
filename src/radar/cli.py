@@ -719,11 +719,23 @@ def models_promote(
 
 @models_app.command("devices")
 def models_devices() -> None:
-    """List built-in device presets for the fit check."""
-    from radar.models_radar.devices import DEVICE_PRESETS, usable_memory_gb
-    for key, d in DEVICE_PRESETS.items():
-        console.print(f"  {key:<20} {d.name:<28} ~{usable_memory_gb(d):>6.1f} GB usable",
-                      highlight=False)
+    """List built-in device presets for the fit check (devices, nodes, clusters)."""
+    from radar.models_radar.devices import (
+        CLUSTER_PRESETS,
+        DEVICE_PRESETS,
+        NODE_PRESETS,
+        usable_memory_gb,
+    )
+
+    for label, presets in (
+        ("Devices", DEVICE_PRESETS),
+        ("Nodes", NODE_PRESETS),
+        ("Clusters", CLUSTER_PRESETS),
+    ):
+        console.print(f"[bold]{label}[/bold]")
+        for key, d in presets.items():
+            console.print(f"  {key:<26} {d.name:<28} ~{usable_memory_gb(d):>6.1f} GB usable",
+                          highlight=False)
 
 
 @models_app.command("fit")

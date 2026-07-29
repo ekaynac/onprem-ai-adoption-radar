@@ -113,6 +113,15 @@ COMMON_DEVICE_TIERS: list[str] = [
 ]
 
 
+# Datacenter-class "Runs on" row set for the second per-model table (sub-project C).
+# gb300-nvl72 exists in the catalog but is deliberately left out here — this list
+# stays at 6 rows; it remains picker/MCP-visible via NODE_PRESETS.
+DATACENTER_DEVICE_TIERS: list[str] = [
+    "h100-80gb", "h200-141gb", "b200-192gb",
+    "mi300x-192gb", "hgx-h200-8", "gb200-nvl72",
+]
+
+
 def resolve_device(spec: str | dict[str, Any]) -> DeviceProfile:
     """A preset name, or a custom dict {kind, total_memory_gb, gpu_count?}."""
     if isinstance(spec, str):

@@ -113,3 +113,14 @@ def test_node_and_cluster_presets_resolve_as_devices():
 
     with pytest.raises(DeviceError):
         resolve_device("no-such-anything")
+
+
+def test_datacenter_tiers_all_resolvable():
+    from radar.models_radar.devices import DATACENTER_DEVICE_TIERS
+
+    assert DATACENTER_DEVICE_TIERS == [
+        "h100-80gb", "h200-141gb", "b200-192gb",
+        "mi300x-192gb", "hgx-h200-8", "gb200-nvl72",
+    ]
+    for key in DATACENTER_DEVICE_TIERS:
+        assert resolve_device(key) is not None

@@ -176,6 +176,10 @@ def test_can_run_and_fit_report(tmp_path: Path):
 
     devices = svc.list_devices()
     assert any(d["id"] == "rtx-4090-24gb" for d in devices)
+    assert any(d["id"] == "hgx-h200-8" and d["gpu_count"] == 8 for d in devices)
+    assert any(d["id"] == "2x-hgx-h200-8" and d["gpu_count"] == 16 for d in devices)
+    node = next(d for d in devices if d["id"] == "hgx-h200-8")
+    assert node["name"] == "NVIDIA HGX H200 8-GPU"
 
     one = svc.can_run("qwen3-8b", "rtx-4090-24gb")
     assert one is not None and one["verdict"] in ("fits", "fits_tight", "fits_quantized")

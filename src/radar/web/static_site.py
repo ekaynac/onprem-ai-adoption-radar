@@ -43,7 +43,7 @@ from radar.web.backer_badge import backer_badge
 from radar.web.badge import badge_markdown, fit_badge_svg, ring_badge_svg
 from radar.web.hub_sections import HubRow
 from radar.web.models_summary import summarize_models
-from radar.web.picker_context import fit_by_tier, picker_context
+from radar.web.picker_context import datacenter_fit_rows, fit_by_tier, picker_context
 from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
@@ -489,6 +489,7 @@ def _write_model_pages(
             model_template.render(
                 model=entry,
                 fit_by_tier=fit_by_tier(entry),
+                datacenter_fit=datacenter_fit_rows(entry),
                 generated_at=generated_at,
                 pedigree=(pedigree_by_model or {}).get(entry.id) or None,
                 technique_hrefs=technique_hrefs or {},
