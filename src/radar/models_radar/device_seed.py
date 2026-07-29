@@ -44,7 +44,45 @@ class DeviceSeed(BaseModel):
         return DeviceProfile(**self.model_dump(exclude={"id"}))
 
 
-def load_device_seed(path: Path) -> list[DeviceSeed]:
+class NodeSeed(BaseModel):
+    """A multi-GPU node (e.g. an HGX/OAM baseboard) in config/device-seed.yaml."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    name: str
+    device: str  # ref into devices
+    gpus_per_node: int
+    interconnect: str | None = None
+    spec_url: str | None = None
+    verified: str | None = None
+
+
+class ClusterSeed(BaseModel):
+    """A multi-node cluster (e.g. a SuperPOD rack group) in config/device-seed.yaml."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    name: str
+    node: str  # ref into nodes
+    node_count: int
+    fabric: str | None = None
+    spec_url: str | None = None
+    verified: str | None = None
+
+
+class DeviceCatalog(BaseModel):
+    """The full parsed device seed: devices, nodes, and clusters."""
+
+    model_config = ConfigDict(frozen=True)
+
+    devices: list[DeviceSeed]
+    nodes: list[NodeSeed]
+    clusters: list[ClusterSeed]
+
+
+def load_device_seed(path: Path) -> DeviceCatalog:
     try:
         contents = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -56,11 +94,14 @@ def load_device_seed(path: Path) -> list[DeviceSeed]:
     if not isinstance(raw, dict):
         raise DeviceSeedError(f"Device seed {path} must be a mapping with a 'devices' list")
     try:
-        seeds = [DeviceSeed.model_validate(item) for item in raw.get("devices") or []]
+        devices = [DeviceSeed.model_validate(item) for item in raw.get("devices") or []]
+        nodes = [NodeSeed.model_validate(item) for item in raw.get("nodes") or []]
+        clusters = [ClusterSeed.model_validate(item) for item in raw.get("clusters") or []]
     except ValidationError as exc:
         raise DeviceSeedError(f"Device seed validation failed for {path}: {exc}") from exc
-    _check_ids(seeds, path)
-    return seeds
+    _check_ids(devices, path)
+    _check_ref_integrity(devices, nodes, clusters, path)
+    return DeviceCatalog(devices=devices, nodes=nodes, clusters=clusters)
 
 
 def _check_ids(seeds: list[DeviceSeed], path: Path) -> None:
@@ -71,3 +112,26 @@ def _check_ids(seeds: list[DeviceSeed], path: Path) -> None:
     duplicates = sorted({i for i in ids if ids.count(i) > 1})
     if duplicates:
         raise DeviceSeedError(f"Duplicate device ids in {path}: {', '.join(duplicates)}")
+
+
+def _check_ref_integrity(
+    devices: list[DeviceSeed],
+    nodes: list[NodeSeed],
+    clusters: list[ClusterSeed],
+    path: Path,
+) -> None:
+    """node.device must exist in devices; cluster.node must exist in nodes."""
+    device_ids = {d.id for d in devices}
+    for node in nodes:
+        if node.device not in device_ids:
+            raise DeviceSeedError(
+                f"Device seed {path}: node {node.id!r} references unknown device "
+                f"{node.device!r}"
+            )
+    node_ids = {n.id for n in nodes}
+    for cluster in clusters:
+        if cluster.node not in node_ids:
+            raise DeviceSeedError(
+                f"Device seed {path}: cluster {cluster.id!r} references unknown node "
+                f"{cluster.node!r}"
+            )

@@ -360,3 +360,68 @@ devices:
   - {id: laptop-16gb-cpu, name: "Laptop (16GB, no GPU)", kind: cpu, total_memory_gb: 16}
   - {id: workstation-64gb-cpu, name: "Workstation (64GB RAM, no GPU)", kind: cpu, total_memory_gb: 64}
   - {id: server-256gb-cpu, name: "Server (256GB RAM, no GPU)", kind: cpu, total_memory_gb: 256}
+
+# Nodes: multi-GPU baseboards (HGX/OAM) flattened over a base device (devices.py
+# model_copy: name/gpu_count/interconnect/datacenter overridden, memory/compute derived
+# from the base device — no invented numbers). Only interconnect + spec_url/verified are
+# independently cited here.
+nodes:
+  - id: hgx-h100-8
+    name: "NVIDIA HGX H100 8-GPU"
+    device: h100-80gb
+    gpus_per_node: 8
+    interconnect: "NVLink 4 900 GB/s"   # nvidia.com H100 page prose: "fourth-generation NVLink...900 gigabytes per second" (verified 2026-07-29)
+    spec_url: https://www.nvidia.com/en-us/data-center/h100/
+    verified: "2026-07-29"
+  - id: hgx-h200-8
+    name: "NVIDIA HGX H200 8-GPU"
+    device: h200-141gb
+    gpus_per_node: 8
+    interconnect: "NVLink 4 900 GB/s"   # nvidia.com H200 datasheet, NVLink row (verified 2026-07-29)
+    spec_url: https://www.nvidia.com/en-us/data-center/h200/
+    verified: "2026-07-29"
+  - id: hgx-b200-8
+    name: "NVIDIA HGX B200 8-GPU"
+    device: b200-192gb
+    gpus_per_node: 8
+    interconnect: "NVLink 5 1.8 TB/s"   # nvidia.com Blackwell architecture technical brief, Table 3 HGX B200 per-GPU NVLink figure (verified 2026-07-29)
+    spec_url: https://nvdam.widen.net/s/xqt56dflgh/nvidia-blackwell-architecture-technical-brief
+    verified: "2026-07-29"
+  - id: mi300x-oam-8
+    name: "AMD MI300X OAM 8-GPU"
+    device: mi300x-192gb
+    gpus_per_node: 8
+    interconnect: "Infinity Fabric"     # amd.com MI300X product page, "AMD Infinity Fabric" interconnect (verified 2026-07-29)
+    spec_url: https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html
+    verified: "2026-07-29"
+  - id: gb200-nvl72
+    name: "NVIDIA GB200 NVL72"
+    device: b200-192gb
+    gpus_per_node: 72
+    # Approximation, not an independent citation: this flattens 72x the b200-192gb device
+    # row above (B200-die HBM3e memory/bandwidth/TFLOPS only). It excludes the Grace CPU's
+    # LPDDR5X memory and the CPU-side compute of the GB200 Superchip — this node models the
+    # GPU pool only, not the full Grace-Blackwell superchip. NVLink 5 single-domain fabric
+    # is independently cited below.
+    interconnect: "NVLink 5 single domain"  # nvidia.com GB200 NVL72 page: "a single GPU with 72 Blackwell GPUs" over a single NVLink domain (verified 2026-07-29)
+    spec_url: https://www.nvidia.com/en-us/data-center/gb200-nvl72/
+    verified: "2026-07-29"
+
+# Clusters: multi-node groups (e.g. a DGX SuperPOD rack group) flattened over a base
+# node (devices.py model_copy: gpu_count = gpus_per_node * node_count, interconnect =
+# fabric). Only fabric + spec_url/verified are independently cited here.
+clusters:
+  - id: 2x-hgx-h200-8
+    name: "2x NVIDIA HGX H200 (SuperPOD)"
+    node: hgx-h200-8
+    node_count: 2
+    fabric: "InfiniBand NDR 400 Gb/s"   # NVIDIA DGX SuperPOD reference architecture: NDR 400Gb/s InfiniBand compute fabric (verified 2026-07-29)
+    spec_url: https://docs.nvidia.com/dgx-superpod/reference-architecture/scalable-infrastructure-h200/latest/dgx-superpod-components.html
+    verified: "2026-07-29"
+  - id: 4x-hgx-h200-8
+    name: "4x NVIDIA HGX H200 (SuperPOD)"
+    node: hgx-h200-8
+    node_count: 4
+    fabric: "InfiniBand NDR 400 Gb/s"   # NVIDIA DGX SuperPOD reference architecture: NDR 400Gb/s InfiniBand compute fabric (verified 2026-07-29)
+    spec_url: https://docs.nvidia.com/dgx-superpod/reference-architecture/scalable-infrastructure-h200/latest/dgx-superpod-components.html
+    verified: "2026-07-29"

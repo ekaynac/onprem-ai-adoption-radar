@@ -95,3 +95,19 @@ def test_yaml_migration_preserves_every_legacy_preset():
     for key, (kind, gb, count) in legacy.items():
         d = DEVICE_PRESETS[key]
         assert (d.kind, d.total_memory_gb, d.gpu_count) == (kind, gb, count), key
+
+
+def test_node_and_cluster_presets_resolve_as_devices():
+    from radar.models_radar.devices import CLUSTER_PRESETS, NODE_PRESETS
+
+    node = resolve_device("hgx-h200-8")
+    assert node.gpu_count == 8 and node.total_memory_gb == 141
+    assert usable_memory_gb(node) == round(141 * 0.85 * 8, 2)
+    assert NODE_PRESETS["gb200-nvl72"].gpu_count == 72
+
+    cluster = resolve_device("2x-hgx-h200-8")
+    assert cluster.gpu_count == 16
+    assert "2x-hgx-h200-8" in CLUSTER_PRESETS
+
+    with pytest.raises(DeviceError):
+        resolve_device("no-such-anything")

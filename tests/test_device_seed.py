@@ -13,7 +13,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_bundled_seed_loads_and_covers_legacy_presets():
-    seeds = load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml")
+    seeds = load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml").devices
     by_id = {s.id: s for s in seeds}
     assert len(seeds) >= 48
     assert by_id["rtx-4090-24gb"].total_memory_gb == 24
@@ -54,7 +54,7 @@ def test_unknown_field_rejected(tmp_path: Path):
 
 
 def test_new_datacenter_devices_present_with_cited_specs():
-    seeds = {s.id: s for s in load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml")}
+    seeds = {s.id: s for s in load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml").devices}
     # b300-288gb -> b300-270gb: the brief's id baked in an invented marketing figure
     # (288GB); NVIDIA's own Blackwell technical brief gives 270GB for the HGX B300
     # per-GPU config actually used to source this row, so the id was corrected to match
@@ -76,7 +76,7 @@ def test_new_datacenter_devices_present_with_cited_specs():
 
 
 def test_every_v2_number_is_cited():
-    seeds = load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml")
+    seeds = load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml").devices
     v2_fields = ("memory_bandwidth_gbs", "tflops_fp16", "tflops_fp8", "tflops_fp4",
                  "tdp_watts", "indicative_price_usd")
     for s in seeds:
@@ -86,3 +86,24 @@ def test_every_v2_number_is_cited():
         for f in v2_fields:
             value = getattr(s, f)
             assert value is None or value > 0, f"{s.id}.{f} must be positive"
+
+
+def test_nodes_and_clusters_load_and_resolve():
+    catalog = load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml")
+    nodes = {n.id: n for n in catalog.nodes}
+    assert nodes["hgx-h200-8"].gpus_per_node == 8
+    assert nodes["hgx-h200-8"].device == "h200-141gb"
+    assert nodes["gb200-nvl72"].gpus_per_node == 72
+    clusters = {c.id: c for c in catalog.clusters}
+    assert clusters["2x-hgx-h200-8"].node == "hgx-h200-8"
+
+
+def test_node_ref_integrity(tmp_path: Path):
+    p = tmp_path / "d.yaml"
+    p.write_text(
+        "devices:\n  - {id: g, name: G, kind: gpu, total_memory_gb: 80}\n"
+        "nodes:\n  - {id: n, name: N, device: missing, gpus_per_node: 8}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(DeviceSeedError, match="unknown device"):
+        load_device_seed(p)
