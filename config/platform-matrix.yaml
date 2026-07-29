@@ -1,0 +1,382 @@
+# Platform capability matrix — schema v1 (capacity radar sub-project C, Task 7).
+#
+# Every hardware/feature cell is a cited claim: does this serving engine
+# support this GPU/NPU family, or this serving feature (MLA, FP8 KV cache,
+# disaggregated prefill, ...)? Cells were live-verified against each engine's
+# own docs/README/release notes on the `verified` date below — `unknown` is
+# the honest default when a claim could not be confirmed; this seed never
+# guesses "yes". All values are quoted (YAML-1.1 boolean trap: unquoted
+# yes/no parse as bool, not string — see platform_matrix.py's before-
+# validator for the hand-edit fallback).
+#
+# NOTE (documented scope deferral, spec §5.4): keeping this matrix current by
+# cross-linking the release notes the radar already collects is NOT built
+# here — citations + verified dates ship now; the release-note cross-linker
+# is a follow-up (see CHANGELOG).
+version: "1.0"
+platforms:
+  - id: vllm
+    name: vLLM
+    repo_url: https://github.com/vllm-project/vllm
+    hardware:
+      nvidia: "yes"
+      amd: "yes"
+      intel_gaudi: "yes"
+      apple: "yes"
+      ascend: "yes"
+      cpu: "yes"
+    features:
+      tensor_parallel: "yes"
+      pipeline_parallel: "yes"
+      expert_parallel: "yes"
+      mla: "yes"
+      hybrid_attention: "yes"
+      fp8: "yes"
+      nvfp4: "yes"
+      awq: "yes"
+      gptq: "yes"
+      gguf: "yes"
+      kv_cache_fp8: "yes"
+      speculative_decoding: "yes"
+      prefix_caching: "yes"
+      disaggregated_prefill: "partial"
+    sources:
+      - https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html
+      - https://docs.vllm.ai/en/latest/getting_started/installation/cpu/index.html
+      - https://docs.vllm.ai/en/latest/features/quantization/index.html
+      - https://docs.vllm.ai/en/latest/features/quantization/gguf.html
+      - https://docs.vllm.ai/en/latest/features/quantization/modelopt/
+      - https://docs.vllm.ai/en/latest/features/quantization/quantized_kvcache/
+      - https://docs.vllm.ai/en/latest/features/speculative_decoding.html
+      - https://docs.vllm.ai/en/latest/features/automatic_prefix_caching.html
+      - https://docs.vllm.ai/en/latest/features/disagg_prefill.html
+      - https://docs.vllm.ai/en/latest/serving/parallelism_scaling.html
+      - https://docs.vllm.ai/en/latest/serving/expert_parallel_deployment.html
+      - https://docs.vllm.ai/en/latest/models/supported_models.html
+      - https://github.com/vllm-project/vllm-metal
+      - https://github.com/vllm-project/vllm-gaudi
+      - https://github.com/vllm-project/vllm-ascend
+    verified: "2026-07-29"
+    notes: >-
+      Apple GPU support ships via the vllm-project-org vllm-metal plugin
+      (MLX backend); Gaudi/Ascend likewise via official out-of-tree
+      vllm-project plugins, not the in-tree core. GGUF requires the separate
+      vllm-gguf-plugin. Disaggregated prefill is documented but the page
+      itself is titled "experimental".
+
+  - id: sglang
+    name: SGLang
+    repo_url: https://github.com/sgl-project/sglang
+    hardware:
+      nvidia: "yes"
+      amd: "yes"
+      intel_gaudi: "partial"
+      apple: "yes"
+      ascend: "yes"
+      cpu: "yes"
+    features:
+      tensor_parallel: "yes"
+      pipeline_parallel: "yes"
+      expert_parallel: "yes"
+      mla: "yes"
+      hybrid_attention: "yes"
+      fp8: "yes"
+      nvfp4: "yes"
+      awq: "yes"
+      gptq: "yes"
+      gguf: "yes"
+      kv_cache_fp8: "yes"
+      speculative_decoding: "yes"
+      prefix_caching: "yes"
+      disaggregated_prefill: "yes"
+    sources:
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/README.md
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/overview.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/amd_gpu.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/apple_metal.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/ascend-npus/ascend_npu.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/cpu_server.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/quantization.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/quantized_kv_cache.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/pipeline_parallelism.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/expert_parallelism.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/speculative_decoding.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/pd_disaggregation.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/cookbook/autoregressive/DeepSeek/DeepSeek-V3.mdx
+      - https://docs.sglang.io/
+    verified: "2026-07-29"
+    notes: >-
+      intel_gaudi marked partial: no dedicated hardware-platform guide
+      (overview.mdx lists only nvidia/amd/ascend/cpu/jetson/tpu/xpu), but
+      --device accepts "hpu" and a legacy HpuCommunicator class exists
+      (inherited from the vLLM lineage). gguf is NVIDIA+Ascend only — no
+      AMD/ROCm (Marlin-kernel dependent).
+
+  - id: tensorrt-llm
+    name: TensorRT-LLM
+    repo_url: https://github.com/NVIDIA/TensorRT-LLM
+    hardware:
+      nvidia: "yes"
+      amd: "no"
+      intel_gaudi: "no"
+      apple: "no"
+      ascend: "no"
+      cpu: "no"
+    features:
+      tensor_parallel: "yes"
+      pipeline_parallel: "yes"
+      expert_parallel: "yes"
+      mla: "yes"
+      hybrid_attention: "yes"
+      fp8: "yes"
+      nvfp4: "yes"
+      awq: "yes"
+      gptq: "yes"
+      gguf: "no"
+      kv_cache_fp8: "yes"
+      speculative_decoding: "yes"
+      prefix_caching: "yes"
+      disaggregated_prefill: "yes"
+    sources:
+      - https://raw.githubusercontent.com/NVIDIA/TensorRT-LLM/main/README.md
+      - https://nvidia.github.io/TensorRT-LLM/reference/support-matrix.html
+      - https://nvidia.github.io/TensorRT-LLM/features/quantization.html
+      - https://nvidia.github.io/TensorRT-LLM/features/parallel-strategy.html
+      - https://nvidia.github.io/TensorRT-LLM/features/kvcache.html
+      - https://nvidia.github.io/TensorRT-LLM/features/speculative-decoding.html
+      - https://nvidia.github.io/TensorRT-LLM/features/disagg-serving.html
+      - https://nvidia.github.io/TensorRT-LLM/features/attention.html
+      - https://nvidia.github.io/TensorRT-LLM/models/supported-models.html
+      - https://raw.githubusercontent.com/NVIDIA/TensorRT-LLM/main/examples/models/core/deepseek_v3/README.md
+    verified: "2026-07-29"
+    notes: >-
+      NVIDIA-only, proprietary TensorRT compiler stack — no AMD/Gaudi/
+      Apple/Ascend/CPU inference path in any fetched doc. Disaggregated
+      serving is documented as mature but limited to decoder-only models at
+      beam width 1. GGUF is never mentioned (TRT-LLM uses its own ModelOpt
+      checkpoint/engine format).
+
+  - id: llama-cpp
+    name: llama.cpp
+    repo_url: https://github.com/ggml-org/llama.cpp
+    hardware:
+      nvidia: "yes"
+      amd: "yes"
+      intel_gaudi: "no"
+      apple: "yes"
+      ascend: "yes"
+      cpu: "yes"
+    features:
+      tensor_parallel: "partial"
+      pipeline_parallel: "yes"
+      expert_parallel: "partial"
+      mla: "yes"
+      hybrid_attention: "yes"
+      fp8: "partial"
+      nvfp4: "yes"
+      awq: "no"
+      gptq: "no"
+      gguf: "yes"
+      kv_cache_fp8: "no"
+      speculative_decoding: "yes"
+      prefix_caching: "yes"
+      disaggregated_prefill: "no"
+    sources:
+      - https://github.com/ggml-org/llama.cpp/blob/master/README.md
+      - https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md
+      - https://github.com/ggml-org/llama.cpp/blob/master/docs/backend/CANN.md
+      - https://github.com/ggml-org/llama.cpp/blob/master/docs/multi-gpu.md
+      - https://github.com/ggml-org/llama.cpp/blob/master/docs/speculative.md
+      - https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md
+      - https://github.com/ggml-org/llama.cpp/blob/master/ggml/include/ggml.h
+      - https://github.com/ggml-org/llama.cpp/blob/master/convert_hf_to_gguf.py
+    verified: "2026-07-29"
+    notes: >-
+      Backend table has no Gaudi/Habana entry. Tensor-parallel split mode is
+      explicitly EXPERIMENTAL and unimplemented for most MoE/hybrid
+      architectures (expert placement instead relies on manual
+      --n-cpu-moe/--override-tensor flags). FP8 is not a first-class ggml
+      dtype — it exists only as the internal scale format inside
+      MXFP4/NVFP4 blocks. AWQ/GPTQ GGUF-conversion tooling was
+      removed/never supported.
+
+  - id: ollama
+    name: Ollama
+    repo_url: https://github.com/ollama/ollama
+    hardware:
+      nvidia: "yes"
+      amd: "yes"
+      intel_gaudi: "no"
+      apple: "yes"
+      ascend: "no"
+      cpu: "yes"
+    features:
+      tensor_parallel: "no"
+      pipeline_parallel: "yes"
+      expert_parallel: "no"
+      mla: "yes"
+      hybrid_attention: "no"
+      fp8: "partial"
+      nvfp4: "yes"
+      awq: "no"
+      gptq: "no"
+      gguf: "yes"
+      kv_cache_fp8: "no"
+      speculative_decoding: "partial"
+      prefix_caching: "yes"
+      disaggregated_prefill: "no"
+    sources:
+      - https://github.com/ollama/ollama/blob/main/README.md
+      - https://github.com/ollama/ollama/blob/main/docs/gpu.mdx
+      - https://github.com/ollama/ollama/blob/main/docs/faq.mdx
+      - https://github.com/ollama/ollama/blob/main/docs/import.mdx
+      - https://github.com/ollama/ollama/pull/13151
+      - https://ollama.com/library/qwen3.6/tags
+    verified: "2026-07-29"
+    notes: >-
+      Judged on Ollama's own documented behavior, not inherited llama.cpp
+      capability. gpu.mdx (the dedicated hardware doc) covers only
+      Nvidia/AMD-ROCm/Metal/Vulkan — no Ascend or Gaudi section. No
+      tensor-parallel/split-mode flag is exposed; MoE expert-offload PRs are
+      unmerged. Speculative decoding merged only on the Apple-Silicon MLX
+      runner for specific models — the general feature request is still
+      open. No hybrid state-space models in Ollama's library
+      (Jamba/Mamba/Falcon-Mamba all 404 on ollama.com).
+
+  - id: mlx-lm
+    name: MLX-LM
+    repo_url: https://github.com/ml-explore/mlx-lm
+    hardware:
+      nvidia: "yes"
+      amd: "no"
+      intel_gaudi: "no"
+      apple: "yes"
+      ascend: "no"
+      cpu: "yes"
+    features:
+      tensor_parallel: "yes"
+      pipeline_parallel: "yes"
+      expert_parallel: "partial"
+      mla: "yes"
+      hybrid_attention: "yes"
+      fp8: "yes"
+      nvfp4: "yes"
+      awq: "yes"
+      gptq: "yes"
+      gguf: "partial"
+      kv_cache_fp8: "no"
+      speculative_decoding: "yes"
+      prefix_caching: "yes"
+      disaggregated_prefill: "no"
+    sources:
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/README.md
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/SERVER.md
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/LEARNED_QUANTS.md
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/LORA.md
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/models/pipeline.py
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/models/mla.py
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/models/deepseek_v3.py
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/gguf.py
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/models/cache.py
+      - https://raw.githubusercontent.com/ml-explore/mlx/main/docs/src/install.rst
+      - https://raw.githubusercontent.com/ml-explore/mlx/main/python/src/ops.cpp
+    verified: "2026-07-29"
+    notes: >-
+      MLX is no longer Apple-only: mlx core now ships an official CUDA
+      backend for Linux/NVIDIA (pip install mlx[cuda12]) and a separate
+      CPU-only Linux backend, alongside its original Metal/Apple-Silicon
+      path — no AMD/Gaudi/Ascend backend exists in either repo. GGUF is
+      export-only and limited to Mistral/Mixtral/Llama-style models
+      (mlx-lm cannot load a .gguf file for inference). KV-cache
+      quantization is integer/affine, not FP8-format.
+
+  - id: tgi
+    name: Text Generation Inference (TGI)
+    repo_url: https://github.com/huggingface/text-generation-inference
+    hardware:
+      nvidia: "yes"
+      amd: "yes"
+      intel_gaudi: "yes"
+      apple: "no"
+      ascend: "no"
+      cpu: "yes"
+    features:
+      tensor_parallel: "yes"
+      pipeline_parallel: "no"
+      expert_parallel: "no"
+      mla: "yes"
+      hybrid_attention: "no"
+      fp8: "yes"
+      nvfp4: "no"
+      awq: "yes"
+      gptq: "yes"
+      gguf: "yes"
+      kv_cache_fp8: "yes"
+      speculative_decoding: "yes"
+      prefix_caching: "yes"
+      disaggregated_prefill: "no"
+    sources:
+      - https://github.com/huggingface/text-generation-inference
+      - https://huggingface.co/docs/text-generation-inference/installation_amd
+      - https://huggingface.co/docs/text-generation-inference/installation_gaudi
+      - https://huggingface.co/docs/text-generation-inference/installation_intel
+      - https://huggingface.co/docs/text-generation-inference/en/conceptual/quantization
+      - https://huggingface.co/docs/text-generation-inference/conceptual/speculation
+      - https://huggingface.co/docs/text-generation-inference/conceptual/chunking
+      - https://huggingface.co/docs/text-generation-inference/backends/llamacpp
+      - https://huggingface.co/docs/text-generation-inference/reference/launcher
+      - https://github.com/huggingface/text-generation-inference/blob/main/server/text_generation_server/models/custom_modeling/flash_deepseek_v2_modeling.py
+    verified: "2026-07-29"
+    notes: >-
+      TGI is in maintenance mode as of this verification (README: only
+      bug-fix/doc PRs accepted, recommends vLLM/SGLang/llama.cpp/MLX going
+      forward). ep_size != 1 explicitly raises for DeepSeek-V2 (expert
+      parallel unsupported); no pipeline-parallel or hybrid Mamba/Jamba
+      model support found. AMD/ROCm does not support AWQ checkpoint
+      loading.
+
+  - id: lmdeploy
+    name: LMDeploy
+    repo_url: https://github.com/InternLM/lmdeploy
+    hardware:
+      nvidia: "yes"
+      amd: "partial"
+      intel_gaudi: "no"
+      apple: "no"
+      ascend: "yes"
+      cpu: "no"
+    features:
+      tensor_parallel: "yes"
+      pipeline_parallel: "no"
+      expert_parallel: "yes"
+      mla: "yes"
+      hybrid_attention: "yes"
+      fp8: "yes"
+      nvfp4: "no"
+      awq: "yes"
+      gptq: "yes"
+      gguf: "no"
+      kv_cache_fp8: "yes"
+      speculative_decoding: "partial"
+      prefix_caching: "yes"
+      disaggregated_prefill: "yes"
+    sources:
+      - https://github.com/InternLM/lmdeploy
+      - https://lmdeploy.readthedocs.io/en/latest/supported_models/supported_models.html
+      - https://lmdeploy.readthedocs.io/en/latest/get_started/ascend/get_started.html
+      - https://lmdeploy.readthedocs.io/en/latest/get_started/installation.html
+      - https://lmdeploy.readthedocs.io/en/latest/quantization/w4a16.html
+      - https://lmdeploy.readthedocs.io/en/latest/quantization/kv_quant.html
+      - https://lmdeploy.readthedocs.io/en/latest/inference/turbomind_config.html
+      - https://lmdeploy.readthedocs.io/en/latest/advance/spec_decoding.html
+      - https://github.com/InternLM/lmdeploy/blob/main/lmdeploy/messages.py
+      - https://github.com/InternLM/lmdeploy/blob/main/lmdeploy/pytorch/disagg/README.md
+    verified: "2026-07-29"
+    notes: >-
+      AMD is partial: a ROCm install path exists
+      (LMDEPLOY_TARGET_DEVICE=rocm) but KV-cache quantization docs restrict
+      to CUDA/Ascend and the internal device_type validator omits rocm. No
+      CPU-only backend (device_type validator allows only
+      cuda/ascend/maca/camb). Speculative decoding (EAGLE/EAGLE3) is
+      explicitly labeled experimental. Also supports Moore Threads MACA and
+      Cambricon NPU (outside this matrix's hardware keys).

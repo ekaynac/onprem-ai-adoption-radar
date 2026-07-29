@@ -2071,6 +2071,21 @@ def export(
     if technique_history_src.exists():
         shutil.copy2(technique_history_src, out / "technique-history.jsonl")
 
+    # Platform capability matrix (Task 7): a bundled, cited seed — not scan
+    # output — so root/config overrides the packaged copy same as the model/
+    # technique seeds; a load failure degrades to no platforms.html rather
+    # than failing the whole export.
+    from radar.models_radar.platform_matrix import PlatformMatrixError, load_platform_matrix
+
+    platform_seed_path = root / "config" / "platform-matrix.yaml"
+    if not platform_seed_path.exists():
+        platform_seed_path = Path(__file__).resolve().parents[2] / "config" / "platform-matrix.yaml"
+    try:
+        platform_entries = load_platform_matrix(platform_seed_path)
+    except PlatformMatrixError as exc:
+        console.print(f"[yellow]⚠ platform matrix unreadable ({exc}); skipping platforms.html[/yellow]")
+        platform_entries = []
+
     # Trending observations (optional: only present after `radar trending scan`).
     from radar.storage.trending_observations_log import load_observations as _load_trending_obs
 
@@ -2186,11 +2201,13 @@ def export(
         model_tenure_by_id=model_tenure_by_id or None,
         model_metrics_by_id=model_metrics_by_id or None,
         hn_by_project=hn_by_project or None,
+        platform_entries=platform_entries or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
         + (f", {len(model_entries)} model pages" if model_entries else "")
         + (f", {len(technique_entries)} technique pages" if technique_entries else "")
+        + (f", {len(platform_entries)} platforms" if platform_entries else "")
         + ")"
     )
 

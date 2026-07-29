@@ -125,6 +125,18 @@ def build_mcp_server(root: Path) -> FastMCP:
         return models.device_fit_report(device, context_tokens)
 
     @mcp.tool()
+    def get_platform_support(platform: str | None = None, feature: str | None = None) -> list[dict]:
+        """Which serving engines (vLLM, SGLang, TensorRT-LLM, ...) support a
+        hardware/feature key — every claim cited from the engine's own docs.
+
+        No args: full row per engine. `platform`: one engine's full row.
+        `feature`: one {platform, feature, support, sources} row per engine
+        for that single hardware or feature key (e.g. "nvidia", "mla",
+        "disaggregated_prefill").
+        """
+        return models.get_platform_support(platform=platform, feature=feature)
+
+    @mcp.tool()
     def list_techniques(
         ring: str | None = None,
         domain: str | None = None,

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Radar · Platforms</title>
+    <link rel="icon" type="image/png" href="{{ asset_base }}static/brand/favicon.png" />
+    {% include "_base_styles.html" %}
+  </head>
+  <body>
+    {% set page_title = "Platform Capability Matrix" %}
+    {% set tagline = "Which serving engines support which hardware and features — every claim cited." %}
+    {% set nav = {"Radar": "/", "Models": "/models", "Platforms": "/platforms", "Research": "/research", "Trending": "/trending", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
+    {% include "_hero.html" %}
+    <main class="container">
+      <h2>Platform Capability Matrix</h2>
+      {% if not platforms %}
+      <p>No platform matrix seeded.</p>
+      {% else %}
+      <p class="legend-line">
+        <strong>Legend:</strong> ✓ yes &middot; ◐ partial &middot; ✗ no &middot; ? unknown — hover a
+        cell for its key, or the engine name for its verified-on date.
+      </p>
+      <div class="table-wrap">
+      <table id="platforms-table">
+        <thead>
+          <tr>
+            <th rowspan="2">Engine</th>
+            <th colspan="{{ hardware_keys | length }}">Hardware</th>
+            <th colspan="{{ feature_keys | length }}">Features</th>
+          </tr>
+          <tr>
+            {% for k in hardware_keys %}<th>{{ k | replace("_", " ") }}</th>{% endfor %}
+            {% for k in feature_keys %}<th>{{ k | replace("_", " ") }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in platforms %}
+          <tr>
+            <td><a href="{{ p.repo_url }}" title="verified {{ p.verified }}">{{ p.name }}</a></td>
+            {% for k in hardware_keys %}
+            {% set v = p.hardware.get(k, "unknown") %}
+            <td title="{{ k }}: {{ v }}">{% if v == "yes" %}✓{% elif v == "partial" %}◐{% elif v == "no" %}✗{% else %}?{% endif %}</td>
+            {% endfor %}
+            {% for k in feature_keys %}
+            {% set v = p.features.get(k, "unknown") %}
+            <td title="{{ k }}: {{ v }}">{% if v == "yes" %}✓{% elif v == "partial" %}◐{% elif v == "no" %}✗{% else %}?{% endif %}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <h3>Sources</h3>
+      <ul class="platform-sources">
+        {% for p in platforms %}
+        <li>
+          <strong>{{ p.name }}</strong> (verified {{ p.verified }}){% if p.notes %} — {{ p.notes }}{% endif %}:
+          {% for s in p.sources %}<a href="{{ s }}">{{ s }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </main>
+    {% include "_footer.html" %}
+  </body>
+</html>

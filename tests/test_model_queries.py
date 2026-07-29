@@ -231,3 +231,64 @@ def test_get_model_without_research_run_has_empty_techniques(tmp_path: Path):
     svc = ModelQueryService(tmp_path)
 
     assert svc.get_model("qwen3-8b")["techniques"] == []
+
+
+def _seed_platform_matrix(tmp_path: Path) -> None:
+    """A small, deterministic root-override seed (Task 7's get_platform_support)."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "platform-matrix.yaml").write_text(
+        "platforms:\n"
+        "  - id: vllm\n    name: vLLM\n    repo_url: https://github.com/vllm-project/vllm\n"
+        '    hardware: {nvidia: "yes", amd: "yes"}\n'
+        '    features: {mla: "yes", fp8: "yes"}\n'
+        "    sources: [https://docs.vllm.ai]\n    verified: '2026-07-29'\n"
+        "  - id: tensorrt-llm\n    name: TensorRT-LLM\n"
+        "    repo_url: https://github.com/NVIDIA/TensorRT-LLM\n"
+        '    hardware: {nvidia: "yes", amd: "no"}\n'
+        '    features: {mla: "yes", fp8: "yes"}\n'
+        "    sources: [https://nvidia.github.io/TensorRT-LLM/]\n    verified: '2026-07-29'\n",
+        encoding="utf-8",
+    )
+
+
+def test_get_platform_support_returns_full_rows_by_default(tmp_path: Path):
+    _seed_platform_matrix(tmp_path)
+    svc = ModelQueryService(tmp_path)
+
+    rows = svc.get_platform_support()
+
+    assert {r["id"] for r in rows} == {"vllm", "tensorrt-llm"}
+    assert rows[0]["hardware"]["nvidia"] == "yes"
+
+
+def test_get_platform_support_filters_by_platform(tmp_path: Path):
+    _seed_platform_matrix(tmp_path)
+    svc = ModelQueryService(tmp_path)
+
+    rows = svc.get_platform_support(platform="vllm")
+
+    assert len(rows) == 1 and rows[0]["id"] == "vllm"
+
+
+def test_get_platform_support_feature_filter_returns_compact_rows(tmp_path: Path):
+    _seed_platform_matrix(tmp_path)
+    svc = ModelQueryService(tmp_path)
+
+    rows = svc.get_platform_support(feature="amd")
+
+    assert {r["platform"] for r in rows} == {"vllm", "tensorrt-llm"}
+    assert all(set(r) == {"platform", "feature", "support", "sources"} for r in rows)
+    vllm_row = next(r for r in rows if r["platform"] == "vllm")
+    trt_row = next(r for r in rows if r["platform"] == "tensorrt-llm")
+    assert vllm_row["support"] == "yes"
+    assert trt_row["support"] == "no"
+
+
+def test_get_platform_support_falls_back_to_bundled_seed_without_override(tmp_path: Path):
+    svc = ModelQueryService(tmp_path)  # no config/ dir at all -> packaged seed
+
+    rows = svc.get_platform_support(platform="vllm")
+
+    assert rows and rows[0]["id"] == "vllm"
+    assert rows[0]["features"]["mla"] == "yes"

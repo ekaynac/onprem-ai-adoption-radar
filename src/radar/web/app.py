@@ -25,6 +25,13 @@ from radar.models import Category, SourceType
 from radar.models_radar.entities import HardwareTier, ModelEntry
 from radar.models_radar.history import ModelHistoryEvent, load_model_events
 from radar.models_radar.memory import minimum_viable_quant
+from radar.models_radar.platform_matrix import (
+    _FEATURE_KEYS,
+    _HARDWARE_KEYS,
+    PlatformMatrixError,
+    PlatformSeed,
+    load_platform_matrix,
+)
 from radar.models_radar.scoring import ModelProfileError, rescore_entries
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.research_radar.entities import ImplKind, TechniqueEntry
@@ -108,6 +115,24 @@ def create_app(root: Path) -> FastAPI:
     def _technique_entries() -> list[TechniqueEntry]:
         """Load technique entries from the latest research run; empty list if none."""
         return load_technique_entries(root)
+
+    def _platform_entries() -> list[PlatformSeed]:
+        """Load the platform capability matrix; [] on a missing/corrupt seed.
+
+        root/config/platform-matrix.yaml overrides the packaged seed when
+        present (same resolution order as the model/technique seeds); a
+        load failure degrades to an empty matrix rather than a 500 — the
+        seed is repo-bundled and CI-tested, but the guarded gateway keeps a
+        single bad hand-edit from taking down the whole page.
+        """
+        seed_path = root / "config" / "platform-matrix.yaml"
+        if not seed_path.exists():
+            seed_path = Path(__file__).resolve().parents[3] / "config" / "platform-matrix.yaml"
+        try:
+            return load_platform_matrix(seed_path)
+        except PlatformMatrixError as exc:
+            logger.warning("Platform matrix unreadable under %s: %s", seed_path, exc)
+            return []
 
     def _trending_entries() -> list[TrendingEntry]:
         from datetime import UTC, datetime
@@ -437,6 +462,18 @@ def create_app(root: Path) -> FastAPI:
                 "badge_snippet": badge_snippet,
                 "fit_badge_svg": fit_svg,
                 "fit_badge_snippet": fit_snippet,
+            },
+        )
+
+    @app.get("/platforms", response_class=HTMLResponse)
+    def platforms_page(request: Request):
+        return TEMPLATES.TemplateResponse(
+            request,
+            "platforms.html",
+            {
+                "platforms": _platform_entries(),
+                "hardware_keys": _HARDWARE_KEYS,
+                "feature_keys": _FEATURE_KEYS,
             },
         )
 

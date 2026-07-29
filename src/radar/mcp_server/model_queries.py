@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -20,9 +21,17 @@ from radar.models_radar.entities import ModelEntry
 from radar.models_radar.history import load_model_events
 from radar.models_radar.memory import minimum_viable_quant
 from radar.models_radar.momentum import compute_model_momentum
+from radar.models_radar.platform_matrix import (
+    PlatformMatrixError,
+    PlatformSeed,
+    load_platform_matrix,
+)
 from radar.models_radar.scoring import rescore_entries
 from radar.storage.model_metrics_store import ModelMetricsStore
 from radar.storage.run_store import RunStore
+
+
+logger = logging.getLogger(__name__)
 
 
 def _latest_model_cards(root: Path) -> list[dict[str, Any]]:
@@ -135,6 +144,47 @@ class ModelQueryService:
                           context_tokens: int = 4096) -> list[dict[str, Any]]:
         dev = resolve_device(device)
         return [f.model_dump(mode="json") for f in _fit_report(self._entries(), dev, context_tokens)]
+
+    def _platform_entries(self) -> list[PlatformSeed]:
+        """Load the platform capability matrix; [] on a missing/corrupt seed.
+
+        root/config/platform-matrix.yaml overrides the packaged seed when
+        present (same resolution order as the model/technique seeds).
+        """
+        seed_path = self.root / "config" / "platform-matrix.yaml"
+        if not seed_path.exists():
+            seed_path = Path(__file__).resolve().parents[3] / "config" / "platform-matrix.yaml"
+        try:
+            return load_platform_matrix(seed_path)
+        except PlatformMatrixError as exc:
+            logger.warning("Platform matrix unreadable under %s: %s", seed_path, exc)
+            return []
+
+    def get_platform_support(
+        self, platform: str | None = None, feature: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Filter the platform capability matrix.
+
+        No args: one full row per platform (id/name/hardware/features/
+        sources/verified/notes). `platform`: only that engine's row.
+        `feature`: one compact row per matching platform —
+        {platform, feature, support, sources} — looked up across both the
+        hardware and feature key namespaces (they never collide).
+        """
+        entries = self._platform_entries()
+        if platform:
+            entries = [e for e in entries if e.id == platform.lower()]
+        if feature:
+            return [
+                {
+                    "platform": e.id,
+                    "feature": feature,
+                    "support": {**e.hardware, **e.features}.get(feature, "unknown"),
+                    "sources": e.sources,
+                }
+                for e in entries
+            ]
+        return [e.model_dump(mode="json") for e in entries]
 
     def model_movers(self) -> list[dict[str, Any]]:
         store = ModelMetricsStore(self.db_path)
