@@ -362,6 +362,53 @@ def test_model_page_has_runs_on_table(tmp_path):
     assert "RTX 4090 (24GB)" in page  # one of the COMMON_DEVICE_TIERS
 
 
+def test_model_page_datacenter_runs_on_table(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.web.static_site import render_static_site
+
+    big = ModelEntry(id="big-671b", name="Big 671B", family="Big", params_total=671_000_000_000,
+                     ring=Ring.ADOPT, hardware_tier=HardwareTier.SINGLE_NODE,
+                     openness=Openness.OPEN_PERMISSIVE,
+                     quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=350.0,
+                                          platform=Platform.GENERIC, source="x")])
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 29, tzinfo=UTC), model_entries=[big])
+    page = (tmp_path / "_site" / "model_big-671b.html").read_text(encoding="utf-8")
+    assert "Runs on — datacenter" in page
+    assert "H200 (141GB)" in page
+
+
+def test_model_page_small_model_has_no_datacenter_table(tmp_path):
+    from datetime import UTC, datetime
+
+    from radar.models import Ring
+    from radar.models_radar.entities import (
+        HardwareTier,
+        ModelEntry,
+        Openness,
+        Platform,
+        QuantVariant,
+    )
+    from radar.web.static_site import render_static_site
+
+    small = ModelEntry(id="small-8b", name="Small 8B", family="Small", params_total=8_000_000_000,
+                       ring=Ring.ADOPT, hardware_tier=HardwareTier.LAPTOP,
+                       openness=Openness.OPEN_PERMISSIVE,
+                       quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                                            platform=Platform.GENERIC, source="x")])
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 29, tzinfo=UTC), model_entries=[small])
+    page = (tmp_path / "_site" / "model_small-8b.html").read_text(encoding="utf-8")
+    assert "Runs on — datacenter" not in page
+
+
 def test_static_model_page_shows_download_sparkline(tmp_path):
     from datetime import UTC, datetime
 
@@ -540,6 +587,19 @@ def _technique_event():
     )
 
 
+def _platform_entries():
+    from radar.models_radar.platform_matrix import PlatformSeed
+
+    return [
+        PlatformSeed(
+            id="vllm", name="vLLM", repo_url="https://github.com/vllm-project/vllm",
+            hardware={"nvidia": "yes", "amd": "partial"},
+            features={"mla": "yes", "fp8": "yes"},
+            sources=["https://docs.vllm.ai"], verified="2026-07-29",
+        ),
+    ]
+
+
 def test_static_site_renders_research_section(tmp_path):
     render_static_site(
         [], tmp_path / "_site", datetime(2026, 7, 3, tzinfo=UTC),
@@ -560,6 +620,27 @@ def test_static_site_renders_research_section(tmp_path):
     index_html = (site / "index.html").read_text(encoding="utf-8")
     assert "Research: 1 techniques" in index_html
     assert 'href="techniques.html"' in index_html
+
+
+def test_static_platforms_page_renders_matrix(tmp_path):
+    render_static_site(
+        [], tmp_path / "_site", datetime(2026, 7, 29, tzinfo=UTC),
+        platform_entries=_platform_entries(),
+    )
+    page = (tmp_path / "_site" / "platforms.html").read_text(encoding="utf-8")
+
+    assert "vLLM" in page
+    assert 'title="mla: yes"' in page
+    assert 'title="nvidia: yes"' in page
+    assert "docs.vllm.ai" in page  # source footnote
+    assert '<div class="table-wrap">' in page
+
+
+def test_static_platforms_page_omitted_without_entries(tmp_path):
+    """Back-compat: omitting platform_entries writes no platforms.html."""
+    render_static_site([], tmp_path / "_site", datetime(2026, 7, 29, tzinfo=UTC))
+
+    assert not (tmp_path / "_site" / "platforms.html").exists()
 
 
 def test_static_technique_page_shows_momentum_note(tmp_path):
@@ -1018,12 +1099,12 @@ def test_static_trending_status_headers(tmp_path):
 
 
 STATIC_NAV = [
-    "Radar", "Models", "Research", "Trending", "Compare", "History", "Changes feed",
+    "Radar", "Models", "Platforms", "Research", "Trending", "Compare", "History", "Changes feed",
 ]
 
 
 def test_static_nav_identical_across_pages(tmp_path: Path):
-    """Every hero-bearing static page renders the same 7-item nav (finding #6)."""
+    """Every hero-bearing static page renders the same 8-item nav (finding #6)."""
     from radar.models_radar.entities import ModelEntry
 
     render_static_site(
@@ -1031,9 +1112,13 @@ def test_static_nav_identical_across_pages(tmp_path: Path):
         model_entries=[ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3")],
         technique_entries=[_technique_entry()],
         trending_observations=_trending_obs(),
+        platform_entries=_platform_entries(),
     )
     site = tmp_path / "_site"
-    for name in ("models.html", "techniques.html", "trending.html", "history.html", "compare.html"):
+    for name in (
+        "models.html", "platforms.html", "techniques.html", "trending.html",
+        "history.html", "compare.html",
+    ):
         html = (site / name).read_text(encoding="utf-8")
         for label in STATIC_NAV:
             assert f">{label}</a>" in html, f"{label} missing from {name}"

@@ -55,6 +55,14 @@
 </tbody></table>
 </div>
 {% endif %}
+{% if datacenter_fit and model.hardware_tier.value in ("workstation", "single_gpu_dc", "single_node", "multi_node", "datacenter") %}
+<h3>Runs on — datacenter</h3>
+<div class="table-wrap">
+<table><thead><tr><th>Device / node</th><th>Fit</th><th>Largest quant that fits</th></tr></thead><tbody>
+{% for r in datacenter_fit %}<tr><td>{{ r.device }}</td><td>{% if r.verdict == "fits" %}<span class="ring-pill fit-yes">Fits</span>{% elif r.verdict == "fits_tight" %}<span class="ring-pill fit-tight">Fits (tight)</span>{% elif r.verdict == "fits_quantized" %}<span class="ring-pill fit-tight">Fits (quantized)</span>{% elif r.verdict == "wont_fit" %}<span class="ring-pill fit-no">Won't fit</span>{% else %}<span class="ring-pill">Unknown</span>{% endif %}</td><td>{{ r.best_quant }}</td></tr>{% endfor %}
+</tbody></table>
+</div>
+{% endif %}
 {% if pedigree %}
 <h3>Research techniques</h3>
 <ul>

@@ -50,3 +50,53 @@ def test_entry_carries_score_and_ring_fields():
     e = _entry().model_copy(update={"ring": Ring.ADOPT, "score": 4.2})
     assert e.ring == Ring.ADOPT and e.score == 4.2
     assert _entry().ring is None  # default
+
+
+def test_new_tier_members_score_without_keyerror():
+    from radar.models_radar.scoring import MODEL_PROFILES
+
+    for name, tier_scores in MODEL_PROFILES.items():
+        for tier in HardwareTier:
+            assert tier in tier_scores, (name, tier)  # bare [] lookup in score_model
+
+
+def _dc_entry():
+    from radar.models_radar.entities import ModelEntry, Openness, QuantVariant
+
+    return ModelEntry.model_validate({
+        "id": "big-moe", "name": "Big-MoE-1T", "family": "Big",
+        "params_total": 1_000_000_000_000, "openness": Openness.OPEN_PERMISSIVE,
+        "hardware_tier": "single_node",
+        "quants": [QuantVariant(format="FP8", bits_per_weight=8.0,
+                                est_memory_gb_4k=600.0)],
+    })
+
+
+def test_datacenter_first_lifts_single_node_model_to_adopt():
+    from radar.models_radar.scoring import model_ring, score_model
+
+    default = score_model(_dc_entry())
+    dc = score_model(_dc_entry(), profile="datacenter-first")
+    assert default.local_runnability == 1
+    assert dc.local_runnability == 5
+    assert model_ring(dc).value == "adopt"
+    assert model_ring(default).value != "adopt"
+
+
+def test_unknown_profile_raises_with_names():
+    import pytest
+
+    from radar.models_radar.scoring import ModelProfileError, score_model
+
+    with pytest.raises(ModelProfileError, match="datacenter-first"):
+        score_model(_dc_entry(), profile="nope")
+
+
+def test_rescore_entries_is_a_view():
+    from radar.models_radar.pipeline import score_entries
+    from radar.models_radar.scoring import rescore_entries
+
+    scored = score_entries([_dc_entry()])
+    rescored = rescore_entries(scored, "datacenter-first")
+    assert scored[0].ring != rescored[0].ring
+    assert scored[0].ring is not None  # input untouched (frozen copies)

@@ -24,6 +24,7 @@ from radar.models import Category, DecisionCard, Ring
 from radar.models_radar.entities import HardwareTier, ModelEntry
 from radar.models_radar.history import ModelHistoryEvent
 from radar.models_radar.memory import minimum_viable_quant
+from radar.models_radar.platform_matrix import _FEATURE_KEYS, _HARDWARE_KEYS, PlatformSeed
 from radar.models_radar.reports import model_events_to_feed_atom, model_events_to_feed_json
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
@@ -43,7 +44,7 @@ from radar.web.backer_badge import backer_badge
 from radar.web.badge import badge_markdown, fit_badge_svg, ring_badge_svg
 from radar.web.hub_sections import HubRow
 from radar.web.models_summary import summarize_models
-from radar.web.picker_context import fit_by_tier, picker_context
+from radar.web.picker_context import datacenter_fit_rows, fit_by_tier, picker_context
 from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import summarize_meta
 from radar.web.slugs import build_slug_map
@@ -94,6 +95,7 @@ def render_static_site(
     model_tenure_by_id: dict[str, TenureLine] | None = None,
     model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
     hn_by_project: dict[str, int] | None = None,
+    platform_entries: list[PlatformSeed] | None = None,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -161,6 +163,10 @@ def render_static_site(
     ``fit_badge_svg``/``fit_badge_snippet``) built from these same URLs,
     qualified with ``self_base_url`` when given so the copied Markdown
     resolves from anywhere, or left site-relative otherwise.
+    ``platform_entries`` (optional, sub-project C Task 7) writes
+    ``platforms.html`` — the cited hardware/feature capability matrix per
+    serving engine; omitting it (or passing an empty list) writes no page,
+    back-compat for exports without the seed.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(
@@ -295,6 +301,17 @@ def render_static_site(
             env, out_dir, technique_entries, technique_events or [],
             site_title, self_base_url, stamp,
             impl_hrefs=impl_hrefs,
+        )
+
+    if platform_entries:
+        (out_dir / "platforms.html").write_text(
+            env.get_template("static_platforms.html").render(
+                platforms=platform_entries,
+                hardware_keys=_HARDWARE_KEYS,
+                feature_keys=_FEATURE_KEYS,
+                generated_at=stamp,
+            ),
+            encoding="utf-8",
         )
 
     if trending_entries or model_hub or technique_hub or model_candidates or technique_candidates:
@@ -489,6 +506,7 @@ def _write_model_pages(
             model_template.render(
                 model=entry,
                 fit_by_tier=fit_by_tier(entry),
+                datacenter_fit=datacenter_fit_rows(entry),
                 generated_at=generated_at,
                 pedigree=(pedigree_by_model or {}).get(entry.id) or None,
                 technique_hrefs=technique_hrefs or {},

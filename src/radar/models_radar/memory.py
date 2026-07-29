@@ -17,7 +17,11 @@ TIER_THRESHOLDS: list[tuple[float, HardwareTier]] = [
     (16.0, HardwareTier.LAPTOP),
     (32.0, HardwareTier.APPLE_HIGH_RAM),
     (48.0, HardwareTier.SINGLE_GPU),
-    (180.0, HardwareTier.WORKSTATION),
+    (120.0, HardwareTier.WORKSTATION),
+    # 163.2 = usable GB of one B200/MI300X (192 * 0.85): the largest single
+    # datacenter accelerator. 950 ≈ usable GB of one 8xH200 HGX node.
+    (163.0, HardwareTier.SINGLE_GPU_DC),
+    (950.0, HardwareTier.SINGLE_NODE),
 ]
 
 
@@ -65,4 +69,4 @@ def hardware_tier(min_memory_gb: float | None) -> HardwareTier:
     for ceiling, tier in TIER_THRESHOLDS:
         if min_memory_gb <= ceiling:
             return tier
-    return HardwareTier.DATACENTER
+    return HardwareTier.MULTI_NODE

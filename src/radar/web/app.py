@@ -18,13 +18,20 @@ from fastapi.templating import Jinja2Templates
 
 from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
-from radar.mcp_server.model_queries import _latest_model_cards
+from radar.mcp_server.model_queries import _latest_model_cards, load_platform_entries
 from radar.mcp_server.technique_queries import load_technique_entries
 from radar.mcp_server.trending_queries import load_trending_entries
 from radar.models import Category, SourceType
 from radar.models_radar.entities import HardwareTier, ModelEntry
 from radar.models_radar.history import ModelHistoryEvent, load_model_events
 from radar.models_radar.memory import minimum_viable_quant
+from radar.models_radar.platform_matrix import (
+    _FEATURE_KEYS,
+    _HARDWARE_KEYS,
+    PlatformMatrixError,
+    PlatformSeed,
+)
+from radar.models_radar.scoring import ModelProfileError, rescore_entries
 from radar.reports.comparison import ComparisonError, build_comparison
 from radar.research_radar.entities import ImplKind, TechniqueEntry
 from radar.research_radar.history import load_technique_events
@@ -47,7 +54,7 @@ from radar.web.backer_badge import backer_badge
 from radar.web.badge import badge_markdown, fit_badge_svg, ring_badge_svg
 from radar.web.hub_sections import load_hub_sections
 from radar.web.models_summary import summarize_models
-from radar.web.picker_context import fit_by_tier, picker_context
+from radar.web.picker_context import datacenter_fit_rows, fit_by_tier, picker_context
 from radar.web.research_summary import summarize_techniques
 from radar.web.scan_health import latest_tool_scan_meta, summarize_meta
 from radar.web.slugs import build_slug_map
@@ -107,6 +114,19 @@ def create_app(root: Path) -> FastAPI:
     def _technique_entries() -> list[TechniqueEntry]:
         """Load technique entries from the latest research run; empty list if none."""
         return load_technique_entries(root)
+
+    def _platform_entries() -> list[PlatformSeed]:
+        """Load the platform capability matrix; [] on a missing/corrupt seed.
+
+        A load failure degrades to an empty matrix rather than a 500 — the
+        seed is repo-bundled and CI-tested, but the guarded gateway keeps a
+        single bad hand-edit from taking down the whole page.
+        """
+        try:
+            return load_platform_entries(root)
+        except PlatformMatrixError as exc:
+            logger.warning("Platform matrix unreadable under %s: %s", root, exc)
+            return []
 
     def _trending_entries() -> list[TrendingEntry]:
         from datetime import UTC, datetime
@@ -370,13 +390,25 @@ def create_app(root: Path) -> FastAPI:
         )
 
     @app.get("/models", response_class=HTMLResponse)
-    def models_page(request: Request):
+    def models_page(request: Request, profile: str = ""):
         entries = _model_entries()
+        active_profile = ""
+        if profile and profile != "default":
+            try:
+                entries = rescore_entries(entries, profile)
+                active_profile = profile
+            except ModelProfileError:
+                pass  # unknown profile → default view, no note, no 500
         slug_by_model = build_slug_map([e.id for e in entries])
         return TEMPLATES.TemplateResponse(
             request,
             "models.html",
-            {"models": entries, "slug_by_model": slug_by_model, "device_picker": picker_context()},
+            {
+                "models": entries,
+                "slug_by_model": slug_by_model,
+                "device_picker": picker_context(),
+                "active_profile": active_profile,
+            },
         )
 
     @app.get("/model/{model_id}", response_class=HTMLResponse)
@@ -413,6 +445,7 @@ def create_app(root: Path) -> FastAPI:
             {
                 "model": entry,
                 "fit_by_tier": fit_by_tier(entry),
+                "datacenter_fit": datacenter_fit_rows(entry),
                 "pedigree": _model_pedigree(model_id) or None,
                 "technique_hrefs": _technique_hrefs(),
                 "model_tenure_line": model_tenure(
@@ -423,6 +456,18 @@ def create_app(root: Path) -> FastAPI:
                 "badge_snippet": badge_snippet,
                 "fit_badge_svg": fit_svg,
                 "fit_badge_snippet": fit_snippet,
+            },
+        )
+
+    @app.get("/platforms", response_class=HTMLResponse)
+    def platforms_page(request: Request):
+        return TEMPLATES.TemplateResponse(
+            request,
+            "platforms.html",
+            {
+                "platforms": _platform_entries(),
+                "hardware_keys": _HARDWARE_KEYS,
+                "feature_keys": _FEATURE_KEYS,
             },
         )
 

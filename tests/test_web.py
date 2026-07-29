@@ -763,6 +763,55 @@ def test_models_page_is_styled_and_filterable(tmp_path):
     assert 'data-key="min-memory-gb" data-type="num"' in r.text
 
 
+def _seed_dc_model(root: Path):
+    """A single_node-tier model: PILOT/WATCH under default, ADOPT under dc-first."""
+    from radar.models_radar.entities import (
+        HardwareTier,
+        Modality,
+        ModelEntry,
+        Openness,
+        QuantVariant,
+    )
+    from radar.models_radar.pipeline import score_entries
+
+    rs = RunStore(root / "data" / "runs")
+    rid = rs.create_run()
+    entry = ModelEntry(
+        id="big-moe", name="Big-MoE-1T", family="Big",
+        params_total=1_000_000_000_000, openness=Openness.OPEN_PERMISSIVE,
+        hardware_tier=HardwareTier.SINGLE_NODE, modality=Modality.TEXT,
+        quants=[QuantVariant(format="FP8", bits_per_weight=8.0, est_memory_gb_4k=600.0)],
+    )
+    scored = score_entries([entry])
+    rs.save_stage(rid, "model_cards", [e.model_dump(mode="json") for e in scored])
+    rs.update_meta(rid, {"kind": "models", "model_count": 1})
+
+
+def test_models_route_profile_param_shows_note_and_lifts_ring(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_dc_model(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    default = client.get("/models")
+    dc = client.get("/models?profile=datacenter-first")
+
+    assert default.status_code == 200 and dc.status_code == 200
+    assert "profile-note" not in default.text
+    assert "profile-note" in dc.text and "datacenter-first" in dc.text
+    # data-ring on the row (not the always-present ring legend) reflects the lens
+    assert 'data-ring="pilot"' in default.text
+    assert 'data-ring="adopt"' in dc.text
+
+
+def test_models_route_unknown_profile_falls_back_silently(tmp_path):
+    (tmp_path / "data").mkdir(parents=True)
+    _seed_models(tmp_path)
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/models?profile=nope")
+    assert r.status_code == 200
+    assert "profile-note" not in r.text
+
+
 def _seed_techniques_run(root: Path) -> None:
     from radar.models import Category as _Cat
     from radar.models import Ring as _Ring
@@ -814,6 +863,67 @@ def test_research_route_empty_without_scan(tmp_path):
 
     assert r.status_code == 200
     assert "No research scan yet" in r.text
+
+
+def _seed_platform_matrix(root: Path, yaml_text: str | None = None) -> None:
+    """A root/config override for the /platforms route (Task 7)."""
+    config_dir = root / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "platform-matrix.yaml").write_text(
+        yaml_text
+        or (
+            "platforms:\n"
+            "  - id: vllm\n    name: vLLM\n    repo_url: https://github.com/vllm-project/vllm\n"
+            '    hardware: {nvidia: "yes", amd: "partial"}\n'
+            '    features: {mla: "yes", fp8: "yes"}\n'
+            "    sources: [https://docs.vllm.ai]\n    verified: '2026-07-29'\n"
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_platforms_route_lists_matrix(tmp_path: Path):
+    _seed_platform_matrix(tmp_path)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/platforms")
+
+    assert r.status_code == 200
+    assert "vLLM" in r.text
+    assert 'title="mla: yes"' in r.text
+    assert 'title="nvidia: yes"' in r.text
+    assert "docs.vllm.ai" in r.text  # source footnote
+
+
+def test_platforms_route_empty_seed_shows_empty_state(tmp_path: Path):
+    _seed_platform_matrix(tmp_path, "platforms: []\n")
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/platforms")
+
+    assert r.status_code == 200
+    assert "No platform matrix seeded." in r.text
+
+
+def test_platforms_route_survives_corrupt_seed(tmp_path: Path):
+    """A malformed hand-edit degrades to the empty state, not a 500."""
+    _seed_platform_matrix(tmp_path, "not: [valid, - platform, matrix\n")
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/platforms")
+
+    assert r.status_code == 200
+    assert "No platform matrix seeded." in r.text
+
+
+def test_platforms_route_falls_back_to_bundled_seed_without_override(tmp_path: Path):
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    client = TestClient(create_app(tmp_path))
+
+    r = client.get("/platforms")
+
+    assert r.status_code == 200
+    assert "vLLM" in r.text and "TensorRT-LLM" in r.text
 
 
 def test_technique_detail_route_shows_timeline_and_papers(tmp_path):
@@ -1372,7 +1482,7 @@ def test_trending_marks_stale_model_candidate(tmp_path):
 
 def test_catalog_tables_are_scroll_wrapped(tmp_path):
     client = TestClient(create_app(tmp_path))
-    for path in ("/", "/models", "/research", "/trending"):
+    for path in ("/", "/models", "/platforms", "/research", "/trending"):
         r = client.get(path)
         assert r.status_code == 200
         assert ('<table' not in r.text) or ('<div class="table-wrap">' in r.text), path
@@ -1527,13 +1637,13 @@ def test_index_legend_has_risk_column(tmp_path: Path):
     assert 'class="ring-pill risk-high"' in r.text
 
 
-LIVE_NAV = ["Radar", "Models", "Research", "Trending", "Compare", "History", "Sources"]
+LIVE_NAV = ["Radar", "Models", "Platforms", "Research", "Trending", "Compare", "History", "Sources"]
 
 
 def test_nav_identical_across_live_pages(tmp_path: Path):
-    """Every hero-bearing live page renders the same 7-item nav (finding #6)."""
+    """Every hero-bearing live page renders the same 8-item nav (finding #6)."""
     client = TestClient(create_app(tmp_path))
-    for path in ("/", "/models", "/research", "/trending", "/history", "/sources"):
+    for path in ("/", "/models", "/platforms", "/research", "/trending", "/history", "/sources"):
         r = client.get(path)
         for label in LIVE_NAV:
             assert f">{label}</a>" in r.text, f"{label} missing from {path}"
@@ -1612,7 +1722,9 @@ def test_sources_page_on_design_system(tmp_path):
     assert '<div class="table-wrap">' in r.text
     assert 'class="filter-bar"' in r.text                          # form styled
     assert "#f9fafb" not in r.text                                 # bespoke style gone
-    for label in ("Radar", "Models", "Research", "Trending", "Compare", "History", "Sources"):
+    for label in (
+        "Radar", "Models", "Platforms", "Research", "Trending", "Compare", "History", "Sources",
+    ):
         assert f">{label}</a>" in r.text
 
 

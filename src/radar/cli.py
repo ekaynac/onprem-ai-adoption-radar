@@ -719,11 +719,23 @@ def models_promote(
 
 @models_app.command("devices")
 def models_devices() -> None:
-    """List built-in device presets for the fit check."""
-    from radar.models_radar.devices import DEVICE_PRESETS, usable_memory_gb
-    for key, d in DEVICE_PRESETS.items():
-        console.print(f"  {key:<20} {d.name:<28} ~{usable_memory_gb(d):>6.1f} GB usable",
-                      highlight=False)
+    """List built-in device presets for the fit check (devices, nodes, clusters)."""
+    from radar.models_radar.devices import (
+        CLUSTER_PRESETS,
+        DEVICE_PRESETS,
+        NODE_PRESETS,
+        usable_memory_gb,
+    )
+
+    for label, presets in (
+        ("Devices", DEVICE_PRESETS),
+        ("Nodes", NODE_PRESETS),
+        ("Clusters", CLUSTER_PRESETS),
+    ):
+        console.print(f"[bold]{label}[/bold]")
+        for key, d in presets.items():
+            console.print(f"  {key:<26} {d.name:<28} ~{usable_memory_gb(d):>6.1f} GB usable",
+                          highlight=False)
 
 
 @models_app.command("fit")
@@ -2059,6 +2071,19 @@ def export(
     if technique_history_src.exists():
         shutil.copy2(technique_history_src, out / "technique-history.jsonl")
 
+    # Platform capability matrix (Task 7): a bundled, cited seed — not scan
+    # output — so root/config overrides the packaged copy same as the model/
+    # technique seeds (shared resolution: load_platform_entries); a load
+    # failure degrades to no platforms.html rather than failing the export.
+    from radar.mcp_server.model_queries import load_platform_entries
+    from radar.models_radar.platform_matrix import PlatformMatrixError
+
+    try:
+        platform_entries = load_platform_entries(root)
+    except PlatformMatrixError as exc:
+        console.print(f"[yellow]⚠ platform matrix unreadable ({exc}); skipping platforms.html[/yellow]")
+        platform_entries = []
+
     # Trending observations (optional: only present after `radar trending scan`).
     from radar.storage.trending_observations_log import load_observations as _load_trending_obs
 
@@ -2174,11 +2199,13 @@ def export(
         model_tenure_by_id=model_tenure_by_id or None,
         model_metrics_by_id=model_metrics_by_id or None,
         hn_by_project=hn_by_project or None,
+        platform_entries=platform_entries or None,
     )
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
         + (f", {len(model_entries)} model pages" if model_entries else "")
         + (f", {len(technique_entries)} technique pages" if technique_entries else "")
+        + (f", {len(platform_entries)} platforms" if platform_entries else "")
         + ")"
     )
 

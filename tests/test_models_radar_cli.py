@@ -62,6 +62,18 @@ def test_models_devices_lists_presets(tmp_path):
     assert r.exit_code == 0 and "rtx-4090-24gb" in r.stdout
 
 
+def test_models_devices_lists_nodes_and_clusters(tmp_path):
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+
+    r = CliRunner().invoke(app, ["models", "devices"])
+    assert r.exit_code == 0
+    assert "Devices" in r.stdout and "Nodes" in r.stdout and "Clusters" in r.stdout
+    assert "hgx-h200-8" in r.stdout
+    assert "2x-hgx-h200-8" in r.stdout
+
+
 def test_models_fit_reports_verdicts(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 

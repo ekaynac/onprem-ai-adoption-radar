@@ -74,6 +74,40 @@ def test_list_models_tier_and_modality_filters_are_case_insensitive(tmp_path: Pa
     }
 
 
+def test_list_models_profile_lifts_ring_for_datacenter_first(tmp_path: Path):
+    from radar.models_radar.pipeline import score_entries
+
+    run_store = RunStore(tmp_path / "data" / "runs")
+    rid = run_store.create_run()
+    entry = ModelEntry(
+        id="big-moe", name="Big-MoE-1T", family="Big",
+        params_total=1_000_000_000_000, openness=Openness.OPEN_PERMISSIVE,
+        hardware_tier=HardwareTier.SINGLE_NODE, modality=Modality.TEXT,
+        quants=[QuantVariant(format="FP8", bits_per_weight=8.0, est_memory_gb_4k=600.0)],
+    )
+    scored = score_entries([entry])
+    run_store.save_stage(rid, "model_cards", [e.model_dump(mode="json") for e in scored])
+    run_store.update_meta(rid, {"kind": "models", "model_count": 1})
+
+    svc = ModelQueryService(tmp_path)
+    default_rows = svc.list_models()
+    dc_rows = svc.list_models(profile="datacenter-first")
+
+    assert default_rows[0]["ring"] != "adopt"
+    assert dc_rows[0]["ring"] == "adopt"
+
+
+def test_list_models_unknown_profile_raises(tmp_path: Path):
+    import pytest
+
+    from radar.models_radar.scoring import ModelProfileError
+
+    _seed(tmp_path)
+    svc = ModelQueryService(tmp_path)
+    with pytest.raises(ModelProfileError):
+        svc.list_models(profile="nope")
+
+
 def test_get_model_returns_full_with_quants(tmp_path: Path):
     _seed(tmp_path)
     svc = ModelQueryService(tmp_path)
@@ -142,6 +176,10 @@ def test_can_run_and_fit_report(tmp_path: Path):
 
     devices = svc.list_devices()
     assert any(d["id"] == "rtx-4090-24gb" for d in devices)
+    assert any(d["id"] == "hgx-h200-8" and d["gpu_count"] == 8 for d in devices)
+    assert any(d["id"] == "2x-hgx-h200-8" and d["gpu_count"] == 16 for d in devices)
+    node = next(d for d in devices if d["id"] == "hgx-h200-8")
+    assert node["name"] == "NVIDIA HGX H200 8-GPU"
 
     one = svc.can_run("qwen3-8b", "rtx-4090-24gb")
     assert one is not None and one["verdict"] in ("fits", "fits_tight", "fits_quantized")
@@ -193,3 +231,64 @@ def test_get_model_without_research_run_has_empty_techniques(tmp_path: Path):
     svc = ModelQueryService(tmp_path)
 
     assert svc.get_model("qwen3-8b")["techniques"] == []
+
+
+def _seed_platform_matrix(tmp_path: Path) -> None:
+    """A small, deterministic root-override seed (Task 7's get_platform_support)."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "platform-matrix.yaml").write_text(
+        "platforms:\n"
+        "  - id: vllm\n    name: vLLM\n    repo_url: https://github.com/vllm-project/vllm\n"
+        '    hardware: {nvidia: "yes", amd: "yes"}\n'
+        '    features: {mla: "yes", fp8: "yes"}\n'
+        "    sources: [https://docs.vllm.ai]\n    verified: '2026-07-29'\n"
+        "  - id: tensorrt-llm\n    name: TensorRT-LLM\n"
+        "    repo_url: https://github.com/NVIDIA/TensorRT-LLM\n"
+        '    hardware: {nvidia: "yes", amd: "no"}\n'
+        '    features: {mla: "yes", fp8: "yes"}\n'
+        "    sources: [https://nvidia.github.io/TensorRT-LLM/]\n    verified: '2026-07-29'\n",
+        encoding="utf-8",
+    )
+
+
+def test_get_platform_support_returns_full_rows_by_default(tmp_path: Path):
+    _seed_platform_matrix(tmp_path)
+    svc = ModelQueryService(tmp_path)
+
+    rows = svc.get_platform_support()
+
+    assert {r["id"] for r in rows} == {"vllm", "tensorrt-llm"}
+    assert rows[0]["hardware"]["nvidia"] == "yes"
+
+
+def test_get_platform_support_filters_by_platform(tmp_path: Path):
+    _seed_platform_matrix(tmp_path)
+    svc = ModelQueryService(tmp_path)
+
+    rows = svc.get_platform_support(platform="vllm")
+
+    assert len(rows) == 1 and rows[0]["id"] == "vllm"
+
+
+def test_get_platform_support_feature_filter_returns_compact_rows(tmp_path: Path):
+    _seed_platform_matrix(tmp_path)
+    svc = ModelQueryService(tmp_path)
+
+    rows = svc.get_platform_support(feature="amd")
+
+    assert {r["platform"] for r in rows} == {"vllm", "tensorrt-llm"}
+    assert all(set(r) == {"platform", "feature", "support", "sources"} for r in rows)
+    vllm_row = next(r for r in rows if r["platform"] == "vllm")
+    trt_row = next(r for r in rows if r["platform"] == "tensorrt-llm")
+    assert vllm_row["support"] == "yes"
+    assert trt_row["support"] == "no"
+
+
+def test_get_platform_support_falls_back_to_bundled_seed_without_override(tmp_path: Path):
+    svc = ModelQueryService(tmp_path)  # no config/ dir at all -> packaged seed
+
+    rows = svc.get_platform_support(platform="vllm")
+
+    assert rows and rows[0]["id"] == "vllm"
+    assert rows[0]["features"]["mla"] == "yes"

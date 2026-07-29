@@ -5,17 +5,22 @@
     <select id="device-select">
       <option value="">— pick a device —</option>
       <optgroup label="GPU">
-        {% for d in device_picker.device_presets if d.kind == 'gpu' %}
+        {% for d in device_picker.device_presets if d.kind == 'gpu' and not d.datacenter %}
         <option value="{{ d.id }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
         {% endfor %}
       </optgroup>
       <optgroup label="Apple">
-        {% for d in device_picker.device_presets if d.kind == 'apple' %}
+        {% for d in device_picker.device_presets if d.kind == 'apple' and not d.datacenter %}
         <option value="{{ d.id }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
         {% endfor %}
       </optgroup>
       <optgroup label="CPU / RAM">
-        {% for d in device_picker.device_presets if d.kind == 'cpu' %}
+        {% for d in device_picker.device_presets if d.kind == 'cpu' and not d.datacenter %}
+        <option value="{{ d.id }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
+        {% endfor %}
+      </optgroup>
+      <optgroup label="Datacenter / nodes">
+        {% for d in device_picker.device_presets if d.datacenter %}
         <option value="{{ d.id }}">{{ d.label }} (~{{ '%.0f'|format(d.usable_gb) }} GB usable)</option>
         {% endfor %}
       </optgroup>

@@ -3,19 +3,35 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from radar.models_radar.device_fit import evaluate_fit
 from radar.models_radar.device_fit import fit_report as _fit_report
-from radar.models_radar.devices import DEVICE_PRESETS, resolve_device, usable_memory_gb
+from radar.models_radar.devices import (
+    CLUSTER_PRESETS,
+    DEVICE_PRESETS,
+    NODE_PRESETS,
+    resolve_device,
+    usable_memory_gb,
+)
 from radar.models_radar.entities import ModelEntry
 from radar.models_radar.history import load_model_events
 from radar.models_radar.memory import minimum_viable_quant
 from radar.models_radar.momentum import compute_model_momentum
+from radar.models_radar.platform_matrix import (
+    PlatformMatrixError,
+    PlatformSeed,
+    load_platform_matrix,
+)
+from radar.models_radar.scoring import rescore_entries
 from radar.storage.model_metrics_store import ModelMetricsStore
 from radar.storage.run_store import RunStore
+
+
+logger = logging.getLogger(__name__)
 
 
 def _latest_model_cards(root: Path) -> list[dict[str, Any]]:
@@ -33,6 +49,24 @@ def _latest_model_cards(root: Path) -> list[dict[str, Any]]:
             if path.exists():
                 return json.loads(path.read_text(encoding="utf-8"))
     return []
+
+
+def load_platform_entries(root: Path) -> list[PlatformSeed]:
+    """Resolve + load config/platform-matrix.yaml: root override, else the
+    packaged seed (same resolution order as the model/technique seeds).
+
+    Single shared path-resolution helper for all three surfaces that read the
+    platform matrix (web `/platforms`, this MCP service, `radar export`) —
+    mirrors the `load_technique_entries(root)` precedent in
+    technique_queries.py. Raises ``PlatformMatrixError`` on a missing/corrupt
+    seed; callers choose how to degrade (each surface has its own
+    failure-handling convention, so the swallowing stays at the call site,
+    not here).
+    """
+    seed_path = Path(root) / "config" / "platform-matrix.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[3] / "config" / "platform-matrix.yaml"
+    return load_platform_matrix(seed_path)
 
 
 class ModelQueryService:
@@ -53,9 +87,13 @@ class ModelQueryService:
         family: str | None = None,
         modality: str | None = None,
         detail: str = "compact",
+        profile: str | None = None,
     ) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
-        for entry in self._entries():
+        entries = self._entries()
+        if profile:
+            entries = rescore_entries(entries, profile)  # raises ModelProfileError if unknown
+        for entry in entries:
             if hardware_tier and entry.hardware_tier.value != hardware_tier.lower():
                 continue
             if family and entry.family.lower() != family.lower():
@@ -110,7 +148,7 @@ class ModelQueryService:
             {"id": key, "name": d.name, "kind": d.kind,
              "total_memory_gb": d.total_memory_gb, "gpu_count": d.gpu_count,
              "usable_gb": usable_memory_gb(d)}
-            for key, d in DEVICE_PRESETS.items()
+            for key, d in {**DEVICE_PRESETS, **NODE_PRESETS, **CLUSTER_PRESETS}.items()
         ]
 
     def can_run(self, model_id: str, device: str | dict[str, Any],
@@ -124,6 +162,40 @@ class ModelQueryService:
                           context_tokens: int = 4096) -> list[dict[str, Any]]:
         dev = resolve_device(device)
         return [f.model_dump(mode="json") for f in _fit_report(self._entries(), dev, context_tokens)]
+
+    def _platform_entries(self) -> list[PlatformSeed]:
+        """Load the platform capability matrix; [] on a missing/corrupt seed."""
+        try:
+            return load_platform_entries(self.root)
+        except PlatformMatrixError as exc:
+            logger.warning("Platform matrix unreadable under %s: %s", self.root, exc)
+            return []
+
+    def get_platform_support(
+        self, platform: str | None = None, feature: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Filter the platform capability matrix.
+
+        No args: one full row per platform (id/name/hardware/features/
+        sources/verified/notes). `platform`: only that engine's row.
+        `feature`: one compact row per matching platform —
+        {platform, feature, support, sources} — looked up across both the
+        hardware and feature key namespaces (they never collide).
+        """
+        entries = self._platform_entries()
+        if platform:
+            entries = [e for e in entries if e.id == platform.lower()]
+        if feature:
+            return [
+                {
+                    "platform": e.id,
+                    "feature": feature,
+                    "support": {**e.hardware, **e.features}.get(feature, "unknown"),
+                    "sources": e.sources,
+                }
+                for e in entries
+            ]
+        return [e.model_dump(mode="json") for e in entries]
 
     def model_movers(self) -> list[dict[str, Any]]:
         store = ModelMetricsStore(self.db_path)

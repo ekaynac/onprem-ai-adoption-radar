@@ -6,6 +6,50 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Device & platform knowledge (sub-project C)
+- **Device catalog schema v2** — `config/device-seed.yaml` replaces the
+  hardcoded device list; per-device fields (`memory_bandwidth_gbs`,
+  `tflops_fp16`/`tflops_fp8`/`tflops_fp4`, `tdp_watts`, `indicative_price_usd`,
+  `spec_url`, `verified` date, `datacenter` flag) carry a citation for every
+  published number. The catalog expanded from 49 legacy presets to cover the
+  current Blackwell/MI3xx/Gaudi/Ascend generation (10 new devices, 14
+  backfilled with cited v2 specs).
+- **Node & cluster entities** — `NodeSeed`/`ClusterSeed` let a multi-GPU
+  baseboard (HGX/OAM) or a multi-node rack (NVL72) resolve as a device preset,
+  with ref-integrity validation (a node's `device` and a cluster's `node` must
+  exist); 6 nodes + 2 clusters seeded, all citations live-checked.
+- **Datacenter hardware tiers** — `HardwareTier` gains a `single_gpu_dc` /
+  `single_node` / `multi_node` split so datacenter-class fits are no longer
+  lumped into one bucket.
+- **`datacenter-first` scoring view** — `?profile=datacenter-first` on
+  `/models` and the MCP `list_models`/`get_model` tools re-rank through a lens
+  that rewards single/multi-node deployability instead of penalizing it;
+  persisted rings are never mutated by this — it's a view, not a re-score.
+- **Datacenter "Runs on" rows** — a second per-model fit table
+  (`DATACENTER_DEVICE_TIERS`) plus a "Datacenter / nodes" picker group and
+  node/cluster entries in the MCP/CLI device lists.
+- **Platform capability matrix** — `/platforms` (+ static twin) is a cited
+  hardware/feature support matrix for 8 serving engines (vLLM, SGLang,
+  TensorRT-LLM, llama.cpp, Ollama, MLX-LM, TGI, LMDeploy) across 6 hardware
+  families and 14 serving features (tensor/pipeline/expert parallel, MLA,
+  hybrid attention, FP8/NVFP4/AWQ/GPTQ/GGUF, FP8 KV cache, speculative
+  decoding, prefix caching, disaggregated prefill). Every cell traces to a
+  doc/README/release-note URL fetched the day it was seeded
+  (`config/platform-matrix.yaml`); `unknown` is the honest default when a
+  claim couldn't be confirmed — nothing is guessed "yes". A YAML-1.1
+  boolean-trap defense (quoted seed values + a before-validator coercing bare
+  `yes`/`no` → `"yes"`/`"no"`) keeps a hand-edited, unquoted cell from
+  crashing the loader instead of degrading gracefully. Queryable over MCP
+  (`get_platform_support`).
+- **Documented scope deferrals**: the spec's "kept current
+  semi-automatically by cross-linking release notes the radar already
+  collects" mechanism for the platform matrix is not built yet — citations +
+  verified dates ship now, the release-note cross-linker is a follow-up.
+  Separately, Task 6's "a datacenter row set joins `COMMON_DEVICE_TIERS`" is
+  implemented as a second, standalone `DATACENTER_DEVICE_TIERS` table rather
+  than growing the homelab list — a deliberate interpretation, flagged for
+  the final reviewer.
+
 ### Hardening (sub-project A)
 - **Outage-aware collection & scoring** — new degraded-run gate ensures outages
   never corrupt the score by collecting observations but explicitly excluding

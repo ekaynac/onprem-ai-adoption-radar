@@ -8,7 +8,7 @@
     {% include "_base_styles.html" %}
   </head>
   <body>
-    {% set nav = {"Radar": "/", "Models": "/models", "Research": "/research", "Trending": "/trending", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
+    {% set nav = {"Radar": "/", "Models": "/models", "Platforms": "/platforms", "Research": "/research", "Trending": "/trending", "Compare": "/compare", "History": "/history", "Sources": "/sources"} %}
     <main class="container" style="padding-top: 1.5rem;">
       <nav class="hero-nav" style="margin-bottom: 1rem;">
         {% for label, url in nav.items() %}{% if url %}<a href="{{ url }}">{{ label }}</a>{% endif %}{% endfor %}

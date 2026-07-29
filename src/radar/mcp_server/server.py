@@ -88,9 +88,16 @@ def build_mcp_server(root: Path) -> FastMCP:
         family: str | None = None,
         modality: str | None = None,
         detail: str = "compact",
+        profile: str | None = None,
     ) -> list[dict]:
-        """List tracked local models, optionally filtered by fit/family/modality."""
-        return models.list_models(max_memory_gb, hardware_tier, family, modality, detail)
+        """List tracked local models, optionally filtered by fit/family/modality.
+
+        `profile`: rescore through an alternate lens before filtering/shaping
+        (e.g. "datacenter-first" weights single/multi-node deployability
+        instead of penalizing it). Persisted rings are unaffected — this is
+        a view. Omit for the default (persisted) scoring.
+        """
+        return models.list_models(max_memory_gb, hardware_tier, family, modality, detail, profile)
 
     @mcp.tool()
     def get_model(model_id: str) -> dict | None:
@@ -116,6 +123,18 @@ def build_mcp_server(root: Path) -> FastMCP:
     def fit_report(device: str | dict, context_tokens: int = 4096) -> list[dict]:
         """Per-model fit verdicts for a device (preset id or custom spec)."""
         return models.device_fit_report(device, context_tokens)
+
+    @mcp.tool()
+    def get_platform_support(platform: str | None = None, feature: str | None = None) -> list[dict]:
+        """Which serving engines (vLLM, SGLang, TensorRT-LLM, ...) support a
+        hardware/feature key — every claim cited from the engine's own docs.
+
+        No args: full row per engine. `platform`: one engine's full row.
+        `feature`: one {platform, feature, support, sources} row per engine
+        for that single hardware or feature key (e.g. "nvidia", "mla",
+        "disaggregated_prefill").
+        """
+        return models.get_platform_support(platform=platform, feature=feature)
 
     @mcp.tool()
     def list_techniques(

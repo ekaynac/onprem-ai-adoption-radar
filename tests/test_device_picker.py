@@ -49,3 +49,43 @@ def test_static_models_page_has_picker_and_row_data(tmp_path: Path):
     assert "RADAR_USABLE_FRACTION" in html and "rtx-4090-24gb" in html
     # Device picker options are now grouped by kind
     assert "<optgroup" in html
+
+
+def test_picker_context_devices_carry_datacenter_flag():
+    ctx = picker_context()
+    by_id = {d["id"]: d for d in ctx["device_presets"]}
+    assert by_id["rtx-4090-24gb"]["datacenter"] is False
+    assert by_id["h100-80gb"]["datacenter"] is True
+
+
+def test_picker_context_includes_node_and_cluster_presets():
+    ctx = picker_context()
+    assert any(d.get("datacenter") for d in ctx["device_presets"])
+    node = next(d for d in ctx["device_presets"] if d["id"] == "hgx-h200-8")
+    assert node["gpu_count"] == 8 and node["kind"] == "gpu" and node["datacenter"] is True
+    assert any(d["id"] == "2x-hgx-h200-8" for d in ctx["device_presets"])
+
+
+def test_picker_has_datacenter_optgroup(tmp_path: Path):
+    m = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
+                   hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=8.4,
+                                        platform=Platform.GENERIC, source="x")])
+    render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC), model_entries=[m])
+    html = (tmp_path / "_site" / "models.html").read_text(encoding="utf-8")
+    assert 'label="Datacenter / nodes"' in html
+    assert "hgx-h200-8" in html
+
+
+def test_datacenter_fit_rows_same_shape_as_fit_by_tier():
+    from radar.models_radar.devices import DATACENTER_DEVICE_TIERS
+    from radar.web.picker_context import datacenter_fit_rows
+
+    m = ModelEntry(id="big", name="Big", family="F", params_total=671_000_000_000,
+                   hardware_tier=HardwareTier.MULTI_NODE, openness=Openness.OPEN_PERMISSIVE,
+                   quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5, est_memory_gb_4k=350.0,
+                                        platform=Platform.GENERIC, source="x")])
+    rows = datacenter_fit_rows(m)
+    assert len(rows) == len(DATACENTER_DEVICE_TIERS)
+    assert all({"device", "verdict", "best_quant"} <= set(r) for r in rows)
+    assert any(r["device"] == "NVIDIA HGX H200 8-GPU" for r in rows)

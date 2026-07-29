@@ -50,5 +50,9 @@ def test_hardware_tier_boundaries():
     assert hardware_tier(24) == HardwareTier.APPLE_HIGH_RAM
     assert hardware_tier(48) == HardwareTier.SINGLE_GPU
     assert hardware_tier(120) == HardwareTier.WORKSTATION
-    assert hardware_tier(400) == HardwareTier.DATACENTER
+    assert hardware_tier(150) == HardwareTier.SINGLE_GPU_DC   # was workstation
+    assert hardware_tier(163) == HardwareTier.SINGLE_GPU_DC
+    assert hardware_tier(400) == HardwareTier.SINGLE_NODE     # was datacenter
+    assert hardware_tier(950) == HardwareTier.SINGLE_NODE
+    assert hardware_tier(1000) == HardwareTier.MULTI_NODE
     assert hardware_tier(None) == HardwareTier.UNKNOWN

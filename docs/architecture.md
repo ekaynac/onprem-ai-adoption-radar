@@ -50,6 +50,7 @@ config/seed-sources    │ orchestrator.RadarOrchestrator._scan         │
 | `storage/` | `config`, `run_store`, `database` (cards cache), `history_store`/`history_log` (timeline projection + durable JSONL truth), `metrics_store` (per-scan observed metrics), `source_health_store` (dead-feed detection), `overrides_store` (pins + trial journal), `seed_store`. |
 | `discovery/` | `github_trending` proposes untracked fast-rising repos; `proposals` writes/reads the review-only `proposed-seeds.yaml`. |
 | `notify/` | `webhook` posts a fire-and-forget notification on ring changes (generic JSON or Slack format), off by default. |
+| `models_radar/platform_matrix` | Bundled, cited capability matrix (`config/platform-matrix.yaml`) — which serving engines (vLLM, SGLang, TensorRT-LLM, ...) support which hardware/features; every cell traces to a doc/release-note citation, `unknown` when unconfirmed. Powers `/platforms`, its static twin, and the MCP `get_platform_support` tool. |
 | `reports/` | Markdown renderers: full report (+ movers, evidence, upgrade-risk, pins), Try This Week, history, comparison, sandbox, JSON export, `movers`, and `feeds` (Atom + JSON change feeds). |
 | `web/` | FastAPI dashboard (`app`) and the self-contained static export (`static_site`, with change feeds) used by the Pages workflow. |
 | `mcp_server/` | Read-only MCP tools (`queries` + stdio `server`) so agents can ask the radar questions. |
