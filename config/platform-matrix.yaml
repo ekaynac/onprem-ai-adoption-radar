@@ -217,7 +217,7 @@ platforms:
       mla: "yes"
       hybrid_attention: "no"
       fp8: "partial"
-      nvfp4: "yes"
+      nvfp4: "partial"
       awq: "no"
       gptq: "no"
       gguf: "yes"
@@ -232,6 +232,7 @@ platforms:
       - https://github.com/ollama/ollama/blob/main/docs/import.mdx
       - https://github.com/ollama/ollama/pull/13151
       - https://ollama.com/library/qwen3.6/tags
+      - https://github.com/ollama/ollama/issues/16056
     verified: "2026-07-29"
     notes: >-
       Judged on Ollama's own documented behavior, not inherited llama.cpp
@@ -241,7 +242,14 @@ platforms:
       unmerged. Speculative decoding merged only on the Apple-Silicon MLX
       runner for specific models — the general feature request is still
       open. No hybrid state-space models in Ollama's library
-      (Jamba/Mamba/Falcon-Mamba all 404 on ollama.com).
+      (Jamba/Mamba/Falcon-Mamba all 404 on ollama.com). nvfp4 downgraded to
+      partial: import.mdx's own quantize docs list only q8_0/q4_K_S/q4_K_M,
+      and NVFP4-tagged models exist on ollama.com/library (e.g.
+      qwen3.6:27b-coding-nvfp4) but loading one hits an open,
+      unresolved crash — issue #16056 reports
+      `ggml.c:1676: GGML_ASSERT(type >= 0 && type < GGML_TYPE_COUNT) failed`
+      loading an NVFP4 GGUF; the corresponding llama.cpp PR is linked but not
+      yet ported to Ollama's fork.
 
   - id: mlx-lm
     name: MLX-LM
@@ -278,6 +286,7 @@ platforms:
       - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/models/deepseek_v3.py
       - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/gguf.py
       - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/mlx_lm/models/cache.py
+      - https://raw.githubusercontent.com/ml-explore/mlx-lm/main/setup.py
       - https://raw.githubusercontent.com/ml-explore/mlx/main/docs/src/install.rst
       - https://raw.githubusercontent.com/ml-explore/mlx/main/python/src/ops.cpp
     verified: "2026-07-29"
@@ -285,8 +294,11 @@ platforms:
       MLX is no longer Apple-only: mlx core now ships an official CUDA
       backend for Linux/NVIDIA (pip install mlx[cuda12]) and a separate
       CPU-only Linux backend, alongside its original Metal/Apple-Silicon
-      path — no AMD/Gaudi/Ascend backend exists in either repo. GGUF is
-      export-only and limited to Mistral/Mixtral/Llama-style models
+      path — mlx-lm's own setup.py confirms this at the package level
+      (extras_require cuda12/cuda13/cpu each pull in the matching mlx[...]
+      backend, overriding the base install_requires' Darwin-only mlx
+      dependency) — no AMD/Gaudi/Ascend backend exists in either repo. GGUF
+      is export-only and limited to Mistral/Mixtral/Llama-style models
       (mlx-lm cannot load a .gguf file for inference). KV-cache
       quantization is integer/affine, not FP8-format.
 

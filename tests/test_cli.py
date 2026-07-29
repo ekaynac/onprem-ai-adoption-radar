@@ -144,6 +144,31 @@ def test_export_rejects_non_http_base_url(tmp_path):
     assert result.exit_code != 0
 
 
+def test_export_survives_corrupt_platform_matrix(tmp_path):
+    """A hand-corrupted root-level platform-matrix.yaml must not fail the
+    export — it should warn, finish normally, and simply skip platforms.html
+    (mirrors the web-route guarded gateway in test_web.py's equivalent)."""
+    from radar.storage.database import RadarDatabase
+
+    RadarDatabase(tmp_path / "data" / "radar.db").initialize()
+
+    config_dir = tmp_path / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "platform-matrix.yaml").write_text(
+        "not: [valid, - platform, matrix\n", encoding="utf-8"
+    )
+
+    out = tmp_path / "_site"
+    result = CliRunner().invoke(
+        app, ["export", "--root", str(tmp_path), "--out", str(out)]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert "platform matrix unreadable" in result.stdout
+    assert (out / "index.html").exists()  # export still completes
+    assert not (out / "platforms.html").exists()
+
+
 def test_history_command_shows_recorded_timeline(tmp_path):
     runner = CliRunner()
     runner.invoke(app, ["init", "--root", str(tmp_path)])

@@ -18,7 +18,7 @@ from fastapi.templating import Jinja2Templates
 
 from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
-from radar.mcp_server.model_queries import _latest_model_cards
+from radar.mcp_server.model_queries import _latest_model_cards, load_platform_entries
 from radar.mcp_server.technique_queries import load_technique_entries
 from radar.mcp_server.trending_queries import load_trending_entries
 from radar.models import Category, SourceType
@@ -30,7 +30,6 @@ from radar.models_radar.platform_matrix import (
     _HARDWARE_KEYS,
     PlatformMatrixError,
     PlatformSeed,
-    load_platform_matrix,
 )
 from radar.models_radar.scoring import ModelProfileError, rescore_entries
 from radar.reports.comparison import ComparisonError, build_comparison
@@ -119,19 +118,14 @@ def create_app(root: Path) -> FastAPI:
     def _platform_entries() -> list[PlatformSeed]:
         """Load the platform capability matrix; [] on a missing/corrupt seed.
 
-        root/config/platform-matrix.yaml overrides the packaged seed when
-        present (same resolution order as the model/technique seeds); a
-        load failure degrades to an empty matrix rather than a 500 — the
+        A load failure degrades to an empty matrix rather than a 500 — the
         seed is repo-bundled and CI-tested, but the guarded gateway keeps a
         single bad hand-edit from taking down the whole page.
         """
-        seed_path = root / "config" / "platform-matrix.yaml"
-        if not seed_path.exists():
-            seed_path = Path(__file__).resolve().parents[3] / "config" / "platform-matrix.yaml"
         try:
-            return load_platform_matrix(seed_path)
+            return load_platform_entries(root)
         except PlatformMatrixError as exc:
-            logger.warning("Platform matrix unreadable under %s: %s", seed_path, exc)
+            logger.warning("Platform matrix unreadable under %s: %s", root, exc)
             return []
 
     def _trending_entries() -> list[TrendingEntry]:

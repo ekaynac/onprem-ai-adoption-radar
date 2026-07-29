@@ -2073,15 +2073,13 @@ def export(
 
     # Platform capability matrix (Task 7): a bundled, cited seed — not scan
     # output — so root/config overrides the packaged copy same as the model/
-    # technique seeds; a load failure degrades to no platforms.html rather
-    # than failing the whole export.
-    from radar.models_radar.platform_matrix import PlatformMatrixError, load_platform_matrix
+    # technique seeds (shared resolution: load_platform_entries); a load
+    # failure degrades to no platforms.html rather than failing the export.
+    from radar.mcp_server.model_queries import load_platform_entries
+    from radar.models_radar.platform_matrix import PlatformMatrixError
 
-    platform_seed_path = root / "config" / "platform-matrix.yaml"
-    if not platform_seed_path.exists():
-        platform_seed_path = Path(__file__).resolve().parents[2] / "config" / "platform-matrix.yaml"
     try:
-        platform_entries = load_platform_matrix(platform_seed_path)
+        platform_entries = load_platform_entries(root)
     except PlatformMatrixError as exc:
         console.print(f"[yellow]⚠ platform matrix unreadable ({exc}); skipping platforms.html[/yellow]")
         platform_entries = []

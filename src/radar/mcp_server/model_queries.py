@@ -51,6 +51,24 @@ def _latest_model_cards(root: Path) -> list[dict[str, Any]]:
     return []
 
 
+def load_platform_entries(root: Path) -> list[PlatformSeed]:
+    """Resolve + load config/platform-matrix.yaml: root override, else the
+    packaged seed (same resolution order as the model/technique seeds).
+
+    Single shared path-resolution helper for all three surfaces that read the
+    platform matrix (web `/platforms`, this MCP service, `radar export`) —
+    mirrors the `load_technique_entries(root)` precedent in
+    technique_queries.py. Raises ``PlatformMatrixError`` on a missing/corrupt
+    seed; callers choose how to degrade (each surface has its own
+    failure-handling convention, so the swallowing stays at the call site,
+    not here).
+    """
+    seed_path = Path(root) / "config" / "platform-matrix.yaml"
+    if not seed_path.exists():
+        seed_path = Path(__file__).resolve().parents[3] / "config" / "platform-matrix.yaml"
+    return load_platform_matrix(seed_path)
+
+
 class ModelQueryService:
     """Transport-agnostic queries over the latest model scan."""
 
@@ -146,18 +164,11 @@ class ModelQueryService:
         return [f.model_dump(mode="json") for f in _fit_report(self._entries(), dev, context_tokens)]
 
     def _platform_entries(self) -> list[PlatformSeed]:
-        """Load the platform capability matrix; [] on a missing/corrupt seed.
-
-        root/config/platform-matrix.yaml overrides the packaged seed when
-        present (same resolution order as the model/technique seeds).
-        """
-        seed_path = self.root / "config" / "platform-matrix.yaml"
-        if not seed_path.exists():
-            seed_path = Path(__file__).resolve().parents[3] / "config" / "platform-matrix.yaml"
+        """Load the platform capability matrix; [] on a missing/corrupt seed."""
         try:
-            return load_platform_matrix(seed_path)
+            return load_platform_entries(self.root)
         except PlatformMatrixError as exc:
-            logger.warning("Platform matrix unreadable under %s: %s", seed_path, exc)
+            logger.warning("Platform matrix unreadable under %s: %s", self.root, exc)
             return []
 
     def get_platform_support(
