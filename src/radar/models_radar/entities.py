@@ -33,6 +33,11 @@ class HardwareTier(str, Enum):
     APPLE_HIGH_RAM = "apple_high_ram"
     SINGLE_GPU = "single_gpu"
     WORKSTATION = "workstation"
+    SINGLE_GPU_DC = "single_gpu_dc"    # one datacenter accelerator (B200/MI300X class)
+    SINGLE_NODE = "single_node"        # one multi-GPU HGX-class node (e.g. 8xH200)
+    MULTI_NODE = "multi_node"          # beyond a single node's usable memory
+    # Legacy-persisted only: no new computation emits this; kept so entries
+    # written before the datacenter tier split still deserialize.
     DATACENTER = "datacenter"
     UNKNOWN = "unknown"
 

@@ -22,7 +22,10 @@ _TIER_SCORE = {
     HardwareTier.APPLE_HIGH_RAM: 4,
     HardwareTier.SINGLE_GPU: 3,
     HardwareTier.WORKSTATION: 2,
-    HardwareTier.DATACENTER: 1,
+    HardwareTier.SINGLE_GPU_DC: 2,
+    HardwareTier.SINGLE_NODE: 1,
+    HardwareTier.MULTI_NODE: 1,
+    HardwareTier.DATACENTER: 1,  # legacy-persisted entries only; homelab default penalty
     HardwareTier.UNKNOWN: 2,
 }
 

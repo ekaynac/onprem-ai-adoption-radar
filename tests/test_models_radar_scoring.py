@@ -50,3 +50,10 @@ def test_entry_carries_score_and_ring_fields():
     e = _entry().model_copy(update={"ring": Ring.ADOPT, "score": 4.2})
     assert e.ring == Ring.ADOPT and e.score == 4.2
     assert _entry().ring is None  # default
+
+
+def test_new_tier_members_score_without_keyerror():
+    from radar.models_radar.scoring import _TIER_SCORE
+
+    for tier in HardwareTier:
+        assert tier in _TIER_SCORE, tier  # bare [] lookup at scoring.py:56
