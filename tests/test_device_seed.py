@@ -94,6 +94,8 @@ def test_nodes_and_clusters_load_and_resolve():
     assert nodes["hgx-h200-8"].gpus_per_node == 8
     assert nodes["hgx-h200-8"].device == "h200-141gb"
     assert nodes["gb200-nvl72"].gpus_per_node == 72
+    assert nodes["gb300-nvl72"].gpus_per_node == 72
+    assert nodes["gb300-nvl72"].device == "b300-270gb"
     clusters = {c.id: c for c in catalog.clusters}
     assert clusters["2x-hgx-h200-8"].node == "hgx-h200-8"
 

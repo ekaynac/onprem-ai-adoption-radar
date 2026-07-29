@@ -215,13 +215,9 @@ devices:
     # indicative_price_usd omitted: NVIDIA publishes no list price as of 2026-07-29
     # Same-day re-fetch cross-validated this HGX B300 per-GPU row against the Blackwell
     # Ultra datasheet's own side-by-side "GB300 NVL72 | HGX B300" table — identical figures.
-    # GB300 NVL72 (the 72x Blackwell Ultra GPU rack, a DIFFERENT config from HGX B300 above)
-    # is also citable via the Blackwell Ultra datasheet's "Individual Blackwell Ultra GPU"
-    # column: 279 GB HBM3E | 8 TB/s, FP4 dense 15000 (sparse 20000), FP8 dense 5000 (sparse
-    # 10000), FP16 dense 2500 (sparse 5000), FP32 80 TFLOPS, FP64 1.3 TFLOPS, TDP up to
-    # 1400W — https://nvdam.widen.net/s/p69fknmbpw/blackwell-datasheet-ultra-blackwell-4169750
-    # (verified 2026-07-29). That config belongs to a gb300-nvl72 Node/Cluster entity in
-    # Task 3, not this device row; no gb200-nvl72/gb300-nvl72 node exists in this file yet.
+    # GB300 NVL72 (the 72x Blackwell Ultra GPU rack) is a DIFFERENT config from HGX B300
+    # above — its per-GPU figures and full sourcing now live on the gb300-nvl72 node entry
+    # in the `nodes:` section below, not duplicated here.
 
   # --- AMD ---
   - id: mi210-64gb
@@ -405,6 +401,25 @@ nodes:
     # is independently cited below.
     interconnect: "NVLink 5 single domain"  # nvidia.com GB200 NVL72 page: "a single GPU with 72 Blackwell GPUs" over a single NVLink domain (verified 2026-07-29)
     spec_url: https://www.nvidia.com/en-us/data-center/gb200-nvl72/
+    verified: "2026-07-29"
+  - id: gb300-nvl72
+    name: "NVIDIA GB300 NVL72"
+    device: b300-270gb
+    gpus_per_node: 72
+    # Approximation, not an independent citation: this flattens 72x the b300-270gb device
+    # row above (Blackwell Ultra per-GPU HBM3e/compute only). It excludes the Grace CPU's
+    # LPDDR5X memory and CPU-side compute of the GB300 Superchip — this node models the GPU
+    # pool only, not the full Grace-Blackwell Ultra superchip.
+    # Rack-config nuance: the Blackwell Ultra datasheet's own "GB300 NVL72" column publishes
+    # 279 GB HBM3E | 8 TB/s per GPU (vs. this row's 270 GB | 7.7 TB/s HGX B300 figure that
+    # b300-270gb is sourced from — same datasheet, different column; see the b300-270gb
+    # comment above for the full staged NVL72 per-GPU figures: FP4 dense 15000/sparse 20000,
+    # FP8 dense 5000/sparse 10000, FP16 dense 2500/sparse 5000, TDP up to 1400W).
+    # NodeSeed has no per-node memory/bandwidth override field, so this node structurally
+    # flattens over b300-270gb's 270 GB HGX-column figure rather than the rack's 279 GB
+    # NVL72-column figure — an honest, slightly conservative choice, not a data error.
+    interconnect: "NVLink 5 1.8 TB/s, PCIe Gen6 256 GB/s"  # Blackwell Ultra datasheet, Interconnect row — same value already cited on b300-270gb above, explicitly confirmed there as "shared across GB300 NVL72 and HGX B300 columns" (verified 2026-07-29)
+    spec_url: https://nvdam.widen.net/s/p69fknmbpw/blackwell-datasheet-ultra-blackwell-4169750
     verified: "2026-07-29"
 
 # Clusters: multi-node groups (e.g. a DGX SuperPOD rack group) flattened over a base

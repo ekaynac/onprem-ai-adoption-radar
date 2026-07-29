@@ -104,6 +104,8 @@ def test_node_and_cluster_presets_resolve_as_devices():
     assert node.gpu_count == 8 and node.total_memory_gb == 141
     assert usable_memory_gb(node) == round(141 * 0.85 * 8, 2)
     assert NODE_PRESETS["gb200-nvl72"].gpu_count == 72
+    assert NODE_PRESETS["gb300-nvl72"].gpu_count == 72
+    assert resolve_device("gb300-nvl72").total_memory_gb == 270
 
     cluster = resolve_device("2x-hgx-h200-8")
     assert cluster.gpu_count == 16
