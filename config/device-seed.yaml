@@ -1,0 +1,69 @@
+# Device catalog — schema v2 (capacity radar sub-project C).
+# Numbers policy: every v2 spec number carries spec_url + verified date;
+# unpublished values are omitted with a dated comment. Prices are indicative
+# public list figures only (spec D3). Memory/kind/count for legacy entries
+# are a faithful migration from the pre-2026-07-29 devices.py.
+version: "1.0"
+devices:
+  # --- Consumer NVIDIA ---
+  - {id: rtx-3060-12gb, name: "RTX 3060 (12GB)", kind: gpu, total_memory_gb: 12}
+  - {id: rtx-3080-10gb, name: "RTX 3080 (10GB)", kind: gpu, total_memory_gb: 10}
+  - {id: rtx-3090-24gb, name: "RTX 3090 (24GB)", kind: gpu, total_memory_gb: 24}
+  - {id: rtx-4060-8gb, name: "RTX 4060 (8GB)", kind: gpu, total_memory_gb: 8}
+  - {id: rtx-4060-ti-16gb, name: "RTX 4060 Ti (16GB)", kind: gpu, total_memory_gb: 16}
+  - {id: rtx-4070-12gb, name: "RTX 4070 (12GB)", kind: gpu, total_memory_gb: 12}
+  - {id: rtx-4070-ti-super-16gb, name: "RTX 4070 Ti Super (16GB)", kind: gpu, total_memory_gb: 16}
+  - {id: rtx-4080-16gb, name: "RTX 4080 (16GB)", kind: gpu, total_memory_gb: 16}
+  - {id: rtx-4090-24gb, name: "RTX 4090 (24GB)", kind: gpu, total_memory_gb: 24}
+  - {id: rtx-5070-12gb, name: "RTX 5070 (12GB)", kind: gpu, total_memory_gb: 12}
+  - {id: rtx-5070-ti-16gb, name: "RTX 5070 Ti (16GB)", kind: gpu, total_memory_gb: 16}
+  - {id: rtx-5080-16gb, name: "RTX 5080 (16GB)", kind: gpu, total_memory_gb: 16}
+  - {id: rtx-5090-32gb, name: "RTX 5090 (32GB)", kind: gpu, total_memory_gb: 32}
+
+  # --- Pro / workstation NVIDIA ---
+  - {id: rtx-a6000-48gb, name: "RTX A6000 (48GB)", kind: gpu, total_memory_gb: 48}
+  - {id: rtx-6000-ada-48gb, name: "RTX 6000 Ada (48GB)", kind: gpu, total_memory_gb: 48}
+  - {id: a10-24gb, name: "A10 (24GB)", kind: gpu, total_memory_gb: 24}
+  - {id: a40-48gb, name: "A40 (48GB)", kind: gpu, total_memory_gb: 48}
+  - {id: l4-24gb, name: "L4 (24GB)", kind: gpu, total_memory_gb: 24}
+  - {id: l40s-48gb, name: "L40S (48GB)", kind: gpu, total_memory_gb: 48}
+  - {id: t4-16gb, name: "T4 (16GB)", kind: gpu, total_memory_gb: 16}
+  - {id: v100-32gb, name: "V100 (32GB)", kind: gpu, total_memory_gb: 32}
+
+  # --- Datacenter NVIDIA ---
+  - {id: a100-40gb, name: "A100 (40GB)", kind: gpu, total_memory_gb: 40}
+  - {id: a100-80gb, name: "A100 (80GB)", kind: gpu, total_memory_gb: 80}
+  - {id: h100-80gb, name: "H100 (80GB)", kind: gpu, total_memory_gb: 80}
+  - {id: h100-nvl-94gb, name: "H100 NVL (94GB)", kind: gpu, total_memory_gb: 94}
+  - {id: h200-141gb, name: "H200 (141GB)", kind: gpu, total_memory_gb: 141}
+  - {id: gh200-96gb, name: "GH200 (96GB)", kind: gpu, total_memory_gb: 96}
+  - {id: b200-192gb, name: "B200 (192GB)", kind: gpu, total_memory_gb: 192}
+
+  # --- AMD ---
+  - {id: mi210-64gb, name: "MI210 (64GB)", kind: gpu, total_memory_gb: 64}
+  - {id: mi250-128gb, name: "MI250 (128GB)", kind: gpu, total_memory_gb: 128}
+  - {id: mi300x-192gb, name: "MI300X (192GB)", kind: gpu, total_memory_gb: 192}
+
+  # --- Multi-GPU rigs ---
+  - {id: 2x-rtx-4090-24gb, name: "2x RTX 4090 (24GB)", kind: gpu, total_memory_gb: 24, gpu_count: 2}
+  - {id: 4x-rtx-4090-24gb, name: "4x RTX 4090 (24GB)", kind: gpu, total_memory_gb: 24, gpu_count: 4}
+  - {id: 2x-a100-80gb, name: "2x A100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 2}
+  - {id: 4x-a100-80gb, name: "4x A100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 4}
+  - {id: 8x-h100-80gb, name: "8x H100 (80GB)", kind: gpu, total_memory_gb: 80, gpu_count: 8}
+
+  # --- Apple unified memory ---
+  - {id: mac-16gb, name: "Mac (16GB unified)", kind: apple, total_memory_gb: 16}
+  - {id: mac-24gb, name: "Mac (24GB unified)", kind: apple, total_memory_gb: 24}
+  - {id: mac-32gb, name: "Mac (32GB unified)", kind: apple, total_memory_gb: 32}
+  - {id: mac-48gb, name: "Mac (48GB unified)", kind: apple, total_memory_gb: 48}
+  - {id: mac-64gb, name: "Mac (64GB unified)", kind: apple, total_memory_gb: 64}
+  - {id: mac-96gb, name: "Mac (96GB unified)", kind: apple, total_memory_gb: 96}
+  - {id: mac-128gb, name: "Mac (128GB unified)", kind: apple, total_memory_gb: 128}
+  - {id: mac-192gb, name: "Mac (192GB unified)", kind: apple, total_memory_gb: 192}
+  - {id: mac-256gb, name: "Mac Studio (256GB unified)", kind: apple, total_memory_gb: 256}
+  - {id: mac-512gb, name: "Mac Studio (512GB unified)", kind: apple, total_memory_gb: 512}
+
+  # --- CPU / system RAM ---
+  - {id: laptop-16gb-cpu, name: "Laptop (16GB, no GPU)", kind: cpu, total_memory_gb: 16}
+  - {id: workstation-64gb-cpu, name: "Workstation (64GB RAM, no GPU)", kind: cpu, total_memory_gb: 64}
+  - {id: server-256gb-cpu, name: "Server (256GB RAM, no GPU)", kind: cpu, total_memory_gb: 256}

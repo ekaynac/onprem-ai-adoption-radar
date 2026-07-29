@@ -61,3 +61,37 @@ def test_expanded_presets_resolve_and_count():
 
 def test_common_tiers_all_present():
     assert all(k in DEVICE_PRESETS for k in COMMON_DEVICE_TIERS)
+
+
+def test_yaml_migration_preserves_every_legacy_preset():
+    """The YAML seed must reproduce the pre-migration catalog exactly."""
+    legacy = {
+        "rtx-3060-12gb": ("gpu", 12, 1), "rtx-3080-10gb": ("gpu", 10, 1),
+        "rtx-3090-24gb": ("gpu", 24, 1), "rtx-4060-8gb": ("gpu", 8, 1),
+        "rtx-4060-ti-16gb": ("gpu", 16, 1), "rtx-4070-12gb": ("gpu", 12, 1),
+        "rtx-4070-ti-super-16gb": ("gpu", 16, 1), "rtx-4080-16gb": ("gpu", 16, 1),
+        "rtx-4090-24gb": ("gpu", 24, 1), "rtx-5070-12gb": ("gpu", 12, 1),
+        "rtx-5070-ti-16gb": ("gpu", 16, 1), "rtx-5080-16gb": ("gpu", 16, 1),
+        "rtx-5090-32gb": ("gpu", 32, 1), "rtx-a6000-48gb": ("gpu", 48, 1),
+        "rtx-6000-ada-48gb": ("gpu", 48, 1), "a10-24gb": ("gpu", 24, 1),
+        "a40-48gb": ("gpu", 48, 1), "l4-24gb": ("gpu", 24, 1),
+        "l40s-48gb": ("gpu", 48, 1), "t4-16gb": ("gpu", 16, 1),
+        "v100-32gb": ("gpu", 32, 1), "a100-40gb": ("gpu", 40, 1),
+        "a100-80gb": ("gpu", 80, 1), "h100-80gb": ("gpu", 80, 1),
+        "h100-nvl-94gb": ("gpu", 94, 1), "h200-141gb": ("gpu", 141, 1),
+        "gh200-96gb": ("gpu", 96, 1), "b200-192gb": ("gpu", 192, 1),
+        "mi210-64gb": ("gpu", 64, 1), "mi250-128gb": ("gpu", 128, 1),
+        "mi300x-192gb": ("gpu", 192, 1), "2x-rtx-4090-24gb": ("gpu", 24, 2),
+        "4x-rtx-4090-24gb": ("gpu", 24, 4), "2x-a100-80gb": ("gpu", 80, 2),
+        "4x-a100-80gb": ("gpu", 80, 4), "8x-h100-80gb": ("gpu", 80, 8),
+        "mac-16gb": ("apple", 16, 1), "mac-24gb": ("apple", 24, 1),
+        "mac-32gb": ("apple", 32, 1), "mac-48gb": ("apple", 48, 1),
+        "mac-64gb": ("apple", 64, 1), "mac-96gb": ("apple", 96, 1),
+        "mac-128gb": ("apple", 128, 1), "mac-192gb": ("apple", 192, 1),
+        "mac-256gb": ("apple", 256, 1), "mac-512gb": ("apple", 512, 1),
+        "laptop-16gb-cpu": ("cpu", 16, 1), "workstation-64gb-cpu": ("cpu", 64, 1),
+        "server-256gb-cpu": ("cpu", 256, 1),
+    }
+    for key, (kind, gb, count) in legacy.items():
+        d = DEVICE_PRESETS[key]
+        assert (d.kind, d.total_memory_gb, d.gpu_count) == (kind, gb, count), key
