@@ -55,11 +55,21 @@ def test_unknown_field_rejected(tmp_path: Path):
 
 def test_new_datacenter_devices_present_with_cited_specs():
     seeds = {s.id: s for s in load_device_seed(_REPO_ROOT / "config" / "device-seed.yaml")}
-    for did in ("b300-288gb", "mi325x-256gb", "mi355x-288gb", "gaudi3-128gb",
-                "ascend-910b-64gb", "rtx-pro-6000-blackwell-96gb",
-                "8x-h200-141gb", "8x-b200-192gb", "8x-mi300x-192gb", "4x-h100-80gb"):
+    # b300-288gb -> b300-270gb: the brief's id baked in an invented marketing figure
+    # (288GB); NVIDIA's own Blackwell technical brief gives 270GB for the HGX B300
+    # per-GPU config actually used to source this row, so the id was corrected to match
+    # the verified number (cardinal honest-numbers rule).
+    for did in ("b300-270gb", "mi325x-256gb", "mi355x-288gb", "gaudi3-128gb",
+                "ascend-910b-64gb", "8x-h200-141gb", "8x-b200-192gb",
+                "8x-mi300x-192gb", "4x-h100-80gb"):
         assert did in seeds, did
         assert seeds[did].datacenter is True, did
+    # rtx-pro-6000-blackwell-96gb is NVIDIA's own "Workstation Edition" — same Pro/
+    # workstation tier as rtx-6000-ada-48gb (also not datacenter:true), so it is checked
+    # for presence + citation but NOT asserted datacenter:true.
+    rtx_pro_6000 = seeds["rtx-pro-6000-blackwell-96gb"]
+    assert rtx_pro_6000.datacenter is False
+    assert rtx_pro_6000.spec_url and rtx_pro_6000.verified
     h200 = seeds["h200-141gb"]
     assert h200.memory_bandwidth_gbs and h200.memory_bandwidth_gbs > 1000
     assert h200.spec_url and h200.verified
