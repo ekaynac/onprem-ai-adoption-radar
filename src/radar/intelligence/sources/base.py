@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from pydantic import Field
 
@@ -54,6 +54,7 @@ class DiscoveryCandidate(FrozenModel):
     release_name: str
     category_hint: ModelCategory | None = None
     artifact_urls: list[str] = Field(default_factory=list)
+    claims: dict[str, Any] = Field(default_factory=dict)
 
 
 class SourceAdapter(Protocol):

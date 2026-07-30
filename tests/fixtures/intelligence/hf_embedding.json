@@ -1,0 +1,13 @@
+{
+  "_id": "embed-v2",
+  "id": "acme/Embed-v2",
+  "author": "acme",
+  "pipeline_tag": "feature-extraction",
+  "lastModified": "2026-07-30T07:00:00.000Z",
+  "sha": "def456",
+  "downloads": 1200,
+  "likes": 45,
+  "gated": false,
+  "cardData": {"license": "apache-2.0"},
+  "siblings": [{"rfilename": "config.json"}]
+}

@@ -20,6 +20,7 @@ class SourceAdapterConfig(FrozenModel):
 
 
 class SourceRegistryConfig(FrozenModel):
+    version: str = "1.0"
     sources: list[SourceAdapterConfig] = Field(default_factory=list)
 
 
@@ -31,7 +32,32 @@ AdapterFactory = Callable[
     [SourceAdapterConfig, httpx.AsyncClient],
     SourceAdapter,
 ]
-DEFAULT_ADAPTER_FACTORIES: dict[str, AdapterFactory] = {}
+def _build_huggingface_adapter(
+    config: SourceAdapterConfig,
+    client: httpx.AsyncClient,
+) -> SourceAdapter:
+    from radar.intelligence.sources.huggingface import HuggingFaceAdapter
+
+    publishers = config.options.get("publishers", {})
+    if not isinstance(publishers, dict) or not all(
+        isinstance(key, str) and isinstance(value, str)
+        for key, value in publishers.items()
+    ):
+        raise ValueError("Hugging Face publishers must be a string mapping")
+    return HuggingFaceAdapter(
+        client=client,
+        publishers=publishers,
+        per_category_limit=int(config.options.get("per_category_limit", 100)),
+        source_id=config.id,
+        max_pages_per_category=int(
+            config.options.get("max_pages_per_category", 20)
+        ),
+    )
+
+
+DEFAULT_ADAPTER_FACTORIES: dict[str, AdapterFactory] = {
+    "huggingface": _build_huggingface_adapter,
+}
 
 
 def build_source_adapters(

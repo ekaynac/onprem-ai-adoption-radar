@@ -1,0 +1,13 @@
+{
+  "_id": "speech-v1",
+  "id": "acme/Speech-v1",
+  "author": "acme",
+  "pipeline_tag": "automatic-speech-recognition",
+  "lastModified": "2026-07-30T06:00:00.000Z",
+  "sha": "ghi789",
+  "downloads": 800,
+  "likes": 20,
+  "gated": true,
+  "cardData": {"license": "cc-by-4.0"},
+  "siblings": [{"rfilename": "config.json"}]
+}

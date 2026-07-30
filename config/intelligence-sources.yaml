@@ -1,0 +1,29 @@
+version: "1.0"
+sources:
+  - id: huggingface
+    type: huggingface
+    enabled: true
+    options:
+      per_category_limit: 100
+      max_pages_per_category: 20
+      request_concurrency: 4
+      requests_per_second: 5
+      publishers:
+        01-ai: publisher:legacy:01-ai
+        bigcode: publisher:legacy:bigcode
+        cohereforai: publisher:legacy:cohere
+        deepreinforce-ai: publisher:legacy:deepreinforce-ai
+        deepseek-ai: publisher:legacy:deepseek
+        empero-ai: publisher:legacy:empero-ai
+        google: publisher:legacy:google
+        huggingfacetb: publisher:legacy:hugging-face
+        ibm-granite: publisher:legacy:ibm
+        meta-llama: publisher:legacy:meta
+        microsoft: publisher:legacy:microsoft
+        mistralai: publisher:legacy:mistral-ai
+        moonshotai: publisher:moonshot-ai
+        nvidia: publisher:legacy:nvidia
+        openai: publisher:legacy:openai
+        openbmb: publisher:legacy:openbmb
+        qwen: publisher:legacy:alibaba
+        zai-org: publisher:legacy:zai-org
