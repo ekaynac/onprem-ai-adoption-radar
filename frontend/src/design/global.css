@@ -731,6 +731,184 @@ h1 {
   font-size: 12px;
 }
 
+.catalog-filters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+
+.catalog-filters label {
+  display: grid;
+  gap: 5px;
+}
+
+.catalog-filters label > span {
+  color: var(--ink-600);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.catalog-filters input,
+.catalog-filters select {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+  color: var(--ink-950);
+}
+
+.catalog-search {
+  grid-column: span 2;
+}
+
+.catalog-table-wrap {
+  overflow: auto;
+  max-height: calc(100vh - 330px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+
+.catalog-table,
+.compatibility-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.catalog-table thead,
+.compatibility-table thead {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+}
+
+.catalog-table th,
+.catalog-table td,
+.compatibility-table th,
+.compatibility-table td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  text-transform: capitalize;
+}
+
+.catalog-table th,
+.compatibility-table th {
+  background: #f8fafb;
+  color: var(--ink-600);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.catalog-table td,
+.compatibility-table td {
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+.catalog-table a {
+  display: grid;
+  gap: 3px;
+  color: var(--ink-950);
+  text-decoration: none;
+}
+
+.catalog-table a span {
+  color: var(--ink-400);
+  font-size: 11px;
+  text-transform: none;
+}
+
+.claim-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.claim-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fbfcfc;
+}
+
+.claim-heading {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  text-transform: capitalize;
+}
+
+.claim-value {
+  margin: var(--space-3) 0;
+  font-size: 19px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.claim-reason,
+.claim-meta {
+  color: var(--ink-600);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.claim-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.claim-citations a {
+  color: var(--blue-700);
+  font-size: 12px;
+}
+
+.large-posture {
+  display: block;
+  margin: var(--space-3) 0;
+  color: var(--blue-900);
+  font-size: 30px;
+  text-transform: capitalize;
+}
+
+.entity-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.entity-link-card {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--ink-950);
+  text-decoration: none;
+}
+
+.entity-link-card > span {
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+.record-view {
+  overflow: auto;
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--ink-950);
+  color: #dff5fc;
+  font-size: 12px;
+}
+
 .status-badge {
   width: fit-content;
   display: inline-flex;
@@ -820,6 +998,14 @@ h1 {
   .filter-bar {
     grid-template-columns: repeat(3, minmax(120px, 1fr));
   }
+
+  .catalog-filters {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+
+  .entity-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -867,6 +1053,47 @@ h1 {
 
   .filter-bar {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .catalog-filters,
+  .entity-card-grid,
+  .claim-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-search {
+    grid-column: auto;
+  }
+
+  .catalog-table thead {
+    display: none;
+  }
+
+  .catalog-table,
+  .catalog-table tbody,
+  .catalog-table tr,
+  .catalog-table td {
+    display: block;
+  }
+
+  .catalog-table tr {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .catalog-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2);
+    border: 0;
+  }
+
+  .catalog-table td::before {
+    content: attr(data-label);
+    color: var(--ink-400);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
   }
 
   .priority-item {

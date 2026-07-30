@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from radar.api.dependencies import get_services
 from radar.intelligence.contracts import LifecycleState, ModelCategory
 from radar.intelligence.services import Page
-from radar.intelligence.services.catalog import CatalogItem
+from radar.intelligence.services.catalog import CatalogDetail, CatalogItem
 from radar.intelligence.services.container import IntelligenceServices
 
 
@@ -31,4 +31,16 @@ def search_catalog(
         workspace_id=workspace_id,
         cursor=cursor,
         limit=limit,
+    )
+
+
+@router.get("/catalog/{release_id:path}", response_model=CatalogDetail)
+def catalog_detail(
+    release_id: str,
+    workspace_id: str | None = None,
+    services: IntelligenceServices = Depends(get_services),
+) -> CatalogDetail:
+    return services.catalog.detail(
+        release_id,
+        workspace_id=workspace_id,
     )

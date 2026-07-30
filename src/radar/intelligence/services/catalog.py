@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 from pydantic import Field
 
 from radar.intelligence.contracts import (
+    Claim,
+    CompatibilityAssertion,
+    EvidenceObservation,
+    EvidenceStrength,
     FrozenModel,
     LifecycleState,
     ModelCategory,
+    Qualification,
     Release,
 )
 from radar.intelligence.recommendations import (
@@ -39,8 +44,47 @@ class CatalogItem(FrozenModel):
     matched_terms: list[str] = Field(default_factory=list)
 
 
+class ClaimCitation(FrozenModel):
+    evidence_id: str
+    url: str
+    label: str
+    strength: EvidenceStrength
+
+
+class ClaimDetail(FrozenModel):
+    predicate: str
+    state: str
+    value: Any | None = None
+    unit: str | None = None
+    reason: str | None = None
+    observed_at: str | None = None
+    effective_range: str | None = None
+    citations: list[ClaimCitation] = Field(default_factory=list)
+
+
+class CatalogDetail(FrozenModel):
+    release: CatalogItem
+    claims: list[ClaimDetail]
+    compatibility: list[CompatibilityAssertion]
+    qualification: Qualification | None = None
+
+
 class CatalogRepository(Protocol):
     def list_all_releases(self) -> list[Release]: ...
+
+    def list_claims_for_subject(self, subject_id: str) -> list[Claim]: ...
+
+    def get_evidence(
+        self,
+        evidence_id: str,
+    ) -> EvidenceObservation | None: ...
+
+    def list_compatibility(
+        self,
+        release_id: str,
+    ) -> list[CompatibilityAssertion]: ...
+
+    def get_qualification(self, release_id: str) -> Qualification | None: ...
 
 
 class CatalogService:
@@ -115,6 +159,89 @@ class CatalogService:
             next_cursor=next_cursor,
         )
 
+    def get(
+        self,
+        release_id: str,
+        *,
+        workspace_id: str | None = None,
+    ) -> CatalogItem:
+        release = next(
+            (
+                item
+                for item in self.repository.list_all_releases()
+                if item.id == release_id
+            ),
+            None,
+        )
+        if release is None:
+            raise KeyError(f"Unknown release: {release_id}")
+        return self._project(release, [], workspace_id)
+
+    def detail(
+        self,
+        release_id: str,
+        *,
+        workspace_id: str | None = None,
+    ) -> CatalogDetail:
+        release = self.get(release_id, workspace_id=workspace_id)
+        claims = self.repository.list_claims_for_subject(release_id)
+        details = [self._claim_detail(claim) for claim in claims]
+        present = {claim.predicate for claim in claims}
+        for predicate in _expected_claims(release.category):
+            if predicate not in present:
+                details.append(
+                    ClaimDetail(
+                        predicate=predicate,
+                        state="unknown",
+                        reason="No official value found",
+                    )
+                )
+        details.sort(key=lambda item: item.predicate)
+        return CatalogDetail(
+            release=release,
+            claims=details,
+            compatibility=self.repository.list_compatibility(release_id),
+            qualification=self.repository.get_qualification(release_id),
+        )
+
+    def _claim_detail(self, claim: Claim) -> ClaimDetail:
+        citations: list[ClaimCitation] = []
+        for evidence_id in claim.evidence_ids:
+            evidence = self.repository.get_evidence(evidence_id)
+            if evidence is None:
+                continue
+            citations.append(
+                ClaimCitation(
+                    evidence_id=evidence.id,
+                    url=evidence.source_url,
+                    label=(
+                        "Official source"
+                        if evidence.strength.value.startswith("official_")
+                        else "Evidence source"
+                    ),
+                    strength=evidence.strength,
+                )
+            )
+        return ClaimDetail(
+            predicate=claim.predicate,
+            state=claim.state.value,
+            value=claim.value,
+            unit=claim.unit,
+            observed_at=claim.observed_at.isoformat(),
+            effective_range=(
+                " – ".join(
+                    value
+                    for value in (
+                        claim.valid_from.isoformat() if claim.valid_from else None,
+                        claim.valid_to.isoformat() if claim.valid_to else None,
+                    )
+                    if value
+                )
+                or None
+            ),
+            citations=citations,
+        )
+
     def _project(
         self,
         release: Release,
@@ -143,3 +270,16 @@ class CatalogService:
 
 def _cursor_for(release: Release) -> str:
     return release.id
+
+
+def _expected_claims(category: ModelCategory) -> tuple[str, ...]:
+    common = ("architecture", "context_length", "license", "params_total")
+    category_specific = {
+        ModelCategory.TEXT_REASONING: ("tool_calling",),
+        ModelCategory.MULTIMODAL: ("modalities",),
+        ModelCategory.EMBEDDING_RERANKING: ("embedding_dimensions",),
+        ModelCategory.SPEECH_AUDIO: ("languages",),
+        ModelCategory.IMAGE_VIDEO: ("max_resolution",),
+        ModelCategory.VISION_DOCUMENT: ("document_formats",),
+    }
+    return (*common, *category_specific[category])

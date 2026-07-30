@@ -1,5 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { CatalogPage } from "../features/catalog/CatalogPage";
+import { HardwarePage } from "../features/catalog/HardwarePage";
+import { ModelDetailPage } from "../features/catalog/ModelDetailPage";
+import { PlatformDetailPage } from "../features/catalog/PlatformDetailPage";
+import { PlatformsPage } from "../features/catalog/PlatformsPage";
+import { ResearchPage } from "../features/catalog/ResearchPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { ReleaseDetailPage } from "../features/releases/ReleaseDetailPage";
 import { ReleaseStreamPage } from "../features/releases/ReleaseStreamPage";
@@ -24,9 +30,12 @@ export function App() {
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/releases" element={<ReleaseStreamPage />} />
         <Route path="/releases/:releaseId" element={<ReleaseDetailPage />} />
-        <Route path="/catalog" element={<ComingSoon />} />
-        <Route path="/platforms" element={<ComingSoon />} />
-        <Route path="/research" element={<ComingSoon />} />
+        <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/catalog/:releaseId" element={<ModelDetailPage />} />
+        <Route path="/platforms" element={<PlatformsPage />} />
+        <Route path="/platforms/:platformId" element={<PlatformDetailPage />} />
+        <Route path="/hardware" element={<HardwarePage />} />
+        <Route path="/research" element={<ResearchPage />} />
         <Route path="/compare" element={<ComingSoon />} />
         <Route path="/planner" element={<ComingSoon />} />
         <Route path="/workspaces" element={<ComingSoon />} />
