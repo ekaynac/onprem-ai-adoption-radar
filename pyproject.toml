@@ -68,6 +68,7 @@ dev = [
 
 [project.scripts]
 radar = "radar.cli:main"
+radar-export-openapi = "radar.api.export_openapi:main"
 
 [build-system]
 requires = ["hatchling"]
