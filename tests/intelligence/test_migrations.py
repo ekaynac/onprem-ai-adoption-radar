@@ -1,0 +1,22 @@
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect
+
+
+def test_initial_migration_creates_intelligence_ledger(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    database_url = f"sqlite:///{tmp_path / 'migrated.db'}"
+    config = Config(str(root / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", database_url)
+
+    command.upgrade(config, "head")
+
+    tables = set(inspect(create_engine(database_url)).get_table_names())
+    assert {
+        "alembic_version",
+        "intelligence_evidence",
+        "intelligence_claims",
+        "intelligence_claim_evidence",
+    } <= tables
