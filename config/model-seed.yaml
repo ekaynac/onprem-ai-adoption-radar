@@ -236,6 +236,9 @@ models:
     ollama_name: deepseek-r1
     backer: {name: "DeepSeek", type: startup}
     params_total: 671000000000
+    # verified 2026-07-28 (config.json, same source as architecture)
+    num_layers: 61
+    hidden_size: 7168
     # "37B activated" — README table row "DeepSeek-R1 | 671B | 37B | 128K":
     # https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/main/README.md (verified 2026-07-28)
     params_active: 37000000000
@@ -264,6 +267,9 @@ models:
     ollama_name: deepseek-v3
     backer: {name: "DeepSeek", type: startup}
     params_total: 671000000000
+    # verified 2026-07-28 (config.json, same source as architecture)
+    num_layers: 61
+    hidden_size: 7168
     # "671B total parameters with 37B activated for each token":
     # https://huggingface.co/deepseek-ai/DeepSeek-V3/raw/main/README.md (verified 2026-07-28)
     params_active: 37000000000

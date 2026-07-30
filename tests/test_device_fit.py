@@ -7,9 +7,12 @@ from radar.models_radar.entities import ModelEntry, Platform, QuantVariant
 
 def _model(mid: str, params: int, quants: list[tuple[str, float]]) -> ModelEntry:
     # quants: list of (format, bits); est_memory computed weights-only here for clarity
+    # v2: FRAGMENTATION(1.05) * weights + RUNTIME_BASELINE_GB(1.5) fixed footprint,
+    # replacing the flat *1.2 proportional overhead (mirrors memory.py's real formula
+    # for the no-architecture, weights-only case these fixtures exercise).
     qs = [
         QuantVariant(format=f, bits_per_weight=b, platform=Platform.GENERIC, source="x",
-                     est_memory_gb_4k=round(params * b / 8 / 1e9 * 1.2, 1))
+                     est_memory_gb_4k=round(params * b / 8 / 1e9 * 1.05 + 1.5, 2))
         for f, b in quants
     ]
     return ModelEntry(id=mid, name=mid, family="F", params_total=params, quants=qs)
@@ -20,7 +23,8 @@ def test_8b_q4_fits_24gb_gpu():
     dev = DeviceProfile(name="4090", kind="gpu", total_memory_gb=24)  # usable 20.4
     fit = evaluate_fit(m, dev)
     assert fit.verdict == "fits"
-    assert fit.best_quant_format == "Q8_0"  # largest that fits (8B Q8 ~9.6GB ≤ 20.4)
+    # v2: largest that fits (8B Q8 = 8.0*1.05 + 1.5 = 9.9 GB ≤ 20.4)
+    assert fit.best_quant_format == "Q8_0"
 
 
 def test_70b_wont_fit_16gb_gpu():
@@ -31,7 +35,8 @@ def test_70b_wont_fit_16gb_gpu():
 
 
 def test_only_smaller_quant_fits():
-    # 24B: Q8 ~28.8GB (won't fit 24GB→20.4), Q4 ~16.2GB (fits)
+    # v2: 24B: Q8 = 8.0*3*1.05 + 1.5 = 26.7GB (won't fit 24GB→20.4)
+    #          Q4 = 4.5*3*1.05 + 1.5 = 15.68GB (fits)
     m = _model("mistral-24b", 24_000_000_000, [("Q4_K_M", 4.5), ("Q8_0", 8.0)])
     dev = DeviceProfile(name="4090", kind="gpu", total_memory_gb=24)
     fit = evaluate_fit(m, dev)
@@ -39,14 +44,16 @@ def test_only_smaller_quant_fits():
 
 
 def test_apple_fraction_is_lower():
-    m = _model("q", 32_000_000_000, [("Q8_0", 8.0)])  # ~38.4GB
-    # 48GB Mac → usable 34.56 (won't fit Q8); 48GB GPU → usable 40.8 (fits Q8)
+    # v2: Q8 = 32*1.05 + 1.5 = 35.1GB
+    m = _model("q", 32_000_000_000, [("Q8_0", 8.0)])
+    # 48GB Mac → usable 34.56 (won't fit Q8 35.1); 48GB GPU → usable 40.8 (fits Q8 35.1)
     assert evaluate_fit(m, DeviceProfile(name="mac", kind="apple", total_memory_gb=48)).verdict == "wont_fit"
     assert evaluate_fit(m, DeviceProfile(name="gpu", kind="gpu", total_memory_gb=48)).verdict == "fits"
 
 
 def test_multi_gpu_sums():
-    m = _model("big", 120_000_000_000, [("Q4_K_M", 4.5)])  # ~81GB
+    # v2: Q4 = 120*4.5/8*1.05 + 1.5 = 67.5*1.05 + 1.5 = 72.38GB
+    m = _model("big", 120_000_000_000, [("Q4_K_M", 4.5)])
     dev = DeviceProfile(name="2xa100", kind="gpu", total_memory_gb=80, gpu_count=2)  # usable 136
     assert evaluate_fit(m, dev).verdict == "fits"
 

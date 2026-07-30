@@ -28,8 +28,10 @@ _BITS_BY_FORMAT = {
     "q8": 8.0, "fp16": 16.0, "f16": 16.0, "bf16": 16.0,
     "awq": 4.0, "gptq": 4.0, "mlx-4bit": 4.5, "mlx-8bit": 8.0,
     # Datacenter formats: fp8 is weight bits; nvfp4/mxfp4 are 4-bit + block
-    # scales (~0.25 bit overhead). Matched before "q4" etc. via key order.
-    "fp8": 8.0, "nvfp4": 4.25, "mxfp4": 4.25,
+    # scales. Matched before "q4" etc. via key order. NVFP4 uses E4M3 scales
+    # per 16 elements (+0.5 bit -> 4.5); MXFP4 uses coarser E8M0 scales per 32
+    # elements (+0.25 bit -> 4.25).
+    "fp8": 8.0, "nvfp4": 4.5, "mxfp4": 4.25,
 }
 _REF_4K = 4096
 _REF_32K = 32768
@@ -178,7 +180,9 @@ def build_model_entry(
                 platform=platform,
                 source=source,
                 file_size_gb=size_gb,
-                est_memory_gb_4k=estimate_memory_gb(params_total, bits, _REF_4K, num_layers, hidden),
+                est_memory_gb_4k=estimate_memory_gb(
+                    params_total, bits, _REF_4K, num_layers, hidden, architecture=architecture
+                ),
                 # Full estimate at 32k context including KV cache when architecture
                 # (layers + hidden_size) is known.
                 est_memory_gb_32k=estimate_memory_gb(
@@ -187,6 +191,7 @@ def build_model_entry(
                     min(_REF_32K, ctx) if context else _REF_32K,
                     num_layers,
                     hidden,
+                    architecture=architecture,
                 ),
             )
         )

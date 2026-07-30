@@ -1,16 +1,22 @@
 """Deterministic memory estimation and hardware-tier classification.
 
-Pure functions: identical inputs → identical output. The KV-cache term is a
-non-GQA upper bound, so estimates lean high rather than low. These numbers are
-the substrate the future hardware-device-matching phase compares to a machine.
+Pure functions: identical inputs → identical output. The KV-cache term now
+comes from ``capacity.kv.kv_bytes_per_token``, which dispatches on the model's
+actual attention geometry (MLA/GQA/legacy-MHA-bound) instead of assuming a
+single non-GQA upper bound. These numbers are the substrate the hardware-
+device-matching phase compares to a machine.
 """
 
 from __future__ import annotations
 
-from radar.models_radar.entities import HardwareTier, QuantVariant
+from radar.capacity.kv import kv_bytes_per_token, kv_gb
+from radar.models_radar.entities import ArchitectureSpec, HardwareTier, QuantVariant
 
 
-OVERHEAD = 1.2
+# spec §6.1: engine overhead is a fixed few GB per rank, not a 20% proportional
+# tax. Replaces the flat OVERHEAD = 1.2 multiplier.
+FRAGMENTATION = 1.05        # weight-tensor packing/alignment slack
+RUNTIME_BASELINE_GB = 1.5   # fixed engine/CUDA-context footprint per rank
 VIABLE_MIN_BITS = 4.0
 # (max_gb_inclusive, tier) ordered ascending; first match wins.
 TIER_THRESHOLDS: list[tuple[float, HardwareTier]] = [
@@ -31,20 +37,25 @@ def estimate_memory_gb(
     context: int,
     num_layers: int | None,
     hidden_size: int | None,
+    architecture: ArchitectureSpec | None = None,
 ) -> float | None:
     """Estimated RAM/VRAM (GB) to run the model at ``context`` tokens.
 
-    Weights term always applies. KV-cache term is added only when architecture
-    (layers + hidden size) is known; otherwise the estimate is weights-only.
+    Weights term always applies (× FRAGMENTATION, for tensor packing/alignment
+    slack). KV-cache term comes from the architecture-correct dispatch in
+    ``capacity.kv.kv_bytes_per_token`` (MLA latent cache → GQA per-head cache →
+    legacy MHA upper bound from hidden_size → unmodeled/0.0 when nothing is
+    known). RUNTIME_BASELINE_GB is a fixed per-rank engine footprint, added
+    regardless of scale.
     """
     if params_total is None:
         return None
     weights_gb = params_total * bits_per_weight / 8 / 1e9
-    kv_cache_gb = 0.0
-    if num_layers and hidden_size:
-        # 2 (K and V) * 2 bytes (fp16) * layers * context * hidden.
-        kv_cache_gb = 2 * 2 * num_layers * context * hidden_size / 1e9
-    return round((weights_gb + kv_cache_gb) * OVERHEAD, 1)
+    bytes_per_token, _ = kv_bytes_per_token(
+        architecture, num_layers=num_layers, hidden_size=hidden_size, kv_dtype="fp16"
+    )
+    kv_cache_gb = kv_gb(bytes_per_token, context) if bytes_per_token is not None else 0.0
+    return round(weights_gb * FRAGMENTATION + kv_cache_gb + RUNTIME_BASELINE_GB, 2)
 
 
 def minimum_viable_quant(quants: list[QuantVariant]) -> QuantVariant | None:

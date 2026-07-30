@@ -71,3 +71,14 @@ def test_datacenter_moe_seeds_carry_active_params_or_documented_absence():
         assert seed.architecture is not None, f"{seed_id} lacks architecture"
         assert seed.architecture.attention_kind.value == "hybrid"
         assert seed.spec_verified is True
+
+
+def test_deepseek_r1_v3_carry_layer_and_hidden_pins():
+    # capacity-engine Task 2: MLA KV math needs num_layers + hidden_size (for
+    # kv_lora_rank + qk_rope_head_dim * num_layers), pinned from the same
+    # config.json citation as each entry's architecture block.
+    seeds = {s.id: s for s in load_model_seed(_REPO_ROOT / "config" / "model-seed.yaml")}
+    for seed_id in ("deepseek-r1", "deepseek-v3"):
+        seed = seeds[seed_id]
+        assert seed.num_layers == 61, f"{seed_id} num_layers"
+        assert seed.hidden_size == 7168, f"{seed_id} hidden_size"
