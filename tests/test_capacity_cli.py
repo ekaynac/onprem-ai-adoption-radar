@@ -230,9 +230,13 @@ def test_capacity_max_zero_or_negative_gpus_is_a_clean_usage_error(tmp_path):
     for result in (zero_result, negative_result):
         # click's own parameter-validation error (IntRange) writes to
         # stderr, not stdout — check the combined `.output` stream.
+        # Assert on "Usage:" rather than the flag name: rich truncates the
+        # error panel under narrow CI terminals, cutting "--gpus" to "...",
+        # and "Usage:" also distinguishes a usage error from the solver's
+        # InfeasibleError path (which shares exit code 2 but never prints it).
         assert result.exit_code == 2, result.output
         assert "Traceback" not in result.output
-        assert "--gpus" in result.output
+        assert "Usage:" in result.output
 
 
 def test_capacity_max_gpus_12_reports_idle_gpus_no_phantom_bandwidth(tmp_path):
