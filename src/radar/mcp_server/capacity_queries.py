@@ -22,6 +22,7 @@ from radar.capacity.memory import InfeasibleError
 from radar.capacity.recipe import launch_recipe
 from radar.capacity.solver import max_workload as _solve_max_workload
 from radar.capacity.solver import plan_capacity as _solve_plan_capacity
+from radar.capacity.tco import estimate_tco
 from radar.capacity.types import Workload
 from radar.mcp_server.model_queries import _latest_model_cards
 from radar.models_radar.devices import DeviceError
@@ -70,7 +71,11 @@ def _plan_one(
 
     On success the dict also carries ``"recipe"``: a copy-pasteable launch
     command for ``engine`` (task 8, spec §6.4) — omitted when ``engine`` is
-    ``llama-cpp``, which has no launch recipe (single-node tool).
+    ``llama-cpp``, which has no launch recipe (single-node tool). It also
+    carries ``"tco"``: the kW-first TCO estimate (task 9, spec §6.5) dumped
+    via ``TCOEstimate.model_dump(mode="json")``, or ``None`` when the
+    device's board TDP isn't published or the plan has no throughput
+    estimate — both real states, not errors, so the key is always present.
     """
     workload = Workload(
         concurrent_requests=concurrent_requests,
@@ -96,6 +101,8 @@ def _plan_one(
         # multi-GPU launch config) — omit the key rather than raising or
         # forcing every consumer to special-case a placeholder value.
         result["recipe"] = launch_recipe(plan, entry, engine=engine, kv_dtype=kv_dtype)
+    tco = estimate_tco(plan)
+    result["tco"] = tco.model_dump(mode="json") if tco is not None else None
     return result
 
 
@@ -123,10 +130,13 @@ class CapacityQueryService:
         """Smallest GPU count (+ layout) that serves the workload, or why not.
 
         ``None`` for an unknown ``model_id``. Otherwise always a dict:
-        ``{"feasible": True, "recipe": <launch command>, **CapacityPlan.model_dump(mode="json")}``
-        on success (``"recipe"`` omitted for ``engine="llama-cpp"``, which has
-        none), or ``{"feasible": False, "model_id", "device", "reasons"}``
-        when infeasible or the inputs (device/quant/kv_dtype/engine) are bad.
+        ``{"feasible": True, "recipe": <launch command>, "tco": <TCOEstimate
+        dict or None>, **CapacityPlan.model_dump(mode="json")}`` on success
+        (``"recipe"`` omitted for ``engine="llama-cpp"``, which has none;
+        ``"tco"`` is ``None`` when the device's board TDP is unpublished or
+        the plan has no throughput estimate), or ``{"feasible": False,
+        "model_id", "device", "reasons"}`` when infeasible or the inputs
+        (device/quant/kv_dtype/engine) are bad.
         """
         entry = _find_entry(self._entries(), model_id)
         if entry is None:

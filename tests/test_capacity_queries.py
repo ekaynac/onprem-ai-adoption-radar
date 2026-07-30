@@ -11,6 +11,8 @@ structured `{"feasible": False, "reasons": [...]}` dict; only an unknown
 
 from __future__ import annotations
 
+import pytest
+
 from radar.mcp_server.capacity_queries import CapacityQueryService
 
 
@@ -33,6 +35,12 @@ def test_plan_capacity_happy_path_feasible(tmp_path):
     assert "--tensor-parallel-size 8" in result["recipe"]
     assert "--pipeline-parallel-size 2" in result["recipe"]
     assert "huggingface.co/deepseek-ai/DeepSeek-V4-Pro" in result["recipe"]
+    # kW-first TCO (task 9): 16 x H200 (700W) = 11.2 kW; electricity-only
+    # $/Mtok since hgx-h200-8 publishes no indicative_price_usd
+    assert result["tco"] is not None
+    assert result["tco"]["fleet_power_kw"] == pytest.approx(11.2)
+    assert result["tco"]["usd_per_million_tokens"] is not None
+    assert any("no public list price" in line for line in result["tco"]["assumptions"]["lines"])
 
 
 def test_plan_capacity_llama_cpp_engine_has_no_recipe_key(tmp_path):
@@ -47,6 +55,22 @@ def test_plan_capacity_llama_cpp_engine_has_no_recipe_key(tmp_path):
     assert result is not None
     assert result["feasible"] is True
     assert "recipe" not in result
+    assert "tco" in result  # present regardless of engine, unlike "recipe"
+
+
+def test_plan_capacity_device_without_published_tdp_has_none_tco(tmp_path):
+    # ascend-910b-64gb publishes no tdp_watts — the "tco" key stays present
+    # (never omitted) but its value is None rather than raising or guessing.
+    service = CapacityQueryService(tmp_path)
+
+    result = service.plan_capacity(
+        "smollm2-1.7b", "ascend-910b-64gb",
+        concurrent_requests=10, avg_context_tokens=4096,
+    )
+
+    assert result is not None
+    assert result["feasible"] is True
+    assert result["tco"] is None
 
 
 def test_max_workload_infeasible_single_h200_returns_reasons_dict(tmp_path):

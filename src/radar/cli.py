@@ -12,6 +12,7 @@ import uvicorn
 from rich.console import Console
 
 from radar import __version__
+from radar.capacity.tco import DEFAULT_AMORTIZATION_MONTHS, DEFAULT_ELECTRICITY_USD_PER_KWH
 from radar.constants import APP_NAME
 from radar.init_project import initialize_project
 
@@ -2356,6 +2357,39 @@ def _capacity_print_recipe(plan, entry, *, engine: str, kv_dtype: str) -> None:
     console.print(recipe, markup=False)
 
 
+def _capacity_print_tco(plan, *, electricity_usd_per_kwh: float, amortization_months: int) -> None:
+    """Render the kW-first TCO block, or a dim skip note when it can't be computed.
+
+    ``estimate_tco`` returns ``None`` only when the device's board TDP is
+    unpublished or the plan has no throughput estimate — both real, expected
+    states (a custom device, a memory-only plan), not errors. Its own
+    assumption lines (electricity rate, amortization basis, the TDP/capex
+    caveats) print directly under this block rather than folding into the
+    plan's main ``Assumptions:`` section above the recipe — they're specific
+    to the TCO knobs, not the deployment shape.
+    """
+    from radar.capacity.tco import estimate_tco
+    from radar.models_radar.devices import resolve_device
+
+    tco = estimate_tco(
+        plan, electricity_usd_per_kwh=electricity_usd_per_kwh, amortization_months=amortization_months,
+    )
+    if tco is None:
+        console.print("[dim](no TCO estimate — device board TDP is not published)[/dim]")
+        return
+
+    capex_excluded = resolve_device(plan.device_id).indicative_price_usd is None
+    console.print("[bold]TCO (indicative):[/bold]")
+    console.print(f"  fleet power: {tco.fleet_power_kw:.2f} kW")
+    if tco.tokens_per_sec_per_kw is not None:
+        console.print(f"  {tco.tokens_per_sec_per_kw:.1f} tok/s/kW")
+    if tco.usd_per_million_tokens is not None:
+        suffix = " (electricity only — no public list price)" if capex_excluded else ""
+        console.print(f"  ${tco.usd_per_million_tokens:.4f}/Mtok{suffix}")
+    for line in tco.assumptions.lines:
+        console.print(f"  - {line}")
+
+
 @capacity_app.command("plan")
 def capacity_plan(
     model: str = typer.Option(..., "--model", help="Model id to plan capacity for."),
@@ -2368,6 +2402,14 @@ def capacity_plan(
     quant: str | None = typer.Option(None, "--quant", help="Quant format override (e.g. FP8)."),
     kv_dtype: str = typer.Option("fp16", "--kv-dtype", help="KV cache dtype."),
     engine: str = typer.Option("vllm", "--engine", help="Serving engine (vllm, sglang, ...)."),
+    electricity_usd_kwh: float = typer.Option(
+        DEFAULT_ELECTRICITY_USD_PER_KWH, "--electricity-usd-kwh",
+        help="Electricity rate ($/kWh) for the TCO block.",
+    ),
+    amortization_months: int = typer.Option(
+        DEFAULT_AMORTIZATION_MONTHS, "--amortization-months",
+        help="Hardware amortization horizon (months) for the TCO block.",
+    ),
     root: Path = typer.Option(Path("."), help="Project root."),
 ) -> None:
     """Smallest GPU count (+ layout) that serves a workload, with its assumption sheet."""
@@ -2426,6 +2468,9 @@ def capacity_plan(
         _capacity_print_throughput(plan.throughput, plan.meets_target)
     _capacity_print_assumptions(plan.assumptions.lines)
     _capacity_print_recipe(plan, entry, engine=engine, kv_dtype=kv_dtype)
+    _capacity_print_tco(
+        plan, electricity_usd_per_kwh=electricity_usd_kwh, amortization_months=amortization_months,
+    )
 
 
 @capacity_app.command("max")

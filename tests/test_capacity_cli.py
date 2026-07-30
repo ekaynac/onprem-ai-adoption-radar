@@ -41,6 +41,47 @@ def test_capacity_plan_happy_path_uses_seed_fallback(tmp_path):
     assert "--max-num-seqs 50" in result.stdout
     assert "--max-model-len 32768" in result.stdout
     assert "huggingface.co/deepseek-ai/DeepSeek-V4-Pro" in result.stdout
+    # kW-first TCO block (task 9): 16 x H200 (700W) = 11.2 kW, electricity-only
+    # $/Mtok since no datacenter device publishes indicative_price_usd today
+    assert "TCO" in result.stdout
+    assert "kW" in result.stdout
+    assert "11.2" in result.stdout
+    assert "/Mtok" in result.stdout
+    assert "electricity only — no public list price" in result.stdout
+
+
+def test_capacity_plan_tco_options_override_electricity_rate_and_amortization(tmp_path):
+    runner = CliRunner()
+
+    default_result = runner.invoke(app, [
+        "capacity", "plan",
+        "--model", "hf-deepseek-v4-pro",
+        "--device", "hgx-h200-8",
+        "--users", "50",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--kv-dtype", "fp8",
+        "--root", str(tmp_path),
+    ])
+    doubled_rate_result = runner.invoke(app, [
+        "capacity", "plan",
+        "--model", "hf-deepseek-v4-pro",
+        "--device", "hgx-h200-8",
+        "--users", "50",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--kv-dtype", "fp8",
+        "--electricity-usd-kwh", "0.24",
+        "--amortization-months", "12",
+        "--root", str(tmp_path),
+    ])
+
+    assert default_result.exit_code == 0, default_result.stdout
+    assert doubled_rate_result.exit_code == 0, doubled_rate_result.stdout
+    assert "$0.0245/Mtok" in default_result.stdout
+    assert "$0.0490/Mtok" in doubled_rate_result.stdout  # rate doubled -> $/Mtok doubled
+    assert "electricity rate $0.24/kWh" in doubled_rate_result.stdout
+    assert "hardware amortized over 12 months" in doubled_rate_result.stdout
 
 
 def test_capacity_plan_sglang_engine_renders_sglang_recipe(tmp_path):
