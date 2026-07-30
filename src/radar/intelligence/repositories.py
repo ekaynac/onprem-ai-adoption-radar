@@ -29,6 +29,7 @@ from radar.intelligence.contracts import (
     SupportStatus,
 )
 from radar.intelligence.database import Database
+from radar.intelligence.events import IntelligenceEvent, WebhookAttempt
 from radar.intelligence.jobs import JobKind, JobLease, JobStatus
 from radar.intelligence.schema import (
     ClaimEvidenceRow,
@@ -36,6 +37,7 @@ from radar.intelligence.schema import (
     CompatibilityRow,
     EvidenceRow,
     FamilyRow,
+    IntelligenceEventRow,
     JobRow,
     LegacyEventRow,
     LifecycleTransitionRow,
@@ -45,6 +47,7 @@ from radar.intelligence.schema import (
     ReleaseRow,
     ReviewExceptionRow,
     SourceHealthRow,
+    WebhookAttemptRow,
     WorkspaceRow,
 )
 from radar.intelligence.source_health import SourceHealthState
@@ -173,6 +176,38 @@ def _compatibility_from_row(row: CompatibilityRow) -> CompatibilityAssertion:
     )
 
 
+def _event_from_row(row: IntelligenceEventRow) -> IntelligenceEvent:
+    occurred_at = _as_utc(row.occurred_at)
+    assert occurred_at is not None
+    return IntelligenceEvent(
+        schema_version=row.schema_version,
+        id=row.id,
+        type=row.type,
+        occurred_at=occurred_at,
+        subject_id=row.subject_id,
+        workspace_id=row.workspace_id,
+        data=row.data,
+        evidence_ids=row.evidence_ids,
+    )
+
+
+def _webhook_attempt_from_row(row: WebhookAttemptRow) -> WebhookAttempt:
+    attempted_at = _as_utc(row.attempted_at)
+    assert attempted_at is not None
+    return WebhookAttempt(
+        id=row.id,
+        event_id=row.event_id,
+        destination=row.destination,
+        attempt=row.attempt,
+        signature=row.signature,
+        http_status=row.http_status,
+        response_excerpt=row.response_excerpt,
+        next_retry_at=_as_utc(row.next_retry_at),
+        terminal=row.terminal,
+        attempted_at=attempted_at,
+    )
+
+
 class SqlAlchemyIntelligenceRepository:
     def __init__(self, database: Database):
         self.database = database
@@ -204,6 +239,75 @@ class SqlAlchemyIntelligenceRepository:
     def count_evidence(self) -> int:
         with self.database.session() as session:
             return session.scalar(select(func.count()).select_from(EvidenceRow)) or 0
+
+    def append_event(self, event: IntelligenceEvent) -> bool:
+        with self.database.session() as session:
+            existing = session.get(IntelligenceEventRow, event.id)
+            if existing is not None:
+                if _event_from_row(existing) != event:
+                    raise RepositoryConflict(f"Event id changed: {event.id}")
+                return False
+            session.add(
+                IntelligenceEventRow(
+                    **event.model_dump(mode="python"),
+                )
+            )
+            return True
+
+    def get_event(self, event_id: str) -> IntelligenceEvent | None:
+        with self.database.session() as session:
+            row = session.get(IntelligenceEventRow, event_id)
+            return _event_from_row(row) if row is not None else None
+
+    def list_events(
+        self,
+        *,
+        limit: int = 100,
+        public_only: bool = False,
+    ) -> list[IntelligenceEvent]:
+        with self.database.session() as session:
+            statement = select(IntelligenceEventRow)
+            if public_only:
+                statement = statement.where(
+                    IntelligenceEventRow.workspace_id.is_(None)
+                )
+            rows = list(
+                session.scalars(
+                    statement.order_by(
+                        IntelligenceEventRow.occurred_at.desc(),
+                        IntelligenceEventRow.id,
+                    ).limit(limit)
+                )
+            )
+            return [_event_from_row(row) for row in rows]
+
+    def record_webhook_attempt(self, attempt: WebhookAttempt) -> bool:
+        with self.database.session() as session:
+            existing = session.get(WebhookAttemptRow, attempt.id)
+            if existing is not None:
+                if _webhook_attempt_from_row(existing) != attempt:
+                    raise RepositoryConflict(
+                        f"Webhook attempt id changed: {attempt.id}"
+                    )
+                return False
+            session.add(
+                WebhookAttemptRow(**attempt.model_dump(mode="python"))
+            )
+            return True
+
+    def list_webhook_attempts(self, event_id: str) -> list[WebhookAttempt]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(
+                    select(WebhookAttemptRow)
+                    .where(WebhookAttemptRow.event_id == event_id)
+                    .order_by(
+                        WebhookAttemptRow.attempt,
+                        WebhookAttemptRow.destination,
+                    )
+                )
+            )
+            return [_webhook_attempt_from_row(row) for row in rows]
 
     def append_claim(self, claim: Claim) -> None:
         with self.database.session() as session:
@@ -869,6 +973,22 @@ class SqlAlchemyIntelligenceRepository:
     def count_platforms(self) -> int:
         with self.database.session() as session:
             return session.scalar(select(func.count()).select_from(PlatformRow)) or 0
+
+    def list_platforms(self) -> list[dict[str, Any]]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(select(PlatformRow).order_by(PlatformRow.id))
+            )
+            return [
+                {
+                    "id": row.id,
+                    "name": row.name,
+                    "repo_url": row.repo_url,
+                    "verified_at": row.verified_at,
+                    **row.payload,
+                }
+                for row in rows
+            ]
 
     def append_legacy_event(
         self,

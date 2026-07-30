@@ -31,4 +31,6 @@ def test_initial_migration_creates_intelligence_ledger(tmp_path: Path) -> None:
         "intelligence_compatibility",
         "intelligence_qualifications",
         "intelligence_workspaces",
+        "intelligence_events",
+        "intelligence_webhook_attempts",
     } <= tables
