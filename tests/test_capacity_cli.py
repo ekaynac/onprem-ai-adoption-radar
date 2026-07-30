@@ -87,3 +87,49 @@ def test_capacity_max_happy_path_prints_max_concurrency(tmp_path):
     assert result.exit_code == 0, result.stdout
     assert "max concurrent" in result.stdout.lower()
     assert "Assumptions:" in result.stdout
+
+
+def test_capacity_plan_bad_kv_dtype_is_a_readable_error_not_a_traceback(tmp_path):
+    # radar.capacity.kv.kv_bytes_per_token raises a plain ValueError for an
+    # unrecognized kv_dtype; the CLI must render it, not crash with a
+    # traceback (global constraint: readable errors for bad kv_dtype/engine).
+    runner = CliRunner()
+
+    result = runner.invoke(app, [
+        "capacity", "plan",
+        "--model", "hf-deepseek-v4-pro",
+        "--device", "hgx-h200-8",
+        "--users", "50",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--kv-dtype", "bogus",
+        "--root", str(tmp_path),
+    ])
+
+    assert result.exit_code == 1, result.stdout
+    assert "Traceback" not in result.stdout
+    assert "kv_dtype" in result.stdout
+    assert "fp16" in result.stdout  # names a valid dtype
+
+
+def test_capacity_max_bad_engine_is_a_readable_error_not_a_traceback(tmp_path):
+    # radar.capacity.throughput.estimate_throughput raises a plain ValueError
+    # for an unrecognized engine; same readable-error requirement as above.
+    runner = CliRunner()
+
+    result = runner.invoke(app, [
+        "capacity", "max",
+        "--model", "deepseek-v3",
+        "--device", "hgx-h200-8",
+        "--gpus", "8",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--kv-dtype", "fp8",
+        "--engine", "bogus-engine",
+        "--root", str(tmp_path),
+    ])
+
+    assert result.exit_code == 1, result.stdout
+    assert "Traceback" not in result.stdout
+    assert "engine" in result.stdout.lower()
+    assert "vllm" in result.stdout.lower()  # names a known engine

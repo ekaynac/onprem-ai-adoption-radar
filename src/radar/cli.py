@@ -2398,6 +2398,11 @@ def capacity_plan(
     except DeviceError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
+    except ValueError as exc:
+        # Bad --kv-dtype or --engine (radar.capacity.kv/throughput raise plain
+        # ValueError for these) — surface as a readable error, not a traceback.
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
 
     header = (
         f"[bold]{plan.model_id}[/bold] on [bold]{plan.device_id}[/bold]: "
@@ -2454,6 +2459,11 @@ def capacity_max(
             console.print(f"  [red]- {reason}[/red]")
         raise typer.Exit(code=2) from exc
     except DeviceError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+    except ValueError as exc:
+        # Bad --kv-dtype or --engine (radar.capacity.kv/throughput raise plain
+        # ValueError for these) — surface as a readable error, not a traceback.
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
 
