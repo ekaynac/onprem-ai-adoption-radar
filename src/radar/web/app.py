@@ -16,6 +16,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from radar.api.app import create_api_app
 from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.mcp_server.model_queries import _latest_model_cards, load_platform_entries
@@ -79,7 +80,7 @@ TEMPLATES.env.globals["asset_base"] = "/"
 
 def create_app(root: Path) -> FastAPI:
     """Create a local dashboard app with read views and seed management."""
-    app = FastAPI(title="Agent/Tooling Adoption Radar")
+    app = create_api_app(root)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     db = RadarDatabase(root / "data" / "radar.db")
     history = HistoryStore(root / "data" / "radar.db")
