@@ -24,6 +24,7 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument(
         "--output",
+        "--out",
         type=Path,
         default=Path("build/openapi.json"),
     )

@@ -2046,7 +2046,7 @@ def export(
         ),
     ),
 ) -> None:
-    """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
+    """Render the public React command center and compatibility artifacts."""
     from datetime import datetime
 
     # Validate at the boundary: a non-empty base URL must be absolute http(s),
@@ -2304,6 +2304,22 @@ def export(
         hn_by_project=hn_by_project or None,
         platform_entries=platform_entries or None,
     )
+    frontend_source = root / "frontend" / "package.json"
+    if frontend_source.exists():
+        from radar.web.react_export import (
+            build_react_frontend,
+            export_react_site,
+        )
+
+        frontend_build = build_react_frontend(root, static=True)
+        export_react_site(
+            root,
+            out,
+            frontend_dir=frontend_build,
+            base_url=base_url,
+            generated_at=generated_at,
+        )
+        index = out / "index.html"
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
         + (f", {len(model_entries)} model pages" if model_entries else "")
