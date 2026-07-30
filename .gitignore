@@ -43,3 +43,6 @@ htmlcov/
 
 # Playwright MCP scratch artifacts
 .playwright-mcp/
+
+# Local isolated feature worktrees
+.worktrees/
