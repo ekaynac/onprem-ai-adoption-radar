@@ -90,6 +90,26 @@ def test_server_registers_device_tools(tmp_path: Path):
     assert {"list_devices", "can_run", "fit_report"} <= names
 
 
+def test_server_registers_capacity_tools(tmp_path: Path):
+    names = {t.name for t in asyncio.run(build_mcp_server(tmp_path).list_tools())}
+    assert {"plan_capacity", "max_workload", "compare_devices"} <= names
+
+
+def test_plan_capacity_tool_returns_feasible_plan(tmp_path: Path):
+    server = build_mcp_server(tmp_path)
+    result = asyncio.run(server.call_tool("plan_capacity", {
+        "model_id": "hf-deepseek-v4-pro",
+        "device": "hgx-h200-8",
+        "concurrent_requests": 50,
+        "avg_context_tokens": 32768,
+        "quant": "FP8",
+        "kv_dtype": "fp8",
+    }))
+    payload = result[1].get("result", result[1])
+    assert payload["feasible"] is True
+    assert payload["n_gpus"] == 16
+
+
 def _seed_techniques(root: Path) -> None:
     from radar.models import Category, Ring
     from radar.research_radar.entities import OnPremImpact, TechniqueDomain, TechniqueEntry

@@ -13,6 +13,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from radar.mcp_server.capacity_queries import CapacityQueryService
 from radar.mcp_server.model_queries import ModelQueryService
 from radar.mcp_server.queries import RadarQueryService
 from radar.mcp_server.technique_queries import TechniqueQueryService
@@ -25,6 +26,7 @@ def build_mcp_server(root: Path) -> FastMCP:
     models = ModelQueryService(root)
     techniques = TechniqueQueryService(root)
     trending = TrendingQueryService(root)
+    capacity = CapacityQueryService(root)
     mcp = FastMCP("onprem-ai-adoption-radar")
 
     @mcp.tool()
@@ -161,6 +163,94 @@ def build_mcp_server(root: Path) -> FastMCP:
     def list_trending(lane: str | None = None, limit: int = 20) -> list[dict]:
         """Trending/newly-created GitHub repos by star velocity (lane: onprem | broader)."""
         return trending.list_trending(lane=lane, limit=limit)
+
+    @mcp.tool()
+    def plan_capacity(
+        model_id: str,
+        device: str,
+        concurrent_requests: int,
+        avg_context_tokens: int,
+        target_tps_per_user: float | None = None,
+        quant: str | None = None,
+        kv_dtype: str = "fp16",
+        engine: str = "vllm",
+    ) -> dict[str, Any] | None:
+        """Smallest GPU count (+ layout) that serves a workload, or why it can't.
+
+        Every answer is an ESTIMATE, not a measurement: the returned
+        `assumptions.lines` disclose exactly what was assumed (quant
+        fallback, the TP/PP layout heuristic, engine efficiency constants,
+        ...) — those engine throughput constants in particular are
+        documented estimates pending real-world calibration, not benchmarked
+        numbers. Memory figures are in GB; decode/prefill throughput is in
+        tokens/sec (aggregate and per-user).
+
+        `device`: a preset id (see `list_devices`). Returns `None` only for
+        an unknown `model_id`. A bad device/quant/kv_dtype/engine, or a
+        workload nothing fits, never raises — both come back as
+        `{"feasible": False, "reasons": [...]}` instead.
+        """
+        return capacity.plan_capacity(
+            model_id, device, concurrent_requests, avg_context_tokens,
+            target_tps_per_user=target_tps_per_user, quant=quant,
+            kv_dtype=kv_dtype, engine=engine,
+        )
+
+    @mcp.tool()
+    def max_workload(
+        model_id: str,
+        device: str,
+        n_gpus: int,
+        avg_context_tokens: int,
+        quant: str | None = None,
+        kv_dtype: str = "fp16",
+        engine: str = "vllm",
+    ) -> dict[str, Any] | None:
+        """Largest concurrency a fixed GPU fleet can serve at a context length.
+
+        Same honesty contract as `plan_capacity`: an ESTIMATE whose
+        `assumptions.lines` disclose every assumption, including that engine
+        efficiency constants are documented estimates — not measurements —
+        pending calibration. Memory in GB, throughput in tokens/sec/user.
+
+        Returns `None` only for an unknown `model_id`. Infeasible or invalid
+        inputs (bad device/quant/kv_dtype/engine) come back as
+        `{"feasible": False, "reasons": [...]}`, never a raised exception.
+        """
+        return capacity.max_workload(
+            model_id, device, n_gpus, avg_context_tokens,
+            quant=quant, kv_dtype=kv_dtype, engine=engine,
+        )
+
+    @mcp.tool()
+    def compare_devices(
+        model_id: str,
+        devices: list[str],
+        concurrent_requests: int,
+        avg_context_tokens: int,
+        target_tps_per_user: float | None = None,
+        quant: str | None = None,
+        kv_dtype: str = "fp16",
+        engine: str = "vllm",
+    ) -> list[dict[str, Any]] | None:
+        """Plan the same workload across several devices, side by side.
+
+        One row per requested device id, in the order given — each solved
+        independently and carrying its own `device` id and `feasible`
+        verdict (with `reasons` when infeasible, or when the device id
+        itself is unrecognized — never a raised exception for a bad id in
+        the list). Same honesty contract as `plan_capacity`: estimates only,
+        assumptions disclosed per row, memory in GB, throughput in
+        tokens/sec/user; engine efficiency constants are documented
+        estimates pending calibration.
+
+        Returns `None` only for an unknown `model_id`.
+        """
+        return capacity.compare_devices(
+            model_id, devices, concurrent_requests, avg_context_tokens,
+            target_tps_per_user=target_tps_per_user, quant=quant,
+            kv_dtype=kv_dtype, engine=engine,
+        )
 
     return mcp
 

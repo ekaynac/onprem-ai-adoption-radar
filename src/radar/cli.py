@@ -2295,25 +2295,14 @@ def _capacity_find_entry(entries: list, model_id: str):
 def _capacity_load_entries(root: Path) -> tuple[list, bool]:
     """Scan entries first; bundled seed fallback (flagged) on an empty scan.
 
-    Mirrors ``models fit``'s ``_latest_model_cards`` load, but capacity
-    planning must also work on a fresh clone with no scan at all — the
-    seed fallback rehydrates entries the same offline way
-    ``tests/test_capacity_solver.py``'s ``_entry`` helper does (``load_model_seed``
-    + ``build_model_entry(seed, None, [])``). Returns ``(entries, used_seed_fallback)``.
+    Thin re-export of ``radar.mcp_server.capacity_queries._entries_or_seed`` —
+    the single source of truth for capacity's model loading, shared with
+    ``CapacityQueryService`` so the CLI and MCP surfaces never disagree on
+    which entries exist. Returns ``(entries, used_seed_fallback)``.
     """
-    from radar.mcp_server.model_queries import _latest_model_cards
-    from radar.models_radar.entities import ModelEntry
+    from radar.mcp_server.capacity_queries import _entries_or_seed
 
-    cards = _latest_model_cards(root)
-    if cards:
-        return [ModelEntry.model_validate(c) for c in cards], False
-
-    from radar.models_radar.assemble import build_model_entry
-    from radar.models_radar.seed import load_model_seed
-
-    seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
-    seeds = load_model_seed(seed_path)
-    return [build_model_entry(seed, None, []) for seed in seeds], True
+    return _entries_or_seed(root)
 
 
 def _capacity_print_memory(memory) -> None:
