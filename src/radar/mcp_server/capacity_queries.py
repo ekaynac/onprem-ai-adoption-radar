@@ -77,12 +77,17 @@ def _plan_one(
     device's board TDP isn't published or the plan has no throughput
     estimate — both real states, not errors, so the key is always present.
     """
-    workload = Workload(
-        concurrent_requests=concurrent_requests,
-        avg_context_tokens=avg_context_tokens,
-        target_tokens_per_sec_per_user=target_tps_per_user,
-    )
     try:
+        # Workload construction lives inside the try: a bad concurrent_requests
+        # or avg_context_tokens (e.g. 0 or negative) raises pydantic's
+        # ValidationError, a ValueError subclass, so it folds into the same
+        # readable "feasible: False" response as InfeasibleError/DeviceError
+        # instead of escaping as a raw traceback across the MCP boundary.
+        workload = Workload(
+            concurrent_requests=concurrent_requests,
+            avg_context_tokens=avg_context_tokens,
+            target_tokens_per_sec_per_user=target_tps_per_user,
+        )
         plan = _solve_plan_capacity(
             entry, device, workload,
             quant_format=quant, kv_dtype=kv_dtype, engine=engine,
@@ -91,8 +96,8 @@ def _plan_one(
         return {"feasible": False, "model_id": entry.id, "device": device,
                 "reasons": exc.reasons}
     except (DeviceError, ValueError) as exc:
-        # Bad device preset, kv_dtype, or engine — readable, never a raised
-        # exception across the MCP boundary.
+        # Bad device preset, kv_dtype, engine, or workload (users/context) —
+        # readable, never a raised exception across the MCP boundary.
         return {"feasible": False, "model_id": entry.id, "device": device,
                 "reasons": [str(exc)]}
     result: dict[str, Any] = {"feasible": True, **plan.model_dump(mode="json")}

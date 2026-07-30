@@ -2394,8 +2394,8 @@ def _capacity_print_tco(plan, *, electricity_usd_per_kwh: float, amortization_mo
 def capacity_plan(
     model: str = typer.Option(..., "--model", help="Model id to plan capacity for."),
     device: str = typer.Option(..., "--device", help="Device/node/cluster preset id."),
-    users: int = typer.Option(..., "--users", help="Concurrent users/requests to serve."),
-    context: int = typer.Option(..., "--context", help="Average context length (tokens)."),
+    users: int = typer.Option(..., "--users", min=1, help="Concurrent users/requests to serve."),
+    context: int = typer.Option(..., "--context", min=1, help="Average context length (tokens)."),
     target_tps: float | None = typer.Option(
         None, "--target-tps", help="Target decode tokens/sec/user (optional)."
     ),
@@ -2477,8 +2477,8 @@ def capacity_plan(
 def capacity_max(
     model: str = typer.Option(..., "--model", help="Model id to plan capacity for."),
     device: str = typer.Option(..., "--device", help="Device/node/cluster preset id."),
-    gpus: int = typer.Option(..., "--gpus", help="Fixed fleet size (number of GPUs)."),
-    context: int = typer.Option(..., "--context", help="Average context length (tokens)."),
+    gpus: int = typer.Option(..., "--gpus", min=1, help="Fixed fleet size (number of GPUs)."),
+    context: int = typer.Option(..., "--context", min=1, help="Average context length (tokens)."),
     quant: str | None = typer.Option(None, "--quant", help="Quant format override (e.g. FP8)."),
     kv_dtype: str = typer.Option("fp16", "--kv-dtype", help="KV cache dtype."),
     engine: str = typer.Option("vllm", "--engine", help="Serving engine (vllm, sglang, ...)."),

@@ -24,6 +24,17 @@ returned plan. A candidate count whose layout fails
 different split — the heuristic is the contract); its reasons are kept in
 case every candidate is exhausted, in which case they become the
 ``InfeasibleError``.
+
+Not every candidate count is *expressible* by this heuristic: PP only
+advances in whole 8-GPU stages, so counts like 10, 12, or 20 (reachable when
+``device.gpu_count`` isn't itself a multiple of 8) collapse to the same
+``world_size`` as a smaller count already tried (``_layout_for_count(12) ==
+TP8/PP1``, ``world_size=8``, not 12). ``plan_capacity`` skips these —
+evaluating them would silently invent bandwidth for GPUs the layout never
+touches. ``max_workload`` takes a fixed ``n_gpus`` from the caller and can't
+skip it; instead it solves at ``world_size`` (never the phantom ``n_gpus``)
+for both memory and throughput, and discloses the idle GPUs as an
+assumption line.
 """
 
 from __future__ import annotations
@@ -243,6 +254,15 @@ def plan_capacity(
     last_reasons: list[str] = []
     for count in _candidate_counts(device):
         parallelism = _layout_for_count(count)
+        if parallelism.world_size != count:
+            # Unreachable layout: the pinned heuristic (TP<=8, PP in whole
+            # 8-GPU stages) can't express this exact count (e.g. 10, 12, 14
+            # for a gpu_count=2 preset) — it collapses to the same world_size
+            # as a smaller count already tried. Skipping it (rather than
+            # evaluating memory/throughput as if `count` GPUs were really
+            # used) is what keeps this search from ever advertising phantom
+            # bandwidth for GPUs the layout doesn't actually address.
+            continue
         sharding_problems = check_sharding(entry.architecture, entry.num_layers, parallelism)
         if sharding_problems:
             last_reasons = sharding_problems
@@ -327,8 +347,13 @@ def max_workload(
     Binary-searches concurrency 1..100_000 for the largest ``B`` where
     ``plan_memory(...).fits`` at the fixed ``n_gpus`` (same layout heuristic
     as ``plan_capacity``). Raises ``InfeasibleError`` if even ``B=1`` doesn't
-    fit.
+    fit. Raises ``ValueError`` for ``n_gpus < 1`` (a fleet must have at least
+    one GPU) — a plain ``ValueError`` so it folds into the same handling as
+    the bad-``kv_dtype``/bad-``engine`` cases (CLI: readable error, no
+    traceback; MCP: ``{"feasible": False, ...}``).
     """
+    if n_gpus < 1:
+        raise ValueError(f"n_gpus must be >= 1, got {n_gpus}")
     if entry.params_total is None:
         raise InfeasibleError([f"model {entry.id!r} has no params_total resolved — cannot plan capacity"])
     params_total: int = entry.params_total
@@ -336,9 +361,27 @@ def max_workload(
     device = resolve_device(device_spec)
     bits, resolved_label, quant_notes = _select_quant(entry, quant_format)
     parallelism = _layout_for_count(n_gpus)
+    world_size = parallelism.world_size
     sharding_problems = check_sharding(entry.architecture, entry.num_layers, parallelism)
     if sharding_problems:
         raise InfeasibleError(sharding_problems)
+
+    # The pinned layout heuristic (TP<=8, PP in whole 8-GPU stages) can't
+    # express every requested fleet size — e.g. n_gpus=12 collapses to
+    # TP8/PP1 (world_size=8): 4 GPUs are never addressed by this layout.
+    # The memory plan already only ever accounts for `parallelism`'s ranks
+    # (tp*pp*ep = world_size), so it's honest by construction; but the
+    # throughput estimate takes n_gpus as an explicit bandwidth multiplier —
+    # passing the requested n_gpus there would invent bandwidth for GPUs
+    # this layout never touches. Both must use world_size, and the gap gets
+    # its own disclosure line.
+    idle_gpus = n_gpus - world_size
+    layout_notes: tuple[str, ...] = ()
+    if idle_gpus:
+        layout_notes = (
+            f"layout uses {world_size} of {n_gpus} GPUs (TP<=8, PP in whole "
+            f"8-GPU stages) — {idle_gpus} GPU(s) idle in this layout",
+        )
 
     def _plan_at(concurrency: int) -> MemoryPlan:
         workload = Workload(concurrent_requests=concurrency, avg_context_tokens=avg_context_tokens)
@@ -383,7 +426,7 @@ def max_workload(
         kv_bytes_per_token=bytes_per_token,
         workload=Workload(concurrent_requests=best, avg_context_tokens=avg_context_tokens),
         device=device,
-        n_gpus=n_gpus,
+        n_gpus=world_size,
         engine=engine,
     )
     platform_notes = _platform_warnings(entry, engine, resolved_label)
@@ -394,6 +437,7 @@ def max_workload(
         quant_notes,
         (_LAYOUT_HEURISTIC_NOTE,),
         platform_notes,
+        layout_notes,
     ))
     return MaxWorkload(
         model_id=entry.id,

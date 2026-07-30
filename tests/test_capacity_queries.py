@@ -89,6 +89,56 @@ def test_max_workload_infeasible_single_h200_returns_reasons_dict(tmp_path):
     assert any("memory" in r.lower() for r in result["reasons"])
 
 
+def test_max_workload_zero_or_negative_n_gpus_returns_reasons_dict(tmp_path):
+    # solver.max_workload raises a plain ValueError for n_gpus < 1 (a fleet
+    # needs at least one GPU) — the MCP boundary must fold it into the same
+    # readable "feasible: False" shape as InfeasibleError/DeviceError, never
+    # let the ZeroDivisionError this used to cause escape as an exception.
+    service = CapacityQueryService(tmp_path)
+
+    zero = service.max_workload("deepseek-v3", "hgx-h200-8", n_gpus=0, avg_context_tokens=32768)
+    negative = service.max_workload("deepseek-v3", "hgx-h200-8", n_gpus=-4, avg_context_tokens=32768)
+
+    for result in (zero, negative):
+        assert result is not None
+        assert result["feasible"] is False
+        assert result["reasons"]
+        assert any("n_gpus" in r for r in result["reasons"])
+
+
+def test_max_workload_gpus_12_reports_idle_gpus_no_phantom_bandwidth(tmp_path):
+    service = CapacityQueryService(tmp_path)
+
+    result8 = service.max_workload("deepseek-v3", "hgx-h200-8", n_gpus=8,
+                                   avg_context_tokens=32768, quant="FP8", kv_dtype="fp8")
+    result12 = service.max_workload("deepseek-v3", "hgx-h200-8", n_gpus=12,
+                                    avg_context_tokens=32768, quant="FP8", kv_dtype="fp8")
+
+    assert result8 is not None and result12 is not None
+    assert result8["feasible"] is True and result12["feasible"] is True
+    assert result12["n_gpus"] == 12
+    assert result12["max_concurrent_at_context"] == result8["max_concurrent_at_context"]
+    assert result12["per_user_decode_tps_at_max"] == result8["per_user_decode_tps_at_max"]
+    assert any("4 GPU(s) idle" in line for line in result12["assumptions"]["lines"])
+
+
+def test_plan_capacity_zero_concurrent_requests_returns_reasons_dict(tmp_path):
+    # Workload(...) construction used to sit outside the try in _plan_one, so
+    # concurrent_requests=0 escaped as a raw pydantic ValidationError instead
+    # of folding into the usual "feasible: False" response.
+    service = CapacityQueryService(tmp_path)
+
+    result = service.plan_capacity(
+        "deepseek-v3", "hgx-h200-8",
+        concurrent_requests=0, avg_context_tokens=32768,
+    )
+
+    assert result is not None
+    assert result["feasible"] is False
+    assert result["reasons"]
+    assert any("concurrent_requests" in r for r in result["reasons"])
+
+
 def test_plan_capacity_bad_device_returns_feasible_false_not_an_exception(tmp_path):
     service = CapacityQueryService(tmp_path)
 

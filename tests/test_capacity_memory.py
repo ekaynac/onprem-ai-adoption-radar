@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import pydantic
 import pytest
 
 from capacity_fixtures import GQA_70B, HYBRID_V4, MLA_V3
 from radar.capacity.memory import InfeasibleError, check_sharding, plan_memory
 from radar.capacity.types import Parallelism, Workload
 from radar.models_radar.devices import resolve_device
+
+
+def test_parallelism_rejects_non_positive_fields():
+    # tensor_parallel/pipeline_parallel/expert_parallel=0 (or negative) fed
+    # straight into the solver's world_size division used to be an
+    # uncaught ZeroDivisionError or silent negative-memory nonsense; each
+    # field now has Field(ge=1) so pydantic rejects it at construction.
+    for field in ("tensor_parallel", "pipeline_parallel", "expert_parallel"):
+        with pytest.raises(pydantic.ValidationError):
+            Parallelism(**{field: 0})
+        with pytest.raises(pydantic.ValidationError):
+            Parallelism(**{field: -2})
 
 
 def test_v4_pro_fp8_tp16_fits_h200_rank():

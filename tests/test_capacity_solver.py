@@ -25,9 +25,10 @@ from pathlib import Path
 import pytest
 
 from radar.capacity.memory import InfeasibleError
-from radar.capacity.solver import max_workload, plan_capacity
+from radar.capacity.solver import _candidate_counts, _layout_for_count, max_workload, plan_capacity
 from radar.capacity.types import Workload
 from radar.models_radar.assemble import build_model_entry
+from radar.models_radar.devices import resolve_device
 from radar.models_radar.entities import ModelEntry, QuantVariant
 from radar.models_radar.seed import load_model_seed
 
@@ -102,11 +103,11 @@ def test_anchor_deepseek_v3_fits_one_h200_node_fp8():
     # number at all. FP8 fallback (no catalog "FP8"): bits=8.0.
     # weights_gb = 671e9*8/8/1e9 = 671 GB total /8 = 83.875 GB/rank.
     # KV (MLA, kv_lora_rank=512, qk_rope_head_dim=64, fp8 1 byte, 61 layers):
-    # bytes/token = (512+64)*1*61 = 35136; kv_gb(35136,32768,20) = 11.51 GB
-    # total /(tp*pp=8) = 1.44 GB/rank. fragmentation = 0.05*(83.875+1.44) =
-    # 4.27; total = 83.875+1.44+1.5+4.27 = 91.08 GB <= 119.85 usable -> fits
-    # at n_gpus=8 (confirmed: 92.59 GB with unrounded intermediate values —
-    # both comfortably under the 119.85 GB/GPU ceiling either way).
+    # bytes/token = (512+64)*1*61 = 35136; kv_gb(35136,32768,20) =
+    # round(35136*32768*20/1e9, 2) = 23.03 GB total /(tp*pp=8) = 2.87875 GB/rank
+    # (~2.88). fragmentation = 0.05*(83.875+2.87875) = 4.3376875; total =
+    # 83.875+2.87875+1.5+4.3376875 = 92.5914375 GB (~92.59) <= 119.85 usable
+    # -> fits at n_gpus=8, comfortably under the 119.85 GB/GPU ceiling.
     plan = plan_capacity(_entry("deepseek-v3"), "hgx-h200-8",
                          Workload(concurrent_requests=20, avg_context_tokens=32768),
                          quant_format="FP8", kv_dtype="fp8")
@@ -126,9 +127,10 @@ def test_max_workload_direction():
     # 1.5 -> budget for kv+fragmentation = 118.35 - 83.875 = 34.475;
     # 1.05*(83.875+kv/8) + 1.5 <= 119.85 => kv_per_rank <= 28.84 GB =>
     # kv_total <= 230.7 GB. Per-request KV at ctx=32768 (MLA, fp8 1 byte,
-    # 61 layers): 576 bytes/token * 32768 = 1.151 GB/request (matches the
-    # ambiguity note "~250 GB KV headroom / 1.15 GB per user"). So max B ~
-    # 230.7/1.151 ~= 200 — comfortably >= 50.
+    # 61 layers): bytes/token = (512+64)*1*61 = 35136 (576 bytes/layer * 61
+    # layers, NOT 576 alone) -> 35136 bytes/token * 32768 = 1.151 GB/request
+    # (matches the ambiguity note "~250 GB KV headroom / 1.15 GB per user").
+    # So max B ~ 230.7/1.151 ~= 200 — comfortably >= 50.
     mw = max_workload(_entry("deepseek-v3"), "hgx-h200-8", 8,
                       avg_context_tokens=32768, quant_format="FP8", kv_dtype="fp8")
     assert mw.max_concurrent_at_context >= 50  # ~250 GB KV headroom / 1.15 GB per user
@@ -260,3 +262,73 @@ def test_max_workload_raises_when_layer_count_unknown_for_pp():
     with pytest.raises(InfeasibleError) as exc:
         max_workload(unknown_layers, "hgx-h200-8", 16, avg_context_tokens=1024, quant_format="FP8")
     assert any("layer count unknown" in r for r in exc.value.reasons)
+
+
+# --- final-review fixes: input guards + no phantom-GPU throughput --------
+
+
+def test_max_workload_rejects_non_positive_n_gpus():
+    # A fleet needs at least one GPU; 0 used to raise a raw ZeroDivisionError
+    # (division by world_size inside the memory/throughput math), negative
+    # values used to silently produce nonsense "fits" plans. Both now raise a
+    # readable ValueError up front, which folds into the CLI's/MCP's existing
+    # ValueError handling instead of a traceback.
+    with pytest.raises(ValueError, match="n_gpus must be >= 1"):
+        max_workload(_entry("deepseek-v3"), "hgx-h200-8", 0, avg_context_tokens=32768)
+    with pytest.raises(ValueError, match="n_gpus must be >= 1"):
+        max_workload(_entry("deepseek-v3"), "hgx-h200-8", -4, avg_context_tokens=32768)
+
+
+def test_max_workload_gpus_12_uses_world_size_not_phantom_bandwidth():
+    # _layout_for_count(12) = TP8/PP1 -> world_size=8: PP only advances in
+    # whole 8-GPU stages, so 12 collapses to the same reachable layout as 8 —
+    # 4 of the 12 requested GPUs are never addressed by it. Both the memory
+    # plan and the throughput estimate must be solved at world_size (never
+    # the phantom 12), so --gpus 12 must report the SAME per-user t/s as
+    # --gpus 8 (not ~50% more from invented bandwidth), plus an idle-GPU note
+    # that --gpus 8 does not carry.
+    mw8 = max_workload(_entry("deepseek-v3"), "hgx-h200-8", 8,
+                       avg_context_tokens=32768, quant_format="FP8", kv_dtype="fp8")
+    mw12 = max_workload(_entry("deepseek-v3"), "hgx-h200-8", 12,
+                        avg_context_tokens=32768, quant_format="FP8", kv_dtype="fp8")
+    assert mw12.n_gpus == 12  # still reports the fleet size actually asked about
+    assert mw12.max_concurrent_at_context == mw8.max_concurrent_at_context
+    assert mw12.per_user_decode_tps_at_max == mw8.per_user_decode_tps_at_max
+    assert any("layout uses 8 of 12 GPUs" in line and "4 GPU(s) idle" in line
+              for line in mw12.assumptions.lines)
+    assert not any("idle" in line for line in mw8.assumptions.lines)
+
+
+def test_candidate_counts_include_unreachable_layouts_that_plan_capacity_must_skip():
+    # A device.gpu_count that isn't itself a multiple of 8 generates candidate
+    # counts (10, 12, 14, ...) whose pinned layout (TP<=8, PP in whole 8-GPU
+    # stages) can't express them -- they collapse to the SAME world_size as a
+    # smaller candidate already tried (e.g. _layout_for_count(12).world_size
+    # == 8, same as count=8). This pins the exact set plan_capacity's
+    # world_size != count skip must reject for such a device.
+    device = resolve_device({"kind": "gpu", "total_memory_gb": 141, "gpu_count": 2})
+    counts = _candidate_counts(device)[:8]
+    assert counts == [2, 4, 6, 8, 10, 12, 14, 16]
+    unreachable = [c for c in counts if _layout_for_count(c).world_size != c]
+    assert unreachable == [10, 12, 14]  # 16 is a real TP8/PP2 layout again
+
+
+def test_plan_capacity_never_returns_a_phantom_gpu_layout():
+    # spec property: a returned plan's layout must actually use every GPU it
+    # reports -- world_size (tp*pp*ep) must equal n_gpus, never an inflated
+    # count the layout heuristic can't express. Checked over the existing
+    # anchor scenarios (their device presets all have gpu_count a multiple
+    # of 8, so the invariant already held for them; pinning it here catches
+    # any future preset/heuristic change that would break it).
+    scenarios = [
+        ("hf-deepseek-v4-pro", "hgx-h200-8",
+         Workload(concurrent_requests=50, avg_context_tokens=32768), "FP8", "fp8"),
+        ("deepseek-v3", "hgx-h200-8",
+         Workload(concurrent_requests=20, avg_context_tokens=32768), "FP8", "fp8"),
+        ("hf-glm-5-2", "hgx-h200-8",
+         Workload(concurrent_requests=10, avg_context_tokens=16384), "FP8", "fp8"),
+    ]
+    for model_id, device_id, workload, quant, kv_dtype in scenarios:
+        plan = plan_capacity(_entry(model_id), device_id, workload,
+                             quant_format=quant, kv_dtype=kv_dtype)
+        assert plan.parallelism.world_size == plan.n_gpus

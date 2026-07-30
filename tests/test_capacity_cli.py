@@ -201,6 +201,96 @@ def test_capacity_plan_bad_kv_dtype_is_a_readable_error_not_a_traceback(tmp_path
     assert "fp16" in result.stdout  # names a valid dtype
 
 
+def test_capacity_max_zero_or_negative_gpus_is_a_clean_usage_error(tmp_path):
+    # --gpus 0 used to crash with a raw ZeroDivisionError traceback (division
+    # by world_size inside the memory/throughput math); --gpus -4 used to
+    # silently "fit" (negative memory). Both must now fail fast as a typer
+    # usage error (min=1 on the option) before the command body ever runs.
+    runner = CliRunner()
+
+    zero_result = runner.invoke(app, [
+        "capacity", "max",
+        "--model", "deepseek-v3",
+        "--device", "hgx-h200-8",
+        "--gpus", "0",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--root", str(tmp_path),
+    ])
+    negative_result = runner.invoke(app, [
+        "capacity", "max",
+        "--model", "deepseek-v3",
+        "--device", "hgx-h200-8",
+        "--gpus", "-4",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--root", str(tmp_path),
+    ])
+
+    for result in (zero_result, negative_result):
+        # click's own parameter-validation error (IntRange) writes to
+        # stderr, not stdout — check the combined `.output` stream.
+        assert result.exit_code == 2, result.output
+        assert "Traceback" not in result.output
+        assert "--gpus" in result.output
+
+
+def test_capacity_max_gpus_12_reports_idle_gpus_no_phantom_bandwidth(tmp_path):
+    # _layout_for_count(12) collapses to TP8/PP1 (world_size=8) — 4 of the 12
+    # requested GPUs are never addressed by this layout. The result must
+    # disclose the idle GPUs rather than silently advertising 12-GPU
+    # bandwidth for an 8-GPU-wide layout.
+    runner = CliRunner()
+
+    result = runner.invoke(app, [
+        "capacity", "max",
+        "--model", "deepseek-v3",
+        "--device", "hgx-h200-8",
+        "--gpus", "12",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--kv-dtype", "fp8",
+        "--root", str(tmp_path),
+    ])
+
+    assert result.exit_code == 0, result.stdout
+    assert "layout uses 8 of 12 GPUs" in result.stdout
+    assert "4 GPU(s) idle" in result.stdout
+
+
+def test_capacity_plan_zero_users_or_context_is_a_clean_usage_error(tmp_path):
+    # Workload(...) construction used to sit outside the try block, so
+    # --users 0 / --context 0 escaped as a raw pydantic ValidationError
+    # traceback. min=1 on both options now rejects them before the command
+    # body (and Workload construction) ever runs.
+    runner = CliRunner()
+
+    zero_users = runner.invoke(app, [
+        "capacity", "plan",
+        "--model", "deepseek-v3",
+        "--device", "hgx-h200-8",
+        "--users", "0",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--root", str(tmp_path),
+    ])
+    zero_context = runner.invoke(app, [
+        "capacity", "plan",
+        "--model", "deepseek-v3",
+        "--device", "hgx-h200-8",
+        "--users", "10",
+        "--context", "0",
+        "--quant", "FP8",
+        "--root", str(tmp_path),
+    ])
+
+    for result in (zero_users, zero_context):
+        # click's own parameter-validation error (IntRange) writes to
+        # stderr, not stdout — check the combined `.output` stream.
+        assert result.exit_code == 2, result.output
+        assert "Traceback" not in result.output
+
+
 def test_capacity_max_bad_engine_is_a_readable_error_not_a_traceback(tmp_path):
     # radar.capacity.throughput.estimate_throughput raises a plain ValueError
     # for an unrecognized engine; same readable-error requirement as above.

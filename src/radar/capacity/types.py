@@ -23,9 +23,9 @@ class Parallelism(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    tensor_parallel: int = 1
-    pipeline_parallel: int = 1
-    expert_parallel: int = 1
+    tensor_parallel: int = Field(default=1, ge=1)
+    pipeline_parallel: int = Field(default=1, ge=1)
+    expert_parallel: int = Field(default=1, ge=1)
 
     @property
     def world_size(self) -> int:

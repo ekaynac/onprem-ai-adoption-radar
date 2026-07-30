@@ -270,8 +270,10 @@ def plan_memory(
         and parallelism.tensor_parallel > 1
     ):
         assumptions = assumptions.plus(
-            "MLA latent KV cache is replicated per TP rank, not sharded by head — "
-            "tensor_parallel does not reduce per-rank KV memory for MLA models"
+            "MLA latent KV cache: pure-TP serving replicates the whole latent "
+            "cache per rank (it isn't sharded by head) — estimate assumes "
+            "request-distributed KV (data-parallel attention); pure-TP "
+            "per-rank KV would be higher"
         )
     elif (
         architecture is not None
