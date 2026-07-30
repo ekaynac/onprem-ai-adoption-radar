@@ -13,6 +13,63 @@ class Base(DeclarativeBase):
     pass
 
 
+class PublisherRow(Base):
+    __tablename__ = "intelligence_publishers"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    official_domains: Mapped[list[str]] = mapped_column(JSON)
+    official_accounts: Mapped[list[str]] = mapped_column(JSON)
+    aliases: Mapped[list[str]] = mapped_column(JSON)
+
+
+class FamilyRow(Base):
+    __tablename__ = "intelligence_families"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    publisher_id: Mapped[str] = mapped_column(
+        ForeignKey("intelligence_publishers.id")
+    )
+    name: Mapped[str] = mapped_column(String(255))
+    aliases: Mapped[list[str]] = mapped_column(JSON)
+
+
+class ReleaseRow(Base):
+    __tablename__ = "intelligence_releases"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    family_id: Mapped[str] = mapped_column(ForeignKey("intelligence_families.id"))
+    publisher_id: Mapped[str] = mapped_column(
+        ForeignKey("intelligence_publishers.id")
+    )
+    name: Mapped[str] = mapped_column(String(255))
+    category: Mapped[str] = mapped_column(String(40), index=True)
+    lane: Mapped[str] = mapped_column(String(40), index=True)
+    lifecycle: Mapped[str] = mapped_column(String(24), index=True)
+    first_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    discovery_evidence_strength: Mapped[str] = mapped_column(String(40))
+
+
+class PlatformRow(Base):
+    __tablename__ = "intelligence_platforms"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    repo_url: Mapped[str] = mapped_column(Text)
+    verified_at: Mapped[str] = mapped_column(String(32))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+
+
+class LegacyEventRow(Base):
+    __tablename__ = "intelligence_legacy_events"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(40), index=True)
+    subject_id: Mapped[str] = mapped_column(String(255), index=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+
+
 class EvidenceRow(Base):
     __tablename__ = "intelligence_evidence"
 
@@ -59,4 +116,3 @@ class ClaimEvidenceRow(Base):
     evidence_id: Mapped[str] = mapped_column(
         ForeignKey("intelligence_evidence.id"), primary_key=True
     )
-

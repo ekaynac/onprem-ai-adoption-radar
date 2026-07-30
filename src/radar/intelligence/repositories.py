@@ -13,9 +13,24 @@ from radar.intelligence.contracts import (
     ClaimState,
     EvidenceObservation,
     EvidenceStrength,
+    LifecycleState,
+    ModelCategory,
+    ProductFamily,
+    Publisher,
+    Release,
+    ReleaseLane,
 )
 from radar.intelligence.database import Database
-from radar.intelligence.schema import ClaimEvidenceRow, ClaimRow, EvidenceRow
+from radar.intelligence.schema import (
+    ClaimEvidenceRow,
+    ClaimRow,
+    EvidenceRow,
+    FamilyRow,
+    LegacyEventRow,
+    PlatformRow,
+    PublisherRow,
+    ReleaseRow,
+)
 
 
 class RepositoryConflict(ValueError):
@@ -150,3 +165,172 @@ class SqlAlchemyIntelligenceRepository:
         with self.database.session() as session:
             row = session.get(ClaimRow, claim_id)
             return _claim_from_session(session, row) if row is not None else None
+
+    def list_claims_for_subject(self, subject_id: str) -> list[Claim]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(
+                    select(ClaimRow)
+                    .where(ClaimRow.subject_id == subject_id)
+                    .order_by(ClaimRow.predicate, ClaimRow.observed_at, ClaimRow.id)
+                )
+            )
+            return [_claim_from_session(session, row) for row in rows]
+
+    def upsert_publisher(self, publisher: Publisher) -> bool:
+        with self.database.session() as session:
+            existing = session.get(PublisherRow, publisher.id)
+            if existing is not None:
+                current = Publisher(
+                    id=existing.id,
+                    name=existing.name,
+                    official_domains=existing.official_domains,
+                    official_accounts=existing.official_accounts,
+                    aliases=existing.aliases,
+                )
+                if current != publisher:
+                    raise RepositoryConflict(f"Publisher id changed: {publisher.id}")
+                return False
+            session.add(PublisherRow(**publisher.model_dump(mode="json")))
+            return True
+
+    def upsert_family(self, family: ProductFamily) -> bool:
+        with self.database.session() as session:
+            existing = session.get(FamilyRow, family.id)
+            if existing is not None:
+                current = ProductFamily(
+                    id=existing.id,
+                    publisher_id=existing.publisher_id,
+                    name=existing.name,
+                    aliases=existing.aliases,
+                )
+                if current != family:
+                    raise RepositoryConflict(f"Family id changed: {family.id}")
+                return False
+            session.add(FamilyRow(**family.model_dump(mode="json")))
+            return True
+
+    def upsert_release(self, release: Release) -> bool:
+        with self.database.session() as session:
+            existing = session.get(ReleaseRow, release.id)
+            if existing is not None:
+                current = self._release_from_row(existing)
+                if current != release:
+                    raise RepositoryConflict(f"Release id changed: {release.id}")
+                return False
+            session.add(
+                ReleaseRow(
+                    id=release.id,
+                    family_id=release.family_id,
+                    publisher_id=release.publisher_id,
+                    name=release.name,
+                    category=release.category.value,
+                    lane=release.lane.value,
+                    lifecycle=release.lifecycle.value,
+                    first_observed_at=release.first_observed_at,
+                    discovery_evidence_strength=(
+                        release.discovery_evidence_strength.value
+                    ),
+                )
+            )
+            return True
+
+    @staticmethod
+    def _release_from_row(row: ReleaseRow) -> Release:
+        first_observed_at = _as_utc(row.first_observed_at)
+        assert first_observed_at is not None
+        return Release(
+            id=row.id,
+            family_id=row.family_id,
+            publisher_id=row.publisher_id,
+            name=row.name,
+            category=ModelCategory(row.category),
+            lane=ReleaseLane(row.lane),
+            lifecycle=LifecycleState(row.lifecycle),
+            first_observed_at=first_observed_at,
+            discovery_evidence_strength=EvidenceStrength(
+                row.discovery_evidence_strength
+            ),
+        )
+
+    def get_release(self, release_id: str) -> Release | None:
+        with self.database.session() as session:
+            row = session.get(ReleaseRow, release_id)
+            return self._release_from_row(row) if row is not None else None
+
+    def count_releases(self) -> int:
+        with self.database.session() as session:
+            return session.scalar(select(func.count()).select_from(ReleaseRow)) or 0
+
+    def import_platform(
+        self,
+        *,
+        platform_id: str,
+        name: str,
+        repo_url: str,
+        verified_at: str,
+        payload: dict[str, object],
+    ) -> bool:
+        with self.database.session() as session:
+            existing = session.get(PlatformRow, platform_id)
+            if existing is not None:
+                if (
+                    existing.name != name
+                    or existing.repo_url != repo_url
+                    or existing.verified_at != verified_at
+                    or existing.payload != payload
+                ):
+                    raise RepositoryConflict(f"Platform id changed: {platform_id}")
+                return False
+            session.add(
+                PlatformRow(
+                    id=platform_id,
+                    name=name,
+                    repo_url=repo_url,
+                    verified_at=verified_at,
+                    payload=payload,
+                )
+            )
+            return True
+
+    def count_platforms(self) -> int:
+        with self.database.session() as session:
+            return session.scalar(select(func.count()).select_from(PlatformRow)) or 0
+
+    def append_legacy_event(
+        self,
+        *,
+        event_id: str,
+        kind: str,
+        subject_id: str,
+        observed_at: datetime,
+        payload: dict[str, object],
+    ) -> bool:
+        with self.database.session() as session:
+            existing = session.get(LegacyEventRow, event_id)
+            if existing is not None:
+                if (
+                    existing.kind != kind
+                    or existing.subject_id != subject_id
+                    or _as_utc(existing.observed_at) != observed_at
+                    or existing.payload != payload
+                ):
+                    raise RepositoryConflict(f"Legacy event id changed: {event_id}")
+                return False
+            session.add(
+                LegacyEventRow(
+                    id=event_id,
+                    kind=kind,
+                    subject_id=subject_id,
+                    observed_at=observed_at,
+                    payload=payload,
+                )
+            )
+            return True
+
+    def count_legacy_events(self, kind: str | None = None) -> int:
+        with self.database.session() as session:
+            statement = select(func.count()).select_from(LegacyEventRow)
+            if kind is not None:
+                statement = statement.where(LegacyEventRow.kind == kind)
+            return session.scalar(statement) or 0

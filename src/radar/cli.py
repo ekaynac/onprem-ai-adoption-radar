@@ -130,6 +130,44 @@ def init(
     console.print(f"Runs: {result.runs_path}")
 
 
+@app.command("intelligence-migrate")
+def intelligence_migrate(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Import legacy YAML and JSONL state into canonical intelligence storage."""
+    from dataclasses import asdict
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.migration import import_legacy_state
+
+    _database, repository = build_intelligence_repository(root)
+    report = import_legacy_state(root, repository)
+    console.print_json(data=asdict(report))
+
+
+@app.command("intelligence-shadow")
+def intelligence_shadow(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    check: bool = typer.Option(
+        False,
+        "--check",
+        help="Exit non-zero when canonical counts differ from legacy sources.",
+    ),
+) -> None:
+    """Compare legacy source counts with canonical projections."""
+    from dataclasses import asdict
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.shadow import compare_legacy_projection
+
+    _database, repository = build_intelligence_repository(root)
+    report = compare_legacy_projection(root, repository)
+    payload = {**asdict(report), "is_equivalent": report.is_equivalent}
+    console.print_json(data=payload)
+    if check and not report.is_equivalent:
+        raise typer.Exit(1)
+
+
 @app.command()
 def scan(
     days: int = typer.Option(2, min=1, help="Look back this many days."),
