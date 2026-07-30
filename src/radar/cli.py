@@ -40,6 +40,11 @@ trending_app = typer.Typer(help="Trending & newly-created repos radar.", no_args
 app.add_typer(trending_app, name="trending")
 digest_app = typer.Typer(help="Weekly digest (page + cards + feeds + webhook).", no_args_is_help=True)
 app.add_typer(digest_app, name="digest")
+capacity_app = typer.Typer(
+    help="Datacenter capacity planning (memory + throughput + solver).",
+    no_args_is_help=True,
+)
+app.add_typer(capacity_app, name="capacity")
 console = Console()
 
 # `models verify`'s params_total drift check has three deterministic bands,
@@ -2264,6 +2269,206 @@ def serve(
 ) -> None:
     """Serve the local dashboard."""
     uvicorn.run(create_app(root), host=host, port=port)
+
+
+def _capacity_available_ids(entries: list) -> str:
+    """Sorted, comma-joined model ids for an "unknown model" error.
+
+    Truncated to ~20 ids with a "… and N more" tail so a huge seed/scan
+    doesn't dump hundreds of lines into the terminal.
+    """
+    ids = sorted({entry.id for entry in entries})
+    if len(ids) > 20:
+        return ", ".join(ids[:20]) + f", … and {len(ids) - 20} more"
+    return ", ".join(ids)
+
+
+def _capacity_find_entry(entries: list, model_id: str):
+    """Case-insensitive exact-id lookup; ``None`` when nothing matches."""
+    low = model_id.lower()
+    for entry in entries:
+        if entry.id.lower() == low:
+            return entry
+    return None
+
+
+def _capacity_load_entries(root: Path) -> tuple[list, bool]:
+    """Scan entries first; bundled seed fallback (flagged) on an empty scan.
+
+    Mirrors ``models fit``'s ``_latest_model_cards`` load, but capacity
+    planning must also work on a fresh clone with no scan at all — the
+    seed fallback rehydrates entries the same offline way
+    ``tests/test_capacity_solver.py``'s ``_entry`` helper does (``load_model_seed``
+    + ``build_model_entry(seed, None, [])``). Returns ``(entries, used_seed_fallback)``.
+    """
+    from radar.mcp_server.model_queries import _latest_model_cards
+    from radar.models_radar.entities import ModelEntry
+
+    cards = _latest_model_cards(root)
+    if cards:
+        return [ModelEntry.model_validate(c) for c in cards], False
+
+    from radar.models_radar.assemble import build_model_entry
+    from radar.models_radar.seed import load_model_seed
+
+    seed_path = Path(__file__).resolve().parents[2] / "config" / "model-seed.yaml"
+    seeds = load_model_seed(seed_path)
+    return [build_model_entry(seed, None, []) for seed in seeds], True
+
+
+def _capacity_print_memory(memory) -> None:
+    from rich.table import Table
+
+    table = Table(title="Per-rank memory (GB)")
+    for col in ("weights", "KV", "baseline", "fragmentation", "total", "usable", "headroom %"):
+        table.add_column(col)
+    r = memory.per_rank
+    table.add_row(
+        f"{r.weights_gb:.2f}", f"{r.kv_gb:.2f}", f"{r.baseline_gb:.2f}",
+        f"{r.fragmentation_gb:.2f}", f"{r.total_gb:.2f}",
+        f"{memory.usable_per_gpu_gb:.2f}", f"{memory.headroom_fraction * 100:.1f}%",
+    )
+    console.print(table)
+
+
+def _capacity_print_throughput(throughput, meets_target: bool | None) -> None:
+    console.print(
+        f"Throughput: {throughput.per_user_decode_tps:.1f} t/s/user "
+        f"(aggregate {throughput.aggregate_decode_tps:.1f} t/s)"
+    )
+    if throughput.ttft_seconds is not None and throughput.prefill_tps is not None:
+        console.print(
+            f"  prefill {throughput.prefill_tps:.1f} t/s, TTFT {throughput.ttft_seconds:.2f}s"
+        )
+    if meets_target is not None:
+        console.print(f"  meets target: {meets_target}")
+
+
+def _capacity_print_assumptions(lines) -> None:
+    console.print("[bold]Assumptions:[/bold]")
+    for line in lines:
+        console.print(f"  - {line}")
+
+
+@capacity_app.command("plan")
+def capacity_plan(
+    model: str = typer.Option(..., "--model", help="Model id to plan capacity for."),
+    device: str = typer.Option(..., "--device", help="Device/node/cluster preset id."),
+    users: int = typer.Option(..., "--users", help="Concurrent users/requests to serve."),
+    context: int = typer.Option(..., "--context", help="Average context length (tokens)."),
+    target_tps: float | None = typer.Option(
+        None, "--target-tps", help="Target decode tokens/sec/user (optional)."
+    ),
+    quant: str | None = typer.Option(None, "--quant", help="Quant format override (e.g. FP8)."),
+    kv_dtype: str = typer.Option("fp16", "--kv-dtype", help="KV cache dtype."),
+    engine: str = typer.Option("vllm", "--engine", help="Serving engine (vllm, sglang, ...)."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Smallest GPU count (+ layout) that serves a workload, with its assumption sheet."""
+    from radar.capacity.memory import InfeasibleError
+    from radar.capacity.solver import plan_capacity
+    from radar.capacity.types import Workload
+    from radar.models_radar.devices import DeviceError
+
+    entries, used_seed_fallback = _capacity_load_entries(root)
+    if used_seed_fallback:
+        console.print("[yellow](no scan found — using bundled seed specs)[/yellow]")
+
+    entry = _capacity_find_entry(entries, model)
+    if entry is None:
+        console.print(
+            f"[red]Unknown model {model!r}. Available: {_capacity_available_ids(entries)}[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    workload = Workload(
+        concurrent_requests=users, avg_context_tokens=context,
+        target_tokens_per_sec_per_user=target_tps,
+    )
+    try:
+        plan = plan_capacity(
+            entry, device, workload,
+            quant_format=quant, kv_dtype=kv_dtype, engine=engine,
+        )
+    except InfeasibleError as exc:
+        console.print("[red]Infeasible:[/red]")
+        for reason in exc.reasons:
+            console.print(f"  [red]- {reason}[/red]")
+        raise typer.Exit(code=2) from exc
+    except DeviceError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    header = (
+        f"[bold]{plan.model_id}[/bold] on [bold]{plan.device_id}[/bold]: "
+        f"{plan.n_gpus} GPU(s)"
+    )
+    if plan.n_nodes is not None:
+        header += f", {plan.n_nodes} node(s)"
+    header += (
+        f" — layout TP={plan.parallelism.tensor_parallel} "
+        f"PP={plan.parallelism.pipeline_parallel} EP={plan.parallelism.expert_parallel}"
+    )
+    console.print(header)
+    _capacity_print_memory(plan.memory)
+    if plan.throughput is not None:
+        _capacity_print_throughput(plan.throughput, plan.meets_target)
+    _capacity_print_assumptions(plan.assumptions.lines)
+
+
+@capacity_app.command("max")
+def capacity_max(
+    model: str = typer.Option(..., "--model", help="Model id to plan capacity for."),
+    device: str = typer.Option(..., "--device", help="Device/node/cluster preset id."),
+    gpus: int = typer.Option(..., "--gpus", help="Fixed fleet size (number of GPUs)."),
+    context: int = typer.Option(..., "--context", help="Average context length (tokens)."),
+    quant: str | None = typer.Option(None, "--quant", help="Quant format override (e.g. FP8)."),
+    kv_dtype: str = typer.Option("fp16", "--kv-dtype", help="KV cache dtype."),
+    engine: str = typer.Option("vllm", "--engine", help="Serving engine (vllm, sglang, ...)."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Largest concurrency a fixed fleet can serve at a given context length."""
+    from radar.capacity.memory import InfeasibleError
+    from radar.capacity.solver import max_workload
+    from radar.models_radar.devices import DeviceError
+
+    entries, used_seed_fallback = _capacity_load_entries(root)
+    if used_seed_fallback:
+        console.print("[yellow](no scan found — using bundled seed specs)[/yellow]")
+
+    entry = _capacity_find_entry(entries, model)
+    if entry is None:
+        console.print(
+            f"[red]Unknown model {model!r}. Available: {_capacity_available_ids(entries)}[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    try:
+        result = max_workload(
+            entry, device, gpus,
+            avg_context_tokens=context, quant_format=quant, kv_dtype=kv_dtype, engine=engine,
+        )
+    except InfeasibleError as exc:
+        console.print("[red]Infeasible:[/red]")
+        for reason in exc.reasons:
+            console.print(f"  [red]- {reason}[/red]")
+        raise typer.Exit(code=2) from exc
+    except DeviceError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    console.print(
+        f"[bold]{result.model_id}[/bold] on [bold]{result.device_id}[/bold] "
+        f"({result.n_gpus} GPU(s)):"
+    )
+    console.print(
+        f"  max concurrent requests @ {context} ctx: {result.max_concurrent_at_context}"
+    )
+    if result.per_user_decode_tps_at_max is not None:
+        console.print(
+            f"  per-user decode t/s at max: {result.per_user_decode_tps_at_max:.1f}"
+        )
+    _capacity_print_assumptions(result.assumptions.lines)
 
 
 def main() -> None:
