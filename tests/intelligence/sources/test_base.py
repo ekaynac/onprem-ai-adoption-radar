@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 import pytest
+import yaml
 
 from radar.intelligence.contracts import EvidenceStrength
 from radar.intelligence.sources.base import SourceRecord
@@ -91,3 +93,26 @@ def test_registry_rejects_unknown_enabled_source_type() -> None:
         import asyncio
 
         asyncio.run(client.aclose())
+
+
+def test_repository_source_config_builds_all_enabled_adapters() -> None:
+    root = Path(__file__).resolve().parents[3]
+    payload = yaml.safe_load(
+        (root / "config" / "intelligence-sources.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    config = SourceRegistryConfig.model_validate(payload)
+    client = httpx.AsyncClient()
+    try:
+        adapters = build_source_adapters(config, client)
+    finally:
+        import asyncio
+
+        asyncio.run(client.aclose())
+
+    assert [adapter.id for adapter in adapters] == [
+        "github-releases",
+        "huggingface",
+        "official-feeds",
+    ]
