@@ -172,6 +172,16 @@ class QualificationRow(Base):
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class WorkspaceRow(Base):
+    __tablename__ = "intelligence_workspaces"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    schema_version: Mapped[int] = mapped_column(Integer)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class EvidenceRow(Base):
     __tablename__ = "intelligence_evidence"
 

@@ -45,8 +45,10 @@ from radar.intelligence.schema import (
     ReleaseRow,
     ReviewExceptionRow,
     SourceHealthRow,
+    WorkspaceRow,
 )
 from radar.intelligence.source_health import SourceHealthState
+from radar.intelligence.workspaces import Workspace
 
 
 class RepositoryConflict(ValueError):
@@ -739,6 +741,52 @@ class SqlAlchemyIntelligenceRepository:
                 assumptions=row.assumptions,
                 evidence_ids=row.evidence_ids,
             )
+
+    def create_workspace(self, workspace: Workspace) -> Workspace:
+        now = datetime.now(UTC)
+        payload = workspace.model_dump(mode="json")
+        workspace_id = str(payload.pop("id"))
+        schema_version = int(payload.pop("schema_version"))
+        with self.database.session() as session:
+            if session.get(WorkspaceRow, workspace_id) is not None:
+                raise RepositoryConflict(
+                    f"Workspace already exists: {workspace_id}"
+                )
+            session.add(
+                WorkspaceRow(
+                    id=workspace_id,
+                    schema_version=schema_version,
+                    payload=payload,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+        return workspace
+
+    def get_workspace(self, workspace_id: str) -> Workspace | None:
+        with self.database.session() as session:
+            row = session.get(WorkspaceRow, workspace_id)
+            if row is None:
+                return None
+            return Workspace(
+                id=row.id,
+                schema_version=row.schema_version,
+                **row.payload,
+            )
+
+    def list_workspaces(self) -> list[Workspace]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(select(WorkspaceRow).order_by(WorkspaceRow.id))
+            )
+            return [
+                Workspace(
+                    id=row.id,
+                    schema_version=row.schema_version,
+                    **row.payload,
+                )
+                for row in rows
+            ]
 
     def count_releases(self) -> int:
         with self.database.session() as session:
