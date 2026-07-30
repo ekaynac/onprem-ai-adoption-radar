@@ -218,6 +218,22 @@ class SqlAlchemyIntelligenceRepository:
             session.add(PublisherRow(**publisher.model_dump(mode="json")))
             return True
 
+    def list_publishers(self) -> list[Publisher]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(select(PublisherRow).order_by(PublisherRow.id))
+            )
+            return [
+                Publisher(
+                    id=row.id,
+                    name=row.name,
+                    official_domains=row.official_domains,
+                    official_accounts=row.official_accounts,
+                    aliases=row.aliases,
+                )
+                for row in rows
+            ]
+
     def upsert_family(self, family: ProductFamily) -> bool:
         with self.database.session() as session:
             existing = session.get(FamilyRow, family.id)
@@ -233,6 +249,28 @@ class SqlAlchemyIntelligenceRepository:
                 return False
             session.add(FamilyRow(**family.model_dump(mode="json")))
             return True
+
+    def list_families_for_publisher(
+        self,
+        publisher_id: str,
+    ) -> list[ProductFamily]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(
+                    select(FamilyRow)
+                    .where(FamilyRow.publisher_id == publisher_id)
+                    .order_by(FamilyRow.id)
+                )
+            )
+            return [
+                ProductFamily(
+                    id=row.id,
+                    publisher_id=row.publisher_id,
+                    name=row.name,
+                    aliases=row.aliases,
+                )
+                for row in rows
+            ]
 
     def upsert_release(self, release: Release) -> bool:
         with self.database.session() as session:
@@ -281,6 +319,17 @@ class SqlAlchemyIntelligenceRepository:
         with self.database.session() as session:
             row = session.get(ReleaseRow, release_id)
             return self._release_from_row(row) if row is not None else None
+
+    def list_releases_for_publisher(self, publisher_id: str) -> list[Release]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(
+                    select(ReleaseRow)
+                    .where(ReleaseRow.publisher_id == publisher_id)
+                    .order_by(ReleaseRow.id)
+                )
+            )
+            return [self._release_from_row(row) for row in rows]
 
     def count_releases(self) -> int:
         with self.database.session() as session:
