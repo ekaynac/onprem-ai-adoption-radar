@@ -2339,6 +2339,23 @@ def _capacity_print_assumptions(lines) -> None:
         console.print(f"  - {line}")
 
 
+def _capacity_print_recipe(plan, entry, *, engine: str, kv_dtype: str) -> None:
+    """Render the launch recipe for ``engine``, or a skip note for llama-cpp.
+
+    ``launch_recipe`` deliberately has no llama-cpp template (single-node
+    tool, no multi-GPU launch config to generate) — the CLI shows a dim note
+    instead of calling it, rather than letting a ``ValueError`` surface.
+    """
+    from radar.capacity.recipe import launch_recipe
+
+    if engine == "llama-cpp":
+        console.print("[dim](no launch recipe for llama-cpp — single-node tool)[/dim]")
+        return
+    recipe = launch_recipe(plan, entry, engine=engine, kv_dtype=kv_dtype)
+    console.print(f"[bold]Launch recipe ({engine}):[/bold]")
+    console.print(recipe, markup=False)
+
+
 @capacity_app.command("plan")
 def capacity_plan(
     model: str = typer.Option(..., "--model", help="Model id to plan capacity for."),
@@ -2408,6 +2425,7 @@ def capacity_plan(
     if plan.throughput is not None:
         _capacity_print_throughput(plan.throughput, plan.meets_target)
     _capacity_print_assumptions(plan.assumptions.lines)
+    _capacity_print_recipe(plan, entry, engine=engine, kv_dtype=kv_dtype)
 
 
 @capacity_app.command("max")

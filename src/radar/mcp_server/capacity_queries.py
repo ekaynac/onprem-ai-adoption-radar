@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from radar.capacity.memory import InfeasibleError
+from radar.capacity.recipe import launch_recipe
 from radar.capacity.solver import max_workload as _solve_max_workload
 from radar.capacity.solver import plan_capacity as _solve_plan_capacity
 from radar.capacity.types import Workload
@@ -65,7 +66,12 @@ def _plan_one(
     kv_dtype: str,
     engine: str,
 ) -> dict[str, Any]:
-    """Solve one (model, device) pair; folds every failure into a dict."""
+    """Solve one (model, device) pair; folds every failure into a dict.
+
+    On success the dict also carries ``"recipe"``: a copy-pasteable launch
+    command for ``engine`` (task 8, spec §6.4) — omitted when ``engine`` is
+    ``llama-cpp``, which has no launch recipe (single-node tool).
+    """
     workload = Workload(
         concurrent_requests=concurrent_requests,
         avg_context_tokens=avg_context_tokens,
@@ -84,7 +90,13 @@ def _plan_one(
         # exception across the MCP boundary.
         return {"feasible": False, "model_id": entry.id, "device": device,
                 "reasons": [str(exc)]}
-    return {"feasible": True, **plan.model_dump(mode="json")}
+    result: dict[str, Any] = {"feasible": True, **plan.model_dump(mode="json")}
+    if engine != "llama-cpp":
+        # launch_recipe has no llama-cpp template (single-node tool, no
+        # multi-GPU launch config) — omit the key rather than raising or
+        # forcing every consumer to special-case a placeholder value.
+        result["recipe"] = launch_recipe(plan, entry, engine=engine, kv_dtype=kv_dtype)
+    return result
 
 
 class CapacityQueryService:
@@ -111,8 +123,9 @@ class CapacityQueryService:
         """Smallest GPU count (+ layout) that serves the workload, or why not.
 
         ``None`` for an unknown ``model_id``. Otherwise always a dict:
-        ``{"feasible": True, **CapacityPlan.model_dump(mode="json")}`` on
-        success, or ``{"feasible": False, "model_id", "device", "reasons"}``
+        ``{"feasible": True, "recipe": <launch command>, **CapacityPlan.model_dump(mode="json")}``
+        on success (``"recipe"`` omitted for ``engine="llama-cpp"``, which has
+        none), or ``{"feasible": False, "model_id", "device", "reasons"}``
         when infeasible or the inputs (device/quant/kv_dtype/engine) are bad.
         """
         entry = _find_entry(self._entries(), model_id)

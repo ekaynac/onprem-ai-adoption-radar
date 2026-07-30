@@ -28,6 +28,25 @@ def test_plan_capacity_happy_path_feasible(tmp_path):
     assert result["n_gpus"] == 16
     assert result["n_nodes"] == 2
     assert result["assumptions"]["lines"]  # non-empty assumption sheet
+    # launch recipe (task 8): default engine is vllm
+    assert "recipe" in result
+    assert "--tensor-parallel-size 8" in result["recipe"]
+    assert "--pipeline-parallel-size 2" in result["recipe"]
+    assert "huggingface.co/deepseek-ai/DeepSeek-V4-Pro" in result["recipe"]
+
+
+def test_plan_capacity_llama_cpp_engine_has_no_recipe_key(tmp_path):
+    service = CapacityQueryService(tmp_path)
+
+    result = service.plan_capacity(
+        "deepseek-v3", "hgx-h200-8",
+        concurrent_requests=10, avg_context_tokens=4096,
+        quant="FP8", engine="llama-cpp",
+    )
+
+    assert result is not None
+    assert result["feasible"] is True
+    assert "recipe" not in result
 
 
 def test_max_workload_infeasible_single_h200_returns_reasons_dict(tmp_path):

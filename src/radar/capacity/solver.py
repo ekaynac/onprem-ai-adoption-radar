@@ -52,7 +52,14 @@ _LAYOUT_HEURISTIC_NOTE = (
 
 
 class CapacityPlan(BaseModel):
-    """The smallest deployment shape (GPU count + layout) that serves a workload."""
+    """The smallest deployment shape (GPU count + layout) that serves a workload.
+
+    ``workload`` and ``quant_format`` are carried verbatim from the inputs
+    that produced this plan (task 8, spec §6.4) so a downstream consumer —
+    ``radar.capacity.recipe.launch_recipe`` — can render a launch command
+    without the caller re-threading the workload/quant separately; the plan
+    is the single self-contained record of "what was solved for."
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -65,6 +72,8 @@ class CapacityPlan(BaseModel):
     throughput: ThroughputEstimate | None
     meets_target: bool | None
     assumptions: AssumptionSheet
+    workload: Workload
+    quant_format: str
 
 
 class MaxWorkload(BaseModel):
@@ -294,6 +303,8 @@ def plan_capacity(
             throughput=throughput,
             meets_target=meets_target,
             assumptions=assumptions,
+            workload=workload,
+            quant_format=resolved_label,
         )
 
     if not last_reasons:

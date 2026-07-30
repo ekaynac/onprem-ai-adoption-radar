@@ -33,6 +33,54 @@ def test_capacity_plan_happy_path_uses_seed_fallback(tmp_path):
     assert "2" in result.stdout  # n_nodes
     assert "Assumptions:" in result.stdout
     assert "no scan found — using bundled seed specs" in result.stdout
+    # launch recipe (task 8): default engine is vllm
+    assert "Launch recipe (vllm):" in result.stdout
+    assert "--tensor-parallel-size 8" in result.stdout
+    assert "--pipeline-parallel-size 2" in result.stdout
+    assert "--kv-cache-dtype fp8" in result.stdout
+    assert "--max-num-seqs 50" in result.stdout
+    assert "--max-model-len 32768" in result.stdout
+    assert "huggingface.co/deepseek-ai/DeepSeek-V4-Pro" in result.stdout
+
+
+def test_capacity_plan_sglang_engine_renders_sglang_recipe(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, [
+        "capacity", "plan",
+        "--model", "hf-deepseek-v4-pro",
+        "--device", "hgx-h200-8",
+        "--users", "50",
+        "--context", "32768",
+        "--quant", "FP8",
+        "--kv-dtype", "fp8",
+        "--engine", "sglang",
+        "--root", str(tmp_path),
+    ])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Launch recipe (sglang):" in result.stdout
+    assert "--tp 8" in result.stdout
+    assert "--pp 2" in result.stdout
+
+
+def test_capacity_plan_llama_cpp_engine_skips_recipe_with_dim_note(tmp_path):
+    runner = CliRunner()
+
+    result = runner.invoke(app, [
+        "capacity", "plan",
+        "--model", "deepseek-v3",
+        "--device", "hgx-h200-8",
+        "--users", "10",
+        "--context", "4096",
+        "--quant", "FP8",
+        "--engine", "llama-cpp",
+        "--root", str(tmp_path),
+    ])
+
+    assert result.exit_code == 0, result.stdout
+    assert "no launch recipe for llama-cpp — single-node tool" in result.stdout
+    assert "Launch recipe" not in result.stdout
 
 
 def test_capacity_max_infeasible_single_h200_reports_memory_reason(tmp_path):
