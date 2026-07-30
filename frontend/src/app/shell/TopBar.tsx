@@ -1,3 +1,6 @@
+import { WorkspaceSwitcher } from "../../features/workspaces/WorkspaceSwitcher";
+
+
 export function TopBar() {
   return (
     <header className="topbar">
@@ -11,6 +14,7 @@ export function TopBar() {
         <kbd>⌘ K</kbd>
       </label>
       <div className="topbar-actions">
+        <WorkspaceSwitcher />
         <button className="icon-button" type="button" aria-label="Review exceptions">
           <span aria-hidden="true">!</span>
         </button>

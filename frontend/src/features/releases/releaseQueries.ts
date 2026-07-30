@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../../api/client";
 import type { components } from "../../api/generated/schema";
+import { useActiveWorkspaceId } from "../workspaces/workspaceStore";
 
 
 export type ReleaseChange = components["schemas"]["ReleaseChange"];
@@ -16,13 +17,7 @@ type Page<T> = {
 };
 
 
-export function useActiveWorkspaceId() {
-  try {
-    return window.localStorage.getItem("radar.activeWorkspaceId") ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
+export { useActiveWorkspaceId };
 
 
 export function usePriorityReleases(

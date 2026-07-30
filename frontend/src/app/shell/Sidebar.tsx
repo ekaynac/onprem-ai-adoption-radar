@@ -28,7 +28,11 @@ const navigation = [
   },
   {
     label: "Monitor",
-    items: [{ to: "/operations", label: "Operations", mark: "OP" }],
+    items: [
+      { to: "/operations", label: "Operations", mark: "OP" },
+      { to: "/operations/reviews", label: "Review queue", mark: "RQ" },
+      { to: "/watchlists", label: "Watchlists", mark: "WL" },
+    ],
   },
   {
     label: "Integrate",

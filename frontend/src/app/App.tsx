@@ -6,21 +6,17 @@ import { ModelDetailPage } from "../features/catalog/ModelDetailPage";
 import { PlatformDetailPage } from "../features/catalog/PlatformDetailPage";
 import { PlatformsPage } from "../features/catalog/PlatformsPage";
 import { ResearchPage } from "../features/catalog/ResearchPage";
+import { ComparePage } from "../features/compare/ComparePage";
+import { IntegrationsPage } from "../features/operations/IntegrationsPage";
+import { ReviewQueuePage } from "../features/operations/ReviewQueuePage";
+import { SourceHealthPage } from "../features/operations/SourceHealthPage";
+import { WatchlistsPage } from "../features/operations/WatchlistsPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
+import { PlannerPage } from "../features/planner/PlannerPage";
 import { ReleaseDetailPage } from "../features/releases/ReleaseDetailPage";
 import { ReleaseStreamPage } from "../features/releases/ReleaseStreamPage";
+import { WorkspacePage } from "../features/workspaces/WorkspacePage";
 import { AppShell } from "./shell/AppShell";
-
-
-function ComingSoon() {
-  return (
-    <section className="page-stack">
-      <p className="eyebrow">Architect Workspace</p>
-      <h1>Intelligence surface</h1>
-      <p className="lede">This workspace is connected to the shared command center.</p>
-    </section>
-  );
-}
 
 
 export function App() {
@@ -36,11 +32,13 @@ export function App() {
         <Route path="/platforms/:platformId" element={<PlatformDetailPage />} />
         <Route path="/hardware" element={<HardwarePage />} />
         <Route path="/research" element={<ResearchPage />} />
-        <Route path="/compare" element={<ComingSoon />} />
-        <Route path="/planner" element={<ComingSoon />} />
-        <Route path="/workspaces" element={<ComingSoon />} />
-        <Route path="/operations" element={<ComingSoon />} />
-        <Route path="/integrations" element={<ComingSoon />} />
+        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/planner" element={<PlannerPage />} />
+        <Route path="/workspaces" element={<WorkspacePage />} />
+        <Route path="/operations" element={<SourceHealthPage />} />
+        <Route path="/operations/reviews" element={<ReviewQueuePage />} />
+        <Route path="/watchlists" element={<WatchlistsPage />} />
+        <Route path="/integrations" element={<IntegrationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/overview" replace />} />
     </Routes>

@@ -157,6 +157,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/operations/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review Queue */
+        get: operations["review_queue_api_v1_operations_reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/operations/reviews/{exception_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Review */
+        post: operations["resolve_review_api_v1_operations_reviews__exception_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -428,6 +462,33 @@ export interface components {
             release_id: string;
             /** Review Status */
             review_status: string;
+        };
+        /** ReviewException */
+        ReviewException: {
+            /** Code */
+            code: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Id */
+            id: string;
+            /** Message */
+            message: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Subject Id */
+            subject_id: string;
+        };
+        /** ReviewResolutionInput */
+        ReviewResolutionInput: {
+            /** Evidence Ids */
+            evidence_ids?: string[];
+            /** Resolution */
+            resolution: string;
         };
         /**
          * Ring
@@ -759,6 +820,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationsSnapshot"];
+                };
+            };
+        };
+    };
+    review_queue_api_v1_operations_reviews_get: {
+        parameters: {
+            query?: {
+                open_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewException"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_review_api_v1_operations_reviews__exception_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exception_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewResolutionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewException"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
