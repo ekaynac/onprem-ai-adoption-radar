@@ -142,6 +142,36 @@ class SourceHealthRow(Base):
     )
 
 
+class CompatibilityRow(Base):
+    __tablename__ = "intelligence_compatibility"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    release_id: Mapped[str] = mapped_column(
+        ForeignKey("intelligence_releases.id"), index=True
+    )
+    platform_id: Mapped[str] = mapped_column(String(255), index=True)
+    platform_version: Mapped[str] = mapped_column(String(100))
+    feature: Mapped[str] = mapped_column(String(100), index=True)
+    support: Mapped[str] = mapped_column(String(24))
+    evidence_level: Mapped[str] = mapped_column(String(24))
+    evidence_ids: Mapped[list[str]] = mapped_column(JSON)
+    hardware_scope: Mapped[list[str]] = mapped_column(JSON)
+
+
+class QualificationRow(Base):
+    __tablename__ = "intelligence_qualifications"
+
+    release_id: Mapped[str] = mapped_column(
+        ForeignKey("intelligence_releases.id"), primary_key=True
+    )
+    qualified: Mapped[bool]
+    category: Mapped[str] = mapped_column(String(40), index=True)
+    reasons: Mapped[list[str]] = mapped_column(JSON)
+    assumptions: Mapped[list[str]] = mapped_column(JSON)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSON)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class EvidenceRow(Base):
     __tablename__ = "intelligence_evidence"
 

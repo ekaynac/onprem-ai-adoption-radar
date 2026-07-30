@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from radar.intelligence.contracts import (
     Claim,
     ClaimState,
+    CompatibilityAssertion,
+    EvidenceLevel,
     EvidenceObservation,
     EvidenceStrength,
     LifecycleState,
@@ -20,15 +22,18 @@ from radar.intelligence.contracts import (
     ModelCategory,
     ProductFamily,
     Publisher,
+    Qualification,
     Release,
     ReleaseLane,
     ReviewException,
+    SupportStatus,
 )
 from radar.intelligence.database import Database
 from radar.intelligence.jobs import JobKind, JobLease, JobStatus
 from radar.intelligence.schema import (
     ClaimEvidenceRow,
     ClaimRow,
+    CompatibilityRow,
     EvidenceRow,
     FamilyRow,
     JobRow,
@@ -36,6 +41,7 @@ from radar.intelligence.schema import (
     LifecycleTransitionRow,
     PlatformRow,
     PublisherRow,
+    QualificationRow,
     ReleaseRow,
     ReviewExceptionRow,
     SourceHealthRow,
@@ -148,6 +154,20 @@ def _source_health_from_row(row: SourceHealthRow) -> SourceHealthState:
         latency_ms=row.latency_ms,
         items_count=row.items_count,
         circuit_open_until=_as_utc(row.circuit_open_until),
+    )
+
+
+def _compatibility_from_row(row: CompatibilityRow) -> CompatibilityAssertion:
+    return CompatibilityAssertion(
+        id=row.id,
+        release_id=row.release_id,
+        platform_id=row.platform_id,
+        platform_version=row.platform_version,
+        feature=row.feature,
+        support=SupportStatus(row.support),
+        evidence_level=EvidenceLevel(row.evidence_level),
+        evidence_ids=row.evidence_ids,
+        hardware_scope=row.hardware_scope,
     )
 
 
@@ -598,6 +618,126 @@ class SqlAlchemyIntelligenceRepository:
             row = session.get(SourceHealthRow, source_id)
             return (
                 _source_health_from_row(row) if row is not None else None
+            )
+
+    def upsert_compatibility(
+        self,
+        assertion: CompatibilityAssertion,
+    ) -> bool:
+        with self.database.session() as session:
+            row = session.get(CompatibilityRow, assertion.id)
+            if row is not None:
+                if _compatibility_from_row(row) != assertion:
+                    raise RepositoryConflict(
+                        f"Compatibility id changed: {assertion.id}"
+                    )
+                return False
+            session.add(
+                CompatibilityRow(
+                    id=assertion.id,
+                    release_id=assertion.release_id,
+                    platform_id=assertion.platform_id,
+                    platform_version=assertion.platform_version,
+                    feature=assertion.feature,
+                    support=assertion.support.value,
+                    evidence_level=assertion.evidence_level.value,
+                    evidence_ids=assertion.evidence_ids,
+                    hardware_scope=assertion.hardware_scope,
+                )
+            )
+            return True
+
+    def get_compatibility(
+        self,
+        assertion_id: str,
+    ) -> CompatibilityAssertion | None:
+        with self.database.session() as session:
+            row = session.get(CompatibilityRow, assertion_id)
+            return (
+                _compatibility_from_row(row) if row is not None else None
+            )
+
+    def list_compatibility(
+        self,
+        release_id: str,
+    ) -> list[CompatibilityAssertion]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(
+                    select(CompatibilityRow)
+                    .where(CompatibilityRow.release_id == release_id)
+                    .order_by(CompatibilityRow.id)
+                )
+            )
+            return [_compatibility_from_row(row) for row in rows]
+
+    def list_compatibility_for_evidence(
+        self,
+        evidence_id: str,
+    ) -> list[CompatibilityAssertion]:
+        return [
+            assertion
+            for release in self.list_all_releases()
+            for assertion in self.list_compatibility(release.id)
+            if evidence_id in assertion.evidence_ids
+        ]
+
+    def list_all_releases(self) -> list[Release]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(select(ReleaseRow).order_by(ReleaseRow.id))
+            )
+            return [self._release_from_row(row) for row in rows]
+
+    def set_claim_state(
+        self,
+        claim_id: str,
+        state: ClaimState,
+    ) -> None:
+        with self.database.session() as session:
+            row = session.get(ClaimRow, claim_id)
+            if row is None:
+                raise RepositoryConflict(f"Unknown claim: {claim_id}")
+            row.state = state.value
+
+    def save_qualification(
+        self,
+        qualification: Qualification,
+        now: datetime,
+    ) -> None:
+        payload = qualification.model_dump(mode="json")
+        with self.database.session() as session:
+            row = session.get(QualificationRow, qualification.release_id)
+            if row is None:
+                session.add(
+                    QualificationRow(
+                        **payload,
+                        computed_at=now,
+                    )
+                )
+                return
+            row.qualified = qualification.qualified
+            row.category = qualification.category.value
+            row.reasons = qualification.reasons
+            row.assumptions = qualification.assumptions
+            row.evidence_ids = qualification.evidence_ids
+            row.computed_at = now
+
+    def get_qualification(
+        self,
+        release_id: str,
+    ) -> Qualification | None:
+        with self.database.session() as session:
+            row = session.get(QualificationRow, release_id)
+            if row is None:
+                return None
+            return Qualification(
+                release_id=row.release_id,
+                qualified=row.qualified,
+                category=ModelCategory(row.category),
+                reasons=row.reasons,
+                assumptions=row.assumptions,
+                evidence_ids=row.evidence_ids,
             )
 
     def count_releases(self) -> int:
