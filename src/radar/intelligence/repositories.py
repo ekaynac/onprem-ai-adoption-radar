@@ -544,6 +544,27 @@ class SqlAlchemyIntelligenceRepository:
             row = session.get(ReviewExceptionRow, exception_id)
             return row.resolution if row is not None else None
 
+    def list_review_exceptions(
+        self,
+        *,
+        open_only: bool = False,
+    ) -> list[ReviewException]:
+        with self.database.session() as session:
+            statement = select(ReviewExceptionRow)
+            if open_only:
+                statement = statement.where(
+                    ReviewExceptionRow.resolved_at.is_(None)
+                )
+            rows = list(
+                session.scalars(
+                    statement.order_by(
+                        ReviewExceptionRow.opened_at.desc(),
+                        ReviewExceptionRow.id,
+                    )
+                )
+            )
+            return [_review_from_row(row) for row in rows]
+
     def increment_source_failure(
         self,
         source_id: str,
@@ -620,6 +641,28 @@ class SqlAlchemyIntelligenceRepository:
             row = session.get(SourceHealthRow, source_id)
             return (
                 _source_health_from_row(row) if row is not None else None
+            )
+
+    def list_source_health(self) -> list[SourceHealthState]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(
+                    select(SourceHealthRow).order_by(
+                        SourceHealthRow.source_id
+                    )
+                )
+            )
+            return [_source_health_from_row(row) for row in rows]
+
+    def count_stale_claims(self) -> int:
+        with self.database.session() as session:
+            return (
+                session.scalar(
+                    select(func.count())
+                    .select_from(ClaimRow)
+                    .where(ClaimRow.state == ClaimState.STALE.value)
+                )
+                or 0
             )
 
     def upsert_compatibility(
