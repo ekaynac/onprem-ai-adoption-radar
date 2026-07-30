@@ -45,3 +45,23 @@ def test_sharding_infeasibility_reasons():
 
 def test_mla_tp_exempt_from_kv_head_divisibility():
     assert check_sharding(MLA_V3, num_layers=61, parallelism=Parallelism(tensor_parallel=16)) == []
+
+
+def test_kv_replication_disclosed_when_tp_exceeds_kv_heads():
+    # HYBRID_V4 kv_heads=1, tp=16: tp far exceeds kv_heads -> replication note required.
+    plan = plan_memory(params_total=1_600_000_000_000, bits_per_weight=8.0,
+                       architecture=HYBRID_V4, num_layers=61, hidden_size=7168,
+                       workload=Workload(concurrent_requests=50, avg_context_tokens=32768),
+                       parallelism=Parallelism(tensor_parallel=16),
+                       device=resolve_device("h200-141gb"), kv_dtype="fp8")
+    assert any(
+        "tensor_parallel" in note and "replicates KV" in note
+        for note in plan.assumptions.lines
+    )
+    # GQA_70B kv_heads=8, tp=8: kv_heads >= tp (divides evenly, no replication) -> no note.
+    plan_even = plan_memory(params_total=70_000_000_000, bits_per_weight=16.0,
+                            architecture=GQA_70B, num_layers=80, hidden_size=8192,
+                            workload=Workload(concurrent_requests=10, avg_context_tokens=4096),
+                            parallelism=Parallelism(tensor_parallel=8),
+                            device=resolve_device("h100-80gb"))
+    assert not any("replicates KV" in note for note in plan_even.assumptions.lines)

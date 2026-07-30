@@ -18,7 +18,14 @@ worked test numbers in ``tests/test_capacity_memory.py`` are the contract):
   * pipeline_parallel)``. KV shards over TP (each TP rank holds a fraction of
   the attention heads' KV). PP also divides it: each pipeline stage only
   holds the KV for the layers it owns, so per-stage KV divides by pp too —
-  hence the combined ``/ (tp * pp)``.
+  hence the combined ``/ (tp * pp)``. This divisor models request-distributed
+  KV (data-parallel-attention-style serving, e.g. vLLM's DP-attention for
+  MLA/MQA), which is how narrow-kv-head models actually deploy at scale —
+  not a naive pure-TP replication of the whole KV cache onto every rank. When
+  ``tensor_parallel`` exceeds the KV head count (MLA, or GQA/HYBRID with few
+  kv_heads, e.g. MQA's ``kv_heads=1``), pure-TP would replicate KV per rank
+  instead of dividing it; the assumption note below discloses that gap
+  whenever it applies.
 - ``baseline_gb = RUNTIME_BASELINE_GB`` (fixed per-rank engine/CUDA-context
   footprint, reused from ``radar.models_radar.memory`` rather than
   redefined).
@@ -213,6 +220,18 @@ def plan_memory(
         assumptions = assumptions.plus(
             "MLA latent KV cache is replicated per TP rank, not sharded by head — "
             "tensor_parallel does not reduce per-rank KV memory for MLA models"
+        )
+    elif (
+        architecture is not None
+        and architecture.kv_lora_rank is None
+        and architecture.num_key_value_heads is not None
+        and parallelism.tensor_parallel > architecture.num_key_value_heads
+    ):
+        assumptions = assumptions.plus(
+            f"KV heads ({architecture.num_key_value_heads}) < tensor_parallel "
+            f"({parallelism.tensor_parallel}): pure-TP serving replicates KV per "
+            "rank — estimate assumes request-distributed KV (data-parallel "
+            "attention); pure-TP per-rank KV would be higher"
         )
 
     return MemoryPlan(
