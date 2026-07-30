@@ -51,6 +51,7 @@ config/seed-sources    │ orchestrator.RadarOrchestrator._scan         │
 | `discovery/` | `github_trending` proposes untracked fast-rising repos; `proposals` writes/reads the review-only `proposed-seeds.yaml`. |
 | `notify/` | `webhook` posts a fire-and-forget notification on ring changes (generic JSON or Slack format), off by default. |
 | `models_radar/platform_matrix` | Bundled, cited capability matrix (`config/platform-matrix.yaml`) — which serving engines (vLLM, SGLang, TensorRT-LLM, ...) support which hardware/features; every cell traces to a doc/release-note citation, `unknown` when unconfirmed. Powers `/platforms`, its static twin, and the MCP `get_platform_support` tool. |
+| `capacity/` | Deterministic capacity engine: architecture-correct KV math, per-rank TP/PP/EP memory, roofline throughput (documented engine-efficiency estimates), two-direction solver, launch recipes, kW-first TCO. Powers `radar capacity plan/max` + MCP `plan_capacity`/`max_workload`/`compare_devices`. |
 | `reports/` | Markdown renderers: full report (+ movers, evidence, upgrade-risk, pins), Try This Week, history, comparison, sandbox, JSON export, `movers`, and `feeds` (Atom + JSON change feeds). |
 | `web/` | FastAPI dashboard (`app`) and the self-contained static export (`static_site`, with change feeds) used by the Pages workflow. |
 | `mcp_server/` | Read-only MCP tools (`queries` + stdio `server`) so agents can ask the radar questions. |

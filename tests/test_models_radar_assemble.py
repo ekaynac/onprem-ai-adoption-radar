@@ -25,8 +25,13 @@ def test_build_merges_specs_computes_memory_and_tier():
     assert m.params_total == 8_000_000_000 and m.context_length == 131072
     assert m.openness == Openness.OPEN_PERMISSIVE
     # quants from HF formats + ollama tag, each with a computed 4k memory estimate
+    # v2: no architecture -> legacy MHA KV bound from hidden_size.
+    # weights = 8B*4.5/8/1e9 = 4.5 GB; *FRAGMENTATION(1.05) = 4.725
+    # kv = 2*hidden_size(4096)*2bytes*layers(32) = 524288 bytes/token;
+    #      kv_gb at 4096 tokens = 524288*4096/1e9 = 2.147... -> rounds to 2.15
+    # total = 4.725 + 2.15 + 1.5 = 8.375 -> rounds to 8.38 (band [7.5, 9.0])
     q4 = next(q for q in m.quants if q.bits_per_weight == 4.5 and q.est_memory_gb_4k)
-    assert 7.0 <= q4.est_memory_gb_4k <= 9.0
+    assert 7.5 <= q4.est_memory_gb_4k <= 9.0
     # 8B Q4 → laptop tier
     assert m.hardware_tier == HardwareTier.LAPTOP
 
@@ -136,7 +141,9 @@ def test_fp8_repo_gets_real_variant_not_synth_ladder():
 def test_nvfp4_bits():
     from radar.models_radar.assemble import bits_for_format
 
-    assert bits_for_format("NVFP4") == 4.25
+    # v2: NVFP4 uses E4M3 scales per 16 elements (+0.5 bit -> 4.5), distinct
+    # from MXFP4's coarser E8M0 scales per 32 elements (+0.25 bit -> 4.25).
+    assert bits_for_format("NVFP4") == 4.5
     assert bits_for_format("MXFP4") == 4.25
     assert bits_for_format("FP8") == 8.0
 

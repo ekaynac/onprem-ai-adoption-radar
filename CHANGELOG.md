@@ -6,6 +6,61 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Capacity engine (sub-project D)
+- **Architecture-correct KV cache math** — replaces the old MHA-blind flat
+  estimator with per-attention-kind formulas (MLA latent cache, GQA/MHA
+  per-head, HYBRID approximated as full GQA on the published kv geometry, an
+  upper bound). DeepSeek-V3's KV cache at 32k context drops from a hand-wavy
+  ~350 GB estimate under the old formula to a cited **2.3 GB** under the
+  MLA-correct math (`radar.capacity.kv`) — the headline fix the whole engine
+  exists to deliver.
+- **Estimator v2** — the flat `OVERHEAD = 1.2` multiplier is gone; per-rank
+  memory is now itemized as `weights + KV + a fixed ~1.5 GB runtime baseline
+  + 5% fragmentation`, not one proportional fudge factor. NVFP4 is now
+  modeled at its real 4.5 bits/weight (was 4.25).
+- **Per-rank TP/PP/EP memory + sharding feasibility** — `radar.capacity.memory`
+  computes exactly what one GPU rank holds under a tensor/pipeline/expert-
+  parallel layout, including uneven pipeline stages (`ceil(num_layers / pp)`
+  largest-stage modeling — real engines don't require an even layer split;
+  DeepSeek-class 61-layer checkpoints are routinely served at `pp=2` as
+  31+30 rather than forcing an all-or-nothing divisibility rule).
+- **Roofline throughput** — decode (bandwidth-bound) and prefill
+  (compute-bound) tokens/sec from documented, engine-specific MBU/MFU
+  efficiency constants (vLLM, SGLang, TensorRT-LLM, llama.cpp) — disclosed
+  as estimates, not measurements, in every returned assumption sheet.
+- **Two-direction solver** — `radar.capacity.solver.plan_capacity` finds the
+  smallest GPU count (+ layout) that fits memory and clears an optional
+  throughput target; `max_workload` fixes the fleet size and finds the
+  largest concurrency it can serve. Anchored against hand-derived cases
+  (DeepSeek-V4-Pro needs 2 H200 nodes for 50 concurrent users at 32k
+  context).
+- **`radar capacity plan` / `radar capacity max` CLI** — full assumption
+  sheets, per-rank memory tables, and throughput/TTFT on every answer, with
+  readable errors (never a traceback) for an unknown model/device, bad
+  kv-dtype, or bad engine.
+- **MCP capacity tools** — `plan_capacity`, `max_workload`, `compare_devices`
+  (the same workload solved across several devices, one reasoned row each)
+  never raise across the MCP boundary; infeasible or bad-input cases fold
+  into a structured `{"feasible": false, "reasons": [...]}` dict instead.
+- **Launch recipes** — a solved plan renders a copy-pasteable vLLM, SGLang,
+  or a cautious TensorRT-LLM (engine-build-step caveat) launch command, with
+  headroom and kv-dtype-support notes baked in.
+- **kW-first TCO** — `radar.capacity.tco.estimate_tco` reports fleet power
+  (kW), tokens/s/kW, and `$/Mtok` for a solved plan. Every datacenter device
+  in `config/device-seed.yaml` currently carries no public list price, so
+  `$/Mtok` is honestly electricity-only in practice today (flagged with
+  `"$/Mtok excludes hardware capex: no public list price for {device}"`),
+  making `tokens_per_sec_per_kw` the real headline efficiency metric.
+  CLI-overridable `--electricity-usd-kwh` (default $0.12/kWh) and
+  `--amortization-months` (default 36) on `radar capacity plan`.
+- **Documented scope deferrals**: per-layer hybrid-attention KV modeling
+  (HYBRID is approximated as full GQA today, an honest upper bound) awaits
+  published compression-ratio semantics; the MBU/MFU efficiency constants
+  are documented estimates for now and get calibrated against sub-project
+  E's measured benchmarks; expert-parallel (EP) layout is never
+  auto-selected by the solver — it is always pinned to `EP=1`, disclosed on
+  every returned plan.
+
 ### Device & platform knowledge (sub-project C)
 - **Device catalog schema v2** — `config/device-seed.yaml` replaces the
   hardcoded device list; per-device fields (`memory_bandwidth_gbs`,

@@ -38,7 +38,7 @@ def _quant_memory(model: ModelEntry, quant: QuantVariant, context_tokens: int) -
     """Memory for this quant at the context; estimator, else the stored 4K value."""
     est = estimate_memory_gb(
         model.params_total, quant.bits_per_weight, context_tokens,
-        model.num_layers, model.hidden_size,
+        model.num_layers, model.hidden_size, architecture=model.architecture,
     )
     return est if est is not None else quant.est_memory_gb_4k
 
