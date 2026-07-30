@@ -346,7 +346,7 @@ def max_workload(
     plan_at_one = _plan_at(1)
     if not plan_at_one.fits:
         raise InfeasibleError([
-            f"n_gpus={n_gpus}: does not fit even at concurrency=1 "
+            f"n_gpus={n_gpus}: memory shortfall — does not fit even at concurrency=1 "
             f"(per-rank total {plan_at_one.per_rank.total_gb:.2f} GB > "
             f"usable {plan_at_one.usable_per_gpu_gb:.2f} GB/GPU)"
         ])

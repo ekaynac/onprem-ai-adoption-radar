@@ -8,24 +8,39 @@ fits in the GPU's usable memory.
 Per-rank math (documented here, not just in the docstring below, because the
 worked test numbers in ``tests/test_capacity_memory.py`` are the contract):
 
-- ``weights_per_rank = weights_gb / world_size`` where
-  ``weights_gb = params_total * bits_per_weight / 8 / 1e9`` and
-  ``world_size = tensor_parallel * pipeline_parallel * expert_parallel``.
-  For MoE models, EP shards the routed-expert weights ~evenly; this is an
-  honest simplification — shared/dense layers' replicated cost is not
-  itemized separately (see the assumption note emitted below).
-- ``kv_per_rank = kv_gb(bytes_per_token, ctx, concurrency) / (tensor_parallel
-  * pipeline_parallel)``. KV shards over TP (each TP rank holds a fraction of
-  the attention heads' KV). PP also divides it: each pipeline stage only
-  holds the KV for the layers it owns, so per-stage KV divides by pp too —
-  hence the combined ``/ (tp * pp)``. This divisor models request-distributed
-  KV (data-parallel-attention-style serving, e.g. vLLM's DP-attention for
-  MLA/MQA), which is how narrow-kv-head models actually deploy at scale —
-  not a naive pure-TP replication of the whole KV cache onto every rank. When
-  ``tensor_parallel`` exceeds the KV head count (MLA, or GQA/HYBRID with few
-  kv_heads, e.g. MQA's ``kv_heads=1``), pure-TP would replicate KV per rank
-  instead of dividing it; the assumption note below discloses that gap
-  whenever it applies.
+- Pipeline parallelism does NOT require an even layer split (ruling
+  2026-07-30: real engines — vLLM, TensorRT-LLM — support uneven pipeline
+  stages; DeepSeek-class 61-layer checkpoints are routinely served at
+  ``pp=2`` as 31+30). Instead we model the LARGEST stage, since that's the
+  one every rank's memory budget must accommodate:
+  ``stage_fraction = ceil(num_layers / pp) / num_layers`` when ``pp > 1``
+  and ``num_layers`` is known; ``1.0`` otherwise (``pp == 1``, or the
+  layer count is unknown — the latter case never reaches this line because
+  ``check_sharding`` already rejects ``pp > 1`` with an unknown layer count
+  before ``plan_memory`` computes anything).
+- ``weights_per_rank = weights_gb * stage_fraction / (tensor_parallel *
+  expert_parallel)`` where ``weights_gb = params_total * bits_per_weight / 8
+  / 1e9``. For MoE models, EP shards the routed-expert weights ~evenly; this
+  is an honest simplification — shared/dense layers' replicated cost is not
+  itemized separately (see the assumption note emitted below). When
+  ``pp == 1`` or the layers split evenly, ``stage_fraction`` collapses to
+  ``1 / pipeline_parallel`` and this reduces exactly to the old
+  ``weights_gb / world_size`` — verified as an invariant in
+  ``tests/test_capacity_memory.py``.
+- ``kv_per_rank = kv_gb(bytes_per_token, ctx, concurrency) * stage_fraction /
+  tensor_parallel``. KV shards over TP (each TP rank holds a fraction of the
+  attention heads' KV). Each pipeline stage only holds the KV for the layers
+  it owns, so the largest stage's ``stage_fraction`` scales the KV term too
+  — same collapse-to-``/(tp*pp)`` invariant when layers split evenly. This
+  models request-distributed KV (data-parallel-attention-style serving,
+  e.g. vLLM's DP-attention for MLA/MQA), which is how narrow-kv-head models
+  actually deploy at scale — not a naive pure-TP replication of the whole KV
+  cache onto every rank. When ``tensor_parallel`` exceeds the KV head count
+  (MLA, or GQA/HYBRID with few kv_heads, e.g. MQA's ``kv_heads=1``),
+  pure-TP would replicate KV per rank instead of dividing it; the
+  assumption note below discloses that gap whenever it applies. An uneven
+  split (``num_layers % pp != 0``) adds its own disclosure note naming the
+  largest stage's share.
 - ``baseline_gb = RUNTIME_BASELINE_GB`` (fixed per-rank engine/CUDA-context
   footprint, reused from ``radar.models_radar.memory`` rather than
   redefined).
@@ -44,13 +59,17 @@ worked test numbers in ``tests/test_capacity_memory.py`` are the contract):
 Sharding feasibility (``check_sharding``) is checked first: TP requires the
 KV head count to divide evenly (MLA is exempt — its latent cache is
 replicated per rank, not sharded by head, so TP never fragments it); EP
-requires a known, evenly-divisible expert count; PP requires layer count to
-divide evenly. Any problem found there means ``plan_memory`` cannot produce
-a meaningful per-rank plan and raises ``InfeasibleError`` instead of a
-``MemoryPlan`` with nonsense numbers.
+requires a known, evenly-divisible expert count; PP requires a known layer
+count (can't size stages otherwise) and at most one layer's worth of
+stages (``pp <= num_layers``) — it no longer requires even divisibility
+(see the largest-stage modeling above). Any problem found there means
+``plan_memory`` cannot produce a meaningful per-rank plan and raises
+``InfeasibleError`` instead of a ``MemoryPlan`` with nonsense numbers.
 """
 
 from __future__ import annotations
+
+import math
 
 from pydantic import BaseModel, ConfigDict
 
@@ -119,7 +138,12 @@ def check_sharding(
       constraint for it.
     - EP: ``num_experts`` must be known and divide evenly by
       ``expert_parallel``.
-    - PP: ``num_layers`` must divide evenly by ``pipeline_parallel``.
+    - PP: ``num_layers`` must be known (can't size pipeline stages without
+      it) and ``pipeline_parallel`` must not exceed it (more stages than
+      layers is meaningless). Even divisibility is NOT required — real
+      engines (vLLM, TensorRT-LLM) support uneven pipeline stages, and
+      ``plan_memory`` models the largest stage rather than assuming an even
+      split (ruling 2026-07-30; see the module docstring).
     """
     problems: list[str] = []
     tp = parallelism.tensor_parallel
@@ -147,10 +171,16 @@ def check_sharding(
                 f"expert_parallel={ep} does not evenly divide num_experts={num_experts}"
             )
 
-    if pp > 1 and num_layers is not None and num_layers % pp != 0:
-        problems.append(
-            f"pipeline_parallel={pp} does not evenly divide num_layers={num_layers}"
-        )
+    if pp > 1:
+        if num_layers is None:
+            problems.append(
+                "pipeline parallelism requested but layer count unknown — cannot size stages"
+            )
+        elif pp > num_layers:
+            problems.append(
+                f"pipeline_parallel={pp} exceeds num_layers={num_layers} "
+                "(more stages than layers)"
+            )
 
     return problems
 
@@ -177,9 +207,26 @@ def plan_memory(
     if problems:
         raise InfeasibleError(problems)
 
-    world_size = parallelism.world_size
+    tp = parallelism.tensor_parallel
+    pp = parallelism.pipeline_parallel
+    ep = parallelism.expert_parallel
+
+    # Largest-stage modeling (ruling 2026-07-30): every rank's budget must
+    # accommodate the biggest pipeline stage, not an assumed-even average.
+    # pp==1 (or an unknown layer count, which check_sharding already
+    # rejects whenever pp>1) collapses stage_fraction to 1.0, and an even
+    # split collapses it to exactly 1/pp — both reduce to the pre-ruling
+    # math (weights_gb/world_size, kv_total/(tp*pp)); see
+    # tests/test_capacity_memory.py for the invariant check.
+    largest_stage_layers: int | None = None
+    if pp > 1 and num_layers is not None:
+        largest_stage_layers = math.ceil(num_layers / pp)
+        stage_fraction = largest_stage_layers / num_layers
+    else:
+        stage_fraction = 1.0
+
     weights_gb = params_total * bits_per_weight / 8 / 1e9
-    weights_per_rank = weights_gb / world_size
+    weights_per_rank = weights_gb * stage_fraction / (tp * ep)
 
     bytes_per_token, kv_notes = kv_bytes_per_token(
         architecture, num_layers=num_layers, hidden_size=hidden_size, kv_dtype=kv_dtype
@@ -189,7 +236,7 @@ def plan_memory(
         if bytes_per_token is not None
         else 0.0
     )
-    kv_per_rank = kv_total_gb / (parallelism.tensor_parallel * parallelism.pipeline_parallel)
+    kv_per_rank = kv_total_gb * stage_fraction / tp
 
     baseline_gb = RUNTIME_BASELINE_GB
     fragmentation_gb = FRAGMENTATION_FRACTION * (weights_per_rank + kv_per_rank)
@@ -212,6 +259,11 @@ def plan_memory(
         "simplification; shared/dense layers' replicated cost is not itemized",
         *kv_notes,
     )
+    if largest_stage_layers is not None and num_layers is not None and num_layers % pp != 0:
+        assumptions = assumptions.plus(
+            f"pipeline stages uneven: largest stage {largest_stage_layers}/{num_layers} "
+            "layers modeled (ceil)"
+        )
     if (
         architecture is not None
         and architecture.kv_lora_rank is not None
