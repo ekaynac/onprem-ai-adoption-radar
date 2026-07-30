@@ -5,7 +5,17 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -84,6 +94,52 @@ class JobRow(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     error: Mapped[str | None] = mapped_column(Text)
+
+
+class LifecycleTransitionRow(Base):
+    __tablename__ = "intelligence_lifecycle_transitions"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    release_id: Mapped[str] = mapped_column(
+        ForeignKey("intelligence_releases.id"), index=True
+    )
+    from_state: Mapped[str | None] = mapped_column(String(24))
+    to_state: Mapped[str] = mapped_column(String(24))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    reason: Mapped[str] = mapped_column(Text)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSON)
+
+
+class ReviewExceptionRow(Base):
+    __tablename__ = "intelligence_review_exceptions"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    subject_id: Mapped[str] = mapped_column(String(255), index=True)
+    code: Mapped[str] = mapped_column(String(80), index=True)
+    message: Mapped[str] = mapped_column(Text)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSON)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolution: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
+class SourceHealthRow(Base):
+    __tablename__ = "intelligence_source_health"
+
+    source_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    consecutive_failures: Mapped[int] = mapped_column(Integer)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_failure_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    last_success_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    latency_ms: Mapped[float | None] = mapped_column(Float)
+    items_count: Mapped[int | None] = mapped_column(Integer)
+    circuit_open_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
 
 
 class EvidenceRow(Base):

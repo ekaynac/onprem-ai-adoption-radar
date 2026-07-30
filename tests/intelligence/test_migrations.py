@@ -25,4 +25,7 @@ def test_initial_migration_creates_intelligence_ledger(tmp_path: Path) -> None:
         "intelligence_platforms",
         "intelligence_legacy_events",
         "intelligence_jobs",
+        "intelligence_lifecycle_transitions",
+        "intelligence_review_exceptions",
+        "intelligence_source_health",
     } <= tables

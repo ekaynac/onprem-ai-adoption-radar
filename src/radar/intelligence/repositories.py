@@ -16,11 +16,13 @@ from radar.intelligence.contracts import (
     EvidenceObservation,
     EvidenceStrength,
     LifecycleState,
+    LifecycleTransition,
     ModelCategory,
     ProductFamily,
     Publisher,
     Release,
     ReleaseLane,
+    ReviewException,
 )
 from radar.intelligence.database import Database
 from radar.intelligence.jobs import JobKind, JobLease, JobStatus
@@ -31,10 +33,14 @@ from radar.intelligence.schema import (
     FamilyRow,
     JobRow,
     LegacyEventRow,
+    LifecycleTransitionRow,
     PlatformRow,
     PublisherRow,
     ReleaseRow,
+    ReviewExceptionRow,
+    SourceHealthRow,
 )
+from radar.intelligence.source_health import SourceHealthState
 
 
 class RepositoryConflict(ValueError):
@@ -115,6 +121,33 @@ def _job_from_row(row: JobRow) -> JobLease:
         completed_at=_as_utc(row.completed_at),
         result=row.result,
         error=row.error,
+    )
+
+
+def _review_from_row(row: ReviewExceptionRow) -> ReviewException:
+    opened_at = _as_utc(row.opened_at)
+    assert opened_at is not None
+    return ReviewException(
+        id=row.id,
+        subject_id=row.subject_id,
+        code=row.code,
+        message=row.message,
+        evidence_ids=row.evidence_ids,
+        opened_at=opened_at,
+        resolved_at=_as_utc(row.resolved_at),
+    )
+
+
+def _source_health_from_row(row: SourceHealthRow) -> SourceHealthState:
+    return SourceHealthState(
+        source_id=row.source_id,
+        consecutive_failures=row.consecutive_failures,
+        last_error=row.last_error,
+        last_failure_at=_as_utc(row.last_failure_at),
+        last_success_at=_as_utc(row.last_success_at),
+        latency_ms=row.latency_ms,
+        items_count=row.items_count,
+        circuit_open_until=_as_utc(row.circuit_open_until),
     )
 
 
@@ -330,6 +363,242 @@ class SqlAlchemyIntelligenceRepository:
                 )
             )
             return [self._release_from_row(row) for row in rows]
+
+    def get_release_required(self, release_id: str) -> Release:
+        release = self.get_release(release_id)
+        if release is None:
+            raise RepositoryConflict(f"Unknown release: {release_id}")
+        return release
+
+    def set_release_lifecycle(
+        self,
+        release_id: str,
+        lifecycle: LifecycleState,
+    ) -> None:
+        with self.database.session() as session:
+            row = session.get(ReleaseRow, release_id)
+            if row is None:
+                raise RepositoryConflict(f"Unknown release: {release_id}")
+            row.lifecycle = lifecycle.value
+
+    def append_lifecycle_transition(
+        self,
+        transition: LifecycleTransition,
+    ) -> None:
+        identity = "|".join(
+            (
+                transition.release_id,
+                transition.from_state.value
+                if transition.from_state is not None
+                else "",
+                transition.to_state.value,
+                transition.observed_at.isoformat(),
+                transition.reason,
+                ",".join(sorted(transition.evidence_ids)),
+            )
+        )
+        transition_id = (
+            f"transition:{hashlib.sha256(identity.encode()).hexdigest()}"
+        )
+        with self.database.session() as session:
+            existing = session.get(LifecycleTransitionRow, transition_id)
+            if existing is not None:
+                return
+            session.add(
+                LifecycleTransitionRow(
+                    id=transition_id,
+                    release_id=transition.release_id,
+                    from_state=(
+                        transition.from_state.value
+                        if transition.from_state is not None
+                        else None
+                    ),
+                    to_state=transition.to_state.value,
+                    observed_at=transition.observed_at,
+                    reason=transition.reason,
+                    evidence_ids=transition.evidence_ids,
+                )
+            )
+
+    def list_lifecycle_transitions(
+        self,
+        release_id: str,
+    ) -> list[LifecycleTransition]:
+        with self.database.session() as session:
+            rows = list(
+                session.scalars(
+                    select(LifecycleTransitionRow)
+                    .where(
+                        LifecycleTransitionRow.release_id == release_id
+                    )
+                    .order_by(
+                        LifecycleTransitionRow.observed_at,
+                        LifecycleTransitionRow.id,
+                    )
+                )
+            )
+            transitions: list[LifecycleTransition] = []
+            for row in rows:
+                observed_at = _as_utc(row.observed_at)
+                assert observed_at is not None
+                transitions.append(
+                    LifecycleTransition(
+                        release_id=row.release_id,
+                        from_state=(
+                            LifecycleState(row.from_state)
+                            if row.from_state is not None
+                            else None
+                        ),
+                        to_state=LifecycleState(row.to_state),
+                        observed_at=observed_at,
+                        reason=row.reason,
+                        evidence_ids=row.evidence_ids,
+                    )
+                )
+            return transitions
+
+    def open_review_exception(self, review: ReviewException) -> None:
+        with self.database.session() as session:
+            existing = session.get(ReviewExceptionRow, review.id)
+            if existing is not None:
+                current = _review_from_row(existing)
+                if current != review:
+                    raise RepositoryConflict(
+                        f"Review exception id changed: {review.id}"
+                    )
+                return
+            session.add(
+                ReviewExceptionRow(
+                    id=review.id,
+                    subject_id=review.subject_id,
+                    code=review.code,
+                    message=review.message,
+                    evidence_ids=review.evidence_ids,
+                    opened_at=review.opened_at,
+                    resolved_at=review.resolved_at,
+                    resolution=None,
+                )
+            )
+
+    def get_review_exception(
+        self,
+        exception_id: str,
+    ) -> ReviewException | None:
+        with self.database.session() as session:
+            row = session.get(ReviewExceptionRow, exception_id)
+            return _review_from_row(row) if row is not None else None
+
+    def resolve_review_exception(
+        self,
+        exception_id: str,
+        resolution: str,
+        evidence_ids: list[str],
+        now: datetime,
+    ) -> None:
+        with self.database.session() as session:
+            row = session.get(ReviewExceptionRow, exception_id)
+            if row is None:
+                raise RepositoryConflict(
+                    f"Unknown review exception: {exception_id}"
+                )
+            payload = {
+                "resolution": resolution,
+                "evidence_ids": evidence_ids,
+            }
+            if row.resolved_at is not None:
+                if row.resolution != payload:
+                    raise RepositoryConflict(
+                        f"Review resolution changed: {exception_id}"
+                    )
+                return
+            row.resolved_at = now
+            row.resolution = payload
+
+    def get_review_resolution(
+        self,
+        exception_id: str,
+    ) -> dict[str, Any] | None:
+        with self.database.session() as session:
+            row = session.get(ReviewExceptionRow, exception_id)
+            return row.resolution if row is not None else None
+
+    def increment_source_failure(
+        self,
+        source_id: str,
+        error: str,
+        now: datetime,
+    ) -> SourceHealthState:
+        with self.database.session() as session:
+            row = session.get(SourceHealthRow, source_id)
+            if row is None:
+                row = SourceHealthRow(
+                    source_id=source_id,
+                    consecutive_failures=0,
+                    last_error=None,
+                    last_failure_at=None,
+                    last_success_at=None,
+                    latency_ms=None,
+                    items_count=None,
+                    circuit_open_until=None,
+                )
+                session.add(row)
+            row.consecutive_failures += 1
+            row.last_error = error
+            row.last_failure_at = now
+            session.flush()
+            return _source_health_from_row(row)
+
+    def open_source_circuit(
+        self,
+        source_id: str,
+        until: datetime,
+    ) -> None:
+        with self.database.session() as session:
+            row = session.get(SourceHealthRow, source_id)
+            if row is None:
+                raise RepositoryConflict(f"Unknown source health: {source_id}")
+            row.circuit_open_until = until
+
+    def record_source_success(
+        self,
+        source_id: str,
+        latency_ms: float,
+        items: int,
+        now: datetime,
+    ) -> SourceHealthState:
+        with self.database.session() as session:
+            row = session.get(SourceHealthRow, source_id)
+            if row is None:
+                row = SourceHealthRow(
+                    source_id=source_id,
+                    consecutive_failures=0,
+                    last_error=None,
+                    last_failure_at=None,
+                    last_success_at=now,
+                    latency_ms=latency_ms,
+                    items_count=items,
+                    circuit_open_until=None,
+                )
+                session.add(row)
+            else:
+                row.consecutive_failures = 0
+                row.last_error = None
+                row.last_success_at = now
+                row.latency_ms = latency_ms
+                row.items_count = items
+                row.circuit_open_until = None
+            session.flush()
+            return _source_health_from_row(row)
+
+    def get_source_health(
+        self,
+        source_id: str,
+    ) -> SourceHealthState | None:
+        with self.database.session() as session:
+            row = session.get(SourceHealthRow, source_id)
+            return (
+                _source_health_from_row(row) if row is not None else None
+            )
 
     def count_releases(self) -> int:
         with self.database.session() as session:
