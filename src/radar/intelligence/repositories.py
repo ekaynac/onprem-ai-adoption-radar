@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from radar.intelligence.contracts import (
@@ -21,11 +23,13 @@ from radar.intelligence.contracts import (
     ReleaseLane,
 )
 from radar.intelligence.database import Database
+from radar.intelligence.jobs import JobKind, JobLease, JobStatus
 from radar.intelligence.schema import (
     ClaimEvidenceRow,
     ClaimRow,
     EvidenceRow,
     FamilyRow,
+    JobRow,
     LegacyEventRow,
     PlatformRow,
     PublisherRow,
@@ -91,6 +95,26 @@ def _claim_from_session(session: Session, row: ClaimRow) -> Claim:
         valid_to=_as_utc(row.valid_to),
         supersedes_claim_id=row.supersedes_claim_id,
         evidence_ids=evidence_ids,
+    )
+
+
+def _job_from_row(row: JobRow) -> JobLease:
+    created_at = _as_utc(row.created_at)
+    started_at = _as_utc(row.started_at)
+    assert created_at is not None
+    assert started_at is not None
+    return JobLease(
+        id=row.id,
+        kind=JobKind(row.kind),
+        idempotency_key=row.idempotency_key,
+        status=JobStatus(row.status),
+        attempt=row.attempt,
+        leased_until=_as_utc(row.leased_until),
+        created_at=created_at,
+        started_at=started_at,
+        completed_at=_as_utc(row.completed_at),
+        result=row.result,
+        error=row.error,
     )
 
 
@@ -334,3 +358,137 @@ class SqlAlchemyIntelligenceRepository:
             if kind is not None:
                 statement = statement.where(LegacyEventRow.kind == kind)
             return session.scalar(statement) or 0
+
+    @staticmethod
+    def _acquire_job_in_session(
+        session: Session,
+        *,
+        kind: str,
+        idempotency_key: str,
+        leased_until: datetime,
+        now: datetime,
+        lock: bool,
+    ) -> JobLease | None:
+        statement = select(JobRow).where(
+            JobRow.idempotency_key == idempotency_key
+        )
+        if lock:
+            statement = statement.with_for_update()
+        existing = session.scalar(statement)
+        if existing is None:
+            digest = hashlib.sha256(idempotency_key.encode()).hexdigest()
+            existing = JobRow(
+                id=f"job:{digest}",
+                kind=kind,
+                idempotency_key=idempotency_key,
+                status=JobStatus.RUNNING.value,
+                attempt=1,
+                leased_until=leased_until,
+                created_at=now,
+                started_at=now,
+                completed_at=None,
+                result=None,
+                error=None,
+            )
+            session.add(existing)
+            session.flush()
+            return _job_from_row(existing)
+        if existing.kind != kind:
+            raise RepositoryConflict(
+                f"Job key {idempotency_key} changed kind from "
+                f"{existing.kind} to {kind}"
+            )
+        lease_expiry = _as_utc(existing.leased_until)
+        if existing.status == JobStatus.COMPLETED.value:
+            return None
+        if (
+            existing.status == JobStatus.RUNNING.value
+            and lease_expiry is not None
+            and lease_expiry > now
+        ):
+            return None
+        existing.status = JobStatus.RUNNING.value
+        existing.attempt += 1
+        existing.leased_until = leased_until
+        existing.started_at = now
+        existing.completed_at = None
+        existing.result = None
+        existing.error = None
+        session.flush()
+        return _job_from_row(existing)
+
+    def acquire_job(
+        self,
+        *,
+        kind: str,
+        idempotency_key: str,
+        leased_until: datetime,
+        now: datetime,
+    ) -> JobLease | None:
+        if self.database.engine.dialect.name == "sqlite":
+            with self.database.engine.connect() as connection:
+                connection.exec_driver_sql("BEGIN IMMEDIATE")
+                with Session(bind=connection) as session:
+                    lease = self._acquire_job_in_session(
+                        session,
+                        kind=kind,
+                        idempotency_key=idempotency_key,
+                        leased_until=leased_until,
+                        now=now,
+                        lock=False,
+                    )
+                    session.flush()
+                    connection.commit()
+                    return lease
+        try:
+            with self.database.session() as session:
+                return self._acquire_job_in_session(
+                    session,
+                    kind=kind,
+                    idempotency_key=idempotency_key,
+                    leased_until=leased_until,
+                    now=now,
+                    lock=True,
+                )
+        except IntegrityError:
+            return None
+
+    def complete_job(
+        self,
+        job_id: str,
+        result: dict[str, Any],
+        now: datetime,
+    ) -> None:
+        with self.database.session() as session:
+            row = session.get(JobRow, job_id)
+            if row is None:
+                raise RepositoryConflict(f"Unknown job: {job_id}")
+            if row.status == JobStatus.COMPLETED.value:
+                if row.result != result:
+                    raise RepositoryConflict(f"Completed job changed: {job_id}")
+                return
+            row.status = JobStatus.COMPLETED.value
+            row.leased_until = None
+            row.completed_at = now
+            row.result = result
+            row.error = None
+
+    def fail_job(self, job_id: str, error: str, now: datetime) -> None:
+        with self.database.session() as session:
+            row = session.get(JobRow, job_id)
+            if row is None:
+                raise RepositoryConflict(f"Unknown job: {job_id}")
+            if row.status == JobStatus.COMPLETED.value:
+                raise RepositoryConflict(f"Completed job cannot fail: {job_id}")
+            if row.status == JobStatus.FAILED.value and row.error == error:
+                return
+            row.status = JobStatus.FAILED.value
+            row.leased_until = None
+            row.completed_at = now
+            row.result = None
+            row.error = error
+
+    def get_job(self, job_id: str) -> JobLease | None:
+        with self.database.session() as session:
+            row = session.get(JobRow, job_id)
+            return _job_from_row(row) if row is not None else None

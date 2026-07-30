@@ -70,6 +70,22 @@ class LegacyEventRow(Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
 
 
+class JobRow(Base):
+    __tablename__ = "intelligence_jobs"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(40), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(255), unique=True)
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    attempt: Mapped[int]
+    leased_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    error: Mapped[str | None] = mapped_column(Text)
+
+
 class EvidenceRow(Base):
     __tablename__ = "intelligence_evidence"
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import shutil
-from datetime import UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,7 @@ from radar import __version__
 from radar.capacity.tco import DEFAULT_AMORTIZATION_MONTHS, DEFAULT_ELECTRICITY_USD_PER_KWH
 from radar.constants import APP_NAME
 from radar.init_project import initialize_project
+from radar.intelligence.jobs import JobKind, JobResult, JobService
 
 # Imported at module level (not function-local, unlike this file's other
 # commands) so tests can monkeypatch `radar.cli._verify_fetch_hf_model`
@@ -166,6 +167,64 @@ def intelligence_shadow(
     console.print_json(data=payload)
     if check and not report.is_equivalent:
         raise typer.Exit(1)
+
+
+def _execute_intelligence_job(root: Path, kind: JobKind) -> dict[str, Any]:
+    from dataclasses import asdict
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.scheduler import job_idempotency_key
+
+    _database, repository = build_intelligence_repository(root)
+    service = JobService(repository)
+    now = datetime.now(UTC)
+    idempotency_key = job_idempotency_key(kind, now)
+    lease = service.acquire(kind, idempotency_key, now)
+    if lease is None:
+        return {
+            "kind": kind.value,
+            "idempotency_key": idempotency_key,
+            "status": "skipped",
+        }
+    result = JobResult(job_id=lease.id)
+    try:
+        service.complete(lease.id, result, datetime.now(UTC))
+    except Exception as exc:
+        service.fail(lease.id, str(exc), datetime.now(UTC))
+        raise
+    return {
+        "kind": kind.value,
+        "idempotency_key": idempotency_key,
+        "status": "completed",
+        "result": asdict(result),
+    }
+
+
+@app.command("intelligence-run")
+def intelligence_run(
+    kind: JobKind = typer.Argument(..., help="Intelligence job kind."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Run one idempotent intelligence job for the current schedule window."""
+    console.print_json(data=_execute_intelligence_job(root, kind))
+
+
+@app.command("intelligence-scheduler")
+def intelligence_scheduler(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Run the built-in two-hour, daily, and weekly freshness schedule."""
+    from threading import Event
+
+    from radar.intelligence.scheduler import build_scheduler
+
+    scheduler = build_scheduler(lambda kind: _execute_intelligence_job(root, kind))
+    scheduler.start()
+    console.print("Intelligence scheduler started (UTC).")
+    try:
+        Event().wait()
+    except KeyboardInterrupt:
+        scheduler.shutdown(wait=True)
 
 
 @app.command()
