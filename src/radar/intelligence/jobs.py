@@ -13,6 +13,7 @@ class JobKind(StrEnum):
     ENRICHMENT = "enrichment"
     VERIFICATION = "verification"
     QUALIFICATION = "qualification"
+    RECOMMENDATIONS = "recommendations"
     EXPORT = "export"
 
 

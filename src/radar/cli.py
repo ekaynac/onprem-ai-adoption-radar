@@ -15,7 +15,7 @@ from radar import __version__
 from radar.capacity.tco import DEFAULT_AMORTIZATION_MONTHS, DEFAULT_ELECTRICITY_USD_PER_KWH
 from radar.constants import APP_NAME
 from radar.init_project import initialize_project
-from radar.intelligence.jobs import JobKind, JobResult, JobService
+from radar.intelligence.jobs import JobKind, JobService
 
 # Imported at module level (not function-local, unlike this file's other
 # commands) so tests can monkeypatch `radar.cli._verify_fetch_hf_model`
@@ -169,10 +169,28 @@ def intelligence_shadow(
         raise typer.Exit(1)
 
 
+@app.command("intelligence-replay-events")
+def intelligence_replay_events(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Replay the append-only intelligence event mirror into canonical storage."""
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.event_log import EventLog, replay_event_log
+
+    _database, repository = build_intelligence_repository(root)
+    count = replay_event_log(
+        EventLog(root / "data" / "intelligence" / "events.jsonl"),
+        repository,
+    )
+    console.print_json(data={"events_replayed": count})
+
+
 def _execute_intelligence_job(root: Path, kind: JobKind) -> dict[str, Any]:
+    import asyncio
     from dataclasses import asdict
 
     from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.pipeline import run_configured_job
     from radar.intelligence.scheduler import job_idempotency_key
 
     _database, repository = build_intelligence_repository(root)
@@ -186,8 +204,10 @@ def _execute_intelligence_job(root: Path, kind: JobKind) -> dict[str, Any]:
             "idempotency_key": idempotency_key,
             "status": "skipped",
         }
-    result = JobResult(job_id=lease.id)
     try:
+        result = asyncio.run(
+            run_configured_job(root, repository, kind, lease.id)
+        )
         service.complete(lease.id, result, datetime.now(UTC))
     except Exception as exc:
         service.fail(lease.id, str(exc), datetime.now(UTC))

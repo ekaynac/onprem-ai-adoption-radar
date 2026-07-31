@@ -15,12 +15,24 @@ def test_scheduler_has_platform_wide_freshness_cadence() -> None:
     scheduler = build_scheduler(lambda _kind: None)
     jobs = {job.id: job for job in scheduler.get_jobs()}
 
-    assert set(jobs) == {"discovery", "enrichment", "verification"}
+    assert set(jobs) == {
+        "discovery",
+        "enrichment",
+        "qualification",
+        "recommendations",
+        "verification",
+    }
     assert isinstance(jobs["discovery"].trigger, IntervalTrigger)
     assert jobs["discovery"].trigger.interval == timedelta(hours=2)
     assert isinstance(jobs["enrichment"].trigger, CronTrigger)
     assert str(jobs["enrichment"].trigger.fields[5]) == "3"
     assert str(jobs["enrichment"].trigger.fields[6]) == "0"
+    assert isinstance(jobs["qualification"].trigger, CronTrigger)
+    assert str(jobs["qualification"].trigger.fields[5]) == "3"
+    assert str(jobs["qualification"].trigger.fields[6]) == "15"
+    assert isinstance(jobs["recommendations"].trigger, CronTrigger)
+    assert str(jobs["recommendations"].trigger.fields[5]) == "3"
+    assert str(jobs["recommendations"].trigger.fields[6]) == "30"
     assert isinstance(jobs["verification"].trigger, CronTrigger)
     assert str(jobs["verification"].trigger.fields[4]) == "sun"
     assert str(jobs["verification"].trigger.fields[5]) == "4"
@@ -31,6 +43,11 @@ def test_job_idempotency_keys_follow_schedule_windows() -> None:
 
     assert job_idempotency_key(JobKind.DISCOVERY, at) == "discovery:2026-07-30T10"
     assert job_idempotency_key(JobKind.ENRICHMENT, at) == "enrichment:2026-07-30"
+    assert job_idempotency_key(JobKind.QUALIFICATION, at) == "qualification:2026-07-30"
+    assert (
+        job_idempotency_key(JobKind.RECOMMENDATIONS, at)
+        == "recommendations:2026-07-30"
+    )
     assert job_idempotency_key(JobKind.VERIFICATION, at) == "verification:2026-W31"
 
 

@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Protocol
 
 from radar.intelligence.events import IntelligenceEvent
+
+
+class EventRepository(Protocol):
+    def append_event(self, event: IntelligenceEvent) -> bool: ...
 
 
 class EventLog:
@@ -36,3 +41,9 @@ class EventLog:
             for line in self.path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
+
+
+def replay_event_log(log: EventLog, repository: EventRepository) -> int:
+    """Restore the append-only mirror into a rebuildable canonical projection."""
+
+    return sum(repository.append_event(event) for event in log.read())

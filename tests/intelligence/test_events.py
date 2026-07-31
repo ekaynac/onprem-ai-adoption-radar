@@ -86,3 +86,24 @@ def test_public_event_log_is_idempotent_canonical_jsonl(tmp_path) -> None:
 
     assert log.read() == [event]
     assert log.path.read_text(encoding="utf-8").count("\n") == 1
+
+
+def test_replay_restores_events_to_canonical_repository(tmp_path) -> None:
+    from radar.intelligence.event_log import replay_event_log
+
+    event = IntelligenceEvent.for_lifecycle(
+        release_id="release:kimi-k3",
+        from_state=LifecycleState.DETECTED,
+        to_state=LifecycleState.VERIFIED,
+        occurred_at=NOW,
+        evidence_ids=["evidence:one"],
+    )
+    log = EventLog(tmp_path / "events.jsonl")
+    log.append(event)
+    database = Database(f"sqlite:///{tmp_path / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+
+    assert replay_event_log(log, repository) == 1
+    assert replay_event_log(log, repository) == 0
+    assert repository.get_event(event.id) == event

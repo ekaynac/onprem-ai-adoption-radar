@@ -9,6 +9,7 @@ build/
 _site/
 frontend/playwright-report/
 frontend/test-results/
+.superpowers/
 
 # Brand kit (corporate identity originals, design files) is kept OUTSIDE this
 # repo — never commit it here.

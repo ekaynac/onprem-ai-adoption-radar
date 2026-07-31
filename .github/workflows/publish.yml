@@ -3,6 +3,7 @@ name: Publish radar to Pages
 on:
   schedule:
     - cron: "0 6 * * *" # daily 06:00 UTC
+    - cron: "43 5 * * 0" # weekly trusted-claim reverification
   workflow_dispatch: {}
   push:
     branches: [main]
@@ -27,6 +28,8 @@ jobs:
     steps:
       # Full history is needed so the committed history log carries forward.
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
@@ -35,7 +38,25 @@ jobs:
         run: uv python install 3.12
 
       - name: Install package
-        run: uv venv && uv pip install -e .
+        run: uv sync --all-extras
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20.11.1"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend
+        run: npm ci --prefix frontend
+
+      - name: Rebuild canonical intelligence
+        run: |
+          uv run radar intelligence-migrate --root .
+          uv run radar intelligence-replay-events --root .
+
+      - name: Reverify trusted claims
+        if: github.event.schedule == '43 5 * * 0' || github.event_name == 'workflow_dispatch'
+        run: uv run radar intelligence-run verification --root .
 
       - name: Scan
         env:
@@ -48,6 +69,9 @@ jobs:
           uv run radar research scan --root .
           uv run radar research candidates scan --root .
           uv run radar trending scan --root .
+          uv run radar intelligence-run enrichment --root .
+          uv run radar intelligence-run qualification --root .
+          uv run radar intelligence-run recommendations --root .
 
       # Publish gate keyed on the RUN (not the DB union): refuse to export a
       # degraded or near-empty scan (see 2026-07-27 hardening spec).
@@ -73,6 +97,9 @@ jobs:
           repo_name="${REPO_FULL#*/}"
           uv run radar export --root . --out _site \
             --base-url "https://${OWNER}.github.io/${repo_name}"
+          mkdir -p data/intelligence
+          cp _site/data/public-snapshot.v1.json \
+            data/intelligence/public-snapshot.v1.json
 
       # Persist the durable JSONL history log back to the repo. This makes the
       # timeline durable (in git, not an evictable cache) AND counts as repo
@@ -93,6 +120,8 @@ jobs:
           git add -f data/technique-history.jsonl || true
           git add -f data/technique-metrics.jsonl || true
           git add -f data/trending-observations.jsonl || true
+          git add -f data/intelligence/events.jsonl || true
+          git add -f data/intelligence/public-snapshot.v1.json || true
           git commit --allow-empty -m "chore: radar history $(date -u +%F) [skip ci]"
           git push
 

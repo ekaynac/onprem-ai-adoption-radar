@@ -48,6 +48,26 @@ def build_scheduler(
     scheduler.add_job(
         run_job,
         "cron",
+        hour=3,
+        minute=15,
+        args=[JobKind.QUALIFICATION],
+        id="qualification",
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        run_job,
+        "cron",
+        hour=3,
+        minute=30,
+        args=[JobKind.RECOMMENDATIONS],
+        id="recommendations",
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        run_job,
+        "cron",
         day_of_week="sun",
         hour=4,
         minute=0,

@@ -1,8 +1,16 @@
-# On-Prem AI Adoption Radar
+# On-Prem Intelligence Command Center
 
-**A self-hosted, deterministic radar that decides which AI agent & tooling technologies are worth _adopting_, _piloting_, _watching_, or _avoiding_ for on-prem and enterprise workflows.**
+**A unified, self-hosted decision workspace for infrastructure architects tracking models, serving platforms, hardware, research, and operational readiness.**
 
-> **Trending tells you what's hot. The radar tells you what to adopt — and what it takes to run it.**
+The command center detects important releases within two hours, enriches and
+qualifies them daily, reverifies trusted claims weekly, and explains what each
+change means for an on-prem deployment. Releases move through
+`Detected → Verified → Qualified → Recommended`; unresolved identity,
+provenance, or compatibility conflicts are routed to the review queue.
+
+There is no login or multi-role setup. One unrestricted local architect persona
+can keep multiple browser-local workspace profiles, while the exported public
+edition remains strictly read-only and contains no workspace data.
 
 **How this differs from trending trackers:**
 - 🧭 **Computed, not sponsored** — rings come from a deterministic rubric and an append-only, auditable timeline. Placement cannot be bought.
@@ -81,6 +89,8 @@ uv venv && uv pip install -e ".[dev]"
 
 ```bash
 uv run radar init                  # create local config + data dirs
+uv run radar intelligence-migrate --root .
+uv run radar intelligence-run discovery --root .
 uv run radar scan --days 30        # collect, score, and produce decision cards
 uv run radar report                # print the decision report
 uv run radar serve                 # dashboard at http://127.0.0.1:8765
@@ -92,6 +102,14 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 
 | Command | What it does |
 | --- | --- |
+| `radar intelligence-migrate` | Idempotently import legacy catalogs into canonical SQLite/Postgres storage. |
+| `radar intelligence-replay-events` | Restore the committed intelligence event mirror into the canonical projection. |
+| `radar intelligence-run discovery` | Sweep Hugging Face, official GitHub releases, and configured feeds for the current two-hour window. |
+| `radar intelligence-run enrichment` | Refresh model metadata, configs, model cards, artifacts, and cited claims. |
+| `radar intelligence-run verification` | Re-evaluate trusted claims and route conflicts to review. |
+| `radar intelligence-run qualification` | Apply category-specific deployability and platform-fit gates. |
+| `radar intelligence-run recommendations` | Compute the public on-prem decision for qualified releases. |
+| `radar intelligence-scheduler` | Run the two-hour, daily, and weekly policy in a long-lived local process. |
 | `radar init` | Create `data/config.yaml` (from the seed list) and data directories. |
 | `radar scan --days N` | Collect → classify → enrich → score → calibrate → cards. Writes report, Try This Week, and history artifacts. |
 | `radar scan --replay <run-id>` | Re-score a past run's raw signals offline with current config (no network, no persistence). |
@@ -176,10 +194,24 @@ Tools: `list_recommendations`, `try_this_week`, `get_project` (with history), `l
 ## Dashboard
 
 `radar serve` →
-- `/` — decision cards
-- `/compare` — comparison matrices by category or project set
-- `/history` — per-project timelines
-- `/sources` — list and add sources via a form
+- `/overview` — release priority, recommended actions, freshness, and trust
+- `/models`, `/platforms`, `/hardware`, `/research` — the six-category catalog
+- `/planner` and `/compare` — cited deployment fit and side-by-side decisions
+- `/operations` — review queue, source health, feeds, webhooks, and watchlists
+- `/workspaces` — local architect profiles with import/export; no account required
+
+## Freshness automation
+
+GitHub Actions and the built-in scheduler enforce one platform-wide policy:
+
+- every two hours: discover new releases, verify newly detected identities, and
+  publish only when public state changes;
+- daily: enrich claims, qualify deployment readiness, refresh recommendations,
+  and retain the existing research/trending scans;
+- weekly: re-fetch and re-evaluate every trusted claim.
+
+See [Intelligence operations](docs/intelligence-operations.md) for scheduler
+modes, credentials, storage, backups, and incident recovery.
 
 ## Configuration
 
