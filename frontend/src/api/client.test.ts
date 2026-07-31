@@ -17,8 +17,19 @@ test("projects the public snapshot through the REST-shaped client", () => {
         public_ring: "pilot",
         reasons: ["Verified artifact"],
         evidence_ids: ["evidence:one"],
+        source_url: "https://huggingface.co/moonshotai/Kimi-K3",
+        profile: { hf_repo: "moonshotai/Kimi-K3" },
+        claims: [
+          {
+            predicate: "hf_repo",
+            state: "candidate",
+            value: "moonshotai/Kimi-K3",
+          },
+        ],
       },
     ],
+    projects: [],
+    model_candidates: [],
     platforms: [],
     hardware: [],
     research: [],
@@ -43,5 +54,12 @@ test("projects the public snapshot through the REST-shaped client", () => {
         public_recommendation: { ring: "pilot" },
       },
     ],
+  });
+  expect(
+    projectStaticRequest("/api/v1/catalog/release%3Akimi-k3", snapshot),
+  ).toMatchObject({
+    profile: { hf_repo: "moonshotai/Kimi-K3" },
+    source_url: "https://huggingface.co/moonshotai/Kimi-K3",
+    claims: [{ predicate: "hf_repo", value: "moonshotai/Kimi-K3" }],
   });
 });

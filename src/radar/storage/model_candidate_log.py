@@ -26,6 +26,9 @@ class ModelCandidateObservation(BaseModel):
     family: str
     downloads: int
     likes: int = 0
+    pipeline_tag: str | None = None
+    created_at: str | None = None
+    last_modified: str | None = None
     observed_at: datetime
 
     @field_validator("observed_at")

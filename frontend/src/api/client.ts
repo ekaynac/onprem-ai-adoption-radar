@@ -8,6 +8,8 @@ type StaticSnapshot = {
   generated_at: string;
   releases: Array<Record<string, unknown>>;
   models: Array<Record<string, unknown>>;
+  projects: Array<Record<string, unknown>>;
+  model_candidates: Array<Record<string, unknown>>;
   platforms: Array<Record<string, unknown>>;
   hardware: Array<Record<string, unknown>>;
   research: Array<Record<string, unknown>>;
@@ -87,9 +89,12 @@ export function projectStaticRequest(
     if (!model) return undefined;
     return {
       release: catalogItem(model),
-      claims: [],
+      claims: model.claims ?? [],
       compatibility: [],
       qualification: null,
+      profile: model.profile ?? null,
+      source_url: model.source_url ?? null,
+      source_strength: model.source_strength ?? null,
     };
   }
   if (url.pathname === "/api/v1/operations") {

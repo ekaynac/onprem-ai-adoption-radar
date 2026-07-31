@@ -20,7 +20,7 @@ export function ReleaseStreamPage() {
   const [lane, setLane] = useState(ALL);
   const [review, setReview] = useState(ALL);
   const [source, setSource] = useState(ALL);
-  const [age, setAge] = useState(168);
+  const [age, setAge] = useState<number | typeof ALL>(ALL);
   const visible = useMemo(
     () =>
       (releases.data?.items ?? []).filter(
@@ -33,7 +33,7 @@ export function ReleaseStreamPage() {
             (item.citations ?? []).some(
               (citation) => citation.strength === source,
             )) &&
-          item.age_hours <= age,
+          (age === ALL || item.age_hours <= age),
       ),
     [age, category, lane, lifecycle, releases.data?.items, review, source],
   );
@@ -101,7 +101,17 @@ export function ReleaseStreamPage() {
         </label>
         <label>
           <span>Age</span>
-          <select value={age} onChange={(event) => setAge(Number(event.target.value))}>
+          <select
+            value={age}
+            onChange={(event) =>
+              setAge(
+                event.target.value === ALL
+                  ? ALL
+                  : Number(event.target.value),
+              )
+            }
+          >
+            <option value={ALL}>All time</option>
             <option value={24}>24 hours</option>
             <option value={72}>3 days</option>
             <option value={168}>7 days</option>

@@ -47,16 +47,17 @@ def test_discovery_workflow_runs_every_two_hours() -> None:
     assert "[skip ci]" in commands
 
 
-def test_daily_publish_and_weekly_verification_are_split() -> None:
+def test_two_hour_publish_and_weekly_verification_are_split() -> None:
     workflow = load_yaml(".github/workflows/publish.yml")
     triggers = workflow.get("on") or workflow.get(True)
     commands = all_run_commands(workflow)
 
-    assert {"cron": "0 6 * * *"} in triggers["schedule"]
+    assert {"cron": "17 */2 * * *"} in triggers["schedule"]
     assert {"cron": "43 5 * * 0"} in triggers["schedule"]
     assert "radar intelligence-run enrichment" in commands
     assert "radar intelligence-run qualification" in commands
     assert "radar intelligence-run recommendations" in commands
+    assert "radar models platforms-verify" in commands
     assert "radar intelligence-run verification" in commands
     assert "git add -f data/intelligence.db" in commands
     assert "git add -f data/intelligence/snapshots" in commands

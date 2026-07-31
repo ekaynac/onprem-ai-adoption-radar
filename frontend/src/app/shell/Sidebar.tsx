@@ -1,5 +1,7 @@
 import { NavLink } from "react-router-dom";
 
+import { usePublicSnapshot } from "../../features/catalog/catalogQueries";
+
 
 const navigation = [
   {
@@ -14,6 +16,7 @@ const navigation = [
     items: [
       { to: "/releases", label: "Release stream", mark: "RS" },
       { to: "/catalog", label: "Catalog", mark: "CA" },
+      { to: "/projects", label: "GitHub projects", mark: "GH" },
       { to: "/platforms", label: "Platforms", mark: "PL" },
       { to: "/hardware", label: "Hardware", mark: "HW" },
       { to: "/research", label: "Research", mark: "RE" },
@@ -42,6 +45,11 @@ const navigation = [
 
 
 export function Sidebar({ staticMode }: { staticMode: boolean }) {
+  const snapshot = usePublicSnapshot();
+  const sources = snapshot.data?.source_health.source_health ?? [];
+  const failures = sources.filter(
+    (source) => source.consecutive_failures > 0 || source.circuit_open_until,
+  ).length;
   return (
     <aside className="sidebar">
       <div className="brand-lockup">
@@ -73,10 +81,19 @@ export function Sidebar({ staticMode }: { staticMode: boolean }) {
         ))}
       </nav>
       <div className="sidebar-foot">
-        <span className="health-dot" aria-hidden="true" />
+        <span
+          className={`health-dot${failures ? " health-dot-warning" : ""}`}
+          aria-hidden="true"
+        />
         <div>
-          <strong>Source mesh healthy</strong>
-          <span>Freshness policy active</span>
+          <strong>
+            {snapshot.isLoading
+              ? "Checking source mesh"
+              : failures
+                ? `${failures} sources need attention`
+                : `${sources.length} sources monitored`}
+          </strong>
+          <span>Two-hour discovery policy</span>
         </div>
       </div>
     </aside>

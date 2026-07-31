@@ -33,8 +33,11 @@ async def fetch_trending_models(
     pipeline_tag: str = "text-generation",
     sort: str = "trendingScore",
     headers: dict[str, str] | None = None,
+    health: dict[str, int] | None = None,
 ) -> list[dict[str, Any]]:
     """HF models list (best-effort → [])."""
+    if health is not None:
+        health["requests"] = health.get("requests", 0) + 1
     try:
         response = await client.get(
             HF_MODELS_URL,
@@ -46,6 +49,8 @@ async def fetch_trending_models(
         payload = response.json()
         return payload if isinstance(payload, list) else []
     except Exception as exc:
+        if health is not None:
+            health["failures"] = health.get("failures", 0) + 1
         logger.warning("HF trending-models fetch failed: %s", exc)
         return []
 
@@ -55,11 +60,21 @@ async def discover_trending_models(
     client: Any,
     min_downloads: int = 10000,
     limit: int = 50,
+    pipeline_tag: str = "text-generation",
+    sort: str = "trendingScore",
     headers: dict[str, str] | None = None,
+    health: dict[str, int] | None = None,
 ) -> list[ModelProposal]:
     """Trending models not already seeded, above the download floor, ranked by downloads."""
     seeded = {(s.hf_repo or "").lower() for s in seeds if s.hf_repo}
-    items = await fetch_trending_models(client, limit=limit, headers=headers)
+    items = await fetch_trending_models(
+        client,
+        limit=limit,
+        pipeline_tag=pipeline_tag,
+        sort=sort,
+        headers=headers,
+        health=health,
+    )
     proposals: list[ModelProposal] = []
     for item in items:
         repo = item.get("id") or ""
@@ -75,6 +90,9 @@ async def discover_trending_models(
         proposals.append(ModelProposal(
             model_id=name, name=name, family=family, hf_repo=repo,
             downloads=downloads, likes=likes, modality=modality,
+            pipeline_tag=item.get("pipeline_tag"),
+            created_at=item.get("createdAt"),
+            last_modified=item.get("lastModified"),
             reason=f"trending: {downloads} downloads, {likes} likes",
             suggested_id=f"hf-{project_slug(name)}",
         ))

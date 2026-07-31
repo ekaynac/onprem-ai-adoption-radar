@@ -5,6 +5,10 @@ import { HardwarePage } from "../features/catalog/HardwarePage";
 import { ModelDetailPage } from "../features/catalog/ModelDetailPage";
 import { PlatformDetailPage } from "../features/catalog/PlatformDetailPage";
 import { PlatformsPage } from "../features/catalog/PlatformsPage";
+import { ProjectDetailPage } from "../features/catalog/ProjectDetailPage";
+import { ProjectsPage } from "../features/catalog/ProjectsPage";
+import { HardwareDetailPage } from "../features/catalog/HardwareDetailPage";
+import { ResearchDetailPage } from "../features/catalog/ResearchDetailPage";
 import { ResearchPage } from "../features/catalog/ResearchPage";
 import { ComparePage } from "../features/compare/ComparePage";
 import { IntegrationsPage } from "../features/operations/IntegrationsPage";
@@ -32,10 +36,14 @@ export function App({
         <Route path="/releases/:releaseId" element={<ReleaseDetailPage />} />
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/catalog/:releaseId" element={<ModelDetailPage />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/:projectName" element={<ProjectDetailPage />} />
         <Route path="/platforms" element={<PlatformsPage />} />
         <Route path="/platforms/:platformId" element={<PlatformDetailPage />} />
         <Route path="/hardware" element={<HardwarePage />} />
+        <Route path="/hardware/:hardwareId" element={<HardwareDetailPage />} />
         <Route path="/research" element={<ResearchPage />} />
+        <Route path="/research/:researchId" element={<ResearchDetailPage />} />
         <Route path="/compare" element={<ComparePage />} />
         {!staticMode && <Route path="/planner" element={<PlannerPage />} />}
         {!staticMode && <Route path="/workspaces" element={<WorkspacePage />} />}

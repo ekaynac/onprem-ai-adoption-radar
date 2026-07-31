@@ -76,3 +76,49 @@ test("filters the release stream by lifecycle", async () => {
   expect(screen.queryByText("Kimi K3")).not.toBeInTheDocument();
   expect(screen.getByText("Verified Model")).toBeVisible();
 });
+
+
+test("shows older releases by default instead of opening on an empty stream", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                release_id: "release:older",
+                name: "Older Release",
+                lifecycle: "detected",
+                lane: "onprem_adjacent",
+                category: "text_reasoning",
+                first_observed_at: "2026-06-01T00:00:00Z",
+                age_hours: 1440,
+                freshness: "stale",
+                confidence: 0.8,
+                review_status: "clear",
+                citations: [],
+              },
+            ],
+            next_cursor: null,
+          }),
+          { status: 200 },
+        ),
+      ),
+    ),
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <ReleaseStreamPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  expect(await screen.findByText("Older Release")).toBeVisible();
+  expect(screen.getByRole("combobox", { name: "Age" })).toHaveValue("all");
+});

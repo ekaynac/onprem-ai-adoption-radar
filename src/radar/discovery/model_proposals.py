@@ -30,6 +30,9 @@ class ModelProposal(BaseModel):
     downloads: int
     likes: int
     modality: str
+    pipeline_tag: str | None = None
+    created_at: str | None = None
+    last_modified: str | None = None
     reason: str = ""
     suggested_id: str
 

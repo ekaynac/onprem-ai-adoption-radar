@@ -170,7 +170,7 @@ def _configure_react_routes(
     @app.get("/project/{name}")
     def legacy_project_redirect(name: str) -> RedirectResponse:
         return RedirectResponse(
-            f"/catalog?q={quote(name, safe='')}",
+            f"/projects/{quote(name, safe='')}",
             status_code=308,
         )
 
