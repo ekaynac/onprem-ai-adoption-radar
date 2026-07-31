@@ -6,6 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Unified on-prem intelligence platform
+
+- Replaced the legacy landing experience with a React/TypeScript infrastructure
+  architect command center covering releases, all six model categories,
+  serving platforms, hardware, research, comparisons, deployment planning,
+  operations, integrations, and account-free workspace profiles.
+- Added canonical SQLite/PostgreSQL intelligence storage, append-only evidence,
+  claims, lifecycle transitions, review exceptions, source health, events,
+  webhook attempts, and local workspaces. Legacy YAML/JSONL import is
+  idempotent and shadow-checked.
+- Added Hugging Face, official GitHub release, RSS/Atom, announcement, registry,
+  and evidence adapters. Sources retain content-addressed raw snapshots and
+  cited claim provenance; ambiguous or conflicting facts become review
+  exceptions instead of silent guesses.
+- Added the `Detected → Verified → Qualified → Recommended` trust lifecycle,
+  six category-specific qualification strategies, platform compatibility
+  intelligence, transparent public/workspace recommendations, and the rule
+  that market-reference releases never receive an on-prem adoption ring.
+- Unified FastAPI, MCP, RSS, Atom, JSON Feed, HMAC webhooks, and the public
+  snapshot around shared query services and stable event identities.
+- Enforced the platform-wide freshness policy: two-hour discovery/publication,
+  daily enrichment/qualification/recommendations, weekly trusted-claim
+  verification, and automated processing with review exceptions.
+- Added the single `scripts/verify_intelligence_release.sh` cutover gate,
+  including migration rehearsal, transport parity, release-SLO, accessibility,
+  responsive light/dark, SQLite/PostgreSQL, frontend, and browser checks.
+
 ### Capacity engine (sub-project D)
 - **Architecture-correct KV cache math** — replaces the old MHA-blind flat
   estimator with per-attention-kind formulas (MLA latent cache, GQA/MHA

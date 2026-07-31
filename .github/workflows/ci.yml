@@ -107,4 +107,4 @@ jobs:
         run: npx --prefix frontend playwright install --with-deps chromium
 
       - name: Browser workflows
-        run: npx --prefix frontend playwright test
+        run: cd frontend && npx playwright test

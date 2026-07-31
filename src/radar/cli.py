@@ -238,7 +238,10 @@ def intelligence_scheduler(
 
     from radar.intelligence.scheduler import build_scheduler
 
-    scheduler = build_scheduler(lambda kind: _execute_intelligence_job(root, kind))
+    def run_scheduled(kind: JobKind) -> None:
+        _execute_intelligence_job(root, kind)
+
+    scheduler = build_scheduler(run_scheduled)
     scheduler.start()
     console.print("Intelligence scheduler started (UTC).")
     try:

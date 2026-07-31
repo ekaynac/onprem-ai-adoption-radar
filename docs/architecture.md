@@ -1,5 +1,51 @@
 # Architecture
 
+## Canonical intelligence platform
+
+The architect command center is a layered product over one shared intelligence
+contract. Source adapters never write UI-specific payloads; transports never
+reimplement decision logic.
+
+```text
+Hugging Face · GitHub · official feeds · registries · evidence endpoints
+                              │
+                              ▼
+              discovery → identity/dedupe → raw snapshots
+                              │
+                              ▼
+        evidence → claims → verification → qualification → recommendation
+                              │
+              ┌───────────────┴────────────────┐
+              ▼                                ▼
+   canonical SQL projection       append-only public event mirror
+   SQLite or PostgreSQL           data/intelligence/events.jsonl
+              │                                │
+              └───────────────┬────────────────┘
+                              ▼
+       shared release/catalog/deployment/operations query services
+                              │
+          ┌─────────┬─────────┼─────────┬──────────┐
+          ▼         ▼         ▼         ▼          ▼
+       FastAPI     MCP    Atom/RSS   webhooks   React/static snapshot
+```
+
+`src/radar/intelligence/pipeline.py` executes the freshness jobs.
+`config/intelligence-sources.yaml` owns adapter configuration. Every accepted
+release identity starts at `Detected` with official or trusted evidence.
+Transitions require citations and strictly follow
+`Detected → Verified → Qualified → Recommended`. Automation stops at review
+exceptions for ambiguous identities and authoritative conflicts.
+
+The React client is delivered in two modes. `BrowserRouter` powers the live
+FastAPI application; `HashRouter` powers the public GitHub Pages export.
+Both consume the same generated OpenAPI contract. The public snapshot omits
+workspaces by construction. Live workspace profiles have no account, role, or
+login boundary and only adjust decision views; they never rewrite public facts.
+
+Legacy scan, research, trending, and compatibility routes remain available
+during the cutover. The React shell is served only when `build/frontend` is
+present, preserving the previous Jinja root as the immediate rollback path.
+
 A scan is a single deterministic pass: collect signals, attribute them to
 tracked projects, score them, calibrate rings across the batch, and persist
 both the snapshot (cards) and the diff (history events). Everything else —
@@ -43,6 +89,8 @@ config/seed-sources    │ orchestrator.RadarOrchestrator._scan         │
 
 | Package | Responsibility |
 | --- | --- |
+| `intelligence/` | Canonical contracts, SQL persistence, source mesh, identity/dedupe, lifecycle, verification, qualification, recommendations, workspaces, operations, and executable freshness jobs. |
+| `api/` | Versioned REST projection over shared intelligence services, plus deterministic OpenAPI export for TypeScript generation. |
 | `collectors/` | Fetch raw `Signal`s. `github` (releases + repo snapshots), `rss` (feeds, incl. firehose vendor blogs), `manual` (static entries), `registry` (config → collector instances). |
 | `enrichment/` | Best-effort observation: `osv` (security advisories), `hackernews` (mention counts), `downloads` (PyPI/npm); `runner` merges them into per-project metrics, every failure degrading to a warning. |
 | `pipeline/` | `classify` (firehose re-attribution, + optional `llm_classify`); `dedupe`; `evidence` (signals→metrics→`ProjectEvidence`); `upgrade_risk` (release-note scanning); `momentum` (rising/falling/steady); `delta`; `quotas`; `cards`. |
@@ -61,6 +109,12 @@ config/seed-sources    │ orchestrator.RadarOrchestrator._scan         │
 - **Deterministic core.** The default scan never calls an LLM; identical
   inputs produce identical scores and rings. Keyword scoring uses membership
   checks, never set-iteration order.
+- **One fact, every transport.** REST, MCP, feeds, webhooks, and static export
+  share canonical IDs, event envelopes, citations, and query services.
+- **Unknown stays unknown.** Unsupported or unverified compatibility is never
+  promoted to support, and automated uncertainty becomes a review exception.
+- **Public means workspace-free.** Public feeds/events/snapshots reject or omit
+  workspace-scoped state.
 - **The JSONL log is the source of truth.** `data/history.jsonl` is
   append-only; the SQLite history table is a rebuildable projection. Corrupt
   lines are skipped with a warning, never fatal. See

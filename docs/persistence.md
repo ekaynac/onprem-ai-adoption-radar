@@ -1,5 +1,45 @@
 # Persistence & History Durability
 
+## Intelligence store
+
+The unified command center adds a canonical relational projection alongside the
+legacy decision-card store:
+
+```text
+data/intelligence.db                       canonical SQLite projection
+RADAR_DATABASE_URL=postgresql+psycopg://…  optional shared PostgreSQL projection
+data/intelligence/events.jsonl             append-only public event mirror
+data/intelligence/snapshots/<sha256>.bin   content-addressed raw evidence
+```
+
+The SQL schema owns publishers, families, releases, evidence, claims,
+compatibility assertions, qualifications, lifecycle transitions, review
+exceptions, source health, job leases, workspace profiles, events, and webhook
+attempts. Alembic migrations are mirrored by deterministic test schema
+creation. PostgreSQL runs the same repository contract as SQLite.
+
+Bootstrap and recovery are intentionally idempotent:
+
+```bash
+radar intelligence-migrate --root .
+radar intelligence-replay-events --root .
+radar intelligence-shadow --root . --check
+```
+
+Run those commands twice in a migration rehearsal. The second import/replay
+must add nothing, and shadow counts/rings/history must remain equivalent.
+Back up the SQL database, event mirror, and raw snapshots together when exact
+claim provenance is required. The public snapshot is derived and rebuildable.
+
+Workspace profiles are private mutable state in the live local installation.
+They are never serialized into `public-snapshot.v1.json`, public events, or
+feeds. Deleting a workspace does not alter canonical evidence or public
+recommendations.
+
+Rollback is delivery-only: restore the previous Jinja root route while keeping
+canonical ingestion, SQL migrations, and append-only events active. No data
+downgrade is required.
+
 The radar's accumulated **history** (when each project first appeared, every ring
 change over time) is its most valuable, irreplaceable data. This document
 explains how it is stored and how to keep it safe when self-hosting.

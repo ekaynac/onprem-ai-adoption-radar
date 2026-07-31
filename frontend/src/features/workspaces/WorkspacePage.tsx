@@ -145,6 +145,7 @@ export function WorkspacePage() {
               ref={importRef}
               className="sr-only"
               type="file"
+              aria-label="Import workspace file"
               accept="application/json"
               onChange={(event) => void importWorkspace(event.target.files?.[0])}
             />
