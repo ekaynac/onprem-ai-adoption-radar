@@ -43,10 +43,20 @@ const navigation = [
   },
 ] as const;
 
+const classicRadar = [
+  { href: "models.html", label: "Classic models", mark: "MO" },
+  { href: "platforms.html", label: "Classic platforms", mark: "PF" },
+  { href: "techniques.html", label: "Classic techniques", mark: "TE" },
+  { href: "trending.html", label: "Classic trending", mark: "TR" },
+  { href: "history.html", label: "Classic history", mark: "HI" },
+  { href: "compare.html", label: "Classic compare", mark: "CP" },
+] as const;
+
 
 export function Sidebar({ staticMode }: { staticMode: boolean }) {
   const snapshot = usePublicSnapshot();
   const sources = snapshot.data?.source_health.source_health ?? [];
+  const latestDigest = snapshot.data?.latest_digest;
   const failures = sources.filter(
     (source) => source.consecutive_failures > 0 || source.circuit_open_until,
   ).length;
@@ -79,6 +89,22 @@ export function Sidebar({ staticMode }: { staticMode: boolean }) {
               ))}
           </div>
         ))}
+        <div className="nav-group classic-nav">
+          <p>Classic radar</p>
+          <span className="classic-nav-note">Deep legacy views during restoration</span>
+          {classicRadar.map((item) => (
+            <a className="nav-link" href={item.href} key={item.href}>
+              <span className="nav-mark" aria-hidden="true">{item.mark}</span>
+              <span>{item.label}</span>
+            </a>
+          ))}
+          {latestDigest && (
+            <a className="nav-link" href={latestDigest.html_url}>
+              <span className="nav-mark" aria-hidden="true">WD</span>
+              <span>Latest weekly digest</span>
+            </a>
+          )}
+        </div>
       </nav>
       <div className="sidebar-foot">
         <span

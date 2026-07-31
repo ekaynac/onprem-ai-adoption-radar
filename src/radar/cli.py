@@ -1603,8 +1603,8 @@ def digest_generate(
     from radar.models import NotifyConfig
     from radar.models_radar.history import load_model_events
     from radar.notify import webhook
+    from radar.reports.auxiliary_feeds import write_digest_feeds
     from radar.reports.digest import build_digest
-    from radar.reports.digest_feeds import render_digest_atom, render_digest_rss
     from radar.research_radar.history import load_technique_events
     from radar.storage.autopilot_log import load_autopilot
     from radar.storage.config import ConfigError, load_config
@@ -1657,13 +1657,11 @@ def digest_generate(
     all_entries = load_digests(log_path)
 
     site_title = "On-Prem AI Adoption Radar — Weekly Digest"
-    atom_url = f"{base}/digests/digest.xml" if base else "digests/digest.xml"
-    rss_url = f"{base}/digests/digest-rss.xml" if base else "digests/digest-rss.xml"
-    (out_dir / "digest.xml").write_text(
-        render_digest_atom(all_entries, site_title, atom_url), encoding="utf-8"
-    )
-    (out_dir / "digest-rss.xml").write_text(
-        render_digest_rss(all_entries, site_title, rss_url), encoding="utf-8"
+    write_digest_feeds(
+        out_dir,
+        digests=all_entries,
+        site_title=site_title,
+        base_url=base,
     )
 
     # Webhook is best-effort: a missing/invalid config or a down endpoint must
@@ -2242,7 +2240,7 @@ def export(
             param_hint="--base-url",
         )
 
-    from radar.mcp_server.model_queries import _latest_model_cards
+    from radar.models import DecisionCard
     from radar.models_radar.entities import ModelEntry
     from radar.models_radar.history import ModelHistoryEvent, load_model_events
     from radar.storage.config import ConfigError, load_config
@@ -2251,15 +2249,40 @@ def export(
     from radar.storage.metrics_store import MetricsStore
     from radar.storage.model_metrics_store import ModelMetricsStore
     from radar.storage.source_health_store import SourceHealthStore
+    from radar.web.public_context import (
+        load_public_model_profiles,
+        load_public_project_bundle,
+        load_public_research_entries,
+    )
     from radar.web.scan_health import latest_tool_scan_meta
     from radar.web.source_health import summarize_source_health
     from radar.web.static_site import render_static_site
 
     orchestrator = RadarOrchestrator(root)
     cards = orchestrator.latest_cards()
+    project_baseline_note = None
+    if not cards:
+        project_bundle = load_public_project_bundle(root)
+        cards = [
+            DecisionCard.model_validate(row)
+            for row in project_bundle.projects
+        ]
+        if project_bundle.mode == "last_published_baseline":
+            baseline_time = (
+                project_bundle.generated_at.astimezone(UTC).strftime(
+                    "%Y-%m-%d %H:%M UTC"
+                )
+                if project_bundle.generated_at is not None
+                else "an unknown date"
+            )
+            project_baseline_note = (
+                f"Project decisions use the last published baseline from {baseline_time}; "
+                "a current scan projection was unavailable at export."
+            )
 
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
+    orchestrator.reconcile_history()
     # all_summaries(), not summaries(): a project entirely corrected away
     # must still show its raw timeline and feed entries here.
     timelines = [
@@ -2310,7 +2333,10 @@ def export(
         )
 
     # Model entries + events (optional: only present after a `radar models scan`).
-    model_entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
+    model_entries = [
+        ModelEntry.model_validate(card)
+        for card in load_public_model_profiles(root).values()
+    ]
     model_events = load_model_events(root / "data" / "model-history.jsonl")
 
     # Model download history (Task 3, differentiation pass): drives the
@@ -2338,11 +2364,10 @@ def export(
         shutil.copy2(model_history_src, out / "model-history.jsonl")
 
     # Technique entries + events (optional: only present after a `radar research scan`).
-    from radar.mcp_server.technique_queries import load_technique_entries
     from radar.research_radar.entities import ImplKind
     from radar.research_radar.history import load_technique_events as _load_tech_events
 
-    technique_entries = load_technique_entries(root)
+    technique_entries = load_public_research_entries(root)
     technique_events = _load_tech_events(root / "data" / "technique-history.jsonl")
 
     research_stale, latest_research_run_id = _research_snapshot_status(
@@ -2455,6 +2480,7 @@ def export(
 
     _technique_candidates = load_emerging_techniques(root, generated_at)
 
+    frontend_source = root / "frontend" / "package.json"
     index = render_static_site(
         cards,
         out,
@@ -2488,8 +2514,9 @@ def export(
         model_metrics_by_id=model_metrics_by_id or None,
         hn_by_project=hn_by_project or None,
         platform_entries=platform_entries or None,
+        project_baseline_note=project_baseline_note,
+        write_public_feeds=not frontend_source.exists(),
     )
-    frontend_source = root / "frontend" / "package.json"
     if frontend_source.exists():
         from radar.web.react_export import (
             build_react_frontend,

@@ -20,6 +20,14 @@ export function ProjectsPage() {
       }),
     [query, ring, snapshot.data?.projects],
   );
+  const isBaseline =
+    snapshot.data?.project_data?.mode === "last_published_baseline";
+  const baselineDate = snapshot.data?.project_data?.generated_at
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeZone: "UTC",
+      }).format(new Date(snapshot.data.project_data.generated_at))
+    : "an unknown date";
 
   return (
     <section className="page-stack" aria-labelledby="projects-title">
@@ -28,8 +36,9 @@ export function ProjectsPage() {
           <p className="eyebrow">Intelligence · GitHub projects</p>
           <h1 id="projects-title">The open-source systems behind on-prem AI</h1>
           <p className="lede">
-            Live repository evidence, adoption posture, risk, and the next
-            practical validation step.
+            {isBaseline
+              ? `Last published repository baseline from ${baselineDate}; the current scan projection was unavailable at export.`
+              : "Live repository evidence, adoption posture, risk, and the next practical validation step."}
           </p>
         </div>
       </header>
@@ -95,7 +104,11 @@ export function ProjectsPage() {
           <span>Clear a search or broaden the adoption ring.</span>
         </div>
       )}
-      <p className="data-timestamp">{projects.length} live project decisions</p>
+      <p className="data-timestamp">
+        {isBaseline
+          ? `${projects.length} project decisions · last published baseline from ${baselineDate}`
+          : `${projects.length} live project decisions`}
+      </p>
     </section>
   );
 }

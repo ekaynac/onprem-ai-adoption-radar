@@ -56,6 +56,11 @@ test("unknown claim is explicit and cited values link to evidence", async () => 
             ],
             compatibility: [],
             qualification: null,
+            profile: {
+              id: "kimi-k3",
+              family: "Kimi",
+              warnings: ["Curated seed baseline; scan enrichment is pending"],
+            },
           }),
           { status: 200 },
         ),
@@ -76,11 +81,14 @@ test("unknown claim is explicit and cited values link to evidence", async () => 
     </QueryClientProvider>,
   );
 
-  expect(await screen.findByText("Unknown")).toBeVisible();
+  expect((await screen.findAllByText("Unknown"))[0]).toBeVisible();
   expect(screen.getByText("No official value found")).toBeVisible();
   expect(screen.getByRole("link", { name: /official source/i })).toHaveAttribute(
     "href",
     "https://moonshot.ai/kimi-k3",
   );
+  expect(
+    screen.getByText("Curated seed baseline; scan enrichment is pending"),
+  ).toBeVisible();
   vi.unstubAllGlobals();
 });

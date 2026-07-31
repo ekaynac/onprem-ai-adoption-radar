@@ -52,7 +52,10 @@ export function App({
           <Route path="/operations/reviews" element={<ReviewQueuePage />} />
         )}
         {!staticMode && <Route path="/watchlists" element={<WatchlistsPage />} />}
-        <Route path="/integrations" element={<IntegrationsPage />} />
+        <Route
+          path="/integrations"
+          element={<IntegrationsPage staticMode={staticMode} />}
+        />
       </Route>
       <Route path="*" element={<Navigate to="/overview" replace />} />
     </Routes>

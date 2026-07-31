@@ -1,4 +1,6 @@
 import json
+import logging
+import shutil
 from datetime import UTC, datetime
 
 from intelligence.lifecycle_helpers import lifecycle_repository
@@ -12,6 +14,7 @@ from radar.intelligence.contracts import (
 from radar.intelligence.services.container import build_services
 from radar.models import Category, DecisionCard, Ring
 from radar.storage.database import RadarDatabase
+from radar.storage.digest_log import DigestLogEntry, append_digest
 from radar.storage.model_candidate_log import (
     ModelCandidateObservation,
     append_model_candidates,
@@ -20,6 +23,87 @@ from radar.web.intelligence_snapshot import (
     build_public_snapshot,
     write_public_snapshot,
 )
+
+
+def _public_project_payload() -> dict:
+    return {
+        "project": "vLLM",
+        "category": "model_serving",
+        "ring": "adopt",
+        "score": 4.7,
+        "summary": "High-throughput model serving engine.",
+        "workflow_fit": {"serving": "strong"},
+        "risk_level": "medium",
+        "why_it_matters": "Production-grade throughput.",
+        "on_prem_fit": "Strong fit for GPU clusters.",
+        "evidence": ["https://github.com/vllm-project/vllm"],
+        "try_this_week": ["Run a throughput benchmark."],
+        "last_reviewed_at": "2026-07-31T08:00:00Z",
+        "repository_url": "https://github.com/vllm-project/vllm",
+        "sources": [],
+        "history": [],
+        "latest_metrics": None,
+    }
+
+
+def test_public_projects_fall_back_to_tracked_snapshot_without_database(
+    tmp_path,
+) -> None:
+    from radar.web.public_context import (
+        load_public_project_bundle,
+        load_public_projects,
+    )
+
+    snapshot = tmp_path / "data" / "intelligence" / "public-snapshot.v1.json"
+    snapshot.parent.mkdir(parents=True)
+    raw_project = {
+        **_public_project_payload(),
+        "workspace_id": "workspace:private",
+        "internal_notes": "must not be republished",
+    }
+    snapshot.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-07-30T06:00:00Z",
+                "projects": [raw_project],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    projects = load_public_projects(tmp_path)
+    bundle = load_public_project_bundle(tmp_path)
+
+    assert len(projects) == 1
+    for key, value in _public_project_payload().items():
+        assert projects[0][key] == value
+    assert bundle.mode == "last_published_baseline"
+    assert bundle.generated_at == datetime(2026, 7, 30, 6, tzinfo=UTC)
+    assert "workspace_id" not in projects[0]
+    assert "internal_notes" not in projects[0]
+
+    repository = lifecycle_repository(tmp_path)
+    public_snapshot = build_public_snapshot(
+        build_services(repository),
+        datetime(2026, 7, 31, 10, tzinfo=UTC),
+        root=tmp_path,
+    ).model_dump(mode="json")
+    assert public_snapshot["project_data"] == {
+        "mode": "last_published_baseline",
+        "generated_at": "2026-07-30T06:00:00Z",
+    }
+    assert "workspace_id" not in public_snapshot["projects"][0]
+    assert "internal_notes" not in public_snapshot["projects"][0]
+
+
+def test_public_projects_ignore_non_object_snapshot(tmp_path) -> None:
+    from radar.web.public_context import load_public_projects
+
+    snapshot = tmp_path / "data" / "intelligence" / "public-snapshot.v1.json"
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_text("[]", encoding="utf-8")
+
+    assert load_public_projects(tmp_path) == []
 
 
 def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
@@ -57,6 +141,8 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "research",
         "events",
         "source_health",
+        "latest_digest",
+        "project_data",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -67,6 +153,47 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
     assert payload["source_health"]["stale_claim_count"] >= 1
     assert payload["hardware"]
     assert "workspace" not in first.decode().casefold()
+
+
+def test_public_snapshot_exposes_latest_valid_digest(tmp_path, caplog) -> None:
+    repository = lifecycle_repository(tmp_path)
+    digest_path = tmp_path / "data" / "digest-log.jsonl"
+    append_digest(
+        digest_path,
+        [
+            DigestLogEntry(
+                label="2026-W30",
+                generated_at=datetime(2026, 7, 24, 8, tzinfo=UTC),
+                url="digests/digest_2026-W30.html",
+                summary="Week 30",
+            ),
+            DigestLogEntry(
+                label="2026-W31",
+                generated_at=datetime(2026, 7, 31, 8, tzinfo=UTC),
+                url="digests/digest_2026-W31.html",
+                summary="Week 31",
+            ),
+        ],
+    )
+    with digest_path.open("a", encoding="utf-8") as handle:
+        handle.write("{malformed trailing record\n")
+    card = tmp_path / "digests" / "cards" / "trending_og.png"
+    card.parent.mkdir(parents=True)
+    card.write_bytes(b"png")
+
+    with caplog.at_level(logging.WARNING):
+        snapshot = build_public_snapshot(
+            build_services(repository),
+            datetime(2026, 7, 31, 9, tzinfo=UTC),
+            root=tmp_path,
+        )
+
+    assert snapshot.latest_digest == {
+        "generated_at": "2026-07-31T08:00:00Z",
+        "html_url": "digests/digest_2026-W31.html",
+        "card_url": "digests/cards/trending_og.png",
+    }
+    assert "Skipping corrupt digest-log line" in caplog.text
 
 
 def test_public_snapshot_restores_projects_and_fresh_hf_candidates(
@@ -181,6 +308,23 @@ def test_candidate_projection_reserves_space_for_new_low_download_releases(
     )
 
     assert any(item["hf_repo"] == "moonshotai/Kimi-K3" for item in projected)
+
+
+def test_curated_model_fallback_is_explicitly_labeled(tmp_path) -> None:
+    from radar.web.public_context import load_public_model_profiles
+
+    config = tmp_path / "config"
+    config.mkdir()
+    shutil.copy2("config/model-seed.yaml", config / "model-seed.yaml")
+
+    profiles = load_public_model_profiles(tmp_path)
+
+    assert profiles
+    assert all(
+        "Curated seed baseline; scan enrichment is pending"
+        in profile["warnings"]
+        for profile in profiles.values()
+    )
 
 
 def test_platform_reverification_is_repeatable_and_failure_marks_current_claim_stale(

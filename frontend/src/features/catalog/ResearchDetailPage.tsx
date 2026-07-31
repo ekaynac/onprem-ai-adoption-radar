@@ -25,6 +25,9 @@ export function ResearchDetailPage() {
         </div>
         {research.ring && <span className={`ring-pill ring-${research.ring}`}>{research.ring}</span>}
       </header>
+      {research.warnings.map((warning) => (
+        <p className="data-state-note" key={warning}>{warning}</p>
+      ))}
       <div className="detail-grid">
         <section className="panel">
           <p className="eyebrow">Operational consequence</p>

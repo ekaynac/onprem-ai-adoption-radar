@@ -7,7 +7,6 @@ and relative cross-links, so a CI job can scan and publish a complete snapshot.
 
 from __future__ import annotations
 
-import json
 import logging
 import shutil
 from datetime import datetime
@@ -25,18 +24,14 @@ from radar.models_radar.entities import HardwareTier, ModelEntry
 from radar.models_radar.history import ModelHistoryEvent
 from radar.models_radar.memory import minimum_viable_quant
 from radar.models_radar.platform_matrix import _FEATURE_KEYS, _HARDWARE_KEYS, PlatformSeed
-from radar.models_radar.reports import model_events_to_feed_atom, model_events_to_feed_json
+from radar.reports.auxiliary_feeds import write_auxiliary_feeds
 from radar.reports.comparison import ComparisonError, build_comparison
-from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
+from radar.reports.unified_feeds import write_unified_feeds
 from radar.research_radar.entities import TechniqueEntry
 from radar.research_radar.history import TechniqueHistoryEvent
 from radar.research_radar.pedigree import TechniquePedigree
-from radar.research_radar.reports import (
-    technique_events_to_feed_atom,
-    technique_events_to_feed_json,
-)
 from radar.research_radar.timeline import build_technique_timeline
-from radar.storage.digest_log import DigestLogEntry
+from radar.storage.digest_log import DigestLogEntry, load_digests
 from radar.storage.history_store import ProjectHistoryEvent
 from radar.storage.metrics_store import ProjectMetrics
 from radar.storage.model_metrics_store import ModelMetrics
@@ -96,6 +91,8 @@ def render_static_site(
     model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
     hn_by_project: dict[str, int] | None = None,
     platform_entries: list[PlatformSeed] | None = None,
+    project_baseline_note: str | None = None,
+    write_public_feeds: bool = True,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -104,12 +101,11 @@ def render_static_site(
     The same events drive ``changes.xml`` (Atom), ``changes.json``, and
     ``changes.rss`` (RSS 2.0) so the published site is subscribable. ``metrics_by_project`` (optional) supplies
     each project page's metrics history; omitting it renders empty metric tables.
-    When ``model_entries`` is provided, writes ``models.html``, per-model pages,
-    and ``changes-models.xml``/``.json`` feeds (the latter only when
-    ``model_events`` is also provided). When ``technique_entries`` is provided,
-    writes ``techniques.html``, per-technique pages, and
-    ``changes-research.xml``/``.json`` feeds (the latter only when
-    ``technique_events`` is also provided). ``pedigree_by_project`` and
+    When ``model_entries`` is provided, writes ``models.html`` and per-model
+    pages. Model feeds are written when ``model_events`` is provided. When
+    ``technique_entries`` is provided, writes ``techniques.html`` and
+    per-technique pages; research feeds are written when ``technique_events``
+    is provided. ``pedigree_by_project`` and
     ``pedigree_by_model`` (optional) supply the project/model pages' "Research
     techniques" section; ``technique_hrefs`` maps technique id to its href and
     must cover every id referenced by either. ``impl_hrefs`` (optional) maps a
@@ -133,13 +129,16 @@ def render_static_site(
     (optional) supplies the same sub-section under Trending Techniques,
     linking each untracked paper to its absolute
     ``https://arxiv.org/abs/<arxiv_id>`` page.
-    When ``digest_dir`` is given and exists, its tree (digest pages, cards,
-    feeds) is copied into ``out_dir/digests``; ``latest_digest`` (optional)
+    When ``digest_dir`` is given and exists, its pages and cards are copied
+    into ``out_dir/digests`` and its feeds are regenerated from the digest log;
+    ``latest_digest`` (optional)
     drives a "Latest digest" link on the index page. Both are a no-op when
     omitted — back-compat for exports without a digest log yet.
     ``card_staleness`` (optional, from ``RadarDatabase.card_staleness_note()``)
     renders a note in the scan-health panel when persisted cards span more
     than one scan day (a partial/degraded run mixing fresh and stale ages).
+    ``project_baseline_note`` visibly identifies last-published fallback cards
+    when a current SQLite projection is unavailable.
     ``tenure_by_project``/``model_tenure_by_id`` (optional) supply the tenure
     credential line ("On radar N days · RING since <date> · N ring changes")
     on the index page's project rows and each project/model detail page;
@@ -259,6 +258,7 @@ def render_static_site(
             top_technique=top_technique,
             tenure_by_project=tenure_by_project,
             hn_by_project=hn_by_project,
+            project_baseline_note=project_baseline_note,
         ),
         encoding="utf-8",
     )
@@ -284,13 +284,15 @@ def render_static_site(
         env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {},
         pedigree_by_project=pedigree_by_project or {}, technique_hrefs=technique_hrefs or {},
         tenure_by_project=tenure_by_project or {}, self_base_url=self_base_url,
+        project_baseline_note=project_baseline_note,
     )
-    _write_feeds(out_dir, timelines or [], site_title, self_base_url)
+    if write_public_feeds:
+        _write_feeds(out_dir, timelines or [], site_title, self_base_url)
     _write_badges(out_dir, cards, slug_by_project, model_entries or [])
 
     if model_entries:
         _write_model_pages(
-            env, out_dir, model_entries, model_events or [], site_title, self_base_url, stamp,
+            env, out_dir, model_entries, self_base_url, stamp,
             pedigree_by_model=pedigree_by_model or {}, technique_hrefs=technique_hrefs or {},
             model_tenure_by_id=model_tenure_by_id or {},
             model_metrics_by_id=model_metrics_by_id or {},
@@ -299,7 +301,7 @@ def render_static_site(
     if technique_entries:
         _write_technique_pages(
             env, out_dir, technique_entries, technique_events or [],
-            site_title, self_base_url, stamp,
+            stamp,
             impl_hrefs=impl_hrefs,
         )
 
@@ -333,9 +335,29 @@ def render_static_site(
     # exports run before any digest has been generated.
     if digest_dir and digest_dir.exists():
         try:
-            shutil.copytree(digest_dir, out_dir / "digests", dirs_exist_ok=True)
+            shutil.copytree(
+                digest_dir,
+                out_dir / "digests",
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("digest.xml", "digest-rss.xml"),
+            )
         except Exception as exc:
             logger.warning("Could not copy digests into site: %s", exc)
+
+    if write_public_feeds:
+        digest_events = (
+            load_digests(digest_dir.parent / "data" / "digest-log.jsonl")
+            if digest_dir and digest_dir.exists()
+            else None
+        )
+        write_auxiliary_feeds(
+            out_dir,
+            model_events=model_events or None,
+            technique_events=technique_events or None,
+            digests=digest_events,
+            site_title=site_title,
+            base_url=self_base_url,
+        )
 
     return index
 
@@ -356,6 +378,7 @@ def _write_project_pages(
     technique_hrefs: dict[str, str],
     tenure_by_project: dict[str, TenureLine] | None = None,
     self_base_url: str = "",
+    project_baseline_note: str | None = None,
 ) -> None:
     """Render one self-contained project_<slug>.html per card."""
     events_by_project: dict[str, list[ProjectHistoryEvent]] = {
@@ -380,6 +403,7 @@ def _write_project_pages(
                 pedigree=(pedigree_by_project.get(card.project) or None),
                 technique_hrefs=technique_hrefs,
                 tenure=(tenure_by_project or {}).get(card.project),
+                project_baseline_note=project_baseline_note,
                 star_spark=star_sparkline(metrics_oldest_first),
                 badge_svg=ring_badge_svg(card.ring.value),
                 badge_snippet=badge_snippet,
@@ -398,23 +422,13 @@ def _write_feeds(
     events: list[ProjectHistoryEvent] = []
     for timeline in timelines:
         events.extend(timeline.get("events") or [])
-    events.sort(key=lambda e: e.observed_at, reverse=True)
-    recent = events[:_FEED_LIMIT]
-
-    base = self_base_url.rstrip("/") if self_base_url else ""
-    self_url = f"{base}/changes.xml" if base else "changes.xml"
-    (out_dir / "changes.xml").write_text(
-        render_changes_atom(recent, site_title=site_title, self_url=self_url),
-        encoding="utf-8",
-    )
-    (out_dir / "changes.json").write_text(
-        json.dumps(render_changes_json(recent, site_title=site_title), indent=2),
-        encoding="utf-8",
-    )
-    rss_url = f"{base}/changes.rss" if base else "changes.rss"
-    (out_dir / "changes.rss").write_text(
-        render_changes_rss(recent, site_title=site_title, self_url=rss_url),
-        encoding="utf-8",
+    write_unified_feeds(
+        out_dir,
+        project_events=events,
+        intelligence_events=[],
+        site_title=site_title,
+        base_url=self_base_url,
+        limit=_FEED_LIMIT,
     )
 
 
@@ -455,8 +469,6 @@ def _write_model_pages(
     env: Environment,
     out_dir: Path,
     model_entries: list[ModelEntry],
-    model_events: list[ModelHistoryEvent],
-    site_title: str,
     self_base_url: str,
     generated_at: str = "",
     pedigree_by_model: dict[str, list[TechniquePedigree]] | None = None,
@@ -464,7 +476,7 @@ def _write_model_pages(
     model_tenure_by_id: dict[str, TenureLine] | None = None,
     model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
 ) -> None:
-    """Render models.html, per-model pages, and model feed files."""
+    """Render models.html and per-model pages."""
     slug_by_model = build_slug_map([m.id for m in model_entries])
     base = self_base_url.rstrip("/") if self_base_url else ""
 
@@ -520,33 +532,15 @@ def _write_model_pages(
             encoding="utf-8",
         )
 
-    if model_events:
-        self_url = (
-            f"{self_base_url.rstrip('/')}/changes-models.xml"
-            if self_base_url
-            else "changes-models.xml"
-        )
-        (out_dir / "changes-models.xml").write_text(
-            model_events_to_feed_atom(model_events, site_title=site_title, self_url=self_url),
-            encoding="utf-8",
-        )
-        (out_dir / "changes-models.json").write_text(
-            json.dumps(model_events_to_feed_json(model_events, site_title=site_title), indent=2),
-            encoding="utf-8",
-        )
-
-
 def _write_technique_pages(
     env: Environment,
     out_dir: Path,
     technique_entries: list[TechniqueEntry],
     technique_events: list[TechniqueHistoryEvent],
-    site_title: str,
-    self_base_url: str,
     generated_at: str = "",
     impl_hrefs: dict[str, str] | None = None,
 ) -> None:
-    """Render techniques.html, per-technique pages, and research feed files."""
+    """Render techniques.html and per-technique pages."""
     slug_by_technique = build_slug_map([t.id for t in technique_entries])
 
     (out_dir / "techniques.html").write_text(
@@ -569,24 +563,6 @@ def _write_technique_pages(
             ),
             encoding="utf-8",
         )
-
-    if technique_events:
-        self_url = (
-            f"{self_base_url.rstrip('/')}/changes-research.xml"
-            if self_base_url
-            else "changes-research.xml"
-        )
-        (out_dir / "changes-research.xml").write_text(
-            technique_events_to_feed_atom(technique_events, site_title=site_title,
-                                          self_url=self_url),
-            encoding="utf-8",
-        )
-        (out_dir / "changes-research.json").write_text(
-            json.dumps(technique_events_to_feed_json(technique_events, site_title=site_title),
-                       indent=2),
-            encoding="utf-8",
-        )
-
 
 def _write_trending_page(
     env: Environment,

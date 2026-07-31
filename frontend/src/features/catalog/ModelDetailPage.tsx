@@ -154,6 +154,9 @@ export function ModelDetailPage() {
               <h2>Model and artifact facts</h2>
             </div>
           </div>
+          {profile.warnings?.map((warning) => (
+            <p className="data-state-note" key={warning}>{warning}</p>
+          ))}
           <dl className="spec-grid">
             <div><dt>Family</dt><dd>{profile.family ?? "Unknown"}</dd></div>
             <div><dt>Parameters</dt><dd>{profile.params_total?.toLocaleString() ?? "Unknown"}</dd></div>

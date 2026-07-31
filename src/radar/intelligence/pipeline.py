@@ -159,8 +159,12 @@ class IntelligenceJobRunner:
             else:
                 updated += 1
             release_id = resolution.release_id
+            candidate_claims = dict(candidate.claims)
+            repo_id = candidate_claims.pop("repo_id", None)
+            if repo_id is not None and "hf_repo" not in candidate_claims:
+                candidate_claims["hf_repo"] = repo_id
             claims = {
-                **candidate.claims,
+                **candidate_claims,
                 **(
                     {"artifact_url": candidate.artifact_urls[0]}
                     if candidate.artifact_urls
@@ -185,8 +189,8 @@ class IntelligenceJobRunner:
         warnings: list[str] = []
         enrichers = [adapter for adapter in self.adapters if hasattr(adapter, "enrich")]
         for release in self.repository.list_all_releases():
-            repo_id = self._claim_value(release.id, "repo_id")
-            if not isinstance(repo_id, str) or "/" not in repo_id:
+            repo_id = self._repository_identity(release.id)
+            if repo_id is None:
                 continue
             for adapter in enrichers:
                 try:
@@ -211,6 +215,13 @@ class IntelligenceJobRunner:
                 )
                 updated += 1
         return JobResult(job_id=job_id, updated=updated, warnings=tuple(warnings))
+
+    def _repository_identity(self, release_id: str) -> str | None:
+        for predicate in ("hf_repo", "repo_id"):
+            value = self._claim_value(release_id, predicate)
+            if isinstance(value, str) and "/" in value:
+                return value
+        return None
 
     def _verify(self, job_id: str, *, detected_only: bool) -> JobResult:
         service = VerificationService(self.repository)

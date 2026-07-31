@@ -10,13 +10,16 @@ data/intelligence.db                       canonical SQLite projection
 RADAR_DATABASE_URL=postgresql+psycopg://…  optional shared PostgreSQL projection
 data/intelligence/events.jsonl             append-only public event mirror
 data/intelligence/snapshots/<sha256>.bin   content-addressed raw evidence
+data/intelligence/public-snapshot.v1.json  derived public delivery projection
 ```
 
-The scheduled publisher force-adds the canonical SQLite database and
-content-addressed evidence snapshots despite the local `data/*.db` ignore
-rule. This preserves complete releases, claims, provenance, compatibility,
-and job leases across ephemeral GitHub Actions runners. Local workspace
-databases remain ignored and must never be copied into the published lane.
+The sole scheduled publisher force-adds `data/intelligence.db`,
+`data/intelligence/events.jsonl`, and `data/intelligence/snapshots/` despite
+the local database ignore rule. The SQL store preserves complete releases,
+claims, provenance, compatibility, and job leases; the JSONL ledger preserves
+the append-only public lifecycle; raw snapshot blobs preserve the bytes behind
+cited evidence. Local workspace databases remain ignored and must never be
+copied into the published lane.
 
 The SQL schema owns publishers, families, releases, evidence, claims,
 compatibility assertions, qualifications, lifecycle transitions, review
@@ -24,18 +27,25 @@ exceptions, source health, job leases, workspace profiles, events, and webhook
 attempts. Alembic migrations are mirrored by deterministic test schema
 creation. PostgreSQL runs the same repository contract as SQLite.
 
-Bootstrap and recovery are intentionally idempotent:
+Bootstrap and recovery are intentionally idempotent and ordered:
 
 ```bash
-radar intelligence-migrate --root .
-radar intelligence-replay-events --root .
-radar intelligence-shadow --root . --check
+radar intelligence-migrate --root .       # legacy catalogs → canonical rows
+radar intelligence-replay-events --root . # public event ledger → projection
+radar intelligence-shadow --root . --check # compare legacy/canonical truth
 ```
 
 Run those commands twice in a migration rehearsal. The second import/replay
 must add nothing, and shadow counts/rings/history must remain equivalent.
 Back up the SQL database, event mirror, and raw snapshots together when exact
-claim provenance is required. The public snapshot is derived and rebuildable.
+claim provenance is required. `public-snapshot.v1.json` is derived delivery
+data, not primary history, and is rebuilt on every export.
+
+If `data/intelligence.db` is lost, restore the newest database backup first,
+then run migration and event replay in the order above. The event mirror is a
+public audit/replay lane, not a substitute for private review, lease, or
+workspace rows. Verify that every evidence checksum still resolves to a blob
+under `data/intelligence/snapshots/` before reopening qualification jobs.
 
 Workspace profiles are private mutable state in the live local installation.
 They are never serialized into `public-snapshot.v1.json`, public events, or
@@ -117,13 +127,15 @@ lanes clean from the start.
 2. **Back up the file.** Copy `data/history.jsonl` to any backup target (rsync,
    object storage, a synced folder). Restore by dropping it back into `data/`.
 
-3. **CI (GitHub Actions).** The publish workflow caches `data/history.jsonl`
-   across runs and copies it into the published site (`/history.jsonl`) so the
-   full timeline is downloadable and not dependent on the evictable Actions
-   cache.
+3. **CI (GitHub Actions).** The publish workflow force-adds and commits
+   `data/history.jsonl` alongside the canonical intelligence database, event
+   ledger, and raw snapshots. It also copies the legacy timeline into the
+   published site (`/history.jsonl`), so recovery does not depend on an
+   evictable Actions cache.
 
 ## Moving or sharing a radar
 
-To move a radar to a new machine, copy `data/history.jsonl` (and optionally
-`data/config.yaml`). Run `radar scan` — the database is rebuilt and the timeline
-continues seamlessly.
+To move a radar to a new machine, copy `data/history.jsonl` and the complete
+`data/intelligence*` recovery set above (plus `data/config.yaml` for local
+source overrides). Run the ordered intelligence recovery commands, then
+`radar scan`; both legacy and canonical timelines continue from durable state.

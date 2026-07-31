@@ -2,8 +2,8 @@
 
 **A unified, self-hosted decision workspace for infrastructure architects tracking models, serving platforms, hardware, research, and operational readiness.**
 
-The command center detects important releases within two hours, enriches and
-qualifies them daily, reverifies trusted claims weekly, and explains what each
+The command center discovers, evaluates, and republishes on-prem signals every
+two hours, re-evaluates persisted trusted claims weekly, and explains what each
 change means for an on-prem deployment. Releases move through
 `Detected → Verified → Qualified → Recommended`; unresolved identity,
 provenance, or compatibility conflicts are routed to the review queue.
@@ -14,7 +14,9 @@ edition remains strictly read-only and contains no workspace data.
 
 **How this differs from trending trackers:**
 - 🧭 **Computed, not sponsored** — rings come from a deterministic rubric and an append-only, auditable timeline. Placement cannot be bought.
-- 🧾 **Every number cited** — model specs carry per-number provenance (source, date, human-verified flag); a weekly job re-verifies them against upstream.
+- 🧾 **Every number cited** — model specs carry per-number provenance (source,
+  date, human-verified flag); a weekly job re-evaluates persisted claims and
+  evidence against current policy.
 - 🤖 **Agent-queryable** — a built-in MCP server lets Claude/Codex/any MCP client ask the radar questions mid-task.
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
@@ -32,6 +34,38 @@ This is **not** a generic AI news digest. It collects real signals (GitHub relea
 Most "AI radar" tools summarize news. This one makes a *decision*: given a tool, should you adopt it now, pilot it, keep watching, or avoid it — specifically through an **on-prem / enterprise** lens (local runnability, data exposure, sandbox posture, deployment complexity, license risk, enterprise integration). Decisions are reproducible because they come from deterministic scoring, not a prompt.
 
 ## Highlights
+
+### Radar — shipping
+
+- **73 curated sources** currently ship in `config/seed-sources.yaml`, spanning
+  GitHub repositories, RSS feeds, registries, and manual authoritative sources.
+- Deterministic `adopt` / `pilot` / `watch` / `avoid` rings, project evidence,
+  comparisons, history, model and research catalogs, the platform matrix,
+  hardware references, trending views, and weekly digests are available now.
+- The React command center links to every deep classic-radar page while those
+  views are elevated into the new shell. Public history downloads and Atom,
+  RSS, and JSON feeds are exported with the site.
+
+### Intelligence — restoration in progress
+
+- Canonical release identity, lifecycle transitions, cited claims, source
+  health, freshness classes, public snapshots, and the REST contract ship.
+- The two-hour workflow now has one database writer and one Pages deployer.
+  Curated model and research baselines remain visible if a scan has not yet
+  produced a current enriched run.
+- Population, qualification depth, and full React parity are being restored in
+  measured phases; detected data is never presented as verified advice.
+
+### Planner — CLI and MCP
+
+- Deterministic capacity planning ships through `radar capacity plan`,
+  `radar capacity max`, and the MCP tools `plan_capacity`, `max_workload`, and
+  `compare_devices`.
+- Every answer exposes assumptions, memory/throughput constraints, and
+  electricity-only cost boundaries. The web planner arrives in Phase 3; the
+  public static product does not claim it today.
+
+### Detailed radar capabilities
 
 - 🧭 **Decision rings** — `adopt` / `pilot` / `watch` / `avoid`, from a deterministic 7-dimension score + on-prem rubric.
 - ⚖️ **Hybrid ring calibration** — absolute gates (security/excellence) plus a quartile-aware, size-capped promotion so rings actually discriminate and "Try This Week" stays a short, high-conviction list.
@@ -57,7 +91,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 - 🔌 **MCP server** — query the radar from Claude / Codex / any MCP client ("what should I try this week?").
 - 🖥️ **Local dashboard** + 📄 **static export** for GitHub Pages — redesigned with a hero, ring-distribution stats, ring pills, a legend, sticky filters, and automatic dark mode.
 - 🟦 **Mega Bilişim corporate brand** — Process Blue `#009FDA` hero with the *mega®* lockup, Cool Gray surfaces, Centrale Sans type, and a subtle Buka dot-pattern, following the Mega design standard (light + dark). Generated with the Open Design app and ported into the shared design system.
-- ♾️ **Runs itself** — a daily GitHub Action scans, gates, and republishes; it commits the history log back to the repo, which keeps the timeline durable **and** keeps the schedule from auto-disabling, so the public site survives untouched.
+- ♾️ **Runs itself** — a two-hour GitHub Action scans, gates, and republishes; it commits the history log back to the repo, which keeps the timeline durable **and** keeps the schedule from auto-disabling, so the public site survives untouched.
 - ⬇️ **Downloadable data** — the full append-only timeline (`history.jsonl`) and change feeds (Atom/RSS/JSON) are published next to the site and served by the dashboard at `/history.jsonl`.
 - 🎨 **Fun lane** — playful local-AI projects (image gen, voice, LLM toys) tracked in their own category.
 - 🎓 **Research technique radar** — curated academic techniques (speculative decoding, PagedAttention, LoRA, ReAct…) get their own deterministic rings, scored by *which tracked tools already implement them* plus citation evidence — research verdicts move when tool verdicts move. Browsable at `/research` (dashboard + static site) with per-technique pages showing a research→production timeline, queryable over MCP (`list_techniques`/`get_technique`/`technique_movers`), and published as Atom/JSON change feeds. Tool and model pages cross-link back: each shows the research techniques it implements, and tool cards carry an "Implements N tracked research techniques" evidence line.
@@ -71,7 +105,7 @@ Everything new degrades gracefully and stays off the critical path: enrichment (
 
 `coding_agents` · `general_agents` · `mcp_tooling` · `sandbox_governance` · `agent_frameworks` · `model_serving` · `ai_infrastructure` · `physical_ai_infrastructure` · `fun_experimental`
 
-51 curated sources ship by default; add your own from the CLI or the dashboard.
+73 curated sources ship by default; add your own from the CLI.
 
 ---
 
@@ -173,7 +207,11 @@ A blog feed is one source but covers many subjects. Firehose feeds (`firehose: t
 
 ### History & durability
 
-The timeline (first-seen, every ring change) is the radar's most valuable data. It is stored as an **append-only `data/history.jsonl` log** — the source of truth — with SQLite as a fast, rebuildable cache. Delete the database and the next scan reconstructs the full timeline from the log. To keep it across machines or CI, back up or commit that one file. Full details and guarantees in **[docs/persistence.md](docs/persistence.md)**.
+The legacy project timeline is stored in append-only `data/history.jsonl`, with
+SQLite as its rebuildable query projection. Canonical intelligence additionally
+uses `data/intelligence.db`, `data/intelligence/events.jsonl`, and
+content-addressed raw snapshots. Back up the complete set for exact recovery;
+full details and replay order are in **[docs/persistence.md](docs/persistence.md)**.
 
 ## MCP server
 
@@ -190,26 +228,31 @@ Expose the radar to AI clients so they can query it directly:
 }
 ```
 
-Tools: `list_recommendations`, `try_this_week`, `get_project` (with history), `list_tracked_projects`, `compare`, `sandbox_plan`.
+Tools include `list_recommendations`, `try_this_week`, `get_project` (with
+history), `list_tracked_projects`, `compare`, `sandbox_plan`, `plan_capacity`,
+`max_workload`, and `compare_devices`.
 
 ## Dashboard
 
-`radar serve` →
+`radar serve` exposes the local command center. The public static edition ships:
+
 - `/overview` — release priority, recommended actions, freshness, and trust
-- `/models`, `/platforms`, `/hardware`, `/research` — the six-category catalog
-- `/planner` and `/compare` — cited deployment fit and side-by-side decisions
-- `/operations` — review queue, source health, feeds, webhooks, and watchlists
-- `/workspaces` — local architect profiles with import/export; no account required
+- `/catalog`, `/projects`, `/platforms`, `/hardware`, `/research` — public catalogs and detail routes
+- `/compare` — side-by-side public decisions
+- `/operations` and `/integrations` — source health, history downloads, feeds, API, and MCP guidance
+
+Private workspace, mutation, review, and planner routes are not exposed by the
+static public edition.
 
 ## Freshness automation
 
 GitHub Actions and the built-in scheduler enforce one platform-wide policy:
 
-- every two hours: discover new releases, verify newly detected identities, and
-  publish only when public state changes;
-- daily: enrich claims, qualify deployment readiness, refresh recommendations,
-  and retain the existing research/trending scans;
-- weekly: re-fetch and re-evaluate every trusted claim.
+- every two hours: discover and verify new releases, refresh the legacy radar,
+  enrich claims, qualify deployment readiness, refresh recommendations, and
+  publish the complete static product;
+- weekly: re-evaluate every persisted trusted claim and its evidence against
+  current policy.
 
 See [Intelligence operations](docs/intelligence-operations.md) for scheduler
 modes, credentials, storage, backups, and incident recovery.
@@ -271,12 +314,18 @@ notify:
 
 ## Publishing (GitHub Pages)
 
-`.github/workflows/publish.yml` scans on a daily schedule, exports a static site, and deploys it to GitHub Pages — carrying `data/history.jsonl` across runs so the public timeline accumulates. Enable once via **Settings → Pages → Source: GitHub Actions**. `ci.yml` runs the test suite on every push/PR.
+`.github/workflows/publish.yml` scans every two hours, exports the complete
+static product, commits the durable history and intelligence artifacts, and
+deploys once to GitHub Pages. Enable once via **Settings → Pages → Source:
+GitHub Actions**. `ci.yml` runs the test suite on every push/PR.
 
 ## Project layout
 
 ```
 src/radar/
+  intelligence/ canonical lifecycle, evidence, claims, freshness, jobs
+  api/          FastAPI routes and OpenAPI contract
+  capacity/     deterministic memory, throughput, fleet, and TCO planning
   collectors/   github, rss, manual, registry
   enrichment/   osv, hackernews, downloads, runner
   pipeline/     classify, dedupe, evidence, upgrade_risk, momentum, delta, quotas, cards, llm_classify
@@ -288,6 +337,7 @@ src/radar/
   reports/      markdown, try_this_week, history, comparison, sandbox, movers, feeds
   mcp_server/   queries, server
   web/          app, templates, static_site
+frontend/       React command center and static public shell
 docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-research.md
 ```
 

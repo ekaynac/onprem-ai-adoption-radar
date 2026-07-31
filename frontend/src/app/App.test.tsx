@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import { App } from "./App";
 import { AppProviders } from "./providers";
+import { Sidebar } from "./shell/Sidebar";
 
 
 test("renders the architect workspace navigation", () => {
@@ -43,4 +45,37 @@ test("static mode removes private workspace and mutation navigation", () => {
   expect(screen.queryByRole("combobox", { name: "Active workspace" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Review exceptions" })).toBeNull();
   vi.unstubAllGlobals();
+});
+
+
+test("classic radar links are sibling documents with the latest digest", async () => {
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(["public-snapshot"], {
+    source_health: { source_health: [] },
+    latest_digest: {
+      generated_at: "2026-07-31T08:00:00Z",
+      html_url: "digests/digest_2026-W31.html",
+      card_url: "digests/cards/trending_og.png",
+    },
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/overview"]}>
+        <Sidebar staticMode />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  expect(await screen.findByText("Classic radar")).toBeVisible();
+  for (const [name, href] of [
+    ["Classic models", "models.html"],
+    ["Classic platforms", "platforms.html"],
+    ["Classic techniques", "techniques.html"],
+    ["Classic trending", "trending.html"],
+    ["Classic history", "history.html"],
+    ["Classic compare", "compare.html"],
+    ["Latest weekly digest", "digests/digest_2026-W31.html"],
+  ]) {
+    expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+  }
 });

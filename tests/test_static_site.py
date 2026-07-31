@@ -319,16 +319,21 @@ def test_static_site_renders_models_section(tmp_path):
         QuantVariant,
     )
     from radar.web.static_site import render_static_site
+    warning = "Curated seed baseline; scan enrichment is pending"
     e = ModelEntry(id="qwen3-8b", name="Qwen3 8B", family="Qwen3", ring=Ring.ADOPT,
                    hardware_tier=HardwareTier.LAPTOP, openness=Openness.OPEN_PERMISSIVE,
+                   warnings=[warning],
                    quants=[QuantVariant(format="Q4_K_M", bits_per_weight=4.5,
                                         est_memory_gb_4k=8.0, platform=Platform.GENERIC, source="x")])
     render_static_site([], tmp_path / "_site", datetime(2026, 6, 22, tzinfo=UTC),
                        model_entries=[e])
     site = tmp_path / "_site"
     assert (site / "models.html").exists()
-    assert "qwen3-8b" in (site / "models.html").read_text(encoding="utf-8")
+    models_page = (site / "models.html").read_text(encoding="utf-8")
+    assert "qwen3-8b" in models_page
+    assert warning in models_page
     assert (site / "model_qwen3-8b.html").exists()
+    assert warning in (site / "model_qwen3-8b.html").read_text(encoding="utf-8")
 
 
 def test_static_site_models_backcompat_without_models(tmp_path):
@@ -679,6 +684,30 @@ def test_static_site_backcompat_without_techniques(tmp_path):
     assert not (site / "techniques.html").exists()
     assert not (site / "changes-research.xml").exists()
     assert (site / "index.html").exists()
+
+
+def test_react_prepass_leaves_all_public_feeds_to_react_export(tmp_path):
+    digest_dir = tmp_path / "digests"
+    digest_dir.mkdir()
+    (digest_dir / "digest.xml").write_text("old atom", encoding="utf-8")
+    (digest_dir / "digest-rss.xml").write_text("old rss", encoding="utf-8")
+
+    render_static_site(
+        [],
+        tmp_path / "_site",
+        datetime(2026, 7, 3, tzinfo=UTC),
+        technique_entries=[_technique_entry()],
+        technique_events=[_technique_event()],
+        digest_dir=digest_dir,
+        write_public_feeds=False,
+    )
+
+    site = tmp_path / "_site"
+    assert (site / "techniques.html").exists()
+    assert not (site / "changes.xml").exists()
+    assert not (site / "changes-research.xml").exists()
+    assert not (site / "digests" / "digest.xml").exists()
+    assert not (site / "digests" / "digest-rss.xml").exists()
 
 
 def test_static_project_page_shows_pedigree_with_static_links(tmp_path):

@@ -28,10 +28,24 @@ export function ProjectDetailPage() {
     );
   }
 
+  const isBaseline =
+    snapshot.data?.project_data?.mode === "last_published_baseline";
+  const baselineDate = snapshot.data?.project_data?.generated_at
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeZone: "UTC",
+      }).format(new Date(snapshot.data.project_data.generated_at))
+    : "an unknown date";
   const metrics = project.latest_metrics ?? {};
   return (
     <section className="page-stack" aria-labelledby="project-title">
       <Link className="text-link" to="/projects">← GitHub projects</Link>
+      {isBaseline && (
+        <p className="data-timestamp">
+          Project decision uses the last published baseline from {baselineDate};
+          the current scan projection was unavailable at export.
+        </p>
+      )}
       <header className="detail-hero">
         <div>
           <p className="eyebrow">{project.category.replaceAll("_", " ")}</p>

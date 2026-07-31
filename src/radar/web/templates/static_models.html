@@ -40,7 +40,9 @@
               data-params="{{ m.params_total or 0 }}" data-context="{{ m.context_length or 0 }}"
               data-license="{{ m.license or '' }}"
               data-use-case="{{ m.use_case or '' }}"{% if mems %} data-min-memory-gb="{{ mems | min }}"{% endif %}>
-            <td><a href="model_{{ slug_by_model[m.id] }}.html">{{ m.name }}</a></td>
+            <td><a href="model_{{ slug_by_model[m.id] }}.html">{{ m.name }}</a>
+              {% for warning in m.warnings %}<small class="warning model-warning">{{ warning }}</small>{% endfor %}
+            </td>
             <td>{{ m.family }}</td>
             <td>{% if m.ring %}<span class="ring-pill ring-{{ m.ring.value }}">{{ m.ring.value }}</span>{% else %}-{% endif %}</td>
             <td>{{ m.hardware_tier.value }}</td>

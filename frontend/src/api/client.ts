@@ -6,6 +6,10 @@ export type ApiPaths = paths;
 type StaticSnapshot = {
   schema_version: string;
   generated_at: string;
+  project_data?: {
+    mode: "live_projection" | "last_published_baseline" | "unavailable";
+    generated_at?: string | null;
+  };
   releases: Array<Record<string, unknown>>;
   models: Array<Record<string, unknown>>;
   projects: Array<Record<string, unknown>>;
@@ -13,6 +17,11 @@ type StaticSnapshot = {
   platforms: Array<Record<string, unknown>>;
   hardware: Array<Record<string, unknown>>;
   research: Array<Record<string, unknown>>;
+  latest_digest?: {
+    generated_at: string;
+    html_url: string;
+    card_url?: string;
+  } | null;
   events: Array<Record<string, unknown>>;
   source_health: Record<string, unknown>;
 };

@@ -10,22 +10,35 @@ from radar.intelligence.freshness import FreshnessService
 from .lifecycle_helpers import NOW
 
 
-def test_all_platform_intelligence_expires_after_two_hours() -> None:
+@pytest.mark.parametrize(
+    ("predicate", "window"),
+    [
+        ("release_identity_new", timedelta(days=7)),
+        ("release_identity_established", timedelta(days=30)),
+        ("artifact_availability", timedelta(days=7)),
+        ("license", timedelta(days=30)),
+        ("platform_compatibility", timedelta(days=30)),
+        ("benchmark", timedelta(days=90)),
+        ("hardware_spec", timedelta(days=90)),
+        ("security_advisory", timedelta(days=1)),
+        ("package_release", timedelta(days=1)),
+    ],
+)
+def test_predicate_freshness_boundary(
+    predicate: str,
+    window: timedelta,
+) -> None:
     service = FreshnessService()
 
-    for predicate in ("security_advisory", "release_identity_new", "hardware_spec"):
-        assert (
-            service.status(predicate, NOW - timedelta(hours=2), NOW)
-            is ClaimFreshness.FRESH
+    assert service.status(predicate, NOW - window, NOW) is ClaimFreshness.FRESH
+    assert (
+        service.status(
+            predicate,
+            NOW - window - timedelta(seconds=1),
+            NOW,
         )
-        assert (
-            service.status(
-                predicate,
-                NOW - timedelta(hours=2, seconds=1),
-                NOW,
-            )
-            is ClaimFreshness.STALE
-        )
+        is ClaimFreshness.STALE
+    )
 
 
 def test_unknown_freshness_class_fails_closed() -> None:

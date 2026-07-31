@@ -59,11 +59,20 @@ type CatalogPage = {
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
+  project_data?: {
+    mode: "live_projection" | "last_published_baseline" | "unavailable";
+    generated_at?: string | null;
+  };
   projects: PublicProject[];
   model_candidates: ModelCandidate[];
   platforms: PlatformRecord[];
   hardware: HardwareRecord[];
   research: ResearchRecord[];
+  latest_digest?: {
+    generated_at: string;
+    html_url: string;
+    card_url?: string;
+  } | null;
   source_health: {
     open_review_count: number;
     stale_claim_count: number;

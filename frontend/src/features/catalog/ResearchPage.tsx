@@ -65,6 +65,9 @@ export function ResearchPage() {
                 <p className="eyebrow">{item.onprem_impact.replaceAll("_", " ")}</p>
                 <h2>{item.name}</h2>
                 <p className="card-summary">{item.notes ?? "Operational note pending."}</p>
+                {item.warnings.map((warning) => (
+                  <p className="data-state-note" key={warning}>{warning}</p>
+                ))}
               </div>
               <dl className="mini-facts">
                 <div><dt>Citations</dt><dd>{item.citation_count?.toLocaleString() ?? "Unknown"}</dd></div>
