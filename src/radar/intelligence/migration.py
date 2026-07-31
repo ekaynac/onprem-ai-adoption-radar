@@ -22,6 +22,7 @@ from radar.intelligence.contracts import (
     Release,
     ReleaseLane,
 )
+from radar.intelligence.lifecycle import LifecycleService
 from radar.models_radar.entities import Modality, ModelSeed, Openness
 from radar.models_radar.history import load_model_events
 from radar.models_radar.platform_matrix import PlatformSeed, load_platform_matrix
@@ -173,19 +174,24 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
     )
     repository.upsert_family(family)
     release_id = f"release:legacy:{seed.id}"
+    existing = next(
+        (
+            release
+            for release in repository.list_all_releases()
+            if release.id == release_id
+        ),
+        None,
+    )
     created = repository.upsert_release(
-        Release(
+        existing
+        or Release(
             id=release_id,
             family_id=family.id,
             publisher_id=publisher.id,
             name=seed.name,
             category=_model_category(seed),
             lane=_release_lane(seed),
-            lifecycle=(
-                LifecycleState.VERIFIED
-                if seed.spec_verified
-                else LifecycleState.DETECTED
-            ),
+            lifecycle=LifecycleState.DETECTED,
             first_observed_at=_first_observed_at(seed),
             discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
         )
@@ -216,6 +222,15 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
                 observed_at=LEGACY_OBSERVED_AT,
                 evidence_ids=[evidence.id],
             )
+        )
+    current = repository.get_release_required(release_id)
+    if seed.spec_verified and current.lifecycle is LifecycleState.DETECTED:
+        LifecycleService(repository).transition(
+            release_id,
+            LifecycleState.VERIFIED,
+            reason="Legacy seed carries human-verified specifications",
+            evidence_ids=[evidence.id],
+            now=LEGACY_OBSERVED_AT,
         )
     return created
 

@@ -13,9 +13,12 @@ from radar.intelligence.contracts import (
 )
 from radar.intelligence.database import Database
 from radar.intelligence.jobs import JobKind
+from radar.intelligence.migration import import_legacy_state
 from radar.intelligence.pipeline import IntelligenceJobRunner
 from radar.intelligence.repositories import SqlAlchemyIntelligenceRepository
 from radar.intelligence.sources.base import DiscoveryCandidate, SourceRecord
+
+from .test_migration import seed_legacy_root
 
 
 NOW = datetime(2026, 7, 30, 10, 0, tzinfo=UTC)
@@ -99,6 +102,29 @@ class ProvisionalPublisherAdapter:
         raise NotImplementedError
 
 
+class MigratedFixtureEnricher:
+    id = "fixture-migrated"
+
+    def __init__(self) -> None:
+        self.seen: list[str] = []
+
+    async def enrich(self, repo_id: str):
+        self.seen.append(repo_id)
+        record = SourceRecord.from_bytes(
+            source_id=self.id,
+            url=f"https://huggingface.co/api/models/{repo_id}",
+            body=b'{"library_name":"transformers"}',
+            retrieved_at=NOW,
+            strength=EvidenceStrength.TRUSTED_REGISTRY,
+            content_type="application/json",
+        )
+        return SimpleNamespace(
+            records=[SimpleNamespace(source_record=record)],
+            claims={"library_name": "transformers"},
+            artifact_urls=[f"https://huggingface.co/{repo_id}"],
+        )
+
+
 def repository(tmp_path):
     (tmp_path / "data").mkdir()
     database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
@@ -143,8 +169,11 @@ async def test_discovery_job_creates_cited_release_event_and_snapshot(tmp_path) 
     assert release.lifecycle.value == "detected"
     assert {claim.predicate for claim in repo.list_claims_for_subject(release.id)} >= {
         "artifact_url",
+        "hf_repo",
         "license",
-        "repo_id",
+    }
+    assert "repo_id" not in {
+        claim.predicate for claim in repo.list_claims_for_subject(release.id)
     }
     events = repo.list_events(public_only=True)
     assert [event.type for event in events] == ["release.detected"]
@@ -176,6 +205,32 @@ async def test_enrichment_creates_documented_compatibility_and_can_qualify(
     assert compatibility[0].platform_id == "platform:library:transformers"
     assert release.id == compatibility[0].release_id
     assert repo.get_release_required(release.id).lifecycle.value == "qualified"
+
+
+@pytest.mark.asyncio
+async def test_migrated_hf_repo_enriches_and_qualifies(tmp_path) -> None:
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repo = SqlAlchemyIntelligenceRepository(database)
+    import_legacy_state(tmp_path, repo)
+    adapter = MigratedFixtureEnricher()
+    runner = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[adapter],
+        clock=lambda: NOW,
+    )
+
+    enriched = await runner.run(JobKind.ENRICHMENT, "job:enrich:migrated")
+    qualified = await runner.run(JobKind.QUALIFICATION, "job:qualify:migrated")
+
+    assert adapter.seen == ["acme/Sample-8B"]
+    assert enriched.updated == 1
+    assert qualified.updated == 1
+    assert repo.get_release_required(
+        "release:legacy:sample-8b"
+    ).lifecycle.value == "qualified"
 
 
 def test_identical_content_at_a_new_time_is_a_new_observation(tmp_path) -> None:

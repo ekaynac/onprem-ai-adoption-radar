@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from radar.intelligence.contracts import LifecycleState
 from radar.intelligence.database import Database
 from radar.intelligence.migration import import_legacy_state
 from radar.intelligence.repositories import SqlAlchemyIntelligenceRepository
@@ -104,6 +105,25 @@ def test_verified_seed_value_becomes_cited_verified_claim(tmp_path: Path) -> Non
     assert params.state.value == "verified"
     assert params.value == 8_000_000_000
     assert params.evidence_ids
+
+
+def test_verified_seed_records_detected_to_verified_transition(tmp_path: Path) -> None:
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+
+    import_legacy_state(tmp_path, repository)
+
+    transitions = repository.list_lifecycle_transitions(
+        "release:legacy:sample-8b"
+    )
+    assert [(row.from_state, row.to_state) for row in transitions] == [
+        (LifecycleState.DETECTED, LifecycleState.VERIFIED)
+    ]
+    assert transitions[0].evidence_ids == [
+        "evidence:legacy:model-seed:sample-8b"
+    ]
 
 
 def test_import_canonicalizes_publisher_aliases_before_upsert(
