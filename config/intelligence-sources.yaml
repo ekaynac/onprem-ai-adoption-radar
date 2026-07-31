@@ -1,0 +1,122 @@
+version: "1.0"
+sources:
+  - id: huggingface
+    type: huggingface
+    enabled: true
+    options:
+      per_category_limit: 100
+      max_pages_per_category: 20
+      request_concurrency: 4
+      requests_per_second: 5
+      publishers:
+        01-ai: publisher:legacy:01-ai
+        bigcode: publisher:legacy:bigcode
+        cohereforai: publisher:legacy:cohere
+        deepreinforce-ai: publisher:legacy:deepreinforce-ai
+        deepseek-ai: publisher:legacy:deepseek
+        empero-ai: publisher:legacy:empero-ai
+        google: publisher:legacy:google
+        huggingfacetb: publisher:legacy:hugging-face
+        ibm-granite: publisher:legacy:ibm
+        meta-llama: publisher:legacy:meta
+        microsoft: publisher:legacy:microsoft
+        mistralai: publisher:legacy:mistral-ai
+        moonshotai: publisher:moonshot-ai
+        nvidia: publisher:legacy:nvidia
+        openai: publisher:legacy:openai
+        openbmb: publisher:legacy:openbmb
+        qwen: publisher:legacy:alibaba
+        zai-org: publisher:legacy:zai-org
+
+  - id: github-releases
+    type: github_releases
+    enabled: true
+    options:
+      organizations:
+        ggml-org: publisher:platform:llama-cpp
+        huggingface: publisher:legacy:hugging-face
+        moonshotai: publisher:moonshot-ai
+        ollama: publisher:platform:ollama
+        vllm-project: publisher:platform:vllm
+
+  - id: official-feeds
+    type: official_feeds
+    enabled: true
+    options:
+      feeds:
+        - id: huggingface-blog
+          url: https://huggingface.co/blog/feed.xml
+          publisher_id: publisher:legacy:hugging-face
+          official_domains: [huggingface.co]
+        - id: ollama-blog
+          url: https://ollama.com/blog/rss.xml
+          publisher_id: publisher:platform:ollama
+          official_domains: [ollama.com]
+
+  - id: announcement-pages
+    type: announcement_pages
+    enabled: false
+    options:
+      pages:
+        - id: moonshot-news
+          url: https://www.moonshot.ai/news
+          publisher_id: publisher:moonshot-ai
+          official_domains: [moonshot.ai]
+          selectors: ["a"]
+
+  # These endpoints are seeded for schema ownership but remain disabled until
+  # their public response contracts are confirmed by a successful source-health
+  # probe. Enabling an unverified schema would silently degrade data quality.
+  - id: external-model-registries
+    type: json_registries
+    enabled: false
+    options:
+      registries:
+        - id: modelscope
+          url: https://modelscope.cn/api/v1/models
+          strength: trusted_registry
+          items_path: [Data, Models]
+          id_field: Name
+          name_field: Name
+          updated_field: LastUpdatedTime
+          artifact_url_field: Url
+        - id: ollama-registry
+          url: https://registry.ollama.ai/v2/_catalog
+          strength: trusted_registry
+          items_path: [repositories]
+          id_field: id
+          name_field: name
+          updated_field: updated_at
+          artifact_url_field: url
+
+  - id: external-evidence
+    type: evidence
+    enabled: false
+    options:
+      sources:
+        - id: benchmark-maintainer
+          kind: benchmark
+          url: https://huggingface.co/api/datasets?search=open-llm-leaderboard&limit=100
+          strength: trusted_registry
+          subject_id_field: id
+          observed_at_field: lastModified
+        - id: research-index
+          kind: paper
+          url: https://api.semanticscholar.org/graph/v1/paper/search?query=large%20language%20model&limit=100&fields=paperId,title,publicationDate,externalIds
+          strength: aggregator
+          items_path: [data]
+          subject_id_field: paperId
+          observed_at_field: publicationDate
+        - id: security-advisories
+          kind: security
+          url: https://api.github.com/advisories?ecosystem=pip&per_page=100
+          strength: official_documentation
+          subject_id_field: ghsa_id
+          observed_at_field: updated_at
+        - id: spdx-license-list
+          kind: license
+          url: https://raw.githubusercontent.com/spdx/license-list-data/main/json/licenses.json
+          strength: official_documentation
+          items_path: [licenses]
+          subject_id_field: licenseId
+          observed_at_field: releaseDate

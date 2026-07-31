@@ -23,16 +23,32 @@ jobs:
         run: uv python install 3.12
 
       - name: Install package + dev deps
-        run: uv venv && uv pip install -e ".[dev]"
+        run: uv sync --all-extras
 
       - name: Ruff
         run: uv run ruff check src tests
 
       - name: Mypy
-        run: uv run mypy
+        run: uv run mypy src/radar
 
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: radar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d radar"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/radar
     strategy:
       matrix:
         python-version: ["3.12", "3.13"]
@@ -46,7 +62,52 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install package + dev deps
-        run: uv venv --python ${{ matrix.python-version }} && uv pip install -e ".[dev]"
+        run: uv sync --all-extras --python ${{ matrix.python-version }}
 
       - name: Run tests with coverage
         run: uv run pytest --cov -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20.19.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          npm ci --prefix frontend
+
+      - name: Verify generated API types
+        run: |
+          uv run radar-export-openapi --root . --out build/openapi.json
+          npm run generate:api --prefix frontend
+          git diff --exit-code -- frontend/src/api/generated
+
+      - name: Frontend unit, type, lint, and build
+        run: |
+          npm test --prefix frontend
+          npm run typecheck --prefix frontend
+          npm run lint --prefix frontend
+          npm run build --prefix frontend
+
+      - name: Export static site for browser workflows
+        run: uv run radar export --root . --out _site
+
+      - name: Install Playwright browser
+        run: npx --prefix frontend playwright install --with-deps chromium
+
+      - name: Browser workflows
+        run: cd frontend && npx playwright test

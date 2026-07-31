@@ -187,6 +187,20 @@ def test_server_registers_trending_tool(tmp_path: Path):
     assert "list_trending" in names
 
 
+def test_server_registers_intelligence_tools(tmp_path: Path) -> None:
+    server = build_mcp_server(tmp_path)
+    names = {tool.name for tool in asyncio.run(server.list_tools())}
+    assert {
+        "search_intelligence",
+        "list_releases",
+        "explain_intelligence",
+        "compare_intelligence",
+        "find_for_workspace",
+        "get_source_health",
+        "list_review_exceptions",
+    } <= names
+
+
 def test_list_trending_tool_returns_rows(tmp_path: Path):
     _seed_trending(tmp_path)
     server = build_mcp_server(tmp_path)

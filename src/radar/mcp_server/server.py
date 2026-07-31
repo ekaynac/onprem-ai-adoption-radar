@@ -13,7 +13,10 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from radar.intelligence.bootstrap import build_intelligence_repository
+from radar.intelligence.services.container import build_services
 from radar.mcp_server.capacity_queries import CapacityQueryService
+from radar.mcp_server.intelligence_queries import IntelligenceQueryService
 from radar.mcp_server.model_queries import ModelQueryService
 from radar.mcp_server.queries import RadarQueryService
 from radar.mcp_server.technique_queries import TechniqueQueryService
@@ -27,6 +30,11 @@ def build_mcp_server(root: Path) -> FastMCP:
     techniques = TechniqueQueryService(root)
     trending = TrendingQueryService(root)
     capacity = CapacityQueryService(root)
+    _database, intelligence_repository = build_intelligence_repository(root)
+    intelligence = IntelligenceQueryService(
+        build_services(intelligence_repository),
+        intelligence_repository,
+    )
     mcp = FastMCP("onprem-ai-adoption-radar")
 
     @mcp.tool()
@@ -251,6 +259,69 @@ def build_mcp_server(root: Path) -> FastMCP:
             target_tps_per_user=target_tps_per_user, quant=quant,
             kv_dtype=kv_dtype, engine=engine,
         )
+
+    @mcp.tool()
+    def search_intelligence(
+        query: str,
+        workspace_id: str | None = None,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Search the unified model/release catalog with compact results."""
+        return intelligence.search(
+            query,
+            workspace_id=workspace_id,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def list_releases(
+        since: str | None = None,
+        limit: int = 20,
+        workspace_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Browse recent releases with freshness and citation counts."""
+        return intelligence.list_releases(since, limit, workspace_id)
+
+    @mcp.tool()
+    def explain_intelligence(
+        entity_id: str,
+        workspace_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Explain one release with full citations and recommendation logic."""
+        return intelligence.explain(entity_id, workspace_id)
+
+    @mcp.tool()
+    def compare_intelligence(
+        entity_ids: list[str],
+        workspace_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Compare canonical releases using the shared intelligence contract."""
+        return intelligence.compare(entity_ids, workspace_id)
+
+    @mcp.tool()
+    def find_for_workspace(
+        query: str,
+        workspace_id: str,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Find releases adjusted for a local architecture workspace."""
+        return intelligence.search(
+            query,
+            workspace_id=workspace_id,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def get_source_health() -> list[dict[str, Any]]:
+        """Return source failures, circuit state, and last successful counts."""
+        return intelligence.source_health()
+
+    @mcp.tool()
+    def list_review_exceptions(
+        open_only: bool = True,
+    ) -> list[dict[str, Any]]:
+        """List automated-review exceptions without mutating them."""
+        return intelligence.review_exceptions(open_only)
 
     return mcp
 

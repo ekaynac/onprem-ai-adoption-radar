@@ -1,0 +1,117 @@
+name: Discover intelligence releases
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      public_changed: ${{ steps.changes.outputs.public_changed }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20.19.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install locked dependencies
+        run: |
+          uv sync --all-extras
+          npm ci --prefix frontend
+
+      - name: Rebuild canonical projection
+        run: |
+          uv run radar intelligence-migrate --root .
+          uv run radar intelligence-replay-events --root .
+
+      - name: Discover and verify new releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          uv run radar intelligence-run discovery --root .
+          uv run radar intelligence-run verify-new --root .
+
+      - name: Export public command center
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_FULL: ${{ github.repository }}
+        run: |
+          repo_name="${REPO_FULL#*/}"
+          uv run radar export --root . --out _site \
+            --base-url "https://${OWNER}.github.io/${repo_name}"
+
+      - name: Public snapshot invariant gate
+        run: |
+          uv run python -c "
+          import json
+          from pathlib import Path
+          path = Path('_site/data/public-snapshot.v1.json')
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          assert payload['schema_version'] == '1.0'
+          assert 'workspaces' not in payload
+          assert 'workspace' not in path.read_text(encoding='utf-8').lower()
+          print(f'public snapshot OK: {path}')
+          "
+
+      - name: Persist append-only intelligence state
+        id: changes
+        run: |
+          mkdir -p data/intelligence
+          cp _site/data/public-snapshot.v1.json \
+            data/intelligence/public-snapshot.v1.json
+          git config user.name "radar-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f data/intelligence.db
+          git add -f data/intelligence/events.jsonl || true
+          git add -f data/intelligence/snapshots || true
+          git add -f data/intelligence/public-snapshot.v1.json
+          git add -f data/source-health.jsonl || true
+          if git diff --cached --quiet; then
+            echo "public_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore(intelligence): refresh public state [skip ci]"
+            git push
+            echo "public_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Pages artifact
+        if: steps.changes.outputs.public_changed == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.public_changed == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

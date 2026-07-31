@@ -1,0 +1,19 @@
+{
+  "_id": "kimi-k3",
+  "id": "moonshotai/Kimi-K3",
+  "author": "moonshotai",
+  "pipeline_tag": "image-text-to-text",
+  "lastModified": "2026-07-30T08:15:00.000Z",
+  "sha": "abc123",
+  "downloads": 42000,
+  "likes": 1900,
+  "gated": false,
+  "tags": ["transformers", "multimodal", "license:mit"],
+  "cardData": {"license": "mit"},
+  "safetensors": {"total": 1000000000000},
+  "siblings": [
+    {"rfilename": "config.json"},
+    {"rfilename": "model-00001-of-00064.safetensors"},
+    {"rfilename": "README.md"}
+  ]
+}

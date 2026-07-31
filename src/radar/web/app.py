@@ -16,6 +16,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from radar.api.app import create_api_app
 from radar.discovery.trending_detect import TRENDING_WINDOWS, build_trending
 from radar.discovery.trending_entities import Lane, TrendingEntry, TrendingObservation
 from radar.mcp_server.model_queries import _latest_model_cards, load_platform_entries
@@ -77,10 +78,120 @@ TEMPLATES.env.globals["backer_badge"] = backer_badge
 TEMPLATES.env.globals["asset_base"] = "/"
 
 
+class ImmutableStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = (
+            "public, max-age=31536000, immutable"
+        )
+        return response
+
+
+def _configure_react_routes(
+    app: FastAPI,
+    root: Path,
+    frontend_dir: Path,
+) -> None:
+    assets = frontend_dir / "assets"
+    if assets.exists():
+        app.mount(
+            "/assets",
+            ImmutableStaticFiles(directory=str(assets)),
+            name="react-assets",
+        )
+    brand = frontend_dir / "brand"
+    if brand.exists():
+        app.mount(
+            "/brand",
+            ImmutableStaticFiles(directory=str(brand)),
+            name="react-brand",
+        )
+    index_path = frontend_dir / "index.html"
+
+    @app.get("/")
+    def react_index() -> FileResponse:
+        return FileResponse(
+            index_path,
+            media_type="text/html",
+            headers={"Cache-Control": "no-cache"},
+        )
+
+    @app.get("/history.jsonl")
+    def react_history_download():
+        path = root / "data" / "history.jsonl"
+        if not path.exists():
+            return PlainTextResponse(
+                "No history log yet. Run a scan first.",
+                status_code=404,
+            )
+        return FileResponse(
+            path,
+            media_type="application/x-ndjson",
+            filename="radar-history.jsonl",
+        )
+
+    @app.get("/model-history.jsonl")
+    def react_model_history_download():
+        path = root / "data" / "model-history.jsonl"
+        if not path.exists():
+            return PlainTextResponse("No model history yet.", status_code=404)
+        return FileResponse(path, media_type="application/x-ndjson")
+
+    @app.get("/technique-history.jsonl")
+    def react_technique_history_download():
+        path = root / "data" / "technique-history.jsonl"
+        if not path.exists():
+            return PlainTextResponse(
+                "No technique history yet.",
+                status_code=404,
+            )
+        return FileResponse(path, media_type="application/x-ndjson")
+
+    @app.get("/models")
+    def legacy_models_redirect() -> RedirectResponse:
+        return RedirectResponse("/catalog", status_code=308)
+
+    @app.get("/model/{model_id}")
+    def legacy_model_redirect(model_id: str) -> RedirectResponse:
+        return RedirectResponse(
+            f"/catalog?q={quote(model_id, safe='')}",
+            status_code=308,
+        )
+
+    @app.get("/history")
+    @app.get("/trending")
+    def legacy_stream_redirect() -> RedirectResponse:
+        return RedirectResponse("/releases", status_code=308)
+
+    @app.get("/sources")
+    def legacy_sources_redirect() -> RedirectResponse:
+        return RedirectResponse("/operations", status_code=308)
+
+    @app.get("/project/{name}")
+    def legacy_project_redirect(name: str) -> RedirectResponse:
+        return RedirectResponse(
+            f"/catalog?q={quote(name, safe='')}",
+            status_code=308,
+        )
+
+    @app.get("/{spa_path:path}")
+    def react_fallback(spa_path: str) -> FileResponse:
+        del spa_path
+        return FileResponse(
+            index_path,
+            media_type="text/html",
+            headers={"Cache-Control": "no-cache"},
+        )
+
+
 def create_app(root: Path) -> FastAPI:
     """Create a local dashboard app with read views and seed management."""
-    app = FastAPI(title="Agent/Tooling Adoption Radar")
+    app = create_api_app(root)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    frontend_dir = root / "build" / "frontend"
+    if (frontend_dir / "index.html").exists():
+        _configure_react_routes(app, root, frontend_dir)
+        return app
     db = RadarDatabase(root / "data" / "radar.db")
     history = HistoryStore(root / "data" / "radar.db")
     metrics = MetricsStore(root / "data" / "radar.db")

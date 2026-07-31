@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import shutil
-from datetime import UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,7 @@ from radar import __version__
 from radar.capacity.tco import DEFAULT_AMORTIZATION_MONTHS, DEFAULT_ELECTRICITY_USD_PER_KWH
 from radar.constants import APP_NAME
 from radar.init_project import initialize_project
+from radar.intelligence.jobs import JobKind, JobService
 
 # Imported at module level (not function-local, unlike this file's other
 # commands) so tests can monkeypatch `radar.cli._verify_fetch_hf_model`
@@ -128,6 +129,125 @@ def init(
         console.print("[dim]Config already exists; left unchanged (use --force to refresh).[/dim]")
     console.print(f"Env example: {result.env_example_path}")
     console.print(f"Runs: {result.runs_path}")
+
+
+@app.command("intelligence-migrate")
+def intelligence_migrate(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Import legacy YAML and JSONL state into canonical intelligence storage."""
+    from dataclasses import asdict
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.migration import import_legacy_state
+
+    _database, repository = build_intelligence_repository(root)
+    report = import_legacy_state(root, repository)
+    console.print_json(data=asdict(report))
+
+
+@app.command("intelligence-shadow")
+def intelligence_shadow(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    check: bool = typer.Option(
+        False,
+        "--check",
+        help="Exit non-zero when canonical counts differ from legacy sources.",
+    ),
+) -> None:
+    """Compare legacy source counts with canonical projections."""
+    from dataclasses import asdict
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.shadow import compare_legacy_projection
+
+    _database, repository = build_intelligence_repository(root)
+    report = compare_legacy_projection(root, repository)
+    payload = {**asdict(report), "is_equivalent": report.is_equivalent}
+    console.print_json(data=payload)
+    if check and not report.is_equivalent:
+        raise typer.Exit(1)
+
+
+@app.command("intelligence-replay-events")
+def intelligence_replay_events(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Replay the append-only intelligence event mirror into canonical storage."""
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.event_log import EventLog, replay_event_log
+
+    _database, repository = build_intelligence_repository(root)
+    count = replay_event_log(
+        EventLog(root / "data" / "intelligence" / "events.jsonl"),
+        repository,
+    )
+    console.print_json(data={"events_replayed": count})
+
+
+def _execute_intelligence_job(root: Path, kind: JobKind) -> dict[str, Any]:
+    import asyncio
+    from dataclasses import asdict
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.pipeline import run_configured_job
+    from radar.intelligence.scheduler import job_idempotency_key
+
+    _database, repository = build_intelligence_repository(root)
+    service = JobService(repository)
+    now = datetime.now(UTC)
+    idempotency_key = job_idempotency_key(kind, now)
+    lease = service.acquire(kind, idempotency_key, now)
+    if lease is None:
+        return {
+            "kind": kind.value,
+            "idempotency_key": idempotency_key,
+            "status": "skipped",
+        }
+    try:
+        result = asyncio.run(
+            run_configured_job(root, repository, kind, lease.id)
+        )
+        service.complete(lease.id, result, datetime.now(UTC))
+    except Exception as exc:
+        service.fail(lease.id, str(exc), datetime.now(UTC))
+        raise
+    return {
+        "kind": kind.value,
+        "idempotency_key": idempotency_key,
+        "status": "completed",
+        "result": asdict(result),
+    }
+
+
+@app.command("intelligence-run")
+def intelligence_run(
+    kind: JobKind = typer.Argument(..., help="Intelligence job kind."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Run one idempotent intelligence job for the current schedule window."""
+    console.print_json(data=_execute_intelligence_job(root, kind))
+
+
+@app.command("intelligence-scheduler")
+def intelligence_scheduler(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Run the built-in two-hour, daily, and weekly freshness schedule."""
+    from threading import Event
+
+    from radar.intelligence.scheduler import build_scheduler
+
+    def run_scheduled(kind: JobKind) -> None:
+        _execute_intelligence_job(root, kind)
+
+    scheduler = build_scheduler(run_scheduled)
+    scheduler.start()
+    console.print("Intelligence scheduler started (UTC).")
+    try:
+        Event().wait()
+    except KeyboardInterrupt:
+        scheduler.shutdown(wait=True)
 
 
 @app.command()
@@ -1949,7 +2069,7 @@ def export(
         ),
     ),
 ) -> None:
-    """Render a static HTML snapshot (for GitHub Pages) from the latest scan."""
+    """Render the public React command center and compatibility artifacts."""
     from datetime import datetime
 
     # Validate at the boundary: a non-empty base URL must be absolute http(s),
@@ -2207,6 +2327,22 @@ def export(
         hn_by_project=hn_by_project or None,
         platform_entries=platform_entries or None,
     )
+    frontend_source = root / "frontend" / "package.json"
+    if frontend_source.exists():
+        from radar.web.react_export import (
+            build_react_frontend,
+            export_react_site,
+        )
+
+        frontend_build = build_react_frontend(root, static=True)
+        export_react_site(
+            root,
+            out,
+            frontend_dir=frontend_build,
+            base_url=base_url,
+            generated_at=generated_at,
+        )
+        index = out / "index.html"
     console.print(
         f"Wrote {index.parent}/ (index, compare, history, {len(cards)} project pages"
         + (f", {len(model_entries)} model pages" if model_entries else "")
