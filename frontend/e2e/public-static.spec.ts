@@ -20,7 +20,23 @@ test("public static command center navigates without a backend", async ({ page }
 
   const rss = await page.request.get("/changes.rss");
   expect(rss.ok()).toBeTruthy();
-  expect(await rss.text()).toContain("<rss");
+  const rssText = await rss.text();
+  expect(rssText).toContain("<rss");
+  expect(rssText).toContain("<item>");
+
+  const jsonFeed = await page.request.get("/changes.json");
+  expect(jsonFeed.ok()).toBeTruthy();
+  expect((await jsonFeed.json()).items.length).toBeGreaterThan(0);
+
+  for (const feed of [
+    "/changes.xml",
+    "/changes-models.xml",
+    "/changes-research.xml",
+    "/digests/digest.xml",
+    "/digests/digest-rss.xml",
+  ]) {
+    expect((await page.request.get(feed)).ok(), feed).toBeTruthy();
+  }
 
   const firstRelease = page.locator(".release-table tbody a").first();
   if (await firstRelease.count()) {

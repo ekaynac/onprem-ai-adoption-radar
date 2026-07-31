@@ -1,8 +1,12 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from radar.models import Category, Ring
+from radar.pipeline.delta import ChangeType
+from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
 from radar.web.app import create_app
 from radar.web.react_export import export_react_site
 
@@ -39,6 +43,22 @@ def test_live_root_serves_react_shell_and_api(tmp_path: Path) -> None:
 
 def test_static_export_contains_no_workspace_payload(tmp_path: Path) -> None:
     frontend = _frontend_build(tmp_path)
+    history = HistoryStore(tmp_path / "data" / "radar.db")
+    history.initialize()
+    history.add_events(
+        [
+            ProjectHistoryEvent(
+                project="vLLM",
+                category=Category.MODEL_SERVING,
+                change_type=ChangeType.PROMOTED,
+                ring=Ring.ADOPT,
+                previous_ring=Ring.PILOT,
+                run_id="run-legacy",
+                observed_at=datetime(2026, 7, 31, tzinfo=UTC),
+                reasons=["evidence improved"],
+            )
+        ]
+    )
 
     out = export_react_site(
         tmp_path,
@@ -54,3 +74,4 @@ def test_static_export_contains_no_workspace_payload(tmp_path: Path) -> None:
     assert (out / "index.html").exists()
     assert (out / "404.html").exists()
     assert (out / "changes.rss").exists()
+    assert "vLLM" in (out / "changes.rss").read_text()

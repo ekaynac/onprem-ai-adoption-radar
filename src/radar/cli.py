@@ -2455,6 +2455,7 @@ def export(
 
     _technique_candidates = load_emerging_techniques(root, generated_at)
 
+    frontend_source = root / "frontend" / "package.json"
     index = render_static_site(
         cards,
         out,
@@ -2488,8 +2489,8 @@ def export(
         model_metrics_by_id=model_metrics_by_id or None,
         hn_by_project=hn_by_project or None,
         platform_entries=platform_entries or None,
+        write_public_feeds=not frontend_source.exists(),
     )
-    frontend_source = root / "frontend" / "package.json"
     if frontend_source.exists():
         from radar.web.react_export import (
             build_react_frontend,

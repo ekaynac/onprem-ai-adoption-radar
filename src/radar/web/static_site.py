@@ -27,7 +27,7 @@ from radar.models_radar.memory import minimum_viable_quant
 from radar.models_radar.platform_matrix import _FEATURE_KEYS, _HARDWARE_KEYS, PlatformSeed
 from radar.models_radar.reports import model_events_to_feed_atom, model_events_to_feed_json
 from radar.reports.comparison import ComparisonError, build_comparison
-from radar.reports.feeds import render_changes_atom, render_changes_json, render_changes_rss
+from radar.reports.unified_feeds import write_unified_feeds
 from radar.research_radar.entities import TechniqueEntry
 from radar.research_radar.history import TechniqueHistoryEvent
 from radar.research_radar.pedigree import TechniquePedigree
@@ -96,6 +96,7 @@ def render_static_site(
     model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
     hn_by_project: dict[str, int] | None = None,
     platform_entries: list[PlatformSeed] | None = None,
+    write_public_feeds: bool = True,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
 
@@ -285,7 +286,8 @@ def render_static_site(
         pedigree_by_project=pedigree_by_project or {}, technique_hrefs=technique_hrefs or {},
         tenure_by_project=tenure_by_project or {}, self_base_url=self_base_url,
     )
-    _write_feeds(out_dir, timelines or [], site_title, self_base_url)
+    if write_public_feeds:
+        _write_feeds(out_dir, timelines or [], site_title, self_base_url)
     _write_badges(out_dir, cards, slug_by_project, model_entries or [])
 
     if model_entries:
@@ -398,23 +400,13 @@ def _write_feeds(
     events: list[ProjectHistoryEvent] = []
     for timeline in timelines:
         events.extend(timeline.get("events") or [])
-    events.sort(key=lambda e: e.observed_at, reverse=True)
-    recent = events[:_FEED_LIMIT]
-
-    base = self_base_url.rstrip("/") if self_base_url else ""
-    self_url = f"{base}/changes.xml" if base else "changes.xml"
-    (out_dir / "changes.xml").write_text(
-        render_changes_atom(recent, site_title=site_title, self_url=self_url),
-        encoding="utf-8",
-    )
-    (out_dir / "changes.json").write_text(
-        json.dumps(render_changes_json(recent, site_title=site_title), indent=2),
-        encoding="utf-8",
-    )
-    rss_url = f"{base}/changes.rss" if base else "changes.rss"
-    (out_dir / "changes.rss").write_text(
-        render_changes_rss(recent, site_title=site_title, self_url=rss_url),
-        encoding="utf-8",
+    write_unified_feeds(
+        out_dir,
+        project_events=events,
+        intelligence_events=[],
+        site_title=site_title,
+        base_url=self_base_url,
+        limit=_FEED_LIMIT,
     )
 
 

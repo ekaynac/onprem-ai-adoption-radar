@@ -10,11 +10,8 @@ from pathlib import Path
 
 from radar.intelligence.bootstrap import build_intelligence_repository
 from radar.intelligence.services.container import build_services
-from radar.reports.intelligence_feeds import (
-    render_intelligence_atom,
-    render_intelligence_json_feed,
-    render_intelligence_rss,
-)
+from radar.reports.unified_feeds import write_unified_feeds
+from radar.storage.history_store import HistoryStore
 from radar.web.intelligence_snapshot import (
     build_public_snapshot,
     write_public_snapshot,
@@ -67,18 +64,15 @@ def export_react_site(
     )
     write_public_snapshot(snapshot, out_dir)
     events = repository.list_events(limit=500, public_only=True)
-    feed_base = base_url.rstrip("/")
-    (out_dir / "changes.atom").write_text(
-        render_intelligence_atom(events, feed_base),
-        encoding="utf-8",
-    )
-    (out_dir / "changes.rss").write_text(
-        render_intelligence_rss(events, feed_base),
-        encoding="utf-8",
-    )
-    (out_dir / "changes.json").write_text(
-        render_intelligence_json_feed(events, feed_base),
-        encoding="utf-8",
+    history = HistoryStore(root / "data" / "radar.db")
+    history.initialize()
+    project_events = history.all_events()
+    write_unified_feeds(
+        out_dir,
+        project_events=project_events,
+        intelligence_events=events,
+        site_title="On-Prem AI Adoption Radar",
+        base_url=base_url,
     )
     for name in (
         "history.jsonl",
