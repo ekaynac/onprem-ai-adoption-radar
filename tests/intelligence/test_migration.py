@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
-from radar.intelligence.contracts import LifecycleState
+from sqlalchemy import delete
+
+from radar.intelligence.contracts import (
+    EvidenceObservation,
+    EvidenceStrength,
+    LifecycleState,
+)
 from radar.intelligence.database import Database
 from radar.intelligence.migration import import_legacy_state
 from radar.intelligence.repositories import SqlAlchemyIntelligenceRepository
+from radar.intelligence.schema import LifecycleTransitionRow
 
 
 MODEL_SEED = """\
@@ -124,6 +132,69 @@ def test_verified_seed_records_detected_to_verified_transition(tmp_path: Path) -
     assert transitions[0].evidence_ids == [
         "evidence:legacy:model-seed:sample-8b"
     ]
+
+
+def test_import_repairs_missing_transition_for_existing_verified_release(
+    tmp_path: Path,
+) -> None:
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+
+    import_legacy_state(tmp_path, repository)
+    with database.session() as session:
+        session.execute(delete(LifecycleTransitionRow))
+
+    assert repository.get_release_required(
+        "release:legacy:sample-8b"
+    ).lifecycle is LifecycleState.VERIFIED
+    assert repository.list_lifecycle_transitions(
+        "release:legacy:sample-8b"
+    ) == []
+
+    import_legacy_state(tmp_path, repository)
+    import_legacy_state(tmp_path, repository)
+
+    transitions = repository.list_lifecycle_transitions(
+        "release:legacy:sample-8b"
+    )
+    assert [(row.from_state, row.to_state) for row in transitions] == [
+        (LifecycleState.DETECTED, LifecycleState.VERIFIED)
+    ]
+
+
+def test_import_preserves_operational_platform_reverification(tmp_path: Path) -> None:
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+    import_legacy_state(tmp_path, repository)
+    refreshed_at = datetime(2026, 7, 31, tzinfo=UTC)
+    evidence = EvidenceObservation(
+        id="evidence:platform:refresh",
+        source_url="https://github.com/acme/sample-engine",
+        strength=EvidenceStrength.OFFICIAL_DOCUMENTATION,
+        retrieved_at=refreshed_at,
+        checksum="sha256:fresh",
+        extractor_version="test",
+    )
+    repository.append_evidence(evidence)
+    repository.record_platform_verification(
+        "platform:legacy:sample-engine",
+        refreshed_at,
+        evidence_id=evidence.id,
+        success=True,
+    )
+
+    import_legacy_state(tmp_path, repository)
+
+    claims = repository.list_claims_for_subject(
+        "platform:legacy:sample-engine"
+    )
+    assert claims
+    assert all(claim.observed_at == refreshed_at for claim in claims)
+    assert all(evidence.id in claim.evidence_ids for claim in claims)
 
 
 def test_import_canonicalizes_publisher_aliases_before_upsert(

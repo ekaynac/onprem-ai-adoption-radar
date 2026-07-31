@@ -1,5 +1,6 @@
 import json
 import logging
+import shutil
 from datetime import UTC, datetime
 
 from intelligence.lifecycle_helpers import lifecycle_repository
@@ -225,6 +226,23 @@ def test_candidate_projection_reserves_space_for_new_low_download_releases(
     )
 
     assert any(item["hf_repo"] == "moonshotai/Kimi-K3" for item in projected)
+
+
+def test_curated_model_fallback_is_explicitly_labeled(tmp_path) -> None:
+    from radar.web.public_context import load_public_model_profiles
+
+    config = tmp_path / "config"
+    config.mkdir()
+    shutil.copy2("config/model-seed.yaml", config / "model-seed.yaml")
+
+    profiles = load_public_model_profiles(tmp_path)
+
+    assert profiles
+    assert all(
+        "Curated seed baseline; scan enrichment is pending"
+        in profile["warnings"]
+        for profile in profiles.values()
+    )
 
 
 def test_platform_reverification_is_repeatable_and_failure_marks_current_claim_stale(

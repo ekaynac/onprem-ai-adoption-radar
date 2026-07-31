@@ -884,6 +884,17 @@ h1 {
   line-height: 1.45;
 }
 
+.data-state-note {
+  margin: var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--warning);
+  background: var(--warning-bg);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .claim-citations {
   display: flex;
   flex-wrap: wrap;

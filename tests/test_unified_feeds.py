@@ -51,6 +51,9 @@ def test_unified_feed_keeps_legacy_ring_events_when_intelligence_is_empty(
     rss = ElementTree.fromstring((tmp_path / "changes.rss").read_text())
     assert len(rss.findall("./channel/item")) == 1
     assert "vLLM" in rss.findtext("./channel/item/title", default="")
+    assert (tmp_path / "changes.atom").read_bytes() == (
+        tmp_path / "changes.xml"
+    ).read_bytes()
 
 
 def test_unified_feed_merges_event_families_newest_first(tmp_path) -> None:

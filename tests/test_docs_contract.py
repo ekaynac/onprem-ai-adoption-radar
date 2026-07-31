@@ -27,6 +27,14 @@ def test_readme_separates_shipping_restoration_and_planner_surfaces() -> None:
     assert "web planner arrives in Phase 3" in readme
 
 
+def test_readme_describes_current_verification_behavior_without_refetch_claims() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8").casefold()
+
+    assert "re-evaluates persisted trusted claims weekly" in readme
+    assert "re-verifies them against upstream" not in readme
+    assert "re-fetch and re-evaluate every trusted claim" not in readme
+
+
 def test_persistence_artifacts_are_committed_by_publish_workflow() -> None:
     commands = all_run_commands(load_yaml(".github/workflows/publish.yml"))
 

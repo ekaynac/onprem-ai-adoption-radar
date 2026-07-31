@@ -3,8 +3,8 @@
 **A unified, self-hosted decision workspace for infrastructure architects tracking models, serving platforms, hardware, research, and operational readiness.**
 
 The command center discovers, evaluates, and republishes on-prem signals every
-two hours, reverifies trusted claims weekly, and explains what each change
-means for an on-prem deployment. Releases move through
+two hours, re-evaluates persisted trusted claims weekly, and explains what each
+change means for an on-prem deployment. Releases move through
 `Detected → Verified → Qualified → Recommended`; unresolved identity,
 provenance, or compatibility conflicts are routed to the review queue.
 
@@ -14,7 +14,9 @@ edition remains strictly read-only and contains no workspace data.
 
 **How this differs from trending trackers:**
 - 🧭 **Computed, not sponsored** — rings come from a deterministic rubric and an append-only, auditable timeline. Placement cannot be bought.
-- 🧾 **Every number cited** — model specs carry per-number provenance (source, date, human-verified flag); a weekly job re-verifies them against upstream.
+- 🧾 **Every number cited** — model specs carry per-number provenance (source,
+  date, human-verified flag); a weekly job re-evaluates persisted claims and
+  evidence against current policy.
 - 🤖 **Agent-queryable** — a built-in MCP server lets Claude/Codex/any MCP client ask the radar questions mid-task.
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
@@ -249,7 +251,8 @@ GitHub Actions and the built-in scheduler enforce one platform-wide policy:
 - every two hours: discover and verify new releases, refresh the legacy radar,
   enrich claims, qualify deployment readiness, refresh recommendations, and
   publish the complete static product;
-- weekly: re-fetch and re-evaluate every trusted claim.
+- weekly: re-evaluate every persisted trusted claim and its evidence against
+  current policy.
 
 See [Intelligence operations](docs/intelligence-operations.md) for scheduler
 modes, credentials, storage, backups, and incident recovery.

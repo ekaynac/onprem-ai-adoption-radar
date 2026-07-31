@@ -681,6 +681,30 @@ def test_static_site_backcompat_without_techniques(tmp_path):
     assert (site / "index.html").exists()
 
 
+def test_react_prepass_leaves_all_public_feeds_to_react_export(tmp_path):
+    digest_dir = tmp_path / "digests"
+    digest_dir.mkdir()
+    (digest_dir / "digest.xml").write_text("old atom", encoding="utf-8")
+    (digest_dir / "digest-rss.xml").write_text("old rss", encoding="utf-8")
+
+    render_static_site(
+        [],
+        tmp_path / "_site",
+        datetime(2026, 7, 3, tzinfo=UTC),
+        technique_entries=[_technique_entry()],
+        technique_events=[_technique_event()],
+        digest_dir=digest_dir,
+        write_public_feeds=False,
+    )
+
+    site = tmp_path / "_site"
+    assert (site / "techniques.html").exists()
+    assert not (site / "changes.xml").exists()
+    assert not (site / "changes-research.xml").exists()
+    assert not (site / "digests" / "digest.xml").exists()
+    assert not (site / "digests" / "digest-rss.xml").exists()
+
+
 def test_static_project_page_shows_pedigree_with_static_links(tmp_path):
     from radar.models import Ring
     from radar.research_radar.pedigree import TechniquePedigree

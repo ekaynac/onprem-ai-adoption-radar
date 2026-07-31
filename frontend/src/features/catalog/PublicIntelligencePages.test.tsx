@@ -95,7 +95,7 @@ const snapshot = {
         },
       ],
       resolved_implementations: [],
-      warnings: [],
+      warnings: ["Curated seed baseline; scan enrichment is pending"],
     },
   ],
   source_health: {
@@ -171,6 +171,9 @@ test("makes research cards and primary papers clickable", async () => {
     "href",
     "https://arxiv.org/abs/2309.06180",
   );
+  expect(
+    screen.getByText("Curated seed baseline; scan enrichment is pending"),
+  ).toBeVisible();
   expect(screen.queryByText(/"papers"/)).not.toBeInTheDocument();
 });
 

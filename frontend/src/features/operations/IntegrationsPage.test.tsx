@@ -27,3 +27,19 @@ test("offers the durable histories and public subscription feeds", () => {
     "/api/docs",
   );
 });
+
+test("does not advertise live API endpoints in a static export", () => {
+  render(<IntegrationsPage staticMode />);
+
+  expect(
+    screen.queryByRole("link", { name: "Interactive API documentation" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "OpenAPI schema" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Public snapshot" })).toHaveAttribute(
+    "href",
+    "data/public-snapshot.v1.json",
+  );
+  expect(screen.getByText(/start the live command center/i)).toBeVisible();
+});

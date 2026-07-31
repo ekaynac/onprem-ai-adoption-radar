@@ -30,6 +30,7 @@ test("public static command center navigates without a backend", async ({ page }
 
   for (const feed of [
     "/changes.xml",
+    "/changes.atom",
     "/changes-models.xml",
     "/changes-research.xml",
     "/digests/digest.xml",

@@ -1603,8 +1603,8 @@ def digest_generate(
     from radar.models import NotifyConfig
     from radar.models_radar.history import load_model_events
     from radar.notify import webhook
+    from radar.reports.auxiliary_feeds import write_digest_feeds
     from radar.reports.digest import build_digest
-    from radar.reports.digest_feeds import render_digest_atom, render_digest_rss
     from radar.research_radar.history import load_technique_events
     from radar.storage.autopilot_log import load_autopilot
     from radar.storage.config import ConfigError, load_config
@@ -1657,13 +1657,11 @@ def digest_generate(
     all_entries = load_digests(log_path)
 
     site_title = "On-Prem AI Adoption Radar — Weekly Digest"
-    atom_url = f"{base}/digests/digest.xml" if base else "digests/digest.xml"
-    rss_url = f"{base}/digests/digest-rss.xml" if base else "digests/digest-rss.xml"
-    (out_dir / "digest.xml").write_text(
-        render_digest_atom(all_entries, site_title, atom_url), encoding="utf-8"
-    )
-    (out_dir / "digest-rss.xml").write_text(
-        render_digest_rss(all_entries, site_title, rss_url), encoding="utf-8"
+    write_digest_feeds(
+        out_dir,
+        digests=all_entries,
+        site_title=site_title,
+        base_url=base,
     )
 
     # Webhook is best-effort: a missing/invalid config or a down endpoint must

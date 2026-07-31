@@ -141,11 +141,24 @@ def load_public_model_profiles(root: Path) -> dict[str, dict[str, Any]]:
     if not cards:
         seed_path = root / "config" / "model-seed.yaml"
         try:
-            cards = [
-                build_model_entry(seed, None, []).model_dump(mode="json")
-                for seed in load_model_seed(seed_path)
-                if seed.enabled
-            ]
+            cards = []
+            for seed in load_model_seed(seed_path):
+                if not seed.enabled:
+                    continue
+                entry = build_model_entry(seed, None, [])
+                warnings = list(
+                    dict.fromkeys(
+                        [
+                            *entry.warnings,
+                            "Curated seed baseline; scan enrichment is pending",
+                        ]
+                    )
+                )
+                cards.append(
+                    entry.model_copy(update={"warnings": warnings}).model_dump(
+                        mode="json"
+                    )
+                )
         except ModelSeedError:
             cards = []
 

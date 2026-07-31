@@ -91,7 +91,7 @@ function DeliveryList({ items }: { items: DeliveryLink[] }) {
   );
 }
 
-export function IntegrationsPage() {
+export function IntegrationsPage({ staticMode = false }: { staticMode?: boolean }) {
   const mcpConfig = `{
   "mcpServers": {
     "onprem-intelligence": {
@@ -128,22 +128,32 @@ export function IntegrationsPage() {
           <p className="eyebrow">REST & OpenAPI</p>
           <h2>Versioned API</h2>
           <ul className="delivery-list">
-            <li>
-              <a href="/api/docs">Interactive API documentation</a>
-              <span>Swagger UI</span>
-              <p>Explore the live command-center API.</p>
-            </li>
-            <li>
-              <a href="/api/v1/openapi.json">OpenAPI schema</a>
-              <span>OpenAPI 3</span>
-              <p>Generate typed clients and validate integrations.</p>
-            </li>
+            {!staticMode && (
+              <>
+                <li>
+                  <a href="/api/docs">Interactive API documentation</a>
+                  <span>Swagger UI</span>
+                  <p>Explore the live command-center API.</p>
+                </li>
+                <li>
+                  <a href="/api/v1/openapi.json">OpenAPI schema</a>
+                  <span>OpenAPI 3</span>
+                  <p>Generate typed clients and validate integrations.</p>
+                </li>
+              </>
+            )}
             <li>
               <a href="data/public-snapshot.v1.json">Public snapshot</a>
               <span>JSON</span>
               <p>Static, workspace-free projection used by this site.</p>
             </li>
           </ul>
+          {staticMode && (
+            <p className="claim-reason">
+              Start the live command center with <code>uv run radar serve</code> to
+              use Swagger UI and the versioned REST API.
+            </p>
+          )}
         </article>
       </div>
 

@@ -11,16 +11,13 @@ from pathlib import Path
 
 from radar.intelligence.bootstrap import build_intelligence_repository
 from radar.intelligence.services.container import build_services
+from radar.reports.auxiliary_feeds import write_auxiliary_feeds
 from radar.reports.unified_feeds import write_unified_feeds
 from radar.storage.history_store import HistoryStore
 from radar.web.intelligence_snapshot import (
     build_public_snapshot,
     write_public_snapshot,
 )
-
-
-def _public_url(base_url: str, path: str) -> str:
-    return f"{base_url.rstrip('/')}/{path}" if base_url else path
 
 
 def _write_restoration_downloads(
@@ -33,16 +30,7 @@ def _write_restoration_downloads(
     """Guarantee every download advertised by the restoration bridge."""
 
     from radar.models_radar.history import load_model_events
-    from radar.models_radar.reports import (
-        model_events_to_feed_atom,
-        model_events_to_feed_json,
-    )
-    from radar.reports.digest_feeds import render_digest_atom, render_digest_rss
     from radar.research_radar.history import load_technique_events
-    from radar.research_radar.reports import (
-        technique_events_to_feed_atom,
-        technique_events_to_feed_json,
-    )
     from radar.storage.digest_log import load_digests
 
     history_names = (
@@ -69,60 +57,27 @@ def _write_restoration_downloads(
 
     site_title = "On-Prem AI Adoption Radar"
     model_events = load_model_events(root / "data" / "model-history.jsonl")
-    (out_dir / "changes-models.xml").write_text(
-        model_events_to_feed_atom(
-            model_events,
-            site_title,
-            _public_url(base_url, "changes-models.xml"),
-        ),
-        encoding="utf-8",
-    )
-    (out_dir / "changes-models.json").write_text(
-        json.dumps(model_events_to_feed_json(model_events, site_title), indent=2),
-        encoding="utf-8",
-    )
-
     technique_events = load_technique_events(
         root / "data" / "technique-history.jsonl"
-    )
-    (out_dir / "changes-research.xml").write_text(
-        technique_events_to_feed_atom(
-            technique_events,
-            site_title,
-            _public_url(base_url, "changes-research.xml"),
-        ),
-        encoding="utf-8",
-    )
-    (out_dir / "changes-research.json").write_text(
-        json.dumps(
-            technique_events_to_feed_json(technique_events, site_title),
-            indent=2,
-        ),
-        encoding="utf-8",
     )
 
     source_digests = root / "digests"
     destination_digests = out_dir / "digests"
     if source_digests.is_dir():
-        shutil.copytree(source_digests, destination_digests, dirs_exist_ok=True)
-    destination_digests.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(
+            source_digests,
+            destination_digests,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("digest.xml", "digest-rss.xml"),
+        )
     digests = load_digests(root / "data" / "digest-log.jsonl")
-    digest_title = f"{site_title} — Weekly Digest"
-    (destination_digests / "digest.xml").write_text(
-        render_digest_atom(
-            digests,
-            digest_title,
-            _public_url(base_url, "digests/digest.xml"),
-        ),
-        encoding="utf-8",
-    )
-    (destination_digests / "digest-rss.xml").write_text(
-        render_digest_rss(
-            digests,
-            digest_title,
-            _public_url(base_url, "digests/digest-rss.xml"),
-        ),
-        encoding="utf-8",
+    write_auxiliary_feeds(
+        out_dir,
+        model_events=model_events,
+        technique_events=technique_events,
+        digests=digests,
+        site_title=site_title,
+        base_url=base_url,
     )
 
 

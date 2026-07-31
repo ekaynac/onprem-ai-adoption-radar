@@ -90,7 +90,7 @@ def write_unified_feeds(
     backing_event_count: int | None = None,
     limit: int = 100,
 ) -> None:
-    """Write the three stable public feed filenames from one merged item list."""
+    """Write the stable public feed filenames from one merged item list."""
 
     items = collect_unified_feed_items(
         project_events,
@@ -112,6 +112,10 @@ def write_unified_feeds(
     atom_url = f"{base}/changes.xml" if base else "changes.xml"
     _write_rss(out_dir / "changes.rss", items, site_title, rss_url)
     _write_atom(out_dir / "changes.xml", items, site_title, atom_url)
+    # Keep the formerly published Atom filename as a byte-for-byte alias.
+    (out_dir / "changes.atom").write_bytes(
+        (out_dir / "changes.xml").read_bytes()
+    )
     (out_dir / "changes.json").write_text(
         json.dumps(
             {

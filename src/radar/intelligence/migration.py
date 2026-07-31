@@ -16,6 +16,7 @@ from radar.intelligence.contracts import (
     EvidenceObservation,
     EvidenceStrength,
     LifecycleState,
+    LifecycleTransition,
     ModelCategory,
     ProductFamily,
     Publisher,
@@ -224,14 +225,33 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
             )
         )
     current = repository.get_release_required(release_id)
-    if seed.spec_verified and current.lifecycle is LifecycleState.DETECTED:
-        LifecycleService(repository).transition(
-            release_id,
-            LifecycleState.VERIFIED,
-            reason="Legacy seed carries human-verified specifications",
-            evidence_ids=[evidence.id],
-            now=LEGACY_OBSERVED_AT,
-        )
+    if seed.spec_verified:
+        reason = "Legacy seed carries human-verified specifications"
+        if current.lifecycle is LifecycleState.DETECTED:
+            LifecycleService(repository).transition(
+                release_id,
+                LifecycleState.VERIFIED,
+                reason=reason,
+                evidence_ids=[evidence.id],
+                now=LEGACY_OBSERVED_AT,
+            )
+        elif not any(
+            transition.from_state is LifecycleState.DETECTED
+            and transition.to_state is LifecycleState.VERIFIED
+            for transition in repository.list_lifecycle_transitions(release_id)
+        ):
+            # Early migrations projected verified state directly. Preserve that
+            # projection while repairing the missing auditable history entry.
+            repository.append_lifecycle_transition(
+                LifecycleTransition(
+                    release_id=release_id,
+                    from_state=LifecycleState.DETECTED,
+                    to_state=LifecycleState.VERIFIED,
+                    observed_at=LEGACY_OBSERVED_AT,
+                    reason=reason,
+                    evidence_ids=[evidence.id],
+                )
+            )
     return created
 
 
@@ -254,19 +274,32 @@ def _import_platform(seed: PlatformSeed, repository) -> bool:
         extractor_version="legacy-platform-seed-v1",
     )
     repository.append_evidence(evidence)
+    existing_claims = {
+        claim.id: claim
+        for claim in repository.list_claims_for_subject(platform_id)
+    }
     for scope, values in (("hardware", seed.hardware), ("feature", seed.features)):
         for key, value in sorted(values.items()):
-            repository.append_claim(
-                Claim(
-                    id=f"claim:legacy:platform:{seed.id}:{scope}:{key}",
-                    subject_id=platform_id,
-                    predicate=f"{scope}.{key}",
-                    value=value,
-                    state=ClaimState.VERIFIED,
-                    observed_at=evidence.retrieved_at,
-                    evidence_ids=[evidence.id],
-                )
+            claim = Claim(
+                id=f"claim:legacy:platform:{seed.id}:{scope}:{key}",
+                subject_id=platform_id,
+                predicate=f"{scope}.{key}",
+                value=value,
+                state=ClaimState.VERIFIED,
+                observed_at=evidence.retrieved_at,
+                evidence_ids=[evidence.id],
             )
+            existing = existing_claims.get(claim.id)
+            if existing is not None and (
+                existing.subject_id == claim.subject_id
+                and existing.predicate == claim.predicate
+                and existing.value == claim.value
+                and existing.unit == claim.unit
+            ):
+                # Verification refreshes state, time, and evidence in place.
+                # A migration rerun must preserve that newer operational state.
+                continue
+            repository.append_claim(claim)
     return created
 
 
