@@ -49,18 +49,61 @@ def _public_project_payload() -> dict:
 def test_public_projects_fall_back_to_tracked_snapshot_without_database(
     tmp_path,
 ) -> None:
-    from radar.web.public_context import load_public_projects
+    from radar.web.public_context import (
+        load_public_project_bundle,
+        load_public_projects,
+    )
 
     snapshot = tmp_path / "data" / "intelligence" / "public-snapshot.v1.json"
     snapshot.parent.mkdir(parents=True)
+    raw_project = {
+        **_public_project_payload(),
+        "workspace_id": "workspace:private",
+        "internal_notes": "must not be republished",
+    }
     snapshot.write_text(
-        json.dumps({"projects": [_public_project_payload()]}),
+        json.dumps(
+            {
+                "generated_at": "2026-07-30T06:00:00Z",
+                "projects": [raw_project],
+            }
+        ),
         encoding="utf-8",
     )
 
     projects = load_public_projects(tmp_path)
+    bundle = load_public_project_bundle(tmp_path)
 
-    assert projects == [_public_project_payload()]
+    assert len(projects) == 1
+    for key, value in _public_project_payload().items():
+        assert projects[0][key] == value
+    assert bundle.mode == "last_published_baseline"
+    assert bundle.generated_at == datetime(2026, 7, 30, 6, tzinfo=UTC)
+    assert "workspace_id" not in projects[0]
+    assert "internal_notes" not in projects[0]
+
+    repository = lifecycle_repository(tmp_path)
+    public_snapshot = build_public_snapshot(
+        build_services(repository),
+        datetime(2026, 7, 31, 10, tzinfo=UTC),
+        root=tmp_path,
+    ).model_dump(mode="json")
+    assert public_snapshot["project_data"] == {
+        "mode": "last_published_baseline",
+        "generated_at": "2026-07-30T06:00:00Z",
+    }
+    assert "workspace_id" not in public_snapshot["projects"][0]
+    assert "internal_notes" not in public_snapshot["projects"][0]
+
+
+def test_public_projects_ignore_non_object_snapshot(tmp_path) -> None:
+    from radar.web.public_context import load_public_projects
+
+    snapshot = tmp_path / "data" / "intelligence" / "public-snapshot.v1.json"
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_text("[]", encoding="utf-8")
+
+    assert load_public_projects(tmp_path) == []
 
 
 def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
@@ -99,6 +142,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "events",
         "source_health",
         "latest_digest",
+        "project_data",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}

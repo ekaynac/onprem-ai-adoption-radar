@@ -91,6 +91,7 @@ def render_static_site(
     model_metrics_by_id: dict[str, list[ModelMetrics]] | None = None,
     hn_by_project: dict[str, int] | None = None,
     platform_entries: list[PlatformSeed] | None = None,
+    project_baseline_note: str | None = None,
     write_public_feeds: bool = True,
 ) -> Path:
     """Render index.html, compare.html, history.html, per-project pages + feeds.
@@ -136,6 +137,8 @@ def render_static_site(
     ``card_staleness`` (optional, from ``RadarDatabase.card_staleness_note()``)
     renders a note in the scan-health panel when persisted cards span more
     than one scan day (a partial/degraded run mixing fresh and stale ages).
+    ``project_baseline_note`` visibly identifies last-published fallback cards
+    when a current SQLite projection is unavailable.
     ``tenure_by_project``/``model_tenure_by_id`` (optional) supply the tenure
     credential line ("On radar N days · RING since <date> · N ring changes")
     on the index page's project rows and each project/model detail page;
@@ -255,6 +258,7 @@ def render_static_site(
             top_technique=top_technique,
             tenure_by_project=tenure_by_project,
             hn_by_project=hn_by_project,
+            project_baseline_note=project_baseline_note,
         ),
         encoding="utf-8",
     )
@@ -280,6 +284,7 @@ def render_static_site(
         env, out_dir, cards, slug_by_project, timelines or [], metrics_by_project or {},
         pedigree_by_project=pedigree_by_project or {}, technique_hrefs=technique_hrefs or {},
         tenure_by_project=tenure_by_project or {}, self_base_url=self_base_url,
+        project_baseline_note=project_baseline_note,
     )
     if write_public_feeds:
         _write_feeds(out_dir, timelines or [], site_title, self_base_url)
@@ -373,6 +378,7 @@ def _write_project_pages(
     technique_hrefs: dict[str, str],
     tenure_by_project: dict[str, TenureLine] | None = None,
     self_base_url: str = "",
+    project_baseline_note: str | None = None,
 ) -> None:
     """Render one self-contained project_<slug>.html per card."""
     events_by_project: dict[str, list[ProjectHistoryEvent]] = {
@@ -397,6 +403,7 @@ def _write_project_pages(
                 pedigree=(pedigree_by_project.get(card.project) or None),
                 technique_hrefs=technique_hrefs,
                 tenure=(tenure_by_project or {}).get(card.project),
+                project_baseline_note=project_baseline_note,
                 star_spark=star_sparkline(metrics_oldest_first),
                 badge_svg=ring_badge_svg(card.ring.value),
                 badge_snippet=badge_snippet,

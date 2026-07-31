@@ -5,6 +5,7 @@ import { vi } from "vitest";
 
 import { HardwarePage } from "./HardwarePage";
 import { PlatformDetailPage } from "./PlatformDetailPage";
+import { ProjectDetailPage } from "./ProjectDetailPage";
 import { ProjectsPage } from "./ProjectsPage";
 import { ResearchPage } from "./ResearchPage";
 
@@ -12,6 +13,10 @@ import { ResearchPage } from "./ResearchPage";
 const snapshot = {
   schema_version: "1.0",
   generated_at: "2026-07-31T08:00:00Z",
+  project_data: {
+    mode: "last_published_baseline",
+    generated_at: "2026-07-30T06:00:00Z",
+  },
   projects: [
     {
       project: "vLLM",
@@ -135,6 +140,10 @@ test("restores GitHub projects as navigable intelligence cards", async () => {
   renderPage(<ProjectsPage />);
 
   expect(await screen.findByRole("heading", { name: "vLLM" })).toBeVisible();
+  expect(
+    screen.getByText(/last published baseline from Jul 30, 2026/i),
+  ).toBeVisible();
+  expect(screen.queryByText(/live project decisions/i)).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Open intelligence" })).toHaveAttribute(
     "href",
     "/projects/vLLM",
@@ -143,6 +152,21 @@ test("restores GitHub projects as navigable intelligence cards", async () => {
     "href",
     "https://github.com/vllm-project/vllm",
   );
+});
+
+
+test("labels a fallback baseline on direct project details", async () => {
+  renderPage(
+    <Routes>
+      <Route path="/projects/:projectName" element={<ProjectDetailPage />} />
+    </Routes>,
+    "/projects/vLLM",
+  );
+
+  expect(await screen.findByRole("heading", { name: "vLLM", level: 1 })).toBeVisible();
+  expect(
+    screen.getByText(/last published baseline from Jul 30, 2026/i),
+  ).toBeVisible();
 });
 
 

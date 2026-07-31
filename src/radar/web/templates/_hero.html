@@ -11,6 +11,6 @@
     <nav class="hero-nav">
       {% for label, url in nav.items() %}{% if url %}<a href="{{ url }}">{{ label }}</a>{% endif %}{% endfor %}
     </nav>
-    {% if generated_at %}<p class="generated">Updated {{ generated_at }}</p>{% endif %}
+    {% if generated_at %}<p class="generated">Page generated {{ generated_at }}</p>{% endif %}
   </div>
 </header>

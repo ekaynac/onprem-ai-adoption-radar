@@ -2251,7 +2251,7 @@ def export(
     from radar.storage.source_health_store import SourceHealthStore
     from radar.web.public_context import (
         load_public_model_profiles,
-        load_public_projects,
+        load_public_project_bundle,
         load_public_research_entries,
     )
     from radar.web.scan_health import latest_tool_scan_meta
@@ -2260,11 +2260,25 @@ def export(
 
     orchestrator = RadarOrchestrator(root)
     cards = orchestrator.latest_cards()
+    project_baseline_note = None
     if not cards:
+        project_bundle = load_public_project_bundle(root)
         cards = [
             DecisionCard.model_validate(row)
-            for row in load_public_projects(root)
+            for row in project_bundle.projects
         ]
+        if project_bundle.mode == "last_published_baseline":
+            baseline_time = (
+                project_bundle.generated_at.astimezone(UTC).strftime(
+                    "%Y-%m-%d %H:%M UTC"
+                )
+                if project_bundle.generated_at is not None
+                else "an unknown date"
+            )
+            project_baseline_note = (
+                f"Project decisions use the last published baseline from {baseline_time}; "
+                "a current scan projection was unavailable at export."
+            )
 
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
@@ -2500,6 +2514,7 @@ def export(
         model_metrics_by_id=model_metrics_by_id or None,
         hn_by_project=hn_by_project or None,
         platform_entries=platform_entries or None,
+        project_baseline_note=project_baseline_note,
         write_public_feeds=not frontend_source.exists(),
     )
     if frontend_source.exists():

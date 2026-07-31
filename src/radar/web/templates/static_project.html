@@ -13,6 +13,7 @@
       <nav class="hero-nav" style="margin-bottom: 1rem;">
         {% for label, url in nav.items() %}{% if url %}<a href="{{ url }}">{{ label }}</a>{% endif %}{% endfor %}
       </nav>
+      {% if project_baseline_note %}<p class="scan-health scan-health-stale">⏱ {{ project_baseline_note }}</p>{% endif %}
       {% include "_project_detail.html" %}
     </main>
     {% include "_footer.html" %}

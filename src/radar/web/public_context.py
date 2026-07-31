@@ -9,10 +9,17 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlsplit
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from radar.models import DecisionCard
+from radar.storage.history_store import ProjectHistoryEvent
+from radar.storage.metrics_store import ProjectMetrics
 
 
 _CATEGORY_BY_PIPELINE = {
@@ -31,10 +38,67 @@ _CATEGORY_BY_PIPELINE = {
 logger = logging.getLogger(__name__)
 
 
-def _load_snapshot_projects(root: Path) -> list[dict[str, Any]]:
-    """Load the last published project baseline from the tracked snapshot."""
+class _PublicProjectSource(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    type: str
+    url: str
 
-    from radar.models import DecisionCard
+
+class _PublicProjectRecord(DecisionCard):
+    """Strict allowlist for every project field crossing the public boundary."""
+
+    model_config = ConfigDict(extra="forbid")
+    repository_url: str | None = None
+    sources: list[_PublicProjectSource] = Field(default_factory=list)
+    history: list[ProjectHistoryEvent] = Field(default_factory=list)
+    latest_metrics: ProjectMetrics | None = None
+
+
+@dataclass(frozen=True)
+class PublicProjectBundle:
+    projects: list[dict[str, Any]]
+    mode: Literal["live_projection", "last_published_baseline", "unavailable"]
+    generated_at: datetime | None
+
+
+def _parse_snapshot_time(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+
+def _normalize_public_project(
+    item: dict[str, Any],
+    *,
+    index: int,
+    path: Path,
+) -> dict[str, Any] | None:
+    allowed = {
+        key: item[key]
+        for key in _PublicProjectRecord.model_fields
+        if key in item
+    }
+    try:
+        return _PublicProjectRecord.model_validate(allowed).model_dump(mode="json")
+    except ValueError as exc:
+        logger.warning(
+            "Skipping invalid public project row %d in %s: %s",
+            index,
+            path,
+            exc,
+        )
+        return None
+
+
+def _load_snapshot_project_bundle(root: Path) -> PublicProjectBundle:
+    """Load the last published project baseline from the tracked snapshot."""
 
     path = root / "data" / "intelligence" / "public-snapshot.v1.json"
     try:
@@ -42,29 +106,34 @@ def _load_snapshot_projects(root: Path) -> list[dict[str, Any]]:
     except (OSError, json.JSONDecodeError) as exc:
         if path.exists():
             logger.warning("Skipping unreadable public project snapshot %s: %s", path, exc)
-        return []
+        return PublicProjectBundle([], "unavailable", None)
+    if not isinstance(payload, dict):
+        logger.warning("Skipping non-object public project snapshot: %s", path)
+        return PublicProjectBundle([], "unavailable", None)
     projects = payload.get("projects")
     if not isinstance(projects, list):
         logger.warning("Skipping public project snapshot without a projects list: %s", path)
-        return []
+        return PublicProjectBundle([], "unavailable", None)
+
+    previous_state = payload.get("project_data")
+    previous_generated_at = (
+        previous_state.get("generated_at")
+        if isinstance(previous_state, dict)
+        else None
+    )
+    generated_at = _parse_snapshot_time(previous_generated_at) or _parse_snapshot_time(
+        payload.get("generated_at")
+    )
 
     rows: list[dict[str, Any]] = []
     for index, item in enumerate(projects):
         if not isinstance(item, dict):
             logger.warning("Skipping invalid public project row %d in %s", index, path)
             continue
-        try:
-            DecisionCard.model_validate(item)
-        except ValueError as exc:
-            logger.warning(
-                "Skipping invalid public project row %d in %s: %s",
-                index,
-                path,
-                exc,
-            )
-            continue
-        rows.append(item)
-    return rows
+        normalized = _normalize_public_project(item, index=index, path=path)
+        if normalized is not None:
+            rows.append(normalized)
+    return PublicProjectBundle(rows, "last_published_baseline", generated_at)
 
 
 def load_latest_digest(root: Path) -> dict[str, str] | None:
@@ -97,12 +166,12 @@ def load_latest_digest(root: Path) -> dict[str, str] | None:
     return result
 
 
-def load_public_projects(root: Path) -> list[dict[str, Any]]:
-    """Return current project decision cards with their source and detail data."""
+def load_public_project_bundle(root: Path) -> PublicProjectBundle:
+    """Return project cards plus truthful live-or-baseline provenance."""
 
     database_path = root / "data" / "radar.db"
     if not database_path.exists():
-        return _load_snapshot_projects(root)
+        return _load_snapshot_project_bundle(root)
 
     from radar.storage.config import ConfigError, load_config
     from radar.storage.database import RadarDatabase
@@ -113,7 +182,7 @@ def load_public_projects(root: Path) -> list[dict[str, Any]]:
     database.initialize()
     cards = database.list_cards()
     if not cards:
-        return _load_snapshot_projects(root)
+        return _load_snapshot_project_bundle(root)
 
     source_rows: dict[str, list[dict[str, str]]] = {}
     try:
@@ -170,7 +239,33 @@ def load_public_projects(root: Path) -> list[dict[str, Any]]:
                 ),
             }
         )
-    return sorted(rows, key=lambda item: (-float(item["score"]), item["project"]))
+    normalized_rows = [
+        normalized
+        for index, row in enumerate(rows)
+        if (
+            normalized := _normalize_public_project(
+                row,
+                index=index,
+                path=database_path,
+            )
+        )
+        is not None
+    ]
+    generated_at = max((card.last_reviewed_at for card in cards), default=None)
+    return PublicProjectBundle(
+        sorted(
+            normalized_rows,
+            key=lambda item: (-float(item["score"]), item["project"]),
+        ),
+        "live_projection",
+        generated_at,
+    )
+
+
+def load_public_projects(root: Path) -> list[dict[str, Any]]:
+    """Return current public project records with private fields stripped."""
+
+    return load_public_project_bundle(root).projects
 
 
 def load_public_model_profiles(root: Path) -> dict[str, dict[str, Any]]:

@@ -119,6 +119,7 @@ def test_export_restores_classic_projects_from_tracked_public_data(tmp_path):
     snapshot.write_text(
         json.dumps(
             {
+                "generated_at": "2026-07-30T06:00:00Z",
                 "projects": [
                     {
                         "project": "vLLM",
@@ -157,6 +158,11 @@ def test_export_restores_classic_projects_from_tracked_public_data(tmp_path):
 
     assert result.exit_code == 0, result.stdout
     assert len(list(out.glob("project_*.html"))) == 1
+    project_page = next(out.glob("project_*.html")).read_text(encoding="utf-8")
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert "last published baseline from 2026-07-30 06:00 UTC" in index
+    assert "last published baseline from 2026-07-30 06:00 UTC" in project_page
+    assert "Page generated" in index
     assert "vLLM" in (out / "history.html").read_text(encoding="utf-8")
     assert "vLLM" in (out / "changes.rss").read_text(encoding="utf-8")
 

@@ -10,6 +10,12 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 
+class PublicProjectDataState(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    mode: Literal["live_projection", "last_published_baseline", "unavailable"]
+    generated_at: datetime | None = None
+
+
 class PublicSnapshot(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     schema_version: Literal["1.0"] = "1.0"
@@ -23,6 +29,7 @@ class PublicSnapshot(BaseModel):
     research: list[dict[str, Any]]
     events: list[dict[str, Any]]
     source_health: dict[str, Any]
+    project_data: PublicProjectDataState
     latest_digest: dict[str, str] | None = None
 
 
@@ -68,12 +75,13 @@ def build_public_snapshot(
     profiles: dict[str, dict[str, Any]] = {}
     legacy_source_health: list[dict[str, Any]] = []
     latest_digest: dict[str, str] | None = None
+    project_data = PublicProjectDataState(mode="unavailable")
     if root is not None:
         from radar.web.public_context import (
             load_latest_digest,
             load_public_model_candidates,
             load_public_model_profiles,
-            load_public_projects,
+            load_public_project_bundle,
             load_public_research_entries,
             load_public_source_health,
         )
@@ -82,7 +90,12 @@ def build_public_snapshot(
             item.model_dump(mode="json")
             for item in load_public_research_entries(root)
         ]
-        projects = load_public_projects(root)
+        project_bundle = load_public_project_bundle(root)
+        projects = project_bundle.projects
+        project_data = PublicProjectDataState(
+            mode=project_bundle.mode,
+            generated_at=project_bundle.generated_at,
+        )
         profiles = load_public_model_profiles(root)
         candidates = load_public_model_candidates(root, generated_at)
         legacy_source_health = load_public_source_health(root, generated_at)
@@ -272,6 +285,7 @@ def build_public_snapshot(
             for event in repository.list_events(limit=500, public_only=True)
         ],
         source_health=operation_payload,
+        project_data=project_data,
         latest_digest=latest_digest,
     )
 

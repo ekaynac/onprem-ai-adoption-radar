@@ -6,6 +6,10 @@ export type ApiPaths = paths;
 type StaticSnapshot = {
   schema_version: string;
   generated_at: string;
+  project_data?: {
+    mode: "live_projection" | "last_published_baseline" | "unavailable";
+    generated_at?: string | null;
+  };
   releases: Array<Record<string, unknown>>;
   models: Array<Record<string, unknown>>;
   projects: Array<Record<string, unknown>>;
