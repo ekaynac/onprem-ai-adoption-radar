@@ -64,6 +64,11 @@ export type PublicSnapshot = {
   platforms: PlatformRecord[];
   hardware: HardwareRecord[];
   research: ResearchRecord[];
+  latest_digest?: {
+    generated_at: string;
+    html_url: string;
+    card_url?: string;
+  } | null;
   source_health: {
     open_review_count: number;
     stale_claim_count: number;

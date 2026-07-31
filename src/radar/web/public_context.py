@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 
 _CATEGORY_BY_PIPELINE = {
@@ -23,6 +24,36 @@ _CATEGORY_BY_PIPELINE = {
     "text-to-video": "image_video",
     "image-to-text": "vision_document",
 }
+
+
+def load_latest_digest(root: Path) -> dict[str, str] | None:
+    """Return the newest valid digest and only advertise an existing card."""
+
+    from radar.storage.digest_log import load_digests
+
+    entries = load_digests(root / "data" / "digest-log.jsonl")
+    if not entries:
+        return None
+    latest = max(entries, key=lambda item: item.generated_at)
+    parsed = urlsplit(latest.url)
+    marker = "/digests/"
+    if marker in parsed.path:
+        html_url = f"digests/{parsed.path.split(marker, 1)[1]}"
+    elif parsed.scheme:
+        html_url = latest.url
+    else:
+        html_url = latest.url.lstrip("/")
+
+    result = {
+        "generated_at": latest.generated_at.isoformat().replace("+00:00", "Z"),
+        "html_url": html_url,
+    }
+    for filename in ("trending_og.png", "trending_og.svg"):
+        card = root / "digests" / "cards" / filename
+        if card.is_file():
+            result["card_url"] = f"digests/cards/{filename}"
+            break
+    return result
 
 
 def load_public_projects(root: Path) -> list[dict[str, Any]]:
@@ -103,12 +134,68 @@ def load_public_model_profiles(root: Path) -> dict[str, dict[str, Any]]:
     """Return latest enriched model cards keyed by stable legacy model id."""
 
     from radar.mcp_server.model_queries import _latest_model_cards
+    from radar.models_radar.assemble import build_model_entry
+    from radar.models_radar.seed import ModelSeedError, load_model_seed
+
+    cards = _latest_model_cards(root)
+    if not cards:
+        seed_path = root / "config" / "model-seed.yaml"
+        try:
+            cards = [
+                build_model_entry(seed, None, []).model_dump(mode="json")
+                for seed in load_model_seed(seed_path)
+                if seed.enabled
+            ]
+        except ModelSeedError:
+            cards = []
 
     return {
         str(item["id"]): item
-        for item in _latest_model_cards(root)
+        for item in cards
         if item.get("id")
     }
+
+
+def load_public_research_entries(root: Path) -> list[Any]:
+    """Return scanned techniques, falling back to the curated seed baseline."""
+
+    from radar.mcp_server.technique_queries import load_technique_entries
+    from radar.research_radar.entities import ResolvedImplementation, TechniqueEntry
+    from radar.research_radar.seed import TechniqueSeedError, load_technique_seed
+
+    entries = load_technique_entries(root)
+    if entries:
+        return entries
+    seed_path = root / "config" / "technique-seed.yaml"
+    try:
+        seeds = load_technique_seed(seed_path)
+    except TechniqueSeedError:
+        return []
+    return [
+        TechniqueEntry(
+            id=seed.id,
+            name=seed.name,
+            category=seed.category,
+            domain=seed.domain,
+            aliases=seed.aliases,
+            papers=seed.papers,
+            resolved_implementations=[
+                ResolvedImplementation(
+                    kind=item.kind,
+                    ref=item.ref,
+                    note=item.note,
+                )
+                for item in seed.implementations
+            ],
+            open_code=seed.open_code,
+            onprem_impact=seed.onprem_impact,
+            superseded_by=seed.superseded_by,
+            notes=seed.notes,
+            warnings=["Curated seed baseline; scan enrichment is pending"],
+        )
+        for seed in seeds
+        if seed.enabled
+    ]
 
 
 def load_public_model_candidates(

@@ -71,3 +71,41 @@ test("public static command center preserves deep project and evidence surfaces"
   await expect(page.getByRole("heading", { name: "Infrastructure specification" })).toBeVisible();
   await expect(page.locator("pre.record-view")).toHaveCount(0);
 });
+
+
+test("classic radar and integration downloads remain reachable", async ({ page }) => {
+  await page.goto("/");
+
+  for (const [name, path] of [
+    ["Classic models", "/models.html"],
+    ["Classic platforms", "/platforms.html"],
+    ["Classic techniques", "/techniques.html"],
+    ["Classic trending", "/trending.html"],
+    ["Classic history", "/history.html"],
+    ["Classic compare", "/compare.html"],
+  ]) {
+    await expect(page.getByRole("link", { name })).toBeVisible();
+    expect((await page.request.get(path)).ok(), path).toBeTruthy();
+  }
+  await expect(page.getByRole("link", { name: "Latest weekly digest" })).toBeVisible();
+  const digestHref = await page
+    .getByRole("link", { name: "Latest weekly digest" })
+    .getAttribute("href");
+  expect(digestHref).toBeTruthy();
+  expect((await page.request.get(`/${digestHref}`)).ok(), digestHref ?? "digest").toBeTruthy();
+
+  await page.getByRole("link", { name: "API & feeds" }).click();
+  for (const [name, path] of [
+    ["Project history", "/history.jsonl"],
+    ["Model history", "/model-history.jsonl"],
+    ["Technique history", "/technique-history.jsonl"],
+    ["Trending observations", "/trending-observations.jsonl"],
+    ["Unified changes · RSS", "/changes.rss"],
+    ["Model changes · Atom", "/changes-models.xml"],
+    ["Research changes · Atom", "/changes-research.xml"],
+    ["Weekly digest · Atom", "/digests/digest.xml"],
+  ]) {
+    await expect(page.getByRole("link", { name })).toBeVisible();
+    expect((await page.request.get(path)).ok(), path).toBeTruthy();
+  }
+});

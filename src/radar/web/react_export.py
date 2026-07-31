@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 from datetime import UTC, datetime
@@ -16,6 +17,113 @@ from radar.web.intelligence_snapshot import (
     build_public_snapshot,
     write_public_snapshot,
 )
+
+
+def _public_url(base_url: str, path: str) -> str:
+    return f"{base_url.rstrip('/')}/{path}" if base_url else path
+
+
+def _write_restoration_downloads(
+    root: Path,
+    out_dir: Path,
+    *,
+    base_url: str,
+    project_events: list,
+) -> None:
+    """Guarantee every download advertised by the restoration bridge."""
+
+    from radar.models_radar.history import load_model_events
+    from radar.models_radar.reports import (
+        model_events_to_feed_atom,
+        model_events_to_feed_json,
+    )
+    from radar.reports.digest_feeds import render_digest_atom, render_digest_rss
+    from radar.research_radar.history import load_technique_events
+    from radar.research_radar.reports import (
+        technique_events_to_feed_atom,
+        technique_events_to_feed_json,
+    )
+    from radar.storage.digest_log import load_digests
+
+    history_names = (
+        "history.jsonl",
+        "model-history.jsonl",
+        "technique-history.jsonl",
+        "trending-observations.jsonl",
+    )
+    for name in history_names:
+        source = root / "data" / name
+        destination = out_dir / name
+        if source.is_file():
+            shutil.copy2(source, destination)
+        elif name == "history.jsonl" and project_events:
+            destination.write_text(
+                "".join(
+                    json.dumps(event.model_dump(mode="json"), sort_keys=True) + "\n"
+                    for event in project_events
+                ),
+                encoding="utf-8",
+            )
+        elif not destination.exists():
+            destination.write_text("", encoding="utf-8")
+
+    site_title = "On-Prem AI Adoption Radar"
+    model_events = load_model_events(root / "data" / "model-history.jsonl")
+    (out_dir / "changes-models.xml").write_text(
+        model_events_to_feed_atom(
+            model_events,
+            site_title,
+            _public_url(base_url, "changes-models.xml"),
+        ),
+        encoding="utf-8",
+    )
+    (out_dir / "changes-models.json").write_text(
+        json.dumps(model_events_to_feed_json(model_events, site_title), indent=2),
+        encoding="utf-8",
+    )
+
+    technique_events = load_technique_events(
+        root / "data" / "technique-history.jsonl"
+    )
+    (out_dir / "changes-research.xml").write_text(
+        technique_events_to_feed_atom(
+            technique_events,
+            site_title,
+            _public_url(base_url, "changes-research.xml"),
+        ),
+        encoding="utf-8",
+    )
+    (out_dir / "changes-research.json").write_text(
+        json.dumps(
+            technique_events_to_feed_json(technique_events, site_title),
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    source_digests = root / "digests"
+    destination_digests = out_dir / "digests"
+    if source_digests.is_dir():
+        shutil.copytree(source_digests, destination_digests, dirs_exist_ok=True)
+    destination_digests.mkdir(parents=True, exist_ok=True)
+    digests = load_digests(root / "data" / "digest-log.jsonl")
+    digest_title = f"{site_title} — Weekly Digest"
+    (destination_digests / "digest.xml").write_text(
+        render_digest_atom(
+            digests,
+            digest_title,
+            _public_url(base_url, "digests/digest.xml"),
+        ),
+        encoding="utf-8",
+    )
+    (destination_digests / "digest-rss.xml").write_text(
+        render_digest_rss(
+            digests,
+            digest_title,
+            _public_url(base_url, "digests/digest-rss.xml"),
+        ),
+        encoding="utf-8",
+    )
 
 
 def build_react_frontend(root: Path, *, static: bool = False) -> Path:
@@ -74,14 +182,12 @@ def export_react_site(
         site_title="On-Prem AI Adoption Radar",
         base_url=base_url,
     )
-    for name in (
-        "history.jsonl",
-        "model-history.jsonl",
-        "technique-history.jsonl",
-    ):
-        source = root / "data" / name
-        if source.exists():
-            shutil.copy2(source, out_dir / name)
+    _write_restoration_downloads(
+        root,
+        out_dir,
+        base_url=base_url,
+        project_events=project_events,
+    )
     return out_dir
 
 

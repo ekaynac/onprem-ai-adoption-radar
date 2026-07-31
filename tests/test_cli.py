@@ -1,3 +1,6 @@
+import shutil
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from radar.cli import app
@@ -101,6 +104,27 @@ def test_export_writes_static_site(tmp_path):
     # Compare page shows the two model_serving projects side by side.
     comp_html = compare.read_text(encoding="utf-8")
     assert "vLLM" in comp_html and "Ollama" in comp_html
+
+
+def test_export_uses_curated_catalogs_when_scan_runs_are_absent(tmp_path):
+    from radar.storage.database import RadarDatabase
+
+    RadarDatabase(tmp_path / "data" / "radar.db").initialize()
+    config = tmp_path / "config"
+    config.mkdir()
+    repository_root = Path(__file__).parents[1]
+    shutil.copy2(repository_root / "config" / "model-seed.yaml", config)
+    shutil.copy2(repository_root / "config" / "technique-seed.yaml", config)
+
+    out = tmp_path / "_site"
+    result = CliRunner().invoke(
+        app,
+        ["export", "--root", str(tmp_path), "--out", str(out)],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert (out / "models.html").is_file()
+    assert (out / "techniques.html").is_file()
 
 
 def test_export_base_url_makes_feed_self_urls_absolute(tmp_path):

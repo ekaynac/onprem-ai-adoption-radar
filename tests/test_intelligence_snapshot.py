@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import UTC, datetime
 
 from intelligence.lifecycle_helpers import lifecycle_repository
@@ -12,6 +13,7 @@ from radar.intelligence.contracts import (
 from radar.intelligence.services.container import build_services
 from radar.models import Category, DecisionCard, Ring
 from radar.storage.database import RadarDatabase
+from radar.storage.digest_log import DigestLogEntry, append_digest
 from radar.storage.model_candidate_log import (
     ModelCandidateObservation,
     append_model_candidates,
@@ -57,6 +59,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "research",
         "events",
         "source_health",
+        "latest_digest",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -67,6 +70,47 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
     assert payload["source_health"]["stale_claim_count"] >= 1
     assert payload["hardware"]
     assert "workspace" not in first.decode().casefold()
+
+
+def test_public_snapshot_exposes_latest_valid_digest(tmp_path, caplog) -> None:
+    repository = lifecycle_repository(tmp_path)
+    digest_path = tmp_path / "data" / "digest-log.jsonl"
+    append_digest(
+        digest_path,
+        [
+            DigestLogEntry(
+                label="2026-W30",
+                generated_at=datetime(2026, 7, 24, 8, tzinfo=UTC),
+                url="digests/digest_2026-W30.html",
+                summary="Week 30",
+            ),
+            DigestLogEntry(
+                label="2026-W31",
+                generated_at=datetime(2026, 7, 31, 8, tzinfo=UTC),
+                url="digests/digest_2026-W31.html",
+                summary="Week 31",
+            ),
+        ],
+    )
+    with digest_path.open("a", encoding="utf-8") as handle:
+        handle.write("{malformed trailing record\n")
+    card = tmp_path / "digests" / "cards" / "trending_og.png"
+    card.parent.mkdir(parents=True)
+    card.write_bytes(b"png")
+
+    with caplog.at_level(logging.WARNING):
+        snapshot = build_public_snapshot(
+            build_services(repository),
+            datetime(2026, 7, 31, 9, tzinfo=UTC),
+            root=tmp_path,
+        )
+
+    assert snapshot.latest_digest == {
+        "generated_at": "2026-07-31T08:00:00Z",
+        "html_url": "digests/digest_2026-W31.html",
+        "card_url": "digests/cards/trending_og.png",
+    }
+    assert "Skipping corrupt digest-log line" in caplog.text
 
 
 def test_public_snapshot_restores_projects_and_fresh_hf_candidates(

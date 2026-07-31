@@ -75,3 +75,14 @@ def test_static_export_contains_no_workspace_payload(tmp_path: Path) -> None:
     assert (out / "404.html").exists()
     assert (out / "changes.rss").exists()
     assert "vLLM" in (out / "changes.rss").read_text()
+    for promised_download in (
+        "history.jsonl",
+        "model-history.jsonl",
+        "technique-history.jsonl",
+        "trending-observations.jsonl",
+        "changes-models.xml",
+        "changes-research.xml",
+        "digests/digest.xml",
+        "digests/digest-rss.xml",
+    ):
+        assert (out / promised_download).is_file(), promised_download

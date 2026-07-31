@@ -2242,7 +2242,6 @@ def export(
             param_hint="--base-url",
         )
 
-    from radar.mcp_server.model_queries import _latest_model_cards
     from radar.models_radar.entities import ModelEntry
     from radar.models_radar.history import ModelHistoryEvent, load_model_events
     from radar.storage.config import ConfigError, load_config
@@ -2251,6 +2250,10 @@ def export(
     from radar.storage.metrics_store import MetricsStore
     from radar.storage.model_metrics_store import ModelMetricsStore
     from radar.storage.source_health_store import SourceHealthStore
+    from radar.web.public_context import (
+        load_public_model_profiles,
+        load_public_research_entries,
+    )
     from radar.web.scan_health import latest_tool_scan_meta
     from radar.web.source_health import summarize_source_health
     from radar.web.static_site import render_static_site
@@ -2310,7 +2313,10 @@ def export(
         )
 
     # Model entries + events (optional: only present after a `radar models scan`).
-    model_entries = [ModelEntry.model_validate(c) for c in _latest_model_cards(root)]
+    model_entries = [
+        ModelEntry.model_validate(card)
+        for card in load_public_model_profiles(root).values()
+    ]
     model_events = load_model_events(root / "data" / "model-history.jsonl")
 
     # Model download history (Task 3, differentiation pass): drives the
@@ -2338,11 +2344,10 @@ def export(
         shutil.copy2(model_history_src, out / "model-history.jsonl")
 
     # Technique entries + events (optional: only present after a `radar research scan`).
-    from radar.mcp_server.technique_queries import load_technique_entries
     from radar.research_radar.entities import ImplKind
     from radar.research_radar.history import load_technique_events as _load_tech_events
 
-    technique_entries = load_technique_entries(root)
+    technique_entries = load_public_research_entries(root)
     technique_events = _load_tech_events(root / "data" / "technique-history.jsonl")
 
     research_stale, latest_research_run_id = _research_snapshot_status(

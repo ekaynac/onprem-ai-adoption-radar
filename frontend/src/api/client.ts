@@ -13,6 +13,11 @@ type StaticSnapshot = {
   platforms: Array<Record<string, unknown>>;
   hardware: Array<Record<string, unknown>>;
   research: Array<Record<string, unknown>>;
+  latest_digest?: {
+    generated_at: string;
+    html_url: string;
+    card_url?: string;
+  } | null;
   events: Array<Record<string, unknown>>;
   source_health: Record<string, unknown>;
 };
