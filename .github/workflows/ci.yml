@@ -103,6 +103,9 @@ jobs:
           npm run lint --prefix frontend
           npm run build --prefix frontend
 
+      - name: Export static site for browser workflows
+        run: uv run radar export --root . --out _site
+
       - name: Install Playwright browser
         run: npx --prefix frontend playwright install --with-deps chromium
 

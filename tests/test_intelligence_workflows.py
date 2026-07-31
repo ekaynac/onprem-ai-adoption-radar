@@ -73,6 +73,10 @@ def test_ci_runs_backend_frontend_postgres_and_openapi_drift_checks() -> None:
     assert "npm run typecheck" in commands
     assert "npm run lint" in commands
     assert "npm run build" in commands
+    assert "radar export --root . --out _site" in commands
+    assert commands.index("radar export --root . --out _site") < commands.index(
+        "playwright test"
+    )
     assert "playwright test" in commands
     assert "git diff --exit-code -- frontend/src/api/generated" in commands
     assert "TEST_POSTGRES_URL" in serialized
