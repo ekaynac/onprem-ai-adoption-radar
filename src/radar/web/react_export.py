@@ -13,6 +13,7 @@ from radar.intelligence.bootstrap import build_intelligence_repository
 from radar.intelligence.services.container import build_services
 from radar.reports.auxiliary_feeds import write_auxiliary_feeds
 from radar.reports.unified_feeds import write_unified_feeds
+from radar.storage.history_log import load_events
 from radar.storage.history_store import HistoryStore
 from radar.web.intelligence_snapshot import (
     build_public_snapshot,
@@ -130,6 +131,8 @@ def export_react_site(
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
     project_events = history.all_events()
+    if not project_events:
+        project_events = load_events(root / "data" / "history.jsonl")
     write_unified_feeds(
         out_dir,
         project_events=project_events,

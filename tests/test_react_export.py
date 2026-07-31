@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from radar.models import Category, Ring
 from radar.pipeline.delta import ChangeType
+from radar.storage.history_log import append_events
 from radar.storage.history_store import HistoryStore, ProjectHistoryEvent
 from radar.web.app import create_app
 from radar.web.react_export import export_react_site
@@ -86,3 +87,34 @@ def test_static_export_contains_no_workspace_payload(tmp_path: Path) -> None:
         "digests/digest-rss.xml",
     ):
         assert (out / promised_download).is_file(), promised_download
+
+
+def test_static_export_uses_durable_history_when_database_is_absent(
+    tmp_path: Path,
+) -> None:
+    frontend = _frontend_build(tmp_path)
+    append_events(
+        tmp_path / "data" / "history.jsonl",
+        [
+            ProjectHistoryEvent(
+                project="vLLM",
+                category=Category.MODEL_SERVING,
+                change_type=ChangeType.PROMOTED,
+                ring=Ring.ADOPT,
+                previous_ring=Ring.PILOT,
+                run_id="run-clean-checkout",
+                observed_at=datetime(2026, 7, 31, tzinfo=UTC),
+                reasons=["evidence improved"],
+            )
+        ],
+    )
+
+    out = export_react_site(
+        tmp_path,
+        tmp_path / "_site",
+        frontend_dir=frontend,
+    )
+
+    assert "vLLM" in (out / "changes.rss").read_text(encoding="utf-8")
+    feed = json.loads((out / "changes.json").read_text(encoding="utf-8"))
+    assert feed["items"][0]["title"].startswith("vLLM")

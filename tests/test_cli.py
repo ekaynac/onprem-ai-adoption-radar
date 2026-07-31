@@ -1,4 +1,6 @@
+import json
 import shutil
+from datetime import UTC, datetime
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -104,6 +106,59 @@ def test_export_writes_static_site(tmp_path):
     # Compare page shows the two model_serving projects side by side.
     comp_html = compare.read_text(encoding="utf-8")
     assert "vLLM" in comp_html and "Ollama" in comp_html
+
+
+def test_export_restores_classic_projects_from_tracked_public_data(tmp_path):
+    from radar.models import Category, Ring
+    from radar.pipeline.delta import ChangeType
+    from radar.storage.history_log import append_events
+    from radar.storage.history_store import ProjectHistoryEvent
+
+    snapshot = tmp_path / "data" / "intelligence" / "public-snapshot.v1.json"
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_text(
+        json.dumps(
+            {
+                "projects": [
+                    {
+                        "project": "vLLM",
+                        "category": "model_serving",
+                        "ring": "adopt",
+                        "score": 4.7,
+                        "summary": "High-throughput model serving engine.",
+                        "workflow_fit": {"serving": "strong"},
+                        "risk_level": "medium",
+                        "repository_url": "https://github.com/vllm-project/vllm",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    append_events(
+        tmp_path / "data" / "history.jsonl",
+        [
+            ProjectHistoryEvent(
+                project="vLLM",
+                category=Category.MODEL_SERVING,
+                change_type=ChangeType.NEW,
+                ring=Ring.ADOPT,
+                run_id="run-clean-checkout",
+                observed_at=datetime(2026, 7, 31, tzinfo=UTC),
+            )
+        ],
+    )
+
+    out = tmp_path / "_site"
+    result = CliRunner().invoke(
+        app,
+        ["export", "--root", str(tmp_path), "--out", str(out)],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert len(list(out.glob("project_*.html"))) == 1
+    assert "vLLM" in (out / "history.html").read_text(encoding="utf-8")
+    assert "vLLM" in (out / "changes.rss").read_text(encoding="utf-8")
 
 
 def test_export_uses_curated_catalogs_when_scan_runs_are_absent(tmp_path):

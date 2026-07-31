@@ -25,6 +25,44 @@ from radar.web.intelligence_snapshot import (
 )
 
 
+def _public_project_payload() -> dict:
+    return {
+        "project": "vLLM",
+        "category": "model_serving",
+        "ring": "adopt",
+        "score": 4.7,
+        "summary": "High-throughput model serving engine.",
+        "workflow_fit": {"serving": "strong"},
+        "risk_level": "medium",
+        "why_it_matters": "Production-grade throughput.",
+        "on_prem_fit": "Strong fit for GPU clusters.",
+        "evidence": ["https://github.com/vllm-project/vllm"],
+        "try_this_week": ["Run a throughput benchmark."],
+        "last_reviewed_at": "2026-07-31T08:00:00Z",
+        "repository_url": "https://github.com/vllm-project/vllm",
+        "sources": [],
+        "history": [],
+        "latest_metrics": None,
+    }
+
+
+def test_public_projects_fall_back_to_tracked_snapshot_without_database(
+    tmp_path,
+) -> None:
+    from radar.web.public_context import load_public_projects
+
+    snapshot = tmp_path / "data" / "intelligence" / "public-snapshot.v1.json"
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_text(
+        json.dumps({"projects": [_public_project_payload()]}),
+        encoding="utf-8",
+    )
+
+    projects = load_public_projects(tmp_path)
+
+    assert projects == [_public_project_payload()]
+
+
 def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
     tmp_path,
 ) -> None:

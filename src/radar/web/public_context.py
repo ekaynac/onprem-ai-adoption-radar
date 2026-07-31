@@ -7,6 +7,8 @@ This module is the single read-only adapter for those durable views.
 
 from __future__ import annotations
 
+import json
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,45 @@ _CATEGORY_BY_PIPELINE = {
     "text-to-video": "image_video",
     "image-to-text": "vision_document",
 }
+
+
+logger = logging.getLogger(__name__)
+
+
+def _load_snapshot_projects(root: Path) -> list[dict[str, Any]]:
+    """Load the last published project baseline from the tracked snapshot."""
+
+    from radar.models import DecisionCard
+
+    path = root / "data" / "intelligence" / "public-snapshot.v1.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        if path.exists():
+            logger.warning("Skipping unreadable public project snapshot %s: %s", path, exc)
+        return []
+    projects = payload.get("projects")
+    if not isinstance(projects, list):
+        logger.warning("Skipping public project snapshot without a projects list: %s", path)
+        return []
+
+    rows: list[dict[str, Any]] = []
+    for index, item in enumerate(projects):
+        if not isinstance(item, dict):
+            logger.warning("Skipping invalid public project row %d in %s", index, path)
+            continue
+        try:
+            DecisionCard.model_validate(item)
+        except ValueError as exc:
+            logger.warning(
+                "Skipping invalid public project row %d in %s: %s",
+                index,
+                path,
+                exc,
+            )
+            continue
+        rows.append(item)
+    return rows
 
 
 def load_latest_digest(root: Path) -> dict[str, str] | None:
@@ -61,7 +102,7 @@ def load_public_projects(root: Path) -> list[dict[str, Any]]:
 
     database_path = root / "data" / "radar.db"
     if not database_path.exists():
-        return []
+        return _load_snapshot_projects(root)
 
     from radar.storage.config import ConfigError, load_config
     from radar.storage.database import RadarDatabase
@@ -71,6 +112,8 @@ def load_public_projects(root: Path) -> list[dict[str, Any]]:
     database = RadarDatabase(database_path)
     database.initialize()
     cards = database.list_cards()
+    if not cards:
+        return _load_snapshot_projects(root)
 
     source_rows: dict[str, list[dict[str, str]]] = {}
     try:

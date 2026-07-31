@@ -2240,6 +2240,7 @@ def export(
             param_hint="--base-url",
         )
 
+    from radar.models import DecisionCard
     from radar.models_radar.entities import ModelEntry
     from radar.models_radar.history import ModelHistoryEvent, load_model_events
     from radar.storage.config import ConfigError, load_config
@@ -2250,6 +2251,7 @@ def export(
     from radar.storage.source_health_store import SourceHealthStore
     from radar.web.public_context import (
         load_public_model_profiles,
+        load_public_projects,
         load_public_research_entries,
     )
     from radar.web.scan_health import latest_tool_scan_meta
@@ -2258,9 +2260,15 @@ def export(
 
     orchestrator = RadarOrchestrator(root)
     cards = orchestrator.latest_cards()
+    if not cards:
+        cards = [
+            DecisionCard.model_validate(row)
+            for row in load_public_projects(root)
+        ]
 
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
+    orchestrator.reconcile_history()
     # all_summaries(), not summaries(): a project entirely corrected away
     # must still show its raw timeline and feed entries here.
     timelines = [
