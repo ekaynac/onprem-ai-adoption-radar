@@ -105,6 +105,7 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | `radar intelligence-migrate` | Idempotently import legacy catalogs into canonical SQLite/Postgres storage. |
 | `radar intelligence-replay-events` | Restore the committed intelligence event mirror into the canonical projection. |
 | `radar intelligence-run discovery` | Sweep Hugging Face, official GitHub releases, and configured feeds for the current two-hour window. |
+| `radar intelligence-run verify-new` | Verify newly detected releases in the current two-hour window. |
 | `radar intelligence-run enrichment` | Refresh model metadata, configs, model cards, artifacts, and cited claims. |
 | `radar intelligence-run verification` | Re-evaluate trusted claims and route conflicts to review. |
 | `radar intelligence-run qualification` | Apply category-specific deployability and platform-fit gates. |

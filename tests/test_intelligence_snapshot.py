@@ -45,4 +45,5 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "source_health",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
+    assert payload["hardware"]
     assert "workspace" not in first.decode().casefold()

@@ -60,7 +60,11 @@ def export_react_site(
 
     _database, repository = build_intelligence_repository(root)
     now = generated_at or datetime.now(UTC)
-    snapshot = build_public_snapshot(build_services(repository), now)
+    snapshot = build_public_snapshot(
+        build_services(repository),
+        now,
+        root=root,
+    )
     write_public_snapshot(snapshot, out_dir)
     events = repository.list_events(limit=500, public_only=True)
     feed_base = base_url.rstrip("/")

@@ -23,19 +23,51 @@ class PublicSnapshot(BaseModel):
     source_health: dict[str, Any]
 
 
-def build_public_snapshot(services, generated_at: datetime) -> PublicSnapshot:
+def build_public_snapshot(
+    services,
+    generated_at: datetime,
+    *,
+    root: Path | None = None,
+) -> PublicSnapshot:
     repository = services.catalog.repository
-    releases = services.releases.list_changes(
-        since=datetime.min.replace(tzinfo=generated_at.tzinfo),
-        limit=100,
-        now=generated_at,
+    canonical_releases = repository.list_all_releases()
+    releases = [
+        services.releases.get(release.id, now=generated_at)
+        for release in canonical_releases
+    ]
+    models = [
+        services.catalog.get(release.id)
+        for release in canonical_releases
+    ]
+    from radar.models_radar.devices import (
+        CLUSTER_PRESETS,
+        DEVICE_PRESETS,
+        NODE_PRESETS,
     )
-    models = services.catalog.search("", limit=100)
+
+    hardware = [
+        {"id": device_id, **profile.model_dump(mode="json")}
+        for device_id, profile in sorted(
+            {
+                **DEVICE_PRESETS,
+                **NODE_PRESETS,
+                **CLUSTER_PRESETS,
+            }.items()
+        )
+    ]
+    research: list[dict[str, Any]] = []
+    if root is not None:
+        from radar.mcp_server.technique_queries import load_technique_entries
+
+        research = [
+            item.model_dump(mode="json")
+            for item in load_technique_entries(root)
+        ]
     operations = services.operations.snapshot()
     return PublicSnapshot(
         generated_at=generated_at,
         releases=[
-            item.model_dump(mode="json") for item in releases.items
+            item.model_dump(mode="json") for item in releases
         ],
         models=[
             {
@@ -53,11 +85,11 @@ def build_public_snapshot(services, generated_at: datetime) -> PublicSnapshot:
                 "reasons": item.public_recommendation.reasons,
                 "evidence_ids": item.public_recommendation.evidence_ids,
             }
-            for item in models.items
+            for item in models
         ],
         platforms=repository.list_platforms(),
-        hardware=[],
-        research=[],
+        hardware=hardware,
+        research=research,
         events=[
             {
                 "schema_version": event.schema_version,

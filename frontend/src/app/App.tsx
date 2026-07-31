@@ -19,10 +19,14 @@ import { WorkspacePage } from "../features/workspaces/WorkspacePage";
 import { AppShell } from "./shell/AppShell";
 
 
-export function App() {
+export function App({
+  staticMode = import.meta.env.MODE === "static",
+}: {
+  staticMode?: boolean;
+}) {
   return (
     <Routes>
-      <Route element={<AppShell />}>
+      <Route element={<AppShell staticMode={staticMode} />}>
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/releases" element={<ReleaseStreamPage />} />
         <Route path="/releases/:releaseId" element={<ReleaseDetailPage />} />
@@ -33,11 +37,13 @@ export function App() {
         <Route path="/hardware" element={<HardwarePage />} />
         <Route path="/research" element={<ResearchPage />} />
         <Route path="/compare" element={<ComparePage />} />
-        <Route path="/planner" element={<PlannerPage />} />
-        <Route path="/workspaces" element={<WorkspacePage />} />
+        {!staticMode && <Route path="/planner" element={<PlannerPage />} />}
+        {!staticMode && <Route path="/workspaces" element={<WorkspacePage />} />}
         <Route path="/operations" element={<SourceHealthPage />} />
-        <Route path="/operations/reviews" element={<ReviewQueuePage />} />
-        <Route path="/watchlists" element={<WatchlistsPage />} />
+        {!staticMode && (
+          <Route path="/operations/reviews" element={<ReviewQueuePage />} />
+        )}
+        {!staticMode && <Route path="/watchlists" element={<WatchlistsPage />} />}
         <Route path="/integrations" element={<IntegrationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/overview" replace />} />

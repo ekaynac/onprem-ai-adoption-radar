@@ -33,7 +33,9 @@ export function PlatformDetailPage() {
       </header>
       <section className="panel">
         <p className="eyebrow">Canonical platform record</p>
-        <pre className="record-view">{JSON.stringify(platform, null, 2)}</pre>
+        <pre className="record-view" tabIndex={0}>
+          {JSON.stringify(platform, null, 2)}
+        </pre>
       </section>
     </section>
   );

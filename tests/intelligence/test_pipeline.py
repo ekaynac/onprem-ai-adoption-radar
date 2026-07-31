@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 
@@ -24,7 +25,7 @@ class FixtureAdapter:
     id = "fixture"
 
     async def discover(self, since: datetime) -> list[DiscoveryCandidate]:
-        assert since == NOW - timedelta(hours=2)
+        assert since == NOW - timedelta(days=3650)
         record = SourceRecord.from_bytes(
             source_id=self.id,
             url="https://huggingface.co/api/models/moonshotai/Kimi-K3",
@@ -45,6 +46,52 @@ class FixtureAdapter:
                     "repo_id": "moonshotai/Kimi-K3",
                     "license": "modified-mit",
                 },
+            )
+        ]
+
+    async def fetch(self, url: str) -> SourceRecord:
+        raise NotImplementedError
+
+    async def enrich(self, repo_id: str):
+        assert repo_id == "moonshotai/Kimi-K3"
+        record = SourceRecord.from_bytes(
+            source_id=self.id,
+            url="https://huggingface.co/api/models/moonshotai/Kimi-K3",
+            body=b'{"library_name":"transformers","params":1000000000000}',
+            retrieved_at=NOW,
+            strength=EvidenceStrength.TRUSTED_REGISTRY,
+            content_type="application/json",
+        )
+        return SimpleNamespace(
+            records=[SimpleNamespace(source_record=record)],
+            claims={
+                "library_name": "transformers",
+                "params_total": 1_000_000_000_000,
+            },
+            artifact_urls=[],
+        )
+
+
+class ProvisionalPublisherAdapter:
+    id = "fixture-provisional"
+
+    async def discover(self, since: datetime) -> list[DiscoveryCandidate]:
+        del since
+        record = SourceRecord.from_bytes(
+            source_id=self.id,
+            url="https://huggingface.co/acme/Acme-8B",
+            body=b'{"id":"acme/Acme-8B"}',
+            retrieved_at=NOW,
+            strength=EvidenceStrength.TRUSTED_REGISTRY,
+        )
+        return [
+            DiscoveryCandidate(
+                source_record=record,
+                external_id="acme/Acme-8B",
+                publisher_hint="provisional:acme",
+                release_name="Acme 8B",
+                artifact_urls=["https://huggingface.co/acme/Acme-8B"],
+                claims={"license": "apache-2.0"},
             )
         ]
 
@@ -104,3 +151,70 @@ async def test_discovery_job_creates_cited_release_event_and_snapshot(tmp_path) 
     assert events[0].evidence_ids
     assert (tmp_path / "data" / "intelligence" / "events.jsonl").exists()
     assert list((tmp_path / "data" / "intelligence" / "snapshots").iterdir())
+
+
+@pytest.mark.asyncio
+async def test_enrichment_creates_documented_compatibility_and_can_qualify(
+    tmp_path,
+) -> None:
+    repo = repository(tmp_path)
+    runner = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[FixtureAdapter()],
+        clock=lambda: NOW,
+    )
+
+    await runner.run(JobKind.DISCOVERY, "job:discover")
+    await runner.run(JobKind.VERIFY_NEW, "job:verify-new")
+    await runner.run(JobKind.ENRICHMENT, "job:enrich")
+    result = await runner.run(JobKind.QUALIFICATION, "job:qualify")
+
+    release = repo.list_all_releases()[0]
+    compatibility = repo.list_compatibility(release.id)
+    assert result.updated == 1
+    assert compatibility[0].platform_id == "platform:library:transformers"
+    assert release.id == compatibility[0].release_id
+    assert repo.get_release_required(release.id).lifecycle.value == "qualified"
+
+
+def test_identical_content_at_a_new_time_is_a_new_observation(tmp_path) -> None:
+    repo = repository(tmp_path)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    first = SourceRecord.from_bytes(
+        source_id="fixture",
+        url="https://example.test/model",
+        body=b"same",
+        retrieved_at=NOW,
+        strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    second = first.model_copy(update={"retrieved_at": NOW + timedelta(hours=2)})
+
+    first_evidence = runner._persist_source_record(first)
+    second_evidence = runner._persist_source_record(second)
+
+    assert first_evidence.id != second_evidence.id
+    assert repo.get_evidence(first_evidence.id) == first_evidence
+    assert repo.get_evidence(second_evidence.id) == second_evidence
+
+
+@pytest.mark.asyncio
+async def test_trusted_registry_can_add_a_provisional_publisher(tmp_path) -> None:
+    repo = repository(tmp_path)
+    runner = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[ProvisionalPublisherAdapter()],
+        clock=lambda: NOW,
+    )
+
+    result = await runner.run(JobKind.DISCOVERY, "job:provisional")
+
+    assert result.created == 1
+    assert "publisher:provisional:acme" in {
+        publisher.id for publisher in repo.list_publishers()
+    }
+    assert any(
+        release.publisher_id == "publisher:provisional:acme"
+        for release in repo.list_all_releases()
+    )

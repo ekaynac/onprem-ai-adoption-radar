@@ -13,7 +13,7 @@ from radar.intelligence.jobs import JobKind
 
 
 def job_idempotency_key(kind: JobKind, at: datetime) -> str:
-    if kind is JobKind.DISCOVERY:
+    if kind in {JobKind.DISCOVERY, JobKind.VERIFY_NEW}:
         slot_hour = at.hour - (at.hour % 2)
         return f"{kind.value}:{at:%Y-%m-%d}T{slot_hour:02d}"
     if kind is JobKind.VERIFICATION:
@@ -25,12 +25,15 @@ def job_idempotency_key(kind: JobKind, at: datetime) -> str:
 def build_scheduler(
     run_job: Callable[[JobKind], None],
 ) -> BackgroundScheduler:
+    def run_discovery_cycle() -> None:
+        run_job(JobKind.DISCOVERY)
+        run_job(JobKind.VERIFY_NEW)
+
     scheduler = BackgroundScheduler(timezone="UTC")
     scheduler.add_job(
-        run_job,
+        run_discovery_cycle,
         "interval",
         hours=2,
-        args=[JobKind.DISCOVERY],
         id="discovery",
         max_instances=1,
         coalesce=True,

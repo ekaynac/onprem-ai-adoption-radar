@@ -38,6 +38,6 @@ test("shows review exceptions as the only manual attention queue", async () => {
   );
 
   expect(await screen.findByText("Official license claims differ")).toBeVisible();
-  expect(screen.getByRole("button", { name: "Accept verified claim" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Accept source 1" })).toBeVisible();
   vi.unstubAllGlobals();
 });

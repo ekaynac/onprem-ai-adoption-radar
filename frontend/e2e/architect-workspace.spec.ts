@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 
-test("architect can move from release intelligence to deployment planning", async ({ page }) => {
+test("architect can move from release intelligence to hardware planning", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Architect Workspace")).toBeVisible();
 
@@ -17,21 +17,21 @@ test("architect can move from release intelligence to deployment planning", asyn
     await expect(page.getByText("Decision evidence")).toBeVisible();
   }
 
-  await page.getByRole("link", { name: "Deployment planner" }).click();
+  await page.getByRole("link", { name: "Hardware" }).click();
   await expect(
-    page.getByRole("heading", { name: "Turn evidence into an executable topology" }),
+    page.getByRole("heading", { name: "Infrastructure capacity catalog" }),
   ).toBeVisible();
   await expect(
-    page.getByText("The plan will inherit its devices and policies."),
+    page.getByText("Accelerators, memory topology, and deployment-fit evidence."),
   ).toBeVisible();
 });
 
 
-test("workspace setup has no login or identity fields", async ({ page }) => {
+test("static command center exposes no workspace mutation controls", async ({ page }) => {
   await page.goto("/#/workspaces");
-  await expect(
-    page.getByRole("heading", { name: "Describe the estate, not identities" }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/#\/overview$/);
   await expect(page.getByLabel(/email|password|username/i)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Save workspace" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Workspace profiles" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Deployment planner" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Save workspace" })).toHaveCount(0);
 });

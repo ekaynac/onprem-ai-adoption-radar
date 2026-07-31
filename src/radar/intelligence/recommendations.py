@@ -10,6 +10,7 @@ from radar.intelligence.contracts import (
     Claim,
     ClaimState,
     FrozenModel,
+    LifecycleState,
     Qualification,
     Release,
     ReleaseLane,
@@ -50,6 +51,21 @@ class RecommendationService:
         self.repository = repository
 
     def public(self, release_id: str) -> RecommendationView:
+        release = self.repository.get_release_required(release_id)
+        if release.lifecycle is not LifecycleState.RECOMMENDED:
+            return RecommendationView(
+                release_id=release_id,
+                workspace_id=None,
+                public_ring=None,
+                ring=None,
+                reasons=[
+                    "Public recommendation is pending qualification "
+                    "and evidence-backed lifecycle approval"
+                ],
+            )
+        return self.compute_public(release_id)
+
+    def compute_public(self, release_id: str) -> RecommendationView:
         release = self.repository.get_release_required(release_id)
         qualification = self.repository.get_qualification(release_id)
         if release.lane is ReleaseLane.MARKET_REFERENCE:

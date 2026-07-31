@@ -36,6 +36,7 @@ def create_api_app(
     app.state.intelligence_repository = repository
     app.state.services = services or build_services(repository)
     app.state.read_only = read_only
+    app.state.root = root
 
     @app.exception_handler(KeyError)
     async def not_found(_request: Request, exc: KeyError) -> JSONResponse:

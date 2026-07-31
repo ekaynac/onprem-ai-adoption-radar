@@ -12,6 +12,12 @@ data/intelligence/events.jsonl             append-only public event mirror
 data/intelligence/snapshots/<sha256>.bin   content-addressed raw evidence
 ```
 
+The scheduled publisher force-adds the canonical SQLite database and
+content-addressed evidence snapshots despite the local `data/*.db` ignore
+rule. This preserves complete releases, claims, provenance, compatibility,
+and job leases across ephemeral GitHub Actions runners. Local workspace
+databases remain ignored and must never be copied into the published lane.
+
 The SQL schema owns publishers, families, releases, evidence, claims,
 compatibility assertions, qualifications, lifecycle transitions, review
 exceptions, source health, job leases, workspace profiles, events, and webhook

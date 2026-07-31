@@ -291,6 +291,8 @@ def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
     values = {
         "repo_id": metadata.get("id"),
         "pipeline_tag": metadata.get("pipeline_tag"),
+        "library_name": metadata.get("library_name")
+        or card.get("library_name"),
         "last_modified": metadata.get("lastModified"),
         "sha": metadata.get("sha"),
         "downloads": metadata.get("downloads"),

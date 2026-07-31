@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: "20.11.1"
+          node-version: "20.19.0"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -53,7 +53,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           uv run radar intelligence-run discovery --root .
-          uv run radar intelligence-run verification --root .
+          uv run radar intelligence-run verify-new --root .
 
       - name: Export public command center
         env:
@@ -85,7 +85,9 @@ jobs:
             data/intelligence/public-snapshot.v1.json
           git config user.name "radar-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f data/intelligence.db
           git add -f data/intelligence/events.jsonl || true
+          git add -f data/intelligence/snapshots || true
           git add -f data/intelligence/public-snapshot.v1.json
           git add -f data/source-health.jsonl || true
           if git diff --cached --quiet; then

@@ -11,6 +11,7 @@ from typing import Any, Protocol
 class JobKind(StrEnum):
     DISCOVERY = "discovery"
     ENRICHMENT = "enrichment"
+    VERIFY_NEW = "verify-new"
     VERIFICATION = "verification"
     QUALIFICATION = "qualification"
     RECOMMENDATIONS = "recommendations"

@@ -38,10 +38,12 @@ def test_discovery_workflow_runs_every_two_hours() -> None:
     commands = all_run_commands(workflow)
     assert "radar intelligence-migrate" in commands
     assert "radar intelligence-run discovery" in commands
-    assert "radar intelligence-run verification" in commands
+    assert "radar intelligence-run verify-new" in commands
     assert "radar export" in commands
     assert "public-snapshot.v1.json" in commands
     assert "data/intelligence/events.jsonl" in commands
+    assert "git add -f data/intelligence.db" in commands
+    assert "git add -f data/intelligence/snapshots" in commands
     assert "[skip ci]" in commands
 
 
@@ -56,6 +58,8 @@ def test_daily_publish_and_weekly_verification_are_split() -> None:
     assert "radar intelligence-run qualification" in commands
     assert "radar intelligence-run recommendations" in commands
     assert "radar intelligence-run verification" in commands
+    assert "git add -f data/intelligence.db" in commands
+    assert "git add -f data/intelligence/snapshots" in commands
 
 
 def test_ci_runs_backend_frontend_postgres_and_openapi_drift_checks() -> None:

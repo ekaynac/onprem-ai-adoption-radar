@@ -13,6 +13,10 @@ The policy is platform-wide, not source-specific:
 | Daily | enrichment, qualification, recommendations, research/trending | Model and platform facts, artifacts, fit assumptions, and decisions are refreshed. |
 | Weekly | trusted-claim verification | Changed, missing, stale, or conflicting evidence is surfaced for review. |
 
+The first successful run of each source uses a ten-year bootstrap window to
+build a broad catalog. After source health records that success, the adapter
+switches to the two-hour incremental window.
+
 Automation is `automated-with-review-exceptions`: deterministic changes proceed
 without approval, while ambiguous identity, authoritative conflicts, unsafe
 lifecycle transitions, and missing evidence stop at the review queue.
@@ -95,7 +99,7 @@ When a source degrades:
 2. Confirm credentials, rate-limit headers, response schema, and system time.
 3. Leave uncertain claims visible as stale/unknown; do not manufacture support.
 4. Fix or disable the adapter in `config/intelligence-sources.yaml`.
-5. Run discovery manually, then verification and the public snapshot invariant.
+5. Run discovery manually, then `verify-new` and the public snapshot invariant.
 6. Resolve review exceptions only with cited replacement evidence.
 
 If publishing fails after ingestion, retain the database, event log, and raw

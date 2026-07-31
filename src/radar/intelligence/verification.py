@@ -57,6 +57,12 @@ class VerificationRepository(Protocol):
 
     def open_review_exception(self, review: ReviewException) -> None: ...
 
+    def set_claim_state(
+        self,
+        claim_id: str,
+        state: ClaimState,
+    ) -> None: ...
+
     def append_lifecycle_transition(self, transition) -> None: ...
 
     def set_release_lifecycle(
@@ -89,6 +95,7 @@ class VerificationService:
             by_predicate.setdefault(claim.predicate, []).append(claim)
 
         conflict_claims = self._authoritative_conflicts(by_predicate)
+        review = None
         if conflict_claims:
             evidence_ids = sorted(
                 {
@@ -104,13 +111,14 @@ class VerificationService:
                 now,
             )
             self.repository.open_review_exception(review)
-            return VerificationResult(
-                release_id=release_id,
-                verified=False,
-                verified_claim_ids=(),
-                missing_predicates=(),
-                review_exception=review,
-            )
+            disputed_predicates = {
+                claim.predicate for claim in conflict_claims
+            }
+            by_predicate = {
+                predicate: predicate_claims
+                for predicate, predicate_claims in by_predicate.items()
+                if predicate not in disputed_predicates
+            }
 
         selected: list[Claim] = []
         missing: list[str] = []
@@ -133,7 +141,7 @@ class VerificationService:
                     sorted(claim.id for claim in selected)
                 ),
                 missing_predicates=tuple(sorted(missing)),
-                review_exception=None,
+                review_exception=review,
             )
 
         evidence_ids = sorted(
@@ -143,6 +151,13 @@ class VerificationService:
                 for evidence_id in claim.evidence_ids
             }
         )
+        promoted: dict[str, Claim] = {}
+        for predicate_claims in by_predicate.values():
+            strongest = self._strongest_authoritative(predicate_claims)
+            if strongest is not None:
+                promoted[strongest.id] = strongest
+        for claim in promoted.values():
+            self.repository.set_claim_state(claim.id, ClaimState.VERIFIED)
         if release.lifecycle is LifecycleState.DETECTED:
             LifecycleService(self.repository).transition(
                 release_id,
@@ -155,10 +170,10 @@ class VerificationService:
             release_id=release_id,
             verified=True,
             verified_claim_ids=tuple(
-                sorted(claim.id for claim in selected)
+                sorted(promoted)
             ),
             missing_predicates=(),
-            review_exception=None,
+            review_exception=review,
         )
 
     def _claim_strength(self, claim: Claim) -> int:
@@ -209,9 +224,35 @@ class VerificationService:
             top_rank = max(rank for rank, _claim in ranked)
             if top_rank < _AUTHORITATIVE_MINIMUM:
                 continue
-            strongest = [
+            strongest_at_rank = [
                 claim for rank, claim in ranked if rank == top_rank
             ]
+            latest_by_source: dict[tuple[str, ...], Claim] = {}
+            for claim in strongest_at_rank:
+                source_key = tuple(
+                    sorted(
+                        {
+                            evidence.source_url
+                            for evidence_id in claim.evidence_ids
+                            if (
+                                evidence := self.repository.get_evidence(
+                                    evidence_id
+                                )
+                            )
+                            is not None
+                        }
+                    )
+                )
+                current = latest_by_source.get(source_key)
+                if current is None or (
+                    claim.observed_at,
+                    claim.id,
+                ) > (
+                    current.observed_at,
+                    current.id,
+                ):
+                    latest_by_source[source_key] = claim
+            strongest = list(latest_by_source.values())
             values = {
                 json.dumps(
                     claim.value,

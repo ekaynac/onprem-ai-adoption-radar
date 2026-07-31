@@ -20,7 +20,9 @@ export function HardwarePage() {
           {items.map((item, index) => (
             <article className="panel" key={String(item.id ?? index)}>
               <strong>{String(item.name ?? item.id)}</strong>
-              <pre className="record-view">{JSON.stringify(item, null, 2)}</pre>
+              <pre className="record-view" tabIndex={0}>
+                {JSON.stringify(item, null, 2)}
+              </pre>
             </article>
           ))}
         </div>

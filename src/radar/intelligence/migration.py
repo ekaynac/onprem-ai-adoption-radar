@@ -30,6 +30,36 @@ from radar.models_radar.seed import load_model_seed
 
 LEGACY_OBSERVED_AT = datetime(2000, 1, 1, tzinfo=UTC)
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
+SOURCE_PUBLISHERS = (
+    Publisher(
+        id="publisher:moonshot-ai",
+        name="Moonshot AI",
+        official_domains=["moonshot.ai"],
+        official_accounts=["moonshotai"],
+        aliases=["Moonshot", "Kimi"],
+    ),
+    Publisher(
+        id="publisher:platform:llama-cpp",
+        name="llama.cpp",
+        official_domains=["github.com"],
+        official_accounts=["ggml-org"],
+        aliases=["llama-cpp", "ggml-org"],
+    ),
+    Publisher(
+        id="publisher:platform:ollama",
+        name="Ollama",
+        official_domains=["ollama.com"],
+        official_accounts=["ollama"],
+        aliases=["ollama"],
+    ),
+    Publisher(
+        id="publisher:platform:vllm",
+        name="vLLM",
+        official_domains=["vllm.ai"],
+        official_accounts=["vllm-project"],
+        aliases=["vllm"],
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -251,6 +281,8 @@ def import_legacy_state(root: Path, repository) -> MigrationReport:
     platforms_imported = 0
     already_present = 0
 
+    for publisher in SOURCE_PUBLISHERS:
+        repository.upsert_publisher(publisher)
     for seed in models:
         publisher_id = f"publisher:legacy:{_slug(_publisher_name(seed))}"
         created = _import_model(seed, publishers[publisher_id], repository)

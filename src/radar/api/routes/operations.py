@@ -3,11 +3,12 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from radar.api.dependencies import get_repository, get_services, require_writable
 from radar.intelligence.contracts import ReviewException
+from radar.intelligence.review import InvalidReviewResolution, ReviewService
 from radar.intelligence.services.container import IntelligenceServices
 from radar.intelligence.services.operations import OperationsSnapshot
 
@@ -45,10 +46,13 @@ def resolve_review(
     value: ReviewResolutionInput,
     repository: Any = Depends(get_repository),
 ) -> ReviewException:
-    repository.resolve_review_exception(
-        exception_id,
-        value.resolution,
-        value.evidence_ids,
-        datetime.now(UTC),
-    )
+    try:
+        ReviewService(repository).resolve(
+            exception_id,
+            value.resolution,
+            evidence_ids=value.evidence_ids,
+            now=datetime.now(UTC),
+        )
+    except InvalidReviewResolution as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return repository.get_review_exception(exception_id)

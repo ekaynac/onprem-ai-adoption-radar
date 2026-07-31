@@ -15,21 +15,27 @@ import httpx
 import yaml
 
 from radar.intelligence.contracts import (
+    PUBLIC_DISCOVERY_STRENGTHS,
     Claim,
     ClaimState,
+    CompatibilityAssertion,
+    EvidenceLevel,
     EvidenceObservation,
     LifecycleState,
     ModelCategory,
     ProductFamily,
+    Publisher,
     Release,
     ReleaseLane,
     ReviewException,
+    SupportStatus,
 )
 from radar.intelligence.event_log import EventLog
 from radar.intelligence.events import IntelligenceEvent
 from radar.intelligence.identity import IdentityResolver
 from radar.intelligence.jobs import JobKind, JobResult
 from radar.intelligence.lifecycle import LifecycleService
+from radar.intelligence.platforms import PlatformIntelligenceService
 from radar.intelligence.qualification import QualificationService
 from radar.intelligence.recommendations import RecommendationService
 from radar.intelligence.source_health import SourceHealthService
@@ -63,8 +69,10 @@ class IntelligenceJobRunner:
             return await self._discover(job_id)
         if kind is JobKind.ENRICHMENT:
             return await self._enrich(job_id)
+        if kind is JobKind.VERIFY_NEW:
+            return self._verify(job_id, detected_only=True)
         if kind is JobKind.VERIFICATION:
-            return self._verify(job_id)
+            return self._verify(job_id, detected_only=False)
         if kind is JobKind.QUALIFICATION:
             return self._qualify(job_id)
         if kind is JobKind.RECOMMENDATIONS:
@@ -82,7 +90,13 @@ class IntelligenceJobRunner:
                 continue
             started = time.monotonic()
             try:
-                rows = await adapter.discover(now - timedelta(hours=2))
+                state = self.repository.get_source_health(adapter.id)
+                lookback = (
+                    timedelta(days=3650)
+                    if state is None or state.last_success_at is None
+                    else timedelta(hours=2)
+                )
+                rows = await adapter.discover(now - lookback)
             except Exception as exc:
                 health.record_failure(adapter.id, str(exc), now)
                 warnings.append(f"{adapter.id}: {exc}")
@@ -102,6 +116,7 @@ class IntelligenceJobRunner:
             key=lambda item: (item.source_record.source_id, item.external_id.casefold()),
         ):
             evidence = self._persist_source_record(candidate.source_record)
+            self._ensure_provisional_publisher(candidate)
             resolution = resolver.resolve(candidate)
             if resolution.publisher_id is None or resolution.release_id is None:
                 self._open_identity_review(candidate, evidence, now, resolution.review_code)
@@ -189,34 +204,54 @@ class IntelligenceJobRunner:
                     self._append_claim(release.id, predicate, value, evidence[0])
                 for url in enrichment.artifact_urls[:1]:
                     self._append_claim(release.id, "artifact_url", url, evidence[0])
+                self._upsert_declared_compatibility(
+                    release.id,
+                    enrichment.claims,
+                    evidence[0],
+                )
                 updated += 1
         return JobResult(job_id=job_id, updated=updated, warnings=tuple(warnings))
 
-    def _verify(self, job_id: str) -> JobResult:
+    def _verify(self, job_id: str, *, detected_only: bool) -> JobResult:
         service = VerificationService(self.repository)
         updated = conflicted = 0
         for release in self.repository.list_all_releases():
-            if release.lifecycle is not LifecycleState.DETECTED:
+            if detected_only and release.lifecycle is not LifecycleState.DETECTED:
                 continue
             result = service.verify_release(release.id, self.clock())
             if result.verified:
                 updated += 1
-                self._emit_lifecycle(
-                    release.id,
-                    LifecycleState.DETECTED,
-                    LifecycleState.VERIFIED,
-                    self.clock(),
-                    self._evidence_ids(release.id),
-                )
-            elif result.review_exception is not None:
+                if release.lifecycle is LifecycleState.DETECTED:
+                    self._emit_lifecycle(
+                        release.id,
+                        LifecycleState.DETECTED,
+                        LifecycleState.VERIFIED,
+                        self.clock(),
+                        self._evidence_ids(release.id),
+                    )
+            if result.review_exception is not None:
                 conflicted += 1
         return JobResult(job_id=job_id, updated=updated, conflicted=conflicted)
 
     def _qualify(self, job_id: str) -> JobResult:
+        verification = VerificationService(self.repository)
         service = QualificationService(self.repository)
-        updated = rejected = 0
+        updated = rejected = conflicted = 0
         for release in self.repository.list_all_releases():
             if release.lifecycle is not LifecycleState.VERIFIED:
+                continue
+            verification_result = verification.verify_release(
+                release.id,
+                self.clock(),
+            )
+            if (
+                verification_result.review_exception is not None
+                and not verification_result.verified
+            ):
+                conflicted += 1
+                continue
+            if not verification_result.verified:
+                rejected += 1
                 continue
             result = service.qualify(release.id, self.clock())
             if result.qualified:
@@ -230,7 +265,12 @@ class IntelligenceJobRunner:
                 )
             else:
                 rejected += 1
-        return JobResult(job_id=job_id, updated=updated, rejected=rejected)
+        return JobResult(
+            job_id=job_id,
+            updated=updated,
+            rejected=rejected,
+            conflicted=conflicted,
+        )
 
     def _recommend(self, job_id: str) -> JobResult:
         recommendations = RecommendationService(self.repository)
@@ -239,7 +279,7 @@ class IntelligenceJobRunner:
         for release in self.repository.list_all_releases():
             if release.lifecycle is not LifecycleState.QUALIFIED:
                 continue
-            view = recommendations.public(release.id)
+            view = recommendations.compute_public(release.id)
             if view.ring is None or not view.evidence_ids:
                 continue
             lifecycle.transition(
@@ -265,7 +305,10 @@ class IntelligenceJobRunner:
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists():
             path.write_bytes(record.body)
-        identity = f"{record.source_id}|{record.url}|{record.checksum}"
+        identity = (
+            f"{record.source_id}|{record.url}|{record.checksum}|"
+            f"{record.retrieved_at.isoformat()}"
+        )
         evidence = EvidenceObservation(
             id=f"evidence:{hashlib.sha256(identity.encode()).hexdigest()}",
             source_url=record.url,
@@ -277,6 +320,59 @@ class IntelligenceJobRunner:
         )
         self.repository.append_evidence(evidence)
         return evidence
+
+    def _upsert_declared_compatibility(
+        self,
+        release_id: str,
+        claims: dict[str, Any],
+        evidence: EvidenceObservation,
+    ) -> None:
+        library = claims.get("library_name")
+        if not isinstance(library, str) or not library.strip():
+            return
+        library_key = "-".join(
+            part
+            for part in "".join(
+                character.casefold()
+                if character.isalnum()
+                else "-"
+                for character in library
+            ).split("-")
+            if part
+        )
+        platform_id = f"platform:library:{library_key}"
+        if not any(
+            item["id"] == platform_id
+            for item in self.repository.list_platforms()
+        ):
+            self.repository.import_platform(
+                platform_id=platform_id,
+                name=library,
+                repo_url=f"https://huggingface.co/docs/{library_key}",
+                verified_at=evidence.retrieved_at.date().isoformat(),
+                payload={
+                    "kind": "model_library",
+                    "source": "huggingface",
+                },
+            )
+        assertion_id = (
+            f"compat:{hashlib.sha256(
+                f'{release_id}|{platform_id}|{evidence.id}'.encode()
+            ).hexdigest()}"
+        )
+        PlatformIntelligenceService(self.repository).upsert_assertion(
+            CompatibilityAssertion(
+                id=assertion_id,
+                release_id=release_id,
+                platform_id=platform_id,
+                platform_version="*",
+                feature="model_loading",
+                support=SupportStatus.YES,
+                evidence_level=EvidenceLevel.DOCUMENTED,
+                evidence_ids=[evidence.id],
+            ),
+            now=evidence.retrieved_at,
+        )
 
     def _append_claim(
         self,
@@ -312,6 +408,40 @@ class IntelligenceJobRunner:
                 publisher_id=publisher_id,
                 name=family_name,
                 aliases=[family_name],
+            )
+        )
+
+    def _ensure_provisional_publisher(
+        self,
+        candidate: DiscoveryCandidate,
+    ) -> None:
+        prefix = "provisional:"
+        if (
+            not candidate.publisher_hint.startswith(prefix)
+            or candidate.source_record.strength
+            not in PUBLIC_DISCOVERY_STRENGTHS
+        ):
+            return
+        account = candidate.publisher_hint.removeprefix(prefix).strip()
+        key = "-".join(
+            part
+            for part in "".join(
+                character.casefold()
+                if character.isalnum()
+                else "-"
+                for character in account
+            ).split("-")
+            if part
+        )
+        if not key:
+            return
+        self.repository.upsert_publisher(
+            Publisher(
+                id=f"publisher:provisional:{key}",
+                name=account,
+                official_domains=[],
+                official_accounts=[account],
+                aliases=[account],
             )
         )
 

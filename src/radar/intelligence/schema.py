@@ -238,11 +238,6 @@ class EvidenceRow(Base):
     extractor_version: Mapped[str] = mapped_column(String(80))
     raw_snapshot_path: Mapped[str | None] = mapped_column(Text)
 
-    __table_args__ = (
-        UniqueConstraint("source_url", "checksum", name="uq_evidence_source_hash"),
-    )
-
-
 class ClaimRow(Base):
     __tablename__ = "intelligence_claims"
 

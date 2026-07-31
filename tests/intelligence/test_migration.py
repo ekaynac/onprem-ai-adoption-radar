@@ -86,6 +86,9 @@ def test_import_is_idempotent_and_preserves_model_count(tmp_path: Path) -> None:
     assert second.already_present == 3
     assert repository.count_releases() == 1
     assert repository.count_platforms() == 1
+    publisher_ids = {item.id for item in repository.list_publishers()}
+    assert "publisher:moonshot-ai" in publisher_ids
+    assert "publisher:platform:vllm" in publisher_ids
 
 
 def test_verified_seed_value_becomes_cited_verified_claim(tmp_path: Path) -> None:

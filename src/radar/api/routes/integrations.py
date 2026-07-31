@@ -1,10 +1,11 @@
 """Integration capabilities and public delivery projections."""
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request, Response
 
-from radar.api.dependencies import get_repository, get_services
+from radar.api.dependencies import get_repository, get_root, get_services
 from radar.intelligence.services.container import IntelligenceServices
 from radar.reports.intelligence_feeds import (
     render_intelligence_atom,
@@ -75,5 +76,6 @@ def intelligence_json_feed(
 @router.get("/integrations/public-snapshot")
 def public_snapshot(
     services: IntelligenceServices = Depends(get_services),
+    root: Path = Depends(get_root),
 ):
-    return build_public_snapshot(services, datetime.now(UTC))
+    return build_public_snapshot(services, datetime.now(UTC), root=root)

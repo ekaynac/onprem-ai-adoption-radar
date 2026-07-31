@@ -5,6 +5,7 @@ from radar.intelligence.contracts import (
     ClaimState,
     EvidenceObservation,
     EvidenceStrength,
+    LifecycleState,
     Qualification,
 )
 from radar.intelligence.recommendations import RecommendationService
@@ -52,11 +53,23 @@ def seed_recommendable_release(repository) -> None:
         ),
         NOW,
     )
+def test_detected_release_has_no_public_posture(tmp_path) -> None:
+    repository = lifecycle_repository(tmp_path)
+
+    result = RecommendationService(repository).public(RELEASE_ID)
+
+    assert result.ring is None
+    assert result.public_ring is None
+    assert result.evidence_ids == []
 
 
 def test_multiple_workspaces_change_fit_without_users(tmp_path) -> None:
     repository = lifecycle_repository(tmp_path)
     seed_recommendable_release(repository)
+    repository.set_release_lifecycle(
+        RELEASE_ID,
+        LifecycleState.RECOMMENDED,
+    )
     workspaces = WorkspaceService(repository)
     laptop = workspaces.create(
         WorkspaceInput(

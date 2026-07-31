@@ -42,7 +42,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: "20.11.1"
+          node-version: "20.19.0"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -120,7 +120,9 @@ jobs:
           git add -f data/technique-history.jsonl || true
           git add -f data/technique-metrics.jsonl || true
           git add -f data/trending-observations.jsonl || true
+          git add -f data/intelligence.db
           git add -f data/intelligence/events.jsonl || true
+          git add -f data/intelligence/snapshots || true
           git add -f data/intelligence/public-snapshot.v1.json || true
           git commit --allow-empty -m "chore: radar history $(date -u +%F) [skip ci]"
           git push

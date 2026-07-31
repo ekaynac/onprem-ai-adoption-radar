@@ -25,7 +25,13 @@ export function ReviewQueuePage() {
       ),
   });
   const resolve = useMutation({
-    mutationFn: (review: ReviewException) =>
+    mutationFn: ({
+      review,
+      evidenceId,
+    }: {
+      review: ReviewException;
+      evidenceId: string;
+    }) =>
       apiFetch<ReviewException>(
         `/api/v1/operations/reviews/${encodeURIComponent(review.id)}/resolve`,
         {
@@ -33,7 +39,7 @@ export function ReviewQueuePage() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             resolution: "accept_claim",
-            evidence_ids: review.evidence_ids,
+            evidence_ids: [evidenceId],
           }),
         },
       ),
@@ -59,14 +65,25 @@ export function ReviewQueuePage() {
               <h2>{review.message}</h2>
               <p>{review.subject_id} · {review.evidence_ids.length} evidence records</p>
             </div>
-            <button
-              className="primary-button"
-              disabled={resolve.isPending}
-              onClick={() => resolve.mutate(review)}
-              type="button"
-            >
-              Accept verified claim
-            </button>
+            {review.code === "conflicting_authoritative_claims" ? (
+              <div className="button-row">
+                {review.evidence_ids.map((evidenceId, index) => (
+                  <button
+                    className="primary-button"
+                    disabled={resolve.isPending}
+                    key={evidenceId}
+                    onClick={() => resolve.mutate({ review, evidenceId })}
+                    type="button"
+                  >
+                    Accept source {index + 1}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="claim-reason">
+                Identity exceptions require an explicit catalog merge target.
+              </span>
+            )}
           </article>
         ))}
         {!reviews.isLoading && !(reviews.data ?? []).length && (

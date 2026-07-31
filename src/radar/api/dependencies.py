@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import HTTPException, Request
@@ -15,6 +16,10 @@ def get_services(request: Request) -> IntelligenceServices:
 
 def get_repository(request: Request) -> Any:
     return request.app.state.intelligence_repository
+
+
+def get_root(request: Request) -> Path:
+    return request.app.state.root
 
 
 def require_writable(request: Request) -> None:

@@ -42,6 +42,7 @@ def test_job_idempotency_keys_follow_schedule_windows() -> None:
     at = datetime(2026, 7, 30, 11, 47, tzinfo=UTC)
 
     assert job_idempotency_key(JobKind.DISCOVERY, at) == "discovery:2026-07-30T10"
+    assert job_idempotency_key(JobKind.VERIFY_NEW, at) == "verify-new:2026-07-30T10"
     assert job_idempotency_key(JobKind.ENRICHMENT, at) == "enrichment:2026-07-30"
     assert job_idempotency_key(JobKind.QUALIFICATION, at) == "qualification:2026-07-30"
     assert (
@@ -49,6 +50,16 @@ def test_job_idempotency_keys_follow_schedule_windows() -> None:
         == "recommendations:2026-07-30"
     )
     assert job_idempotency_key(JobKind.VERIFICATION, at) == "verification:2026-W31"
+
+
+def test_discovery_cycle_verifies_new_releases_after_ingestion() -> None:
+    calls: list[JobKind] = []
+    scheduler = build_scheduler(calls.append)
+
+    discovery = {job.id: job for job in scheduler.get_jobs()}["discovery"]
+    discovery.func()
+
+    assert calls == [JobKind.DISCOVERY, JobKind.VERIFY_NEW]
 
 
 def test_run_command_records_an_idempotent_job(tmp_path, monkeypatch) -> None:

@@ -1,4 +1,5 @@
 from intelligence.lifecycle_helpers import NOW, RELEASE_ID
+from intelligence.test_verification import seed_claim
 from radar.intelligence.contracts import ReviewException
 
 
@@ -6,12 +7,26 @@ def test_review_queue_lists_and_resolves_exception(
     api_client,
     api_repository,
 ) -> None:
+    seed_claim(
+        api_repository,
+        "claim:review:license:one",
+        "license",
+        "mit",
+        "review-one",
+    )
+    seed_claim(
+        api_repository,
+        "claim:review:license:two",
+        "license",
+        "proprietary",
+        "review-two",
+    )
     review = ReviewException(
         id="review:kimi:license",
         subject_id=RELEASE_ID,
         code="conflicting_authoritative_claims",
         message="Official license claims differ",
-        evidence_ids=["evidence:qualification"],
+        evidence_ids=["evidence:review-one", "evidence:review-two"],
         opened_at=NOW,
     )
     api_repository.open_review_exception(review)
@@ -21,7 +36,7 @@ def test_review_queue_lists_and_resolves_exception(
         f"/api/v1/operations/reviews/{review.id}/resolve",
         json={
             "resolution": "accept_claim",
-            "evidence_ids": ["evidence:qualification"],
+            "evidence_ids": ["evidence:review-one"],
         },
     )
 

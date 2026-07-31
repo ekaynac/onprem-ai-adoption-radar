@@ -40,7 +40,7 @@ export function IntegrationsPage() {
       <section className="panel">
         <p className="eyebrow">MCP server</p>
         <h2>Connect an architecture agent</h2>
-        <pre className="record-view">{mcpConfig}</pre>
+        <pre className="record-view" tabIndex={0}>{mcpConfig}</pre>
       </section>
       <section className="panel">
         <p className="eyebrow">Signed webhooks</p>

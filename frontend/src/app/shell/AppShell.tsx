@@ -4,12 +4,12 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 
 
-export function AppShell() {
+export function AppShell({ staticMode }: { staticMode: boolean }) {
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar staticMode={staticMode} />
       <div className="app-frame">
-        <TopBar />
+        <TopBar staticMode={staticMode} />
         <main className="app-main">
           <Outlet />
         </main>
