@@ -22,29 +22,35 @@ def all_run_commands(workflow: dict[str, Any]) -> str:
     return "\n".join(commands)
 
 
-def test_discovery_workflow_runs_every_two_hours() -> None:
-    workflow = load_yaml(".github/workflows/intelligence-discovery.yml")
-    triggers = workflow.get("on") or workflow.get(True)
-
-    assert triggers["schedule"] == [{"cron": "17 */2 * * *"}]
-    assert "workflow_dispatch" in triggers
-    assert workflow["permissions"] == {
-        "contents": "write",
-        "pages": "write",
-        "id-token": "write",
+def load_all_workflows() -> dict[Path, dict[str, Any]]:
+    return {
+        path: load_yaml(str(path))
+        for path in sorted(Path(".github/workflows").glob("*.yml"))
     }
-    assert workflow["concurrency"]["group"] == "pages"
 
-    commands = all_run_commands(workflow)
-    assert "radar intelligence-migrate" in commands
+
+def test_only_publish_workflow_mutates_intelligence_db_and_deploys_pages() -> None:
+    workflows = load_all_workflows()
+    db_owners = [
+        path
+        for path, workflow in workflows.items()
+        if "git add -f data/intelligence.db" in all_run_commands(workflow)
+    ]
+    page_deployers = [
+        path
+        for path in workflows
+        if "actions/deploy-pages" in path.read_text(encoding="utf-8")
+    ]
+
+    publish = Path(".github/workflows/publish.yml")
+    assert db_owners == [publish]
+    assert page_deployers == [publish]
+
+    commands = all_run_commands(workflows[publish])
     assert "radar intelligence-run discovery" in commands
     assert "radar intelligence-run verify-new" in commands
-    assert "radar export" in commands
-    assert "public-snapshot.v1.json" in commands
     assert "data/intelligence/events.jsonl" in commands
-    assert "git add -f data/intelligence.db" in commands
     assert "git add -f data/intelligence/snapshots" in commands
-    assert "[skip ci]" in commands
 
 
 def test_two_hour_publish_and_weekly_verification_are_split() -> None:

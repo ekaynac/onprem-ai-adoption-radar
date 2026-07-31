@@ -54,6 +54,14 @@ jobs:
           uv run radar intelligence-migrate --root .
           uv run radar intelligence-replay-events --root .
 
+      - name: Discover and verify new intelligence
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          uv run radar intelligence-run discovery --root .
+          uv run radar intelligence-run verify-new --root .
+
       - name: Reverify trusted claims
         if: github.event.schedule == '43 5 * * 0' || github.event_name == 'workflow_dispatch'
         run: uv run radar intelligence-run verification --root .
