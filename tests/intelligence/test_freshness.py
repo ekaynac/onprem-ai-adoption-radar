@@ -10,21 +10,22 @@ from radar.intelligence.freshness import FreshnessService
 from .lifecycle_helpers import NOW
 
 
-def test_security_advisories_expire_after_one_day() -> None:
+def test_all_platform_intelligence_expires_after_two_hours() -> None:
     service = FreshnessService()
 
-    assert (
-        service.status("security_advisory", NOW - timedelta(hours=24), NOW)
-        is ClaimFreshness.FRESH
-    )
-    assert (
-        service.status(
-            "security_advisory",
-            NOW - timedelta(hours=24, seconds=1),
-            NOW,
+    for predicate in ("security_advisory", "release_identity_new", "hardware_spec"):
+        assert (
+            service.status(predicate, NOW - timedelta(hours=2), NOW)
+            is ClaimFreshness.FRESH
         )
-        is ClaimFreshness.STALE
-    )
+        assert (
+            service.status(
+                predicate,
+                NOW - timedelta(hours=2, seconds=1),
+                NOW,
+            )
+            is ClaimFreshness.STALE
+        )
 
 
 def test_unknown_freshness_class_fails_closed() -> None:

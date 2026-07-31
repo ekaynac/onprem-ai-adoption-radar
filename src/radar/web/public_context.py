@@ -1,0 +1,317 @@
+"""Bridge durable legacy radar data into the public intelligence snapshot.
+
+The React cutover must not discard the project, enriched-model, discovery, or
+source-health projections that are still produced by the proven scan pipeline.
+This module is the single read-only adapter for those durable views.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+
+_CATEGORY_BY_PIPELINE = {
+    "text-generation": "text_reasoning",
+    "image-text-to-text": "multimodal",
+    "feature-extraction": "embedding_reranking",
+    "sentence-similarity": "embedding_reranking",
+    "automatic-speech-recognition": "speech_audio",
+    "text-to-speech": "speech_audio",
+    "text-to-image": "image_video",
+    "text-to-video": "image_video",
+    "image-to-text": "vision_document",
+}
+
+
+def load_public_projects(root: Path) -> list[dict[str, Any]]:
+    """Return current project decision cards with their source and detail data."""
+
+    database_path = root / "data" / "radar.db"
+    if not database_path.exists():
+        return []
+
+    from radar.storage.config import ConfigError, load_config
+    from radar.storage.database import RadarDatabase
+    from radar.storage.history_store import HistoryStore
+    from radar.storage.metrics_store import MetricsStore
+
+    database = RadarDatabase(database_path)
+    database.initialize()
+    cards = database.list_cards()
+
+    source_rows: dict[str, list[dict[str, str]]] = {}
+    try:
+        config = load_config(root / "data" / "config.yaml")
+    except ConfigError:
+        config = None
+    if config is not None:
+        for source in config.sources:
+            source_rows.setdefault(source.project, []).append(
+                {
+                    "id": source.id,
+                    "type": source.type.value,
+                    "url": str(source.url),
+                }
+            )
+
+    history = HistoryStore(database_path)
+    history.initialize()
+    metrics = MetricsStore(database_path)
+    metrics.initialize()
+
+    rows: list[dict[str, Any]] = []
+    for card in cards:
+        sources = source_rows.get(card.project, [])
+        repository_url = next(
+            (
+                source["url"]
+                for source in sources
+                if source["type"] == "github_repo"
+            ),
+            next(
+                (
+                    evidence
+                    for evidence in card.evidence
+                    if "github.com/" in evidence.casefold()
+                ),
+                None,
+            ),
+        )
+        metric_rows = metrics.history_for(card.project)
+        rows.append(
+            {
+                **card.model_dump(mode="json"),
+                "repository_url": repository_url,
+                "sources": sources,
+                "history": [
+                    item.model_dump(mode="json")
+                    for item in history.history_for(card.project)[-24:]
+                ],
+                "latest_metrics": (
+                    metric_rows[-1].model_dump(mode="json")
+                    if metric_rows
+                    else None
+                ),
+            }
+        )
+    return sorted(rows, key=lambda item: (-float(item["score"]), item["project"]))
+
+
+def load_public_model_profiles(root: Path) -> dict[str, dict[str, Any]]:
+    """Return latest enriched model cards keyed by stable legacy model id."""
+
+    from radar.mcp_server.model_queries import _latest_model_cards
+
+    return {
+        str(item["id"]): item
+        for item in _latest_model_cards(root)
+        if item.get("id")
+    }
+
+
+def load_public_model_candidates(
+    root: Path,
+    now: datetime,
+    *,
+    limit: int = 250,
+) -> list[dict[str, Any]]:
+    """Return current untracked HF observations with explicit trust metadata."""
+
+    from radar.discovery.model_candidate_detect import build_model_candidates
+    from radar.models_radar.seed import load_model_seed
+    from radar.storage.model_candidate_log import load_model_candidates
+
+    seed_path = root / "config" / "model-seed.yaml"
+    seeded = {
+        (seed.hf_repo or "").casefold()
+        for seed in (load_model_seed(seed_path) if seed_path.exists() else [])
+        if seed.hf_repo
+    }
+    entries = [
+        item
+        for item in build_model_candidates(
+            load_model_candidates(
+                root / "data" / "model-candidate-observations.jsonl"
+            ),
+            now,
+        )
+        if item.hf_repo.casefold() not in seeded and not item.is_stale
+    ]
+    # Keep a dedicated recency lane so a just-released, low-download artifact
+    # cannot be displaced by long-established popular repositories.
+    recent = sorted(
+        entries,
+        key=lambda item: (
+            item.last_modified or item.created_at
+            or item.last_observed_at or "",
+            item.downloads,
+        ),
+        reverse=True,
+    )[:150]
+    momentum = sorted(
+        entries,
+        key=lambda item: (
+            item.downloads_per_day is not None,
+            item.downloads_per_day or 0,
+            item.downloads,
+            item.likes,
+        ),
+        reverse=True,
+    )[:100]
+    selected: dict[str, Any] = {}
+    for item in [*recent, *momentum]:
+        selected.setdefault(item.hf_repo.casefold(), item)
+
+    return [
+        {
+            **item.model_dump(mode="json"),
+            "category": _CATEGORY_BY_PIPELINE.get(
+                item.pipeline_tag or "",
+                "text_reasoning",
+            ),
+            "source_url": f"https://huggingface.co/{item.hf_repo}",
+            "source_strength": "trusted_registry",
+        }
+        for item in list(selected.values())[:limit]
+    ]
+
+
+def normalize_public_platforms(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return a stable matrix shape for seeded and dynamically found platforms."""
+
+    normalized = []
+    for row in rows:
+        repo_url = str(row.get("repo_url") or "")
+        sources = row.get("sources")
+        normalized.append(
+            {
+                **row,
+                "hardware": row.get("hardware") or {},
+                "features": row.get("features") or {},
+                "sources": (
+                    list(sources)
+                    if isinstance(sources, list)
+                    else ([repo_url] if repo_url else [])
+                ),
+                "notes": row.get("notes") or "",
+            }
+        )
+    return normalized
+
+
+def load_public_source_health(
+    root: Path,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Project the durable source-health log into the operations contract."""
+
+    from radar.storage.source_health_log import load_source_health
+
+    records = load_source_health(root / "data" / "source-health.jsonl")
+    if not records:
+        return []
+    rows: list[dict[str, Any]] = []
+    source_ids = sorted(
+        {
+            source_id
+            for record in records
+            for source_id in record.sources
+        }
+    )
+    for source_id in source_ids:
+        latest_record = next(
+            record for record in reversed(records) if source_id in record.sources
+        )
+        outcome = latest_record.sources[source_id]
+        consecutive_failures = 0
+        last_success_at = None
+        for record in reversed(records):
+            candidate = record.sources.get(source_id)
+            if candidate is None:
+                continue
+            if candidate.status == "ok":
+                last_success_at = record.observed_at.isoformat()
+                break
+            consecutive_failures += 1
+        status = outcome.status
+        if (
+            now is not None
+            and now - latest_record.observed_at
+            > timedelta(hours=2)
+        ):
+            status = "stale"
+            consecutive_failures = max(1, consecutive_failures)
+        rows.append(
+            {
+                "source_id": source_id,
+                "last_success_at": last_success_at,
+                "consecutive_failures": consecutive_failures,
+                "latency_ms": None,
+                "items_count": outcome.count,
+                "circuit_open_until": None,
+                "status": status,
+                "observed_at": latest_record.observed_at.isoformat(),
+            }
+        )
+    return rows
+
+
+def profile_claims(
+    profile: dict[str, Any],
+    source_url: str | None,
+) -> list[dict[str, Any]]:
+    """Convert useful enriched-model fields into claim-shaped detail rows."""
+
+    fields = (
+        ("params_total", None),
+        ("params_active", None),
+        ("context_length", "tokens"),
+        ("license", None),
+        ("modality", None),
+        ("hardware_tier", None),
+        ("architecture", None),
+    )
+    provenance = profile.get("provenance") or {}
+    claims = []
+    for predicate, unit in fields:
+        value = profile.get(predicate)
+        if value is None:
+            continue
+        proof = provenance.get(predicate) or {}
+        citation_url = proof.get("url") or source_url
+        claims.append(
+            {
+                "predicate": predicate,
+                "state": "verified" if proof.get("verified") else "candidate",
+                "value": value,
+                "unit": unit,
+                "reason": (
+                    "Human-verified source value"
+                    if proof.get("verified")
+                    else "Observed value; verification is pending"
+                ),
+                "observed_at": proof.get("retrieved_at"),
+                "effective_range": None,
+                "citations": (
+                    [
+                        {
+                            "evidence_id": f"legacy-profile:{profile.get('id')}:{predicate}",
+                            "url": citation_url,
+                            "label": "Model source",
+                            "strength": (
+                                "official_artifact"
+                                if proof.get("verified")
+                                else "trusted_registry"
+                            ),
+                        }
+                    ]
+                    if citation_url
+                    else []
+                ),
+            }
+        )
+    return claims

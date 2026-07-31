@@ -27,9 +27,7 @@ export function usePriorityReleases(
   return useQuery({
     queryKey: ["releases", "priority", workspaceId ?? "public", limit],
     queryFn: () => {
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const params = new URLSearchParams({
-        since: since.toISOString(),
         limit: String(limit),
       });
       if (workspaceId) {

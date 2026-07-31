@@ -28,3 +28,30 @@ test("public static command center navigates without a backend", async ({ page }
     await expect(page.getByText("Lifecycle timeline")).toBeVisible();
   }
 });
+
+
+test("public static command center preserves deep project and evidence surfaces", async ({ page }) => {
+  await page.goto("/#/projects");
+  await expect(
+    page.getByRole("heading", {
+      name: "The open-source systems behind on-prem AI",
+    }),
+  ).toBeVisible();
+  await expect(page.locator(".intelligence-card").first()).toBeVisible();
+  await page.getByRole("link", { name: "Open intelligence" }).first().click();
+  await expect(page.getByText("Why it matters")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Open GitHub repository/ })).toBeVisible();
+
+  await page.getByRole("link", { name: "Research" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Techniques with operational consequence" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Open research" }).first().click();
+  await expect(page.getByRole("heading", { name: "Papers" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /arXiv:/ }).first()).toBeVisible();
+
+  await page.getByRole("link", { name: "Hardware", exact: true }).click();
+  await page.locator(".intelligence-card").first().click();
+  await expect(page.getByRole("heading", { name: "Infrastructure specification" })).toBeVisible();
+  await expect(page.locator("pre.record-view")).toHaveCount(0);
+});

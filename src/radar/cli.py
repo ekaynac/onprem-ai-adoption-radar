@@ -656,6 +656,133 @@ def models_verify(
         raise typer.Exit(code=1)
 
 
+@models_app.command("platforms-verify")
+def platforms_verify(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Probe every platform's cited sources and persist a fresh health observation."""
+    import asyncio
+    import hashlib
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.contracts import (
+        EvidenceObservation,
+        EvidenceStrength,
+    )
+    from radar.models_radar.platform_matrix import load_platform_matrix
+    from radar.storage.source_health_log import (
+        SourceHealthRecord,
+        SourceOutcome,
+        append_source_health,
+    )
+
+    matrix_path = root / "config" / "platform-matrix.yaml"
+    if not matrix_path.exists():
+        matrix_path = Path(__file__).resolve().parents[2] / "config" / "platform-matrix.yaml"
+    platforms = load_platform_matrix(matrix_path)
+    observed_at = datetime.now(UTC)
+
+    async def _run() -> tuple[
+        dict[str, SourceOutcome],
+        dict[str, str],
+    ]:
+        limits = httpx.Limits(max_connections=16)
+        async with httpx.AsyncClient(
+            timeout=15.0,
+            follow_redirects=True,
+            limits=limits,
+        ) as client:
+            semaphore = asyncio.Semaphore(16)
+
+            async def _probe(url: str) -> tuple[bool, str]:
+                try:
+                    digest = hashlib.sha256()
+                    async with semaphore, client.stream(
+                        "GET",
+                        url,
+                    ) as response:
+                        if response.status_code >= 400:
+                            return False, ""
+                        size = 0
+                        async for chunk in response.aiter_bytes():
+                            digest.update(chunk)
+                            size += len(chunk)
+                            if size >= 1_000_000:
+                                break
+                        return True, digest.hexdigest()
+                except Exception:
+                    return False, ""
+
+            outcomes: dict[str, SourceOutcome] = {}
+            checksums: dict[str, str] = {}
+            for platform in platforms:
+                results = await asyncio.gather(
+                    *(_probe(url) for url in platform.sources)
+                )
+                available = sum(ok for ok, _checksum in results)
+                outcomes[f"platform:{platform.id}"] = SourceOutcome(
+                    count=available,
+                    status=(
+                        "ok"
+                        if available == len(results)
+                        else ("partial" if available else "error")
+                    ),
+                )
+                if available == len(results):
+                    combined = hashlib.sha256(
+                        "|".join(
+                            checksum for _ok, checksum in results
+                        ).encode()
+                    ).hexdigest()
+                    checksums[platform.id] = combined
+            return outcomes, checksums
+
+    outcomes, checksums = asyncio.run(_run())
+    append_source_health(
+        root / "data" / "source-health.jsonl",
+        SourceHealthRecord(
+            run_id=f"platform-verification-{observed_at.isoformat()}",
+            observed_at=observed_at,
+            sources=outcomes,
+        ),
+    )
+    _database, repository = build_intelligence_repository(root)
+    stamp = observed_at.strftime("%Y%m%dT%H%M%SZ")
+    for platform in platforms:
+        checksum = checksums.get(platform.id)
+        platform_id = f"platform:legacy:{platform.id}"
+        if checksum is None:
+            repository.record_platform_verification(
+                platform_id,
+                observed_at,
+                evidence_id=None,
+                success=False,
+            )
+            continue
+        evidence = EvidenceObservation(
+            id=f"evidence:platform-reverify:{platform.id}:{stamp}",
+            source_url=platform.sources[0],
+            strength=EvidenceStrength.OFFICIAL_DOCUMENTATION,
+            retrieved_at=observed_at,
+            checksum=checksum,
+            extractor_version="platform-source-reverify-v1",
+        )
+        repository.append_evidence(evidence)
+        repository.record_platform_verification(
+            platform_id,
+            observed_at,
+            evidence_id=evidence.id,
+            success=True,
+        )
+    healthy = sum(outcome.status == "ok" for outcome in outcomes.values())
+    console.print(
+        f"Checked {len(outcomes)} platform source sets; {healthy} fully healthy"
+    )
+
+
 candidates_app = typer.Typer(help="Untracked model-candidate discovery.", no_args_is_help=True)
 models_app.add_typer(candidates_app, name="candidates")
 
@@ -679,12 +806,47 @@ def candidates_scan(root: Path = typer.Option(Path("."), help="Project root.")) 
     now = datetime.now(UTC)
 
     async def _run():
+        health: dict[str, int] = {}
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            return await sweep_model_candidates(seeds, client, now)
+            observations = await sweep_model_candidates(
+                seeds,
+                client,
+                now,
+                health=health,
+            )
+        return observations, health
 
-    observations = asyncio.run(_run())
+    observations, health = asyncio.run(_run())
     out_path = root / "data" / "model-candidate-observations.jsonl"
     append_model_candidates(out_path, observations)
+    from radar.storage.source_health_log import (
+        SourceHealthRecord,
+        SourceOutcome,
+        append_source_health,
+    )
+
+    append_source_health(
+        root / "data" / "source-health.jsonl",
+        SourceHealthRecord(
+            run_id=f"model-candidates-{now.isoformat()}",
+            observed_at=now,
+            sources={
+                "huggingface:model-candidates": SourceOutcome(
+                    count=len(observations),
+                    status=(
+                        "ok"
+                        if health.get("failures", 0) == 0
+                        else (
+                            "error"
+                            if health.get("failures", 0)
+                            == health.get("requests", 0)
+                            else "partial"
+                        )
+                    ),
+                )
+            },
+        ),
+    )
     console.print(f"Observed {len(observations)} untracked model candidate(s) "
                   f"→ {out_path.relative_to(root)}")
 

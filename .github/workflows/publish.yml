@@ -2,7 +2,7 @@ name: Publish radar to Pages
 
 on:
   schedule:
-    - cron: "0 6 * * *" # daily 06:00 UTC
+    - cron: "17 */2 * * *" # platform-wide freshness: discovery + publish every two hours
     - cron: "43 5 * * 0" # weekly trusted-claim reverification
   workflow_dispatch: {}
   push:
@@ -66,6 +66,7 @@ jobs:
           uv run radar scan --root . --days 7 --publish-history
           uv run radar models scan --root .
           uv run radar models candidates scan --root .
+          uv run radar models platforms-verify --root .
           uv run radar research scan --root .
           uv run radar research candidates scan --root .
           uv run radar trending scan --root .

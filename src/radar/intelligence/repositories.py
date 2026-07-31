@@ -974,6 +974,43 @@ class SqlAlchemyIntelligenceRepository:
         with self.database.session() as session:
             return session.scalar(select(func.count()).select_from(PlatformRow)) or 0
 
+    def record_platform_verification(
+        self,
+        platform_id: str,
+        observed_at: datetime,
+        *,
+        evidence_id: str | None,
+        success: bool,
+    ) -> None:
+        """Refresh current platform claims in place without growing stale history."""
+
+        with self.database.session() as session:
+            if session.get(PlatformRow, platform_id) is None:
+                raise KeyError(f"Unknown platform: {platform_id}")
+            rows = list(
+                session.scalars(
+                    select(ClaimRow).where(ClaimRow.subject_id == platform_id)
+                )
+            )
+            for row in rows:
+                row.state = (
+                    ClaimState.VERIFIED.value
+                    if success
+                    else ClaimState.STALE.value
+                )
+                if success:
+                    row.observed_at = observed_at
+                    if evidence_id is not None and session.get(
+                        ClaimEvidenceRow,
+                        {"claim_id": row.id, "evidence_id": evidence_id},
+                    ) is None:
+                        session.add(
+                            ClaimEvidenceRow(
+                                claim_id=row.id,
+                                evidence_id=evidence_id,
+                            )
+                        )
+
     def list_platforms(self) -> list[dict[str, Any]]:
         with self.database.session() as session:
             rows = list(

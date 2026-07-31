@@ -21,6 +21,7 @@ test("renders the architect workspace navigation", () => {
     "aria-current",
     "page",
   );
+  expect(screen.getByRole("link", { name: "GitHub projects" })).toBeVisible();
   expect(screen.getByText("What changed since your last visit")).toBeVisible();
   vi.unstubAllGlobals();
 });

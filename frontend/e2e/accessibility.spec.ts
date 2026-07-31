@@ -6,6 +6,7 @@ const routes = [
   "/#/overview",
   "/#/releases",
   "/#/catalog",
+  "/#/projects",
   "/#/platforms",
   "/#/hardware",
   "/#/research",

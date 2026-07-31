@@ -43,7 +43,15 @@ export function ModelDetailPage() {
     );
   }
 
-  const { release, claims, compatibility, qualification } = detail.data;
+  const {
+    release,
+    claims,
+    compatibility,
+    qualification,
+    profile,
+    source_url: sourceUrl,
+    source_strength: sourceStrength,
+  } = detail.data;
   return (
     <section className="page-stack" aria-labelledby="model-title">
       <Link className="text-link" to="/catalog">← Unified catalog</Link>
@@ -53,7 +61,14 @@ export function ModelDetailPage() {
           <h1 id="model-title">{release.name}</h1>
           <p className="lede">{release.lane.replaceAll("_", " ")}</p>
         </div>
-        <StatusBadge status={release.lifecycle} />
+        <div className="hero-actions">
+          <StatusBadge status={release.lifecycle} />
+          {sourceUrl && (
+            <a href={sourceUrl} rel="noreferrer" target="_blank">
+              Open model source ↗
+            </a>
+          )}
+        </div>
       </header>
       <div className="detail-grid">
         <section className="panel">
@@ -91,6 +106,12 @@ export function ModelDetailPage() {
                 </div>
               </article>
             ))}
+            {!claims.length && (
+              <div className="empty-state compact">
+                <strong>Specification ingestion pending</strong>
+                <span>The model remains visible at Detected without invented values.</span>
+              </div>
+            )}
           </div>
         </section>
         <aside className="panel">
@@ -114,8 +135,74 @@ export function ModelDetailPage() {
                   release.public_recommendation.reasons ??
                   [])[0] ?? "No recommendation rationale yet."}
           </p>
+          {sourceStrength && (
+            <>
+              <hr />
+              <p className="eyebrow">Current evidence</p>
+              <strong className="source-strength">
+                {sourceStrength.replaceAll("_", " ")}
+              </strong>
+            </>
+          )}
         </aside>
       </div>
+      {profile && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Deployment profile</p>
+              <h2>Model and artifact facts</h2>
+            </div>
+          </div>
+          <dl className="spec-grid">
+            <div><dt>Family</dt><dd>{profile.family ?? "Unknown"}</dd></div>
+            <div><dt>Parameters</dt><dd>{profile.params_total?.toLocaleString() ?? "Unknown"}</dd></div>
+            <div><dt>Active parameters</dt><dd>{profile.params_active?.toLocaleString() ?? "Unknown"}</dd></div>
+            <div><dt>Context</dt><dd>{profile.context_length ? `${profile.context_length.toLocaleString()} tokens` : "Unknown"}</dd></div>
+            <div><dt>Modality</dt><dd>{profile.modality?.replaceAll("_", " ") ?? "Unknown"}</dd></div>
+            <div><dt>License</dt><dd>{profile.license ?? "Unknown"}</dd></div>
+            <div><dt>Openness</dt><dd>{profile.openness ?? "Unknown"}</dd></div>
+            <div><dt>Hardware tier</dt><dd>{profile.hardware_tier?.replaceAll("_", " ") ?? "Unknown"}</dd></div>
+            <div><dt>HF downloads</dt><dd>{profile.hf_downloads?.toLocaleString() ?? "Unknown"}</dd></div>
+            <div><dt>HF likes</dt><dd>{profile.hf_likes?.toLocaleString() ?? "Unknown"}</dd></div>
+            <div><dt>Release date</dt><dd>{profile.release_date ?? "Unknown"}</dd></div>
+            <div><dt>Last modified</dt><dd>{profile.last_modified ? new Date(profile.last_modified).toLocaleString() : "Unknown"}</dd></div>
+          </dl>
+          {profile.use_case && <p className="body-copy">{profile.use_case}</p>}
+          {(profile.quants?.length ?? 0) > 0 && (
+            <>
+              <h3>Available deployment variants</h3>
+              <div className="release-table-wrap">
+                <table className="release-table">
+                  <thead><tr><th>Format</th><th>Bits</th><th>Memory 4k</th><th>Source</th></tr></thead>
+                  <tbody>
+                    {profile.quants?.map((quant, index) => (
+                      <tr key={`${String(quant.format)}-${index}`}>
+                        <td>{String(quant.format ?? "Unknown")}</td>
+                        <td>{String(quant.bits_per_weight ?? "—")}</td>
+                        <td>{quant.est_memory_gb_4k ? `${String(quant.est_memory_gb_4k)} GB` : "—"}</td>
+                        <td>{String(quant.source ?? "—")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+          {(profile.benchmarks?.length ?? 0) > 0 && (
+            <>
+              <h3>Curated benchmarks</h3>
+              <div className="evidence-links">
+                {profile.benchmarks?.map((benchmark) => (
+                  <a href={benchmark.source_url} key={benchmark.name} rel="noreferrer" target="_blank">
+                    {benchmark.name}: {benchmark.score} ↗
+                  </a>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
       <section className="panel">
         <div className="panel-heading">
           <div>
