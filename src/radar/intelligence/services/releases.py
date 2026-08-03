@@ -45,6 +45,7 @@ class ReleaseChange(FrozenModel):
     lane: str
     category: str
     first_observed_at: datetime
+    released_at: datetime | None = None
     age_hours: float
     freshness: str
     confidence: float
