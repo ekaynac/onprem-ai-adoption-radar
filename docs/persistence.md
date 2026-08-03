@@ -13,13 +13,15 @@ data/intelligence/snapshots/<sha256>.bin   content-addressed raw evidence
 data/intelligence/public-snapshot.v1.json  derived public delivery projection
 ```
 
-The sole scheduled publisher force-adds `data/intelligence.db`,
-`data/intelligence/events.jsonl`, and `data/intelligence/snapshots/` despite
-the local database ignore rule. The SQL store preserves complete releases,
-claims, provenance, compatibility, and job leases; the JSONL ledger preserves
-the append-only public lifecycle; raw snapshot blobs preserve the bytes behind
-cited evidence. Local workspace databases remain ignored and must never be
-copied into the published lane.
+The scheduled publisher packs `data/intelligence.db`,
+`data/intelligence/events.jsonl`, and `data/intelligence/snapshots/` into a
+validated `intelligence-state.tar.gz` asset on the dedicated `radar-state`
+GitHub Release. It restores that asset before migration and publishes a
+replaceable checkpoint after discovery and after verification/scanning. The SQL
+store preserves complete releases, claims, provenance, compatibility, and job
+leases; the JSONL ledger preserves the append-only public lifecycle; raw
+snapshot blobs preserve the bytes behind cited evidence. These operational
+files remain ignored and must never be committed to Git history.
 
 The SQL schema owns publishers, families, releases, evidence, claims,
 compatibility assertions, qualifications, lifecycle transitions, review
@@ -30,6 +32,8 @@ creation. PostgreSQL runs the same repository contract as SQLite.
 Bootstrap and recovery are intentionally idempotent and ordered:
 
 ```bash
+radar intelligence-state-restore --root . \
+  --archive build/intelligence-state.tar.gz # durable checkpoint → local state
 radar intelligence-migrate --root .       # legacy catalogs → canonical rows
 radar intelligence-replay-events --root . # public event ledger → projection
 radar intelligence-shadow --root . --check # compare legacy/canonical truth
@@ -40,6 +44,26 @@ must add nothing, and shadow counts/rings/history must remain equivalent.
 Back up the SQL database, event mirror, and raw snapshots together when exact
 claim provenance is required. `public-snapshot.v1.json` is derived delivery
 data, not primary history, and is rebuilt on every export.
+
+Create or inspect a portable checkpoint locally with:
+
+```bash
+radar intelligence-state-pack --root . \
+  --out build/intelligence-state.tar.gz
+radar intelligence-state-restore --root /path/to/recovery-root \
+  --archive build/intelligence-state.tar.gz
+```
+
+The restore command rejects paths outside the canonical allowlist, archive
+links, traversal paths, duplicate members, and checksum mismatches before it
+replaces state. Treat the Release asset as sensitive operational data if a fork
+adds private claims or review records; use a private repository or an equivalent
+access-controlled object store in that case.
+
+Set an `HF_TOKEN` repository secret for authenticated Hugging Face rate limits
+and gated configuration metadata. Public discovery remains functional without
+the secret, but gated metadata may be unavailable. The workflow passes the
+secret only through step environments and never prints it.
 
 If `data/intelligence.db` is lost, restore the newest database backup first,
 then run migration and event replay in the order above. The event mirror is a
@@ -127,15 +151,15 @@ lanes clean from the start.
 2. **Back up the file.** Copy `data/history.jsonl` to any backup target (rsync,
    object storage, a synced folder). Restore by dropping it back into `data/`.
 
-3. **CI (GitHub Actions).** The publish workflow force-adds and commits
-   `data/history.jsonl` alongside the canonical intelligence database, event
-   ledger, and raw snapshots. It also copies the legacy timeline into the
-   published site (`/history.jsonl`), so recovery does not depend on an
-   evictable Actions cache.
+3. **CI (GitHub Actions).** The publish workflow force-adds and commits the
+   small, diff-friendly public history logs. Canonical intelligence state is
+   kept in the `radar-state` Release asset, while the legacy timeline is also
+   copied into the published site (`/history.jsonl`). Neither recovery lane
+   depends on an evictable Actions cache.
 
 ## Moving or sharing a radar
 
-To move a radar to a new machine, copy `data/history.jsonl` and the complete
-`data/intelligence*` recovery set above (plus `data/config.yaml` for local
-source overrides). Run the ordered intelligence recovery commands, then
-`radar scan`; both legacy and canonical timelines continue from durable state.
+To move a radar to a new machine, copy `data/history.jsonl`, download the latest
+`intelligence-state.tar.gz` Release asset, and copy `data/config.yaml` for local
+source overrides. Run the ordered intelligence recovery commands, then `radar
+scan`; both legacy and canonical timelines continue from durable state.

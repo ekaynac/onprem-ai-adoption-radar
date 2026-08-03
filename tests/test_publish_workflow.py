@@ -3,6 +3,52 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def _publish_workflow() -> str:
+    return Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+
+
+def test_publish_restores_canonical_state_before_migration():
+    text = _publish_workflow()
+
+    restore_idx = text.index("radar intelligence-state-restore")
+    migrate_idx = text.index("radar intelligence-migrate")
+
+    assert "gh release download radar-state" in text
+    assert "intelligence-state.tar.gz" in text
+    assert restore_idx < migrate_idx
+
+
+def test_publish_checkpoints_discovery_and_verified_state_before_export():
+    text = _publish_workflow()
+
+    discovery_idx = text.index("radar intelligence-run discovery")
+    discovery_checkpoint_idx = text.index("Checkpoint discovered intelligence")
+    verify_new_idx = text.index("radar intelligence-run verify-new")
+    verified_checkpoint_idx = text.index("Checkpoint verified intelligence")
+    export_idx = text.index("radar export")
+
+    assert discovery_idx < discovery_checkpoint_idx < verify_new_idx
+    assert verify_new_idx < verified_checkpoint_idx < export_idx
+    assert text.count("gh release upload radar-state") >= 2
+    assert text.count("--clobber") >= 2
+
+
+def test_publish_does_not_commit_raw_canonical_state():
+    lines = [line.strip() for line in _publish_workflow().splitlines()]
+
+    assert "git add -f data/intelligence.db" not in lines
+    assert "git add -f data/intelligence/events.jsonl || true" not in lines
+    assert "git add -f data/intelligence/snapshots || true" not in lines
+    assert "git add -f data/intelligence/public-snapshot.v1.json || true" in lines
+
+
+def test_publish_has_bounded_runtime_and_optional_hugging_face_auth():
+    text = _publish_workflow()
+
+    assert "timeout-minutes: 180" in text
+    assert "HF_TOKEN: ${{ secrets.HF_TOKEN }}" in text
+
+
 def test_publish_runs_model_scan_before_export_and_commits_model_history():
     yml = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
     assert "radar models scan" in yml

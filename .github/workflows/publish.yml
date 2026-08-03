@@ -13,7 +13,7 @@ on:
       - ".github/workflows/publish.yml"
 
 permissions:
-  contents: write # commit the durable history log back to the repo
+  contents: write # update the state release asset and small publication logs
   pages: write
   id-token: write
 
@@ -25,6 +25,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
       # Full history is needed so the committed history log carries forward.
       - uses: actions/checkout@v6
@@ -49,26 +50,63 @@ jobs:
       - name: Install frontend
         run: npm ci --prefix frontend
 
+      - name: Restore canonical intelligence state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p build
+          if gh release download radar-state \
+            --pattern intelligence-state.tar.gz \
+            --dir build \
+            --clobber; then
+            uv run radar intelligence-state-restore --root . \
+              --archive build/intelligence-state.tar.gz
+          else
+            echo "No radar-state asset found; bootstrapping canonical state."
+          fi
+
       - name: Rebuild canonical intelligence
         run: |
           uv run radar intelligence-migrate --root .
           uv run radar intelligence-replay-events --root .
 
-      - name: Discover and verify new intelligence
+      - name: Discover intelligence
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: uv run radar intelligence-run discovery --root .
+
+      - name: Checkpoint discovered intelligence
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          uv run radar intelligence-run discovery --root .
-          uv run radar intelligence-run verify-new --root .
+          uv run radar intelligence-state-pack --root . \
+            --out build/intelligence-state.tar.gz
+          gh release view radar-state >/dev/null 2>&1 || \
+            gh release create radar-state \
+              --target "$GITHUB_SHA" \
+              --title "Radar canonical state" \
+              --notes "Replaceable canonical intelligence checkpoint."
+          gh release upload radar-state \
+            build/intelligence-state.tar.gz \
+            --clobber
+
+      - name: Verify new intelligence
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: uv run radar intelligence-run verify-new --root .
 
       - name: Reverify trusted claims
         if: github.event.schedule == '43 5 * * 0' || github.event_name == 'workflow_dispatch'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: uv run radar intelligence-run verification --root .
 
       - name: Scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           uv run radar init --root .
           uv run radar scan --root . --days 7 --publish-history
@@ -92,6 +130,16 @@ jobs:
       - name: Scoring quality gate
         run: uv run radar calibrate-report --root . --check
 
+      - name: Checkpoint verified intelligence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uv run radar intelligence-state-pack --root . \
+            --out build/intelligence-state.tar.gz
+          gh release upload radar-state \
+            build/intelligence-state.tar.gz \
+            --clobber
+
       # `radar export` copies data/history.jsonl into the site for download.
       # --base-url makes the Atom/RSS feed self/link URLs absolute. Derived from
       # the repo context via env vars (never interpolated into the shell line
@@ -110,11 +158,9 @@ jobs:
           cp _site/data/public-snapshot.v1.json \
             data/intelligence/public-snapshot.v1.json
 
-      # Persist the durable JSONL history log back to the repo. This makes the
-      # timeline durable (in git, not an evictable cache) AND counts as repo
-      # activity, so GitHub never auto-disables the daily schedule after 60 idle
-      # days. `--allow-empty` guarantees a daily heartbeat even when nothing
-      # moved; `[skip ci]` keeps the bot commit from re-triggering workflows.
+      # Persist only diff-friendly public logs and derived delivery data. The
+      # canonical database, event log, and evidence snapshots live in the
+      # radar-state Release asset and must never enter Git history.
       - name: Persist history log + keepalive
         if: always()
         run: |
@@ -129,9 +175,6 @@ jobs:
           git add -f data/technique-history.jsonl || true
           git add -f data/technique-metrics.jsonl || true
           git add -f data/trending-observations.jsonl || true
-          git add -f data/intelligence.db
-          git add -f data/intelligence/events.jsonl || true
-          git add -f data/intelligence/snapshots || true
           git add -f data/intelligence/public-snapshot.v1.json || true
           git commit --allow-empty -m "chore: radar history $(date -u +%F) [skip ci]"
           git push
