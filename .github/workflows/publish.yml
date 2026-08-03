@@ -55,15 +55,35 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p build
-          if gh release download radar-state \
-            --pattern intelligence-state.tar.gz \
-            --dir build \
-            --clobber; then
-            uv run radar intelligence-state-restore --root . \
-              --archive build/intelligence-state.tar.gz
-          else
-            echo "No radar-state asset found; bootstrapping canonical state."
-          fi
+          release_status="$(curl --silent --show-error \
+            --output build/radar-state-release.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/radar-state")"
+          case "$release_status" in
+            200)
+              if jq -e '.assets[]? | select(.name == "intelligence-state.tar.gz")' \
+                build/radar-state-release.json >/dev/null; then
+                gh release download radar-state \
+                  --pattern intelligence-state.tar.gz \
+                  --dir build \
+                  --clobber
+                uv run radar intelligence-state-restore --root . \
+                  --archive build/intelligence-state.tar.gz
+              else
+                echo "radar-state exists without an asset; bootstrapping canonical state."
+              fi
+              ;;
+            404)
+              echo "No radar-state release found; bootstrapping canonical state."
+              ;;
+            *)
+              echo "Unexpected GitHub API status while restoring state: ${release_status}" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Rebuild canonical intelligence
         run: |

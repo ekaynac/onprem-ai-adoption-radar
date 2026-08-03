@@ -153,6 +153,64 @@ def _parse_manifest(payload: bytes) -> StateBundleManifest:
     return manifest
 
 
+def _path_exists(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+
+
+def _swap_state_targets(root: Path, staged_root: Path) -> None:
+    targets = [
+        PurePosixPath("data/intelligence.db"),
+        PurePosixPath("data/intelligence/events.jsonl"),
+        _SNAPSHOT_PREFIX,
+    ]
+    backup_root = staged_root / ".backup"
+    backed_up: list[PurePosixPath] = []
+    installed: list[PurePosixPath] = []
+
+    try:
+        for relative in targets:
+            target = root.joinpath(*relative.parts)
+            if not _path_exists(target):
+                continue
+            backup = backup_root.joinpath(*relative.parts)
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(target, backup)
+            backed_up.append(relative)
+    except Exception:
+        for relative in reversed(backed_up):
+            backup = backup_root.joinpath(*relative.parts)
+            target = root.joinpath(*relative.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(backup, target)
+        raise
+
+    try:
+        for relative in targets:
+            staged = staged_root.joinpath(*relative.parts)
+            if not _path_exists(staged):
+                continue
+            target = root.joinpath(*relative.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(staged, target)
+            installed.append(relative)
+    except Exception:
+        for relative in reversed(installed):
+            _remove_path(root.joinpath(*relative.parts))
+        for relative in reversed(backed_up):
+            backup = backup_root.joinpath(*relative.parts)
+            target = root.joinpath(*relative.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(backup, target)
+        raise
+
+
 def restore_intelligence_state(root: Path, archive: Path) -> StateBundleManifest:
     """Validate and restore a canonical-state bundle without unsafe extraction."""
     root = root.resolve()
@@ -201,19 +259,6 @@ def restore_intelligence_state(root: Path, archive: Path) -> StateBundleManifest
                     raise StateBundleError(f"checksum mismatch for archive member: {name}")
 
             root.mkdir(parents=True, exist_ok=True)
-            staged_snapshots = staged_root.joinpath(*_SNAPSHOT_PREFIX.parts)
-            target_snapshots = root.joinpath(*_SNAPSHOT_PREFIX.parts)
-            if staged_snapshots.exists():
-                target_snapshots.parent.mkdir(parents=True, exist_ok=True)
-                if target_snapshots.exists():
-                    shutil.rmtree(target_snapshots)
-                os.replace(staged_snapshots, target_snapshots)
-            for relative in sorted(_SINGLE_FILE_PATHS, key=str):
-                staged = staged_root.joinpath(*relative.parts)
-                if not staged.exists():
-                    continue
-                target = root.joinpath(*relative.parts)
-                target.parent.mkdir(parents=True, exist_ok=True)
-                os.replace(staged, target)
+            _swap_state_targets(root, staged_root)
 
     return manifest

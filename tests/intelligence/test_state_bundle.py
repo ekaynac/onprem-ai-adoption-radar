@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+import radar.intelligence.state_bundle as state_bundle
 from radar.cli import app
 from radar.intelligence.state_bundle import (
     StateBundleError,
@@ -104,6 +105,64 @@ def test_restore_rejects_links_without_changing_state(
         restore_intelligence_state(root, archive)
 
     assert database.read_bytes() == b"existing"
+
+
+def test_restore_removes_state_absent_from_valid_bundle(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    restored = tmp_path / "restored"
+    archive = tmp_path / "state.tar.gz"
+    (source / "data").mkdir(parents=True)
+    (source / "data" / "intelligence.db").write_bytes(b"new-database")
+    _seed_state(restored)
+
+    pack_intelligence_state(source, archive)
+    restore_intelligence_state(restored, archive)
+
+    assert (restored / "data" / "intelligence.db").read_bytes() == b"new-database"
+    assert not (restored / "data" / "intelligence" / "events.jsonl").exists()
+    assert not (restored / "data" / "intelligence" / "snapshots").exists()
+
+
+def test_restore_rolls_back_all_targets_when_swap_fails(
+    tmp_path: Path, monkeypatch
+) -> None:
+    source = tmp_path / "source"
+    restored = tmp_path / "restored"
+    archive = tmp_path / "state.tar.gz"
+    _seed_state(source)
+    _seed_state(restored)
+    (restored / "data" / "intelligence.db").write_bytes(b"old-database")
+    (restored / "data" / "intelligence" / "events.jsonl").write_text(
+        "old-events\n", encoding="utf-8"
+    )
+    pack_intelligence_state(source, archive)
+    original_replace = state_bundle.os.replace
+    failed = False
+
+    def fail_once(source_path, destination_path):
+        nonlocal failed
+        if (
+            not failed
+            and Path(destination_path)
+            == restored / "data" / "intelligence" / "events.jsonl"
+            and ".radar-state-" in str(source_path)
+        ):
+            failed = True
+            raise OSError("simulated swap failure")
+        original_replace(source_path, destination_path)
+
+    monkeypatch.setattr(state_bundle.os, "replace", fail_once)
+
+    with pytest.raises(OSError, match="simulated swap failure"):
+        restore_intelligence_state(restored, archive)
+
+    assert (restored / "data" / "intelligence.db").read_bytes() == b"old-database"
+    assert (
+        restored / "data" / "intelligence" / "events.jsonl"
+    ).read_text(encoding="utf-8") == "old-events\n"
+    assert (
+        restored / "data" / "intelligence" / "snapshots" / "daily" / "one.json"
+    ).is_file()
 
 
 def test_state_bundle_cli_packs_and_restores(tmp_path: Path) -> None:

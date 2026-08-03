@@ -150,17 +150,29 @@ export function projectStaticRequest(
     );
   }
   if (url.pathname === "/api/v1/catalog") {
-    const query = (url.searchParams.get("q") ?? "").toLocaleLowerCase();
+    const tokens = (url.searchParams.get("q") ?? "")
+      .toLocaleLowerCase()
+      .replaceAll("-", " ")
+      .split(/\s+/)
+      .filter(Boolean);
     const category = url.searchParams.get("category");
     const lifecycle = url.searchParams.get("lifecycle");
+    const lane = url.searchParams.get("lane");
     const filtered = catalogModels
       .map(catalogItem)
       .filter((item) => {
-        const haystack = `${item.name} ${item.release_id}`.toLocaleLowerCase();
+        const haystack = [
+          item.name,
+          item.release_id,
+          item.category,
+          item.lane,
+          item.lifecycle,
+        ].join(" ").toLocaleLowerCase().replaceAll("-", " ");
         return (
-          (!query || haystack.includes(query)) &&
+          tokens.every((token) => haystack.includes(token)) &&
           (!category || item.category === category) &&
-          (!lifecycle || item.lifecycle === lifecycle)
+          (!lifecycle || item.lifecycle === lifecycle) &&
+          (!lane || item.lane === lane)
         );
       });
     const items = filtered.slice(0, 500);

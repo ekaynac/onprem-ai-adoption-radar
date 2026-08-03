@@ -1,7 +1,7 @@
 # Production Stabilization Design
 
-**Date:** 2026-08-03  
-**Status:** Approved  
+**Date:** 2026-08-03
+**Status:** Approved
 **Scope:** Phase 0.5 — restore dependable freshness and deployment without changing the approved product design
 
 ## Context

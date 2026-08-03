@@ -210,6 +210,9 @@ export function useCatalogSearch(
       if (filters.lifecycle !== "all") {
         params.set("lifecycle", filters.lifecycle);
       }
+      if (filters.lane !== "all") {
+        params.set("lane", filters.lane);
+      }
       if (workspaceId) {
         params.set("workspace_id", workspaceId);
       }

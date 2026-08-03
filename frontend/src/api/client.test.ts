@@ -141,6 +141,49 @@ test("filters the complete catalog before capping rendered rows", () => {
 });
 
 
+test("applies lane and canonical-field search before the render cap", () => {
+  const models = Array.from({ length: 650 }, (_, index) => ({
+    release_id: `release:model-${index}`,
+    name: `Model ${index}`,
+    category: index === 649 ? "multimodal" : "text_reasoning",
+    lane: index === 649 ? "market_reference" : "deployable_onprem",
+    lifecycle: index === 649 ? "verified" : "detected",
+    first_observed_at: "2026-07-30T10:00:00Z",
+  }));
+  const snapshot = {
+    schema_version: "1.0",
+    generated_at: "2026-07-30T10:00:00Z",
+    releases: [],
+    models: [],
+    projects: [],
+    model_candidates: [],
+    platforms: [],
+    hardware: [],
+    research: [],
+    events: [],
+    source_health: {},
+  };
+
+  const lane = projectStaticRequest(
+    "/api/v1/catalog?lane=market_reference",
+    snapshot,
+    models,
+  ) as { items: Array<{ release_id: string }> };
+  const canonicalSearch = projectStaticRequest(
+    "/api/v1/catalog?q=multimodal+market_reference+verified",
+    snapshot,
+    models,
+  ) as { items: Array<{ release_id: string }> };
+
+  expect(lane.items.map((item) => item.release_id)).toEqual([
+    "release:model-649",
+  ]);
+  expect(canonicalSearch.items.map((item) => item.release_id)).toEqual([
+    "release:model-649",
+  ]);
+});
+
+
 test("falls back to detailed snapshot models when the index is unavailable", async () => {
   const snapshot = {
     schema_version: "1.0",

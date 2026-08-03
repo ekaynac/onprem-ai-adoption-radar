@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 
@@ -16,6 +17,16 @@ def test_publish_restores_canonical_state_before_migration():
     assert "gh release download radar-state" in text
     assert "intelligence-state.tar.gz" in text
     assert restore_idx < migrate_idx
+
+
+def test_publish_bootstraps_only_for_confirmed_missing_state():
+    text = _publish_workflow()
+
+    assert 'case "$release_status" in' in text
+    assert "200)" in text
+    assert "404)" in text
+    assert "Unexpected GitHub API status" in text
+    assert "if gh release download" not in text
 
 
 def test_publish_checkpoints_discovery_and_verified_state_before_export():
@@ -40,6 +51,21 @@ def test_publish_does_not_commit_raw_canonical_state():
     assert "git add -f data/intelligence/events.jsonl || true" not in lines
     assert "git add -f data/intelligence/snapshots || true" not in lines
     assert "git add -f data/intelligence/public-snapshot.v1.json || true" in lines
+
+
+def test_raw_canonical_state_is_not_tracked_by_git():
+    tracked = subprocess.check_output(
+        [
+            "git",
+            "ls-files",
+            "data/intelligence.db",
+            "data/intelligence/events.jsonl",
+            "data/intelligence/snapshots/**",
+        ],
+        text=True,
+    ).splitlines()
+
+    assert tracked == []
 
 
 def test_publish_has_bounded_runtime_and_optional_hugging_face_auth():
