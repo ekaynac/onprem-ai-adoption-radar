@@ -14,7 +14,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from radar.intelligence.bootstrap import build_intelligence_repository
-from radar.intelligence.services.container import build_services
+from radar.intelligence.services.container import build_services_for_root
 from radar.mcp_server.capacity_queries import CapacityQueryService
 from radar.mcp_server.intelligence_queries import IntelligenceQueryService
 from radar.mcp_server.model_queries import ModelQueryService
@@ -32,7 +32,7 @@ def build_mcp_server(root: Path) -> FastMCP:
     capacity = CapacityQueryService(root)
     _database, intelligence_repository = build_intelligence_repository(root)
     intelligence = IntelligenceQueryService(
-        build_services(intelligence_repository),
+        build_services_for_root(root, intelligence_repository),
         intelligence_repository,
     )
     mcp = FastMCP("onprem-ai-adoption-radar")

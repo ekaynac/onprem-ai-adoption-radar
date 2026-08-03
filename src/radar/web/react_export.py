@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from radar.intelligence.bootstrap import build_intelligence_repository
-from radar.intelligence.services.container import build_services
+from radar.intelligence.services.container import build_services_for_root
 from radar.reports.auxiliary_feeds import write_auxiliary_feeds
 from radar.reports.unified_feeds import write_unified_feeds
 from radar.storage.history_log import load_events
@@ -123,14 +123,21 @@ def export_react_site(
     _database, repository = build_intelligence_repository(root)
     now = generated_at or datetime.now(UTC)
     canonical_releases = repository.list_all_releases()
+    services = build_services_for_root(root, repository)
     snapshot = build_public_snapshot(
-        build_services(repository),
+        services,
         now,
         root=root,
         canonical_releases=canonical_releases,
     )
     write_public_snapshot(snapshot, out_dir)
-    write_model_index(canonical_releases, out_dir, now, repository=repository)
+    write_model_index(
+        canonical_releases,
+        out_dir,
+        now,
+        repository=repository,
+        legacy_rings=services.deployments.recommendations.legacy_rings,
+    )
     events = repository.list_events(limit=500, public_only=True)
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -50,6 +50,10 @@ _INDEX_PREDICATES = {
     "quantization_format",
     "release_date",
 }
+
+
+class SnapshotInvariantError(RuntimeError):
+    """The published snapshot would violate a product guarantee."""
 
 
 class PublicProjectDataState(BaseModel):
@@ -677,6 +681,34 @@ def build_public_snapshot(
         reverse=True,
     )
     model_rows.sort(key=_model_row_order)
+    # Product guarantee: every curated model whose legacy pipeline computed
+    # a ring shows that ring publicly. A missing bridge is a build error,
+    # never a silently ringless catalog.
+    ringless_curated = [
+        row["release_id"]
+        for row in model_rows
+        if str(row.get("release_id", "")).startswith("release:legacy:")
+        and isinstance(
+            (
+                profiles.get(
+                    str(row["release_id"]).removeprefix("release:legacy:")
+                )
+                or {}
+            ).get("ring"),
+            str,
+        )
+        and not row.get("public_ring")
+    ]
+    if ringless_curated:
+        raise SnapshotInvariantError(
+            "Curated models lost their ring in the public snapshot: "
+            + ", ".join(sorted(ringless_curated)[:5])
+            + (
+                f" (+{len(ringless_curated) - 5} more)"
+                if len(ringless_curated) > 5
+                else ""
+            )
+        )
     operation_payload = operations.model_dump(mode="json")
     canonical_health = operation_payload.get("source_health") or []
     health_by_id = {
@@ -755,7 +787,9 @@ def _compact_model_row(
     *,
     lineage_context: _LineageContext | None = None,
     now: datetime | None = None,
+    legacy_rings: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    bridged = (legacy_rings or {}).get(release.id)
     metadata = metadata or {}
     hf_repo = metadata.get("hf_repo")
     source_url = f"https://huggingface.co/{hf_repo}" if hf_repo else None
@@ -804,7 +838,7 @@ def _compact_model_row(
             "publisher:provisional:"
         ),
         "significance": significance_payload,
-        "public_ring": None,
+        "public_ring": bridged.ring.value if bridged is not None else None,
         "reasons": [],
         "evidence_ids": [],
         "source_url": source_url,
@@ -831,6 +865,7 @@ def write_model_index(
     *,
     shard_size: int = MODEL_INDEX_SHARD_SIZE,
     repository: Any | None = None,
+    legacy_rings: Mapping[str, Any] | None = None,
 ) -> ModelIndexManifest:
     """Write a deterministic, compact index covering every canonical release."""
     if shard_size < 1:
@@ -847,6 +882,7 @@ def write_model_index(
             metadata.get(release.id),
             lineage_context=lineage_context,
             now=generated_at,
+            legacy_rings=legacy_rings,
         )
         for release in releases
     ]

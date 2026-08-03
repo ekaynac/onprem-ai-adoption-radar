@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from collections.abc import Mapping
+from typing import Any, Protocol
 
 from pydantic import Field
 
@@ -22,6 +23,65 @@ from radar.models_radar.memory import estimate_memory_gb
 
 
 COMPUTATION_VERSION = "workspace-recommendation-v1"
+LEGACY_BRIDGE_VERSION = "legacy-ring-bridge-v1"
+
+
+class LegacyRingRecord(FrozenModel):
+    """A ring computed by the curated (legacy) models pipeline."""
+
+    ring: Ring
+    score: float | None = None
+    score_breakdown: dict[str, float] = Field(default_factory=dict)
+    hardware_tier: str | None = None
+    evidence_id: str
+    warnings: list[str] = Field(default_factory=list)
+
+
+def legacy_ring_bridge(
+    profiles: Mapping[str, Mapping[str, Any]],
+) -> dict[str, LegacyRingRecord]:
+    """Map curated release ids to authoritative legacy pipeline rings.
+
+    ``profiles`` is the output of ``load_public_model_profiles`` (keyed by
+    legacy model id, values are ``ModelEntry`` dumps). Seed-baseline
+    fallback profiles carry no ring and are skipped — a pending scan must
+    not be presented as a decision.
+    """
+    bridge: dict[str, LegacyRingRecord] = {}
+    for legacy_id, profile in profiles.items():
+        ring_value = profile.get("ring")
+        if not isinstance(ring_value, str):
+            continue
+        try:
+            ring = Ring(ring_value)
+        except ValueError:
+            continue
+        breakdown_value = profile.get("score_breakdown")
+        breakdown = {
+            key: float(value)
+            for key, value in (
+                breakdown_value.items()
+                if isinstance(breakdown_value, Mapping)
+                else ()
+            )
+            if isinstance(value, int | float)
+        }
+        score = profile.get("score")
+        tier = profile.get("hardware_tier")
+        warnings = profile.get("warnings")
+        bridge[f"release:legacy:{legacy_id}"] = LegacyRingRecord(
+            ring=ring,
+            score=float(score) if isinstance(score, int | float) else None,
+            score_breakdown=breakdown,
+            hardware_tier=tier if isinstance(tier, str) else None,
+            evidence_id=f"evidence:legacy:model-seed:{legacy_id}",
+            warnings=[
+                warning
+                for warning in (warnings if isinstance(warnings, list) else [])
+                if isinstance(warning, str)
+            ],
+        )
+    return bridge
 
 
 class RecommendationView(FrozenModel):
@@ -47,10 +107,18 @@ class RecommendationRepository(Protocol):
 
 
 class RecommendationService:
-    def __init__(self, repository: RecommendationRepository):
+    def __init__(
+        self,
+        repository: RecommendationRepository,
+        legacy_rings: Mapping[str, LegacyRingRecord] | None = None,
+    ):
         self.repository = repository
+        self.legacy_rings = dict(legacy_rings or {})
 
     def public(self, release_id: str) -> RecommendationView:
+        bridged = self.legacy_rings.get(release_id)
+        if bridged is not None:
+            return self._bridged_view(release_id, bridged)
         release = self.repository.get_release_required(release_id)
         if release.lifecycle is not LifecycleState.RECOMMENDED:
             return RecommendationView(
@@ -65,7 +133,51 @@ class RecommendationService:
             )
         return self.compute_public(release_id)
 
+    def _bridged_view(
+        self,
+        release_id: str,
+        record: LegacyRingRecord,
+    ) -> RecommendationView:
+        """The curated pipeline's deterministic ring is authoritative.
+
+        Canonical qualification stays the trust track for detected
+        releases; for the curated catalog the ring the legacy scoring
+        already computes is the product, wrapped here with its factors.
+        """
+        reasons: list[str] = []
+        if record.score is not None:
+            dims = ", ".join(
+                f"{dimension.replace('_', ' ')} {value:g}/5"
+                for dimension, value in sorted(record.score_breakdown.items())
+                if dimension != "average"
+            )
+            reasons.append(
+                f"Deterministic curated score {record.score:g}/5"
+                + (f" ({dims})" if dims else "")
+            )
+        if record.hardware_tier and record.hardware_tier != "unknown":
+            reasons.append(f"Hardware tier: {record.hardware_tier}")
+        reasons.extend(record.warnings[:2])
+        return RecommendationView(
+            release_id=release_id,
+            workspace_id=None,
+            public_ring=record.ring,
+            ring=record.ring,
+            changed_factors=[],
+            reasons=reasons or ["Curated catalog ring from the models pipeline"],
+            assumptions=[
+                "Ring computed by the curated models pipeline "
+                "(deterministic scoring over openness, runnability, "
+                "capability, ecosystem)"
+            ],
+            evidence_ids=[record.evidence_id],
+            computation_version=LEGACY_BRIDGE_VERSION,
+        )
+
     def compute_public(self, release_id: str) -> RecommendationView:
+        bridged = self.legacy_rings.get(release_id)
+        if bridged is not None:
+            return self._bridged_view(release_id, bridged)
         release = self.repository.get_release_required(release_id)
         qualification = self.repository.get_qualification(release_id)
         if release.lane is ReleaseLane.MARKET_REFERENCE:

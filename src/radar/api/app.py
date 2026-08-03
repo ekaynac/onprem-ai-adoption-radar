@@ -14,7 +14,7 @@ from radar.intelligence.bootstrap import build_intelligence_repository
 from radar.intelligence.repositories import RepositoryConflict
 from radar.intelligence.services.container import (
     IntelligenceServices,
-    build_services,
+    build_services_for_root,
 )
 
 
@@ -34,7 +34,7 @@ def create_api_app(
     if repository is None:
         _database, repository = build_intelligence_repository(root)
     app.state.intelligence_repository = repository
-    app.state.services = services or build_services(repository)
+    app.state.services = services or build_services_for_root(root, repository)
     app.state.read_only = read_only
     app.state.root = root
 
