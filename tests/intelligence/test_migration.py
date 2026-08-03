@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlalchemy import delete
 
 from radar.intelligence.contracts import (
+    ClaimState,
     EvidenceObservation,
     EvidenceStrength,
     LifecycleState,
@@ -113,6 +114,26 @@ def test_verified_seed_value_becomes_cited_verified_claim(tmp_path: Path) -> Non
     assert params.state.value == "verified"
     assert params.value == 8_000_000_000
     assert params.evidence_ids
+
+
+def test_reimport_preserves_operational_claim_state_promotion(tmp_path: Path) -> None:
+    seed_legacy_root(tmp_path)
+    (tmp_path / "config" / "model-seed.yaml").write_text(
+        MODEL_SEED.replace("spec_verified: true", "spec_verified: false"),
+        encoding="utf-8",
+    )
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+    import_legacy_state(tmp_path, repository)
+    claim_id = "claim:legacy:sample-8b:context_length"
+    repository.set_claim_state(claim_id, ClaimState.VERIFIED)
+
+    import_legacy_state(tmp_path, repository)
+
+    claim = repository.get_claim(claim_id)
+    assert claim is not None
+    assert claim.state is ClaimState.VERIFIED
 
 
 def test_verified_seed_records_detected_to_verified_transition(tmp_path: Path) -> None:

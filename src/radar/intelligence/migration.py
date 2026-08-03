@@ -213,17 +213,25 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
     repository.append_evidence(evidence)
     claim_state = ClaimState.VERIFIED if seed.spec_verified else ClaimState.CANDIDATE
     for predicate, value in sorted(_claim_values(seed).items()):
-        repository.append_claim(
-            Claim(
-                id=f"claim:legacy:{seed.id}:{predicate}",
-                subject_id=release_id,
-                predicate=predicate,
-                value=value,
-                state=claim_state,
-                observed_at=LEGACY_OBSERVED_AT,
-                evidence_ids=[evidence.id],
-            )
+        claim = Claim(
+            id=f"claim:legacy:{seed.id}:{predicate}",
+            subject_id=release_id,
+            predicate=predicate,
+            value=value,
+            state=claim_state,
+            observed_at=LEGACY_OBSERVED_AT,
+            evidence_ids=[evidence.id],
         )
+        existing_claim = repository.get_claim(claim.id)
+        if (
+            existing_claim is not None
+            and existing_claim.model_copy(update={"state": claim.state}) == claim
+        ):
+            # Verification and freshness jobs may advance the operational
+            # state of deterministic seed claims. Re-import must preserve that
+            # state instead of trying to roll it back to the seed baseline.
+            continue
+        repository.append_claim(claim)
     current = repository.get_release_required(release_id)
     if seed.spec_verified:
         reason = "Legacy seed carries human-verified specifications"
