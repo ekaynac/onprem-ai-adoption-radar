@@ -7,9 +7,11 @@ import pytest
 
 from radar.intelligence.contracts import (
     EvidenceStrength,
+    LifecycleState,
     ModelCategory,
     ProductFamily,
     Publisher,
+    ReleaseLane,
 )
 from radar.intelligence.database import Database
 from radar.intelligence.jobs import JobKind
@@ -100,6 +102,76 @@ class ProvisionalPublisherAdapter:
 
     async def fetch(self, url: str) -> SourceRecord:
         raise NotImplementedError
+
+
+class WatermarkAdapter:
+    id = "fixture-watermark"
+
+    def __init__(self) -> None:
+        self.since_values: list[datetime] = []
+
+    async def discover(self, since: datetime) -> list[DiscoveryCandidate]:
+        self.since_values.append(since)
+        return []
+
+    async def fetch(self, url: str) -> SourceRecord:
+        raise NotImplementedError
+
+
+class PriorityFixtureAdapter:
+    id = "fixture-priority"
+
+    def __init__(self) -> None:
+        self.enriched: list[str] = []
+
+    async def discover(self, since: datetime) -> list[DiscoveryCandidate]:
+        del since
+        rows = []
+        for repo_id, observed_at in (
+            ("moonshotai/Historical-Model", NOW - timedelta(days=30)),
+            ("moonshotai/Kimi-K3", NOW - timedelta(minutes=5)),
+        ):
+            record = SourceRecord.from_bytes(
+                source_id=self.id,
+                url=f"https://huggingface.co/api/models/{repo_id}",
+                body=f'{{"id":"{repo_id}"}}'.encode(),
+                retrieved_at=observed_at,
+                strength=EvidenceStrength.TRUSTED_REGISTRY,
+            )
+            rows.append(
+                DiscoveryCandidate(
+                    source_record=record,
+                    external_id=repo_id,
+                    publisher_hint="publisher:moonshot-ai",
+                    release_name=repo_id.split("/", 1)[1],
+                    artifact_urls=[
+                        f"https://huggingface.co/{repo_id}/resolve/main/model.safetensors"
+                    ],
+                    claims={
+                        "repo_id": repo_id,
+                        "license": "modified-mit",
+                    },
+                )
+            )
+        return rows
+
+    async def fetch(self, url: str) -> SourceRecord:
+        raise NotImplementedError
+
+    async def enrich(self, repo_id: str):
+        self.enriched.append(repo_id)
+        record = SourceRecord.from_bytes(
+            source_id=self.id,
+            url=f"https://huggingface.co/api/models/{repo_id}",
+            body=b'{"library_name":"transformers"}',
+            retrieved_at=NOW,
+            strength=EvidenceStrength.TRUSTED_REGISTRY,
+        )
+        return SimpleNamespace(
+            records=[SimpleNamespace(source_record=record)],
+            claims={"library_name": "transformers"},
+            artifact_urls=[],
+        )
 
 
 class MigratedFixtureEnricher:
@@ -273,3 +345,73 @@ async def test_trusted_registry_can_add_a_provisional_publisher(tmp_path) -> Non
         release.publisher_id == "publisher:provisional:acme"
         for release in repo.list_all_releases()
     )
+    assert repo.list_all_releases()[0].lane is ReleaseLane.ADJACENT
+
+
+@pytest.mark.asyncio
+async def test_discovery_resumes_from_last_success_with_overlap(tmp_path) -> None:
+    repo = repository(tmp_path)
+    adapter = WatermarkAdapter()
+    runner = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[adapter],
+        clock=lambda: NOW,
+    )
+
+    await runner.run(JobKind.DISCOVERY, "job:first")
+    later = NOW + timedelta(hours=6)
+    runner.clock = lambda: later
+    await runner.run(JobKind.DISCOVERY, "job:second")
+
+    assert adapter.since_values == [
+        NOW - timedelta(days=3650),
+        NOW - timedelta(minutes=15),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_verify_new_prioritizes_recent_releases_and_reports_backlog(
+    tmp_path,
+) -> None:
+    repo = repository(tmp_path)
+    adapter = PriorityFixtureAdapter()
+    runner = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[adapter],
+        clock=lambda: NOW,
+        verification_batch_size=1,
+    )
+    await runner.run(JobKind.DISCOVERY, "job:discover-priority")
+
+    result = await runner.run(JobKind.VERIFY_NEW, "job:verify-priority")
+
+    releases = {release.name: release for release in repo.list_all_releases()}
+    assert releases["Kimi-K3"].lifecycle is LifecycleState.VERIFIED
+    assert releases["Historical-Model"].lifecycle is LifecycleState.DETECTED
+    assert result.processed == 1
+    assert result.remaining == 1
+
+
+@pytest.mark.asyncio
+async def test_enrichment_is_bounded_and_prioritizes_recent_releases(
+    tmp_path,
+) -> None:
+    repo = repository(tmp_path)
+    adapter = PriorityFixtureAdapter()
+    runner = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[adapter],
+        clock=lambda: NOW,
+        enrichment_batch_size=1,
+    )
+    await runner.run(JobKind.DISCOVERY, "job:discover-enrichment")
+    await runner.run(JobKind.VERIFY_NEW, "job:verify-enrichment")
+
+    result = await runner.run(JobKind.ENRICHMENT, "job:enrich-priority")
+
+    assert adapter.enriched == ["moonshotai/Kimi-K3"]
+    assert result.processed == 1
+    assert result.remaining == 1

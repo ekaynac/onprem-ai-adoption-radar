@@ -57,6 +57,8 @@ def test_completed_job_is_idempotent(tmp_path) -> None:
     assert stored.status is JobStatus.COMPLETED
     assert stored.result == {
         "job_id": lease.id,
+        "processed": 0,
+        "remaining": 0,
         "discovered": 12,
         "created": 3,
         "updated": 0,
@@ -92,4 +94,3 @@ def test_failed_job_can_be_retried(tmp_path) -> None:
     )
     assert retried is not None
     assert retried.attempt == 2
-

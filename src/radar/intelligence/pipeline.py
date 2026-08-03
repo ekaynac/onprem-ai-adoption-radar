@@ -21,6 +21,7 @@ from radar.intelligence.contracts import (
     CompatibilityAssertion,
     EvidenceLevel,
     EvidenceObservation,
+    EvidenceStrength,
     LifecycleState,
     ModelCategory,
     ProductFamily,
@@ -47,6 +48,18 @@ from radar.intelligence.sources.registry import (
 from radar.intelligence.verification import VerificationService
 
 
+DISCOVERY_OVERLAP = timedelta(minutes=15)
+DEFAULT_VERIFICATION_BATCH_SIZE = 500
+DEFAULT_ENRICHMENT_BATCH_SIZE = 100
+_WEIGHT_SUFFIXES = (
+    ".bin",
+    ".gguf",
+    ".ggml",
+    ".onnx",
+    ".safetensors",
+)
+
+
 class IntelligenceJobRunner:
     """Run real, deterministic ingestion and decision lifecycle work."""
 
@@ -57,11 +70,15 @@ class IntelligenceJobRunner:
         repository: Any,
         adapters: Sequence[SourceAdapter] = (),
         clock: Callable[[], datetime] | None = None,
+        verification_batch_size: int = DEFAULT_VERIFICATION_BATCH_SIZE,
+        enrichment_batch_size: int = DEFAULT_ENRICHMENT_BATCH_SIZE,
     ):
         self.root = root
         self.repository = repository
         self.adapters = list(adapters)
         self.clock = clock or (lambda: datetime.now(UTC))
+        self.verification_batch_size = max(1, verification_batch_size)
+        self.enrichment_batch_size = max(1, enrichment_batch_size)
         self.event_log = EventLog(root / "data" / "intelligence" / "events.jsonl")
 
     async def run(self, kind: JobKind, job_id: str) -> JobResult:
@@ -91,12 +108,12 @@ class IntelligenceJobRunner:
             started = time.monotonic()
             try:
                 state = self.repository.get_source_health(adapter.id)
-                lookback = (
-                    timedelta(days=3650)
+                since = (
+                    now - timedelta(days=3650)
                     if state is None or state.last_success_at is None
-                    else timedelta(hours=2)
+                    else min(now, state.last_success_at) - DISCOVERY_OVERLAP
                 )
-                rows = await adapter.discover(now - lookback)
+                rows = await adapter.discover(since)
             except Exception as exc:
                 health.record_failure(adapter.id, str(exc), now)
                 warnings.append(f"{adapter.id}: {exc}")
@@ -138,11 +155,7 @@ class IntelligenceJobRunner:
                     publisher_id=resolution.publisher_id,
                     name=candidate.release_name,
                     category=candidate.category_hint or ModelCategory.TEXT_REASONING,
-                    lane=(
-                        ReleaseLane.DEPLOYABLE
-                        if candidate.artifact_urls
-                        else ReleaseLane.MARKET_REFERENCE
-                    ),
+                    lane=_candidate_lane(candidate),
                     lifecycle=LifecycleState.DETECTED,
                     first_observed_at=candidate.source_record.retrieved_at,
                     discovery_evidence_strength=candidate.source_record.strength,
@@ -188,10 +201,16 @@ class IntelligenceJobRunner:
         updated = 0
         warnings: list[str] = []
         enrichers = [adapter for adapter in self.adapters if hasattr(adapter, "enrich")]
+        eligible: list[tuple[Release, str]] = []
         for release in self.repository.list_all_releases():
-            repo_id = self._repository_identity(release.id)
-            if repo_id is None:
+            if release.lifecycle is not LifecycleState.VERIFIED:
                 continue
+            repo_id = self._repository_identity(release.id)
+            if repo_id is not None:
+                eligible.append((release, repo_id))
+        eligible.sort(key=lambda item: _processing_priority(item[0]))
+        selected = eligible[: self.enrichment_batch_size]
+        for release, repo_id in selected:
             for adapter in enrichers:
                 try:
                     enrichment = await adapter.enrich(repo_id)
@@ -214,7 +233,13 @@ class IntelligenceJobRunner:
                     evidence[0],
                 )
                 updated += 1
-        return JobResult(job_id=job_id, updated=updated, warnings=tuple(warnings))
+        return JobResult(
+            job_id=job_id,
+            processed=len(selected),
+            remaining=max(0, len(eligible) - len(selected)),
+            updated=updated,
+            warnings=tuple(warnings),
+        )
 
     def _repository_identity(self, release_id: str) -> str | None:
         for predicate in ("hf_repo", "repo_id"):
@@ -226,9 +251,15 @@ class IntelligenceJobRunner:
     def _verify(self, job_id: str, *, detected_only: bool) -> JobResult:
         service = VerificationService(self.repository)
         updated = conflicted = 0
-        for release in self.repository.list_all_releases():
-            if detected_only and release.lifecycle is not LifecycleState.DETECTED:
-                continue
+        eligible = [
+            release
+            for release in self.repository.list_all_releases()
+            if not detected_only
+            or release.lifecycle is LifecycleState.DETECTED
+        ]
+        eligible.sort(key=_processing_priority)
+        selected = eligible[: self.verification_batch_size]
+        for release in selected:
             result = service.verify_release(release.id, self.clock())
             if result.verified:
                 updated += 1
@@ -242,7 +273,13 @@ class IntelligenceJobRunner:
                     )
             if result.review_exception is not None:
                 conflicted += 1
-        return JobResult(job_id=job_id, updated=updated, conflicted=conflicted)
+        return JobResult(
+            job_id=job_id,
+            processed=len(selected),
+            remaining=max(0, len(eligible) - len(selected)),
+            updated=updated,
+            conflicted=conflicted,
+        )
 
     def _qualify(self, job_id: str) -> JobResult:
         verification = VerificationService(self.repository)
@@ -509,6 +546,40 @@ class IntelligenceJobRunner:
                 for evidence_id in claim.evidence_ids
             }
         )
+
+
+def _candidate_lane(candidate: DiscoveryCandidate) -> ReleaseLane:
+    artifact_paths = [url.casefold().split("?", 1)[0] for url in candidate.artifact_urls]
+    if any(path.endswith(_WEIGHT_SUFFIXES) for path in artifact_paths):
+        return ReleaseLane.DEPLOYABLE
+    if artifact_paths:
+        return ReleaseLane.ADJACENT
+    return ReleaseLane.MARKET_REFERENCE
+
+
+def _processing_priority(release: Release) -> tuple[int, float, int, str]:
+    strength_rank = {
+        strength: index
+        for index, strength in enumerate(
+            (
+                EvidenceStrength.OFFICIAL_ARTIFACT,
+                EvidenceStrength.OFFICIAL_DOCUMENTATION,
+                EvidenceStrength.OFFICIAL_REPOSITORY,
+                EvidenceStrength.OFFICIAL_ANNOUNCEMENT,
+                EvidenceStrength.TRUSTED_REGISTRY,
+                EvidenceStrength.BENCHMARK_MAINTAINER,
+                EvidenceStrength.AGGREGATOR,
+                EvidenceStrength.COMMUNITY,
+            )
+        )
+    }
+    provisional = release.publisher_id.startswith("publisher:provisional:")
+    return (
+        int(provisional),
+        -release.first_observed_at.timestamp(),
+        strength_rank[release.discovery_evidence_strength],
+        release.id,
+    )
 
 
 async def run_configured_job(

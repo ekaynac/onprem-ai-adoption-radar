@@ -42,6 +42,8 @@ class JobLease:
 @dataclass(frozen=True)
 class JobResult:
     job_id: str
+    processed: int = 0
+    remaining: int = 0
     discovered: int = 0
     created: int = 0
     updated: int = 0
