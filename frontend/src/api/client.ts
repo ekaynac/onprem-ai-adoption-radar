@@ -48,6 +48,21 @@ function modelTimestamp(model: Record<string, unknown>): number {
 }
 
 
+const UNRANKED_SIGNIFICANCE = 99;
+
+function significanceRank(model: Record<string, unknown>): number {
+  const significance = model.significance as Record<string, unknown> | null | undefined;
+  const rank = significance?.rank;
+  return typeof rank === "number" ? rank : UNRANKED_SIGNIFICANCE;
+}
+
+function significanceScore(model: Record<string, unknown>): number {
+  const significance = model.significance as Record<string, unknown> | null | undefined;
+  const score = significance?.score;
+  return typeof score === "number" ? score : 0;
+}
+
+
 export function mergeCatalogModels(
   compact: Array<Record<string, unknown>>,
   detailed: Array<Record<string, unknown>>,
@@ -57,9 +72,18 @@ export function mergeCatalogModels(
     byRelease.set(String(model.release_id), model);
   }
   for (const model of detailed) {
-    byRelease.set(String(model.release_id), model);
+    const releaseId = String(model.release_id);
+    const compactRow = byRelease.get(releaseId);
+    // The detailed snapshot row wins on collisions, but must not erase the
+    // significance/lineage the compact index computed for the same release.
+    byRelease.set(releaseId, compactRow ? { ...compactRow, ...model } : model);
   }
   return [...byRelease.values()].sort((left, right) => {
+    // Mirrors the backend `_model_row_order`: class, score, recency, id.
+    const rank = significanceRank(left) - significanceRank(right);
+    if (rank !== 0) return rank;
+    const score = significanceScore(right) - significanceScore(left);
+    if (score !== 0) return score;
     const timeDifference = modelTimestamp(right) - modelTimestamp(left);
     if (timeDifference !== 0) return timeDifference;
     return String(left.release_id).localeCompare(String(right.release_id));
@@ -116,6 +140,9 @@ function catalogItem(model: Record<string, unknown>) {
     lifecycle: model.lifecycle,
     first_observed_at: model.first_observed_at,
     matched_terms: [],
+    lineage: model.lineage ?? null,
+    is_official: model.is_official ?? null,
+    significance: model.significance ?? null,
     public_recommendation: {
       release_id: releaseId,
       workspace_id: null,
@@ -143,7 +170,13 @@ export function projectStaticRequest(
     const priorityOnly = url.searchParams.get("priority_only") === "true";
     const rows = priorityOnly
       ? snapshot.releases
-          .filter((item) => Number(item.confidence ?? 0) >= 0.7 && item.review_status === "clear")
+          .filter(
+            (item) =>
+              Number(item.confidence ?? 0) >= 0.7 &&
+              item.review_status === "clear" &&
+              // Mirrors the API: derivatives never lead the briefing.
+              (item.lineage as Record<string, unknown> | null | undefined)?.relation == null,
+          )
           .sort((left, right) => {
             const confidence = Number(right.confidence ?? 0) - Number(left.confidence ?? 0);
             return confidence || modelTimestamp(right) - modelTimestamp(left);

@@ -295,9 +295,15 @@ export interface components {
             category: components["schemas"]["ModelCategory"];
             /** First Observed At */
             first_observed_at: string;
+            /** Is Official */
+            is_official?: boolean | null;
             /** Lane */
             lane: string;
             lifecycle: components["schemas"]["LifecycleState"];
+            /** Lineage */
+            lineage?: {
+                [key: string]: unknown;
+            } | null;
             /** Matched Terms */
             matched_terms?: string[];
             /** Name */
@@ -469,10 +475,16 @@ export interface components {
             first_observed_at: string;
             /** Freshness */
             freshness: string;
+            /** Is Official */
+            is_official?: boolean | null;
             /** Lane */
             lane: string;
             /** Lifecycle */
             lifecycle: string;
+            /** Lineage */
+            lineage?: {
+                [key: string]: unknown;
+            } | null;
             /** Name */
             name: string;
             /** Release Id */
@@ -481,6 +493,10 @@ export interface components {
             released_at?: string | null;
             /** Review Status */
             review_status: string;
+            /** Significance */
+            significance?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * ReleaseLane

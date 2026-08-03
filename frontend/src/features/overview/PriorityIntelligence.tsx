@@ -1,7 +1,12 @@
 import { Link } from "react-router-dom";
 
 import { StatusBadge, type IntelligenceStatus } from "../../design/StatusBadge";
-import { releaseAgeHours, type ReleaseChange } from "../releases/releaseQueries";
+import {
+  derivativeCountsLabel,
+  releaseAgeHours,
+  releaseLineage,
+  type ReleaseChange,
+} from "../releases/releaseQueries";
 
 
 function ageLabel(hours: number) {
@@ -54,6 +59,16 @@ export function PriorityIntelligence({ items }: { items: ReleaseChange[] }) {
                 <p>
                   {item.category.replaceAll("_", " ")} ·{" "}
                   {item.lane.replaceAll("_", " ")}
+                  {derivativeCountsLabel(
+                    releaseLineage(item)?.derivative_counts,
+                  ) && (
+                    <>
+                      {" · "}
+                      {derivativeCountsLabel(
+                        releaseLineage(item)?.derivative_counts,
+                      )}
+                    </>
+                  )}
                 </p>
               </div>
             </div>

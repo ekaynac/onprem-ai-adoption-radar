@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from pydantic import Field
 
@@ -51,6 +51,9 @@ class ReleaseChange(FrozenModel):
     confidence: float
     review_status: str
     citations: list[Citation] = Field(default_factory=list)
+    lineage: dict[str, Any] | None = None
+    is_official: bool | None = None
+    significance: dict[str, Any] | None = None
 
 
 class ReleaseRepository(Protocol):

@@ -43,6 +43,8 @@ class CatalogItem(FrozenModel):
     public_recommendation: RecommendationView
     workspace_recommendation: RecommendationView | None = None
     matched_terms: list[str] = Field(default_factory=list)
+    lineage: dict[str, Any] | None = None
+    is_official: bool | None = None
 
 
 class ClaimCitation(FrozenModel):
@@ -350,7 +352,32 @@ class CatalogService:
                 else None
             ),
             matched_terms=matched_terms,
+            lineage=self._lineage(release.id),
+            is_official=not release.publisher_id.startswith(
+                "publisher:provisional:"
+            ),
         )
+
+    def _lineage(self, release_id: str) -> dict[str, Any] | None:
+        lister = getattr(self.repository, "list_lineage_for_child", None)
+        if lister is None:
+            return None
+        edges = lister(release_id)
+        if not edges:
+            return None
+        primary = max(
+            edges,
+            key=lambda edge: (
+                edge.confidence,
+                edge.parent_release_id or "",
+                edge.id,
+            ),
+        )
+        return {
+            "base_release": primary.parent_release_id,
+            "relation": primary.relation.value,
+            "root_release": primary.root_release_id,
+        }
 
 
 def _claim_datetime(value: Any) -> datetime | None:

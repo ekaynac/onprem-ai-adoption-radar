@@ -34,6 +34,42 @@ export function releaseAgeHours(item: ReleaseChange, now = Date.now()) {
 }
 
 
+export type ReleaseLineage = {
+  base_release?: string | null;
+  relation?: string | null;
+  root_release?: string | null;
+  derivative_counts?: Record<string, number> | null;
+};
+
+export function releaseLineage(
+  item: Pick<ReleaseChange, "lineage">,
+): ReleaseLineage | null {
+  return (item.lineage as ReleaseLineage | null | undefined) ?? null;
+}
+
+export function releaseGroupKey(item: ReleaseChange): string {
+  return releaseLineage(item)?.root_release ?? item.release_id;
+}
+
+export function derivativeCountsLabel(
+  counts: Record<string, number> | null | undefined,
+  fallbackCount = 0,
+): string | null {
+  const entries = Object.entries(counts ?? {}).filter(
+    ([, count]) => count > 0,
+  );
+  if (!entries.length) {
+    return fallbackCount > 0
+      ? `${fallbackCount} variant${fallbackCount === 1 ? "" : "s"}`
+      : null;
+  }
+  return entries
+    .sort(([, left], [, right]) => right - left)
+    .map(([relation, count]) => `${count} ${relation.replaceAll("_", " ")}`)
+    .join(" · ");
+}
+
+
 export function usePriorityReleases(
   workspaceId?: string,
   limit = 50,

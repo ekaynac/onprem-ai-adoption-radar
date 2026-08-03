@@ -282,3 +282,104 @@ test("falls back to detailed snapshot models when the index is unavailable", asy
     snapshot.models,
   );
 });
+
+
+test("orders merged catalog models by significance before recency", () => {
+  const merged = mergeCatalogModels(
+    [
+      {
+        release_id: "release:clone",
+        released_at: "2026-08-03T09:00:00Z",
+        significance: { class: "declared_derivative", rank: 4, score: 0.9 },
+      },
+      {
+        release_id: "release:root",
+        released_at: "2026-06-01T00:00:00Z",
+        significance: { class: "official_root", rank: 0, score: 0.4 },
+      },
+      {
+        release_id: "release:unranked",
+        released_at: "2026-08-03T10:00:00Z",
+      },
+    ],
+    [],
+  );
+
+  expect(merged.map((model) => model.release_id)).toEqual([
+    "release:root",
+    "release:clone",
+    "release:unranked",
+  ]);
+});
+
+
+test("detailed snapshot rows keep the compact index significance on merge", () => {
+  const merged = mergeCatalogModels(
+    [
+      {
+        release_id: "release:root",
+        significance: { class: "official_root", rank: 0, score: 0.4 },
+        lineage: { root_release: "release:root" },
+      },
+    ],
+    [
+      {
+        release_id: "release:root",
+        name: "Root",
+        public_ring: "adopt",
+      },
+    ],
+  );
+
+  expect(merged[0]).toMatchObject({
+    name: "Root",
+    public_ring: "adopt",
+    significance: { rank: 0 },
+    lineage: { root_release: "release:root" },
+  });
+});
+
+
+test("static priority stream excludes declared derivatives", () => {
+  const snapshot = {
+    schema_version: "1.0",
+    generated_at: "2026-08-03T10:00:00Z",
+    releases: [
+      {
+        release_id: "release:derivative",
+        name: "Kimi K3 GGUF",
+        confidence: 0.9,
+        review_status: "clear",
+        released_at: "2026-08-03T09:00:00Z",
+        lineage: { relation: "quantized", root_release: "release:root" },
+      },
+      {
+        release_id: "release:root",
+        name: "Kimi K3",
+        confidence: 0.8,
+        review_status: "clear",
+        released_at: "2026-08-01T09:00:00Z",
+        lineage: { relation: null, root_release: "release:root" },
+      },
+    ],
+    models: [],
+    projects: [],
+    model_candidates: [],
+    platforms: [],
+    hardware: [],
+    research: [],
+    events: [],
+    source_health: {
+      source_health: [],
+      open_review_count: 0,
+      stale_claim_count: 0,
+    },
+  };
+
+  const page = projectStaticRequest(
+    "/api/v1/releases?priority_only=true&limit=10",
+    snapshot,
+  ) as { items: Array<{ release_id: string }> };
+
+  expect(page.items.map((item) => item.release_id)).toEqual(["release:root"]);
+});

@@ -6,10 +6,42 @@ import {
   useActiveWorkspaceId,
   usePriorityReleases,
   releaseAgeHours,
+  releaseGroupKey,
+  releaseLineage,
+  derivativeCountsLabel,
+  type ReleaseChange,
 } from "./releaseQueries";
 
 
 const ALL = "all";
+
+type ReleaseGroup = {
+  key: string;
+  head: ReleaseChange;
+  members: ReleaseChange[];
+};
+
+export function groupReleasesByRoot(items: ReleaseChange[]): ReleaseGroup[] {
+  const groups = new Map<string, ReleaseGroup>();
+  const order: string[] = [];
+  for (const item of items) {
+    const key = releaseGroupKey(item);
+    const existing = groups.get(key);
+    if (!existing) {
+      groups.set(key, { key, head: item, members: [] });
+      order.push(key);
+      continue;
+    }
+    if (item.release_id === key) {
+      // The root itself always leads its group.
+      existing.members.unshift(existing.head);
+      existing.head = item;
+    } else {
+      existing.members.push(item);
+    }
+  }
+  return order.map((key) => groups.get(key) as ReleaseGroup);
+}
 
 
 export function ReleaseStreamPage() {
@@ -22,6 +54,10 @@ export function ReleaseStreamPage() {
   const [review, setReview] = useState(ALL);
   const [source, setSource] = useState(ALL);
   const [age, setAge] = useState<number | typeof ALL>(ALL);
+  const [view, setView] = useState<"grouped" | "all">("grouped");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(),
+  );
   const visible = useMemo(
     () =>
       (releases.data?.items ?? []).filter(
@@ -37,6 +73,55 @@ export function ReleaseStreamPage() {
           (age === ALL || releaseAgeHours(item) <= age),
       ),
     [age, category, lane, lifecycle, releases.data?.items, review, source],
+  );
+  const groups = useMemo(
+    () =>
+      view === "grouped"
+        ? groupReleasesByRoot(visible)
+        : visible.map((item) => ({
+            key: item.release_id,
+            head: item,
+            members: [],
+          })),
+    [view, visible],
+  );
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const releaseRow = (item: ReleaseChange, isMember: boolean) => (
+    <tr
+      key={item.release_id}
+      className={isMember ? "derivative-row" : undefined}
+    >
+      <td>
+        <Link to={`/releases/${encodeURIComponent(item.release_id)}`}>
+          <strong>{item.name}</strong>
+          <span>
+            {isMember && releaseLineage(item)?.relation
+              ? `${releaseLineage(item)?.relation} · `
+              : ""}
+            {item.category.replaceAll("_", " ")}
+          </span>
+        </Link>
+      </td>
+      <td>
+        <StatusBadge status={item.lifecycle as IntelligenceStatus} />
+      </td>
+      <td>{item.lane.replaceAll("_", " ")}</td>
+      <td>{Math.round(item.confidence * 100)}%</td>
+      <td>{releaseAgeHours(item) < 1 ? "<1h" : `${Math.round(releaseAgeHours(item))}h`}</td>
+      <td>{item.review_status}</td>
+    </tr>
   );
 
   return (
@@ -118,6 +203,18 @@ export function ReleaseStreamPage() {
             <option value={168}>7 days</option>
           </select>
         </label>
+        <label>
+          <span>View</span>
+          <select
+            value={view}
+            onChange={(event) =>
+              setView(event.target.value === "all" ? "all" : "grouped")
+            }
+          >
+            <option value="grouped">Grouped by base model</option>
+            <option value="all">All artifacts</option>
+          </select>
+        </label>
       </div>
 
       {releases.isLoading ? (
@@ -141,26 +238,58 @@ export function ReleaseStreamPage() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((item) => (
-                <tr key={item.release_id}>
-                  <td>
-                    <Link to={`/releases/${encodeURIComponent(item.release_id)}`}>
-                      <strong>{item.name}</strong>
-                      <span>{item.category.replaceAll("_", " ")}</span>
-                    </Link>
-                  </td>
-                  <td>
-                    <StatusBadge status={item.lifecycle as IntelligenceStatus} />
-                  </td>
-                  <td>{item.lane.replaceAll("_", " ")}</td>
-                  <td>{Math.round(item.confidence * 100)}%</td>
-                  <td>{releaseAgeHours(item) < 1 ? "<1h" : `${Math.round(releaseAgeHours(item))}h`}</td>
-                  <td>{item.review_status}</td>
-                </tr>
-              ))}
+              {groups.map((group) => {
+                const counts = derivativeCountsLabel(
+                  releaseLineage(group.head)?.derivative_counts,
+                  group.members.length,
+                );
+                const expanded = expandedGroups.has(group.key);
+                return [
+                  <tr key={group.head.release_id}>
+                    <td>
+                      <Link
+                        to={`/releases/${encodeURIComponent(group.head.release_id)}`}
+                      >
+                        <strong>{group.head.name}</strong>
+                        <span>{group.head.category.replaceAll("_", " ")}</span>
+                      </Link>
+                      {group.members.length > 0 && (
+                        <button
+                          type="button"
+                          className="variant-toggle"
+                          aria-expanded={expanded}
+                          onClick={() => toggleGroup(group.key)}
+                        >
+                          {expanded ? "Hide" : "Show"}{" "}
+                          {counts ?? `${group.members.length} variants`}
+                        </button>
+                      )}
+                      {group.members.length === 0 && counts && (
+                        <span className="variant-count">{counts}</span>
+                      )}
+                    </td>
+                    <td>
+                      <StatusBadge
+                        status={group.head.lifecycle as IntelligenceStatus}
+                      />
+                    </td>
+                    <td>{group.head.lane.replaceAll("_", " ")}</td>
+                    <td>{Math.round(group.head.confidence * 100)}%</td>
+                    <td>
+                      {releaseAgeHours(group.head) < 1
+                        ? "<1h"
+                        : `${Math.round(releaseAgeHours(group.head))}h`}
+                    </td>
+                    <td>{group.head.review_status}</td>
+                  </tr>,
+                  ...(expanded
+                    ? group.members.map((member) => releaseRow(member, true))
+                    : []),
+                ];
+              })}
             </tbody>
           </table>
-          {!visible.length && (
+          {!groups.length && (
             <div className="empty-state compact">
               <strong>No releases match these filters</strong>
               <span>Broaden a filter to return more intelligence.</span>

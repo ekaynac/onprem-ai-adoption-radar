@@ -1,6 +1,10 @@
 import { Link } from "react-router-dom";
 
 import { StatusBadge } from "../../design/StatusBadge";
+import {
+  derivativeCountsLabel,
+  releaseLineage,
+} from "../releases/releaseQueries";
 import type { CatalogItem } from "./catalogQueries";
 
 
@@ -31,6 +35,8 @@ export function CatalogTable({ items }: { items: CatalogItem[] }) {
           {items.map((item) => {
             const ring = item.workspace_recommendation?.ring ??
               item.public_recommendation.ring;
+            const lineage = releaseLineage(item);
+            const variants = derivativeCountsLabel(lineage?.derivative_counts);
             return (
               <tr key={item.release_id}>
                 <td data-label="Model">
@@ -38,6 +44,19 @@ export function CatalogTable({ items }: { items: CatalogItem[] }) {
                     <strong>{item.name}</strong>
                     <span>{item.release_id}</span>
                   </Link>
+                  {lineage?.relation && lineage.base_release && (
+                    <span className="lineage-chip">
+                      {lineage.relation.replaceAll("_", " ")} of{" "}
+                      <Link
+                        to={`/catalog/${encodeURIComponent(lineage.base_release)}`}
+                      >
+                        {lineage.base_release.split(":").slice(-2).join(" ")}
+                      </Link>
+                    </span>
+                  )}
+                  {!lineage?.relation && variants && (
+                    <span className="lineage-chip">{variants}</span>
+                  )}
                 </td>
                 <td data-label="Category">{item.category.replaceAll("_", " ")}</td>
                 <td data-label="Lifecycle"><StatusBadge status={item.lifecycle} /></td>
