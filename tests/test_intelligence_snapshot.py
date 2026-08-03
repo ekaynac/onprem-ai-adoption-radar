@@ -258,7 +258,7 @@ def test_public_snapshot_bounds_expensive_detail_projection() -> None:
 
 
 def test_model_index_shards_every_release_once_and_is_deterministic(tmp_path) -> None:
-    canonical = [_release(index) for index in range(4_501)]
+    canonical = [_release(index) for index in range(20_001)]
     generated_at = datetime(2026, 8, 3, tzinfo=UTC)
 
     first = write_model_index(
@@ -284,7 +284,7 @@ def test_model_index_shards_every_release_once_and_is_deterministic(tmp_path) ->
 
     assert first == second
     assert first.total == len(canonical)
-    assert [shard.count for shard in first.shards] == [2_000, 2_000, 501]
+    assert [shard.count for shard in first.shards] == [2_000] * 10 + [1]
     assert first_bytes == second_bytes
     rows = []
     for shard in first.shards:
