@@ -266,19 +266,27 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
 def _import_platform(seed: PlatformSeed, repository) -> bool:
     payload = seed.model_dump(mode="json")
     platform_id = f"platform:legacy:{seed.id}"
-    created = repository.import_platform(
+    created, metadata_updated = repository.reconcile_legacy_platform_metadata(
         platform_id=platform_id,
         name=seed.name,
         repo_url=seed.repo_url,
         verified_at=seed.verified,
         payload=payload,
     )
+    evidence_checksum = _checksum(payload)
+    evidence_id = f"evidence:legacy:platform:{seed.id}"
+    existing_evidence = repository.get_evidence(evidence_id)
+    if existing_evidence is not None and (
+        existing_evidence.source_url != seed.sources[0]
+        or existing_evidence.checksum != evidence_checksum
+    ):
+        evidence_id = f"{evidence_id}:{evidence_checksum[:16]}"
     evidence = EvidenceObservation(
-        id=f"evidence:legacy:platform:{seed.id}",
+        id=evidence_id,
         source_url=seed.sources[0],
         strength=EvidenceStrength.OFFICIAL_DOCUMENTATION,
         retrieved_at=datetime.fromisoformat(seed.verified).replace(tzinfo=UTC),
-        checksum=_checksum(payload),
+        checksum=evidence_checksum,
         extractor_version="legacy-platform-seed-v1",
     )
     repository.append_evidence(evidence)
@@ -308,6 +316,13 @@ def _import_platform(seed: PlatformSeed, repository) -> bool:
                 # A migration rerun must preserve that newer operational state.
                 continue
             repository.append_claim(claim)
+    if metadata_updated:
+        repository.record_platform_verification(
+            platform_id,
+            evidence.retrieved_at,
+            evidence_id=evidence.id,
+            success=True,
+        )
     return created
 
 

@@ -1003,6 +1003,56 @@ class SqlAlchemyIntelligenceRepository:
             )
             return True
 
+    def reconcile_legacy_platform_metadata(
+        self,
+        *,
+        platform_id: str,
+        name: str,
+        repo_url: str,
+        verified_at: str,
+        payload: dict[str, object],
+    ) -> tuple[bool, bool]:
+        """Import a platform or refresh non-claim seed metadata safely.
+
+        Hardware and feature values are represented by append-only claims and
+        must use their own versioned migration. Source links and notes are
+        materialized platform metadata, so correcting them keeps the stable
+        platform identity and refreshes the projection in place.
+        """
+        with self.database.session() as session:
+            existing = session.get(PlatformRow, platform_id)
+            if existing is None:
+                session.add(
+                    PlatformRow(
+                        id=platform_id,
+                        name=name,
+                        repo_url=repo_url,
+                        verified_at=verified_at,
+                        payload=payload,
+                    )
+                )
+                return True, False
+
+            existing_claim_fields = {
+                "hardware": existing.payload.get("hardware"),
+                "features": existing.payload.get("features"),
+            }
+            incoming_claim_fields = {
+                "hardware": payload.get("hardware"),
+                "features": payload.get("features"),
+            }
+            if (
+                existing.name != name
+                or existing.repo_url != repo_url
+                or existing.verified_at != verified_at
+                or existing_claim_fields != incoming_claim_fields
+            ):
+                raise RepositoryConflict(f"Platform id changed: {platform_id}")
+            if existing.payload == payload:
+                return False, False
+            existing.payload = payload
+            return False, True
+
     def count_platforms(self) -> int:
         with self.database.session() as session:
             return session.scalar(select(func.count()).select_from(PlatformRow)) or 0

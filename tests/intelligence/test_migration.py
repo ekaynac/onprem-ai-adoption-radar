@@ -136,6 +136,45 @@ def test_reimport_preserves_operational_claim_state_promotion(tmp_path: Path) ->
     assert claim.state is ClaimState.VERIFIED
 
 
+def test_reimport_reconciles_corrected_legacy_platform_metadata(tmp_path: Path) -> None:
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+    import_legacy_state(tmp_path, repository)
+    corrected_source = "https://github.com/acme/sample-engine/blob/main/docs/install.md"
+    (tmp_path / "config" / "platform-matrix.yaml").write_text(
+        PLATFORM_SEED.replace(
+            "https://github.com/acme/sample-engine]",
+            f"{corrected_source}]",
+        ),
+        encoding="utf-8",
+    )
+
+    corrected = import_legacy_state(tmp_path, repository)
+    repeated = import_legacy_state(tmp_path, repository)
+
+    assert corrected.platforms_imported == 0
+    assert repeated.platforms_imported == 0
+    assert repository.count_platforms() == 1
+    platform = next(
+        row
+        for row in repository.list_platforms()
+        if row["name"] == "Sample Engine"
+    )
+    assert platform["sources"] == [corrected_source]
+    evidence = repository.get_evidence(
+        next(
+            claim.evidence_ids[-1]
+            for claim in repository.list_claims_for_subject(
+                "platform:legacy:sample-engine"
+            )
+        )
+    )
+    assert evidence is not None
+    assert evidence.source_url == corrected_source
+
+
 def test_verified_seed_records_detected_to_verified_transition(tmp_path: Path) -> None:
     seed_legacy_root(tmp_path)
     database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
