@@ -136,6 +136,38 @@ async def test_discovery_follows_cursor_until_page_is_older_than_cutoff() -> Non
     ]
 
 
+@pytest.mark.asyncio
+async def test_discovery_extracts_declared_lineage_and_collapses_bare_tags() -> None:
+    items = {
+        "image-text-to-text": [
+            load_fixture("hf_kimi_k3.json"),
+            load_fixture("hf_kimi_k3_gguf.json"),
+        ],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        pipeline = request.url.params.get("pipeline_tag")
+        return httpx.Response(
+            200, json=items.get(pipeline, []), request=request
+        )
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        adapter = HuggingFaceAdapter(client=client, publishers={}, clock=lambda: NOW)
+        candidates = await adapter.discover(datetime(2026, 7, 30, tzinfo=UTC))
+
+    by_id = {candidate.external_id: candidate for candidate in candidates}
+    assert by_id["grearl/Kimi-K3-GGUF"].claims["lineage_declared"] == [
+        {
+            "parent_repo": "moonshotai/Kimi-K3",
+            "relation": "quantized",
+            "via": "tags",
+        }
+    ]
+    assert "lineage_declared" not in by_id["moonshotai/Kimi-K3"].claims
+
+
 def test_every_supported_pipeline_maps_to_category() -> None:
     expected = {
         "text-generation": ModelCategory.TEXT_REASONING,
@@ -192,3 +224,110 @@ async def test_enrichment_keeps_metadata_config_and_card_as_separate_evidence() 
     assert enrichment.claims["context_length"] == 262144
     assert enrichment.claims["quantization_format"] == "FP8"
     assert enrichment.claims["architecture"]["attention_kind"] == "gqa"
+
+
+@pytest.mark.asyncio
+async def test_enrichment_prefers_api_declared_base_models() -> None:
+    metadata = load_fixture("hf_kimi_k3_gguf.json")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.startswith("/api/models/"):
+            if request.url.params.get("expand") == "baseModels":
+                return httpx.Response(
+                    200,
+                    json={
+                        "id": "grearl/Kimi-K3-GGUF",
+                        "baseModels": {
+                            "relation": "quantized",
+                            "models": [{"id": "moonshotai/Kimi-K3"}],
+                        },
+                    },
+                    request=request,
+                )
+            return httpx.Response(200, json=metadata, request=request)
+        if request.url.path.endswith("/config.json"):
+            return httpx.Response(200, json={}, request=request)
+        if request.url.path.endswith("/README.md"):
+            return httpx.Response(200, text="# Kimi K3 GGUF", request=request)
+        return httpx.Response(404, request=request)
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        adapter = HuggingFaceAdapter(client=client, publishers={}, clock=lambda: NOW)
+        enrichment = await adapter.enrich("grearl/Kimi-K3-GGUF")
+
+    assert enrichment.claims["lineage_declared"] == [
+        {
+            "parent_repo": "moonshotai/Kimi-K3",
+            "relation": "quantized",
+            "via": "api",
+        }
+    ]
+    assert "base_models" in {record.kind for record in enrichment.records}
+
+
+@pytest.mark.asyncio
+async def test_enrichment_without_config_json_keeps_metadata_evidence() -> None:
+    metadata = load_fixture("hf_kimi_k3_gguf.json")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.startswith("/api/models/"):
+            if request.url.params.get("expand") == "baseModels":
+                return httpx.Response(500, request=request)
+            return httpx.Response(200, json=metadata, request=request)
+        if request.url.path.endswith("/config.json"):
+            return httpx.Response(404, request=request)
+        if request.url.path.endswith("/README.md"):
+            return httpx.Response(200, text="# Kimi K3 GGUF", request=request)
+        return httpx.Response(404, request=request)
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        adapter = HuggingFaceAdapter(client=client, publishers={}, clock=lambda: NOW)
+        enrichment = await adapter.enrich("grearl/Kimi-K3-GGUF")
+
+    kinds = {record.kind for record in enrichment.records}
+    assert "metadata" in kinds
+    assert "model_card" in kinds
+    assert "config" not in kinds
+    assert enrichment.claims["license"] == "mit"
+    assert enrichment.claims["lineage_declared"] == [
+        {
+            "parent_repo": "moonshotai/Kimi-K3",
+            "relation": "quantized",
+            "via": "tags",
+        }
+    ]
+    assert "architecture" not in enrichment.claims
+    assert "num_layers" not in enrichment.claims
+
+
+@pytest.mark.asyncio
+async def test_enrichment_survives_unavailable_base_models_expand() -> None:
+    metadata = load_fixture("hf_kimi_k3_gguf.json")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.startswith("/api/models/"):
+            if request.url.params.get("expand") == "baseModels":
+                return httpx.Response(500, request=request)
+            return httpx.Response(200, json=metadata, request=request)
+        if request.url.path.endswith("/config.json"):
+            return httpx.Response(200, json={}, request=request)
+        return httpx.Response(404, request=request)
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        adapter = HuggingFaceAdapter(client=client, publishers={}, clock=lambda: NOW)
+        enrichment = await adapter.enrich("grearl/Kimi-K3-GGUF")
+
+    assert enrichment.claims["lineage_declared"] == [
+        {
+            "parent_repo": "moonshotai/Kimi-K3",
+            "relation": "quantized",
+            "via": "tags",
+        }
+    ]
+    assert "base_models" not in {record.kind for record in enrichment.records}

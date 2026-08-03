@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -21,6 +22,39 @@ from radar.models_radar.hf_config import parse_architecture, parse_quant_format
 
 
 HF_API_URL = "https://huggingface.co/api/models"
+LINEAGE_TAG_PREFIX = "base_model:"
+LINEAGE_TAG_RELATIONS = frozenset({"finetune", "quantized", "merge", "adapter"})
+RATE_LIMIT_RETRIES = 3
+RATE_LIMIT_MAX_WAIT_SECONDS = 65.0
+
+
+async def _get_with_rate_limit_retry(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+) -> httpx.Response | None:
+    """GET with bounded 429 backoff; None on transport failure.
+
+    Backfill sweeps make hundreds of anonymous API calls; without honoring
+    Retry-After every request after the limit silently degrades to a skip,
+    which reads as \"no declared parent\" when the truth is \"never asked\".
+    """
+    response: httpx.Response | None = None
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            response = await client.get(url, params=params)
+        except httpx.HTTPError:
+            return None
+        if response.status_code != 429 or attempt == RATE_LIMIT_RETRIES:
+            return response
+        retry_after = response.headers.get("retry-after")
+        try:
+            wait = min(float(retry_after or 5.0), RATE_LIMIT_MAX_WAIT_SECONDS)
+        except ValueError:
+            wait = 5.0
+        await asyncio.sleep(wait * (attempt + 1))
+    return response
 HF_PIPELINE_CATEGORIES = {
     "text-generation": ModelCategory.TEXT_REASONING,
     "image-text-to-text": ModelCategory.MULTIMODAL,
@@ -121,6 +155,32 @@ class HuggingFaceAdapter:
         response.raise_for_status()
         return self._record_from_response(response)
 
+    async def fetch_candidate(self, repo_id: str) -> DiscoveryCandidate | None:
+        """Fetch one repository and shape it as a discovery candidate.
+
+        Used by the lineage backfill to register declared parents that the
+        rolling discovery window never saw. Returns None on any failure so
+        callers can leave the parent unresolved.
+        """
+        encoded_repo = quote(repo_id, safe="/")
+        response = await _get_with_rate_limit_retry(
+            self.client,
+            f"{HF_API_URL}/{encoded_repo}",
+        )
+        if response is None or response.status_code >= 400:
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            return None
+        if not isinstance(payload, dict) or not payload.get("id"):
+            return None
+        return self._candidate(
+            payload,
+            self._record_from_response(response),
+            HF_PIPELINE_CATEGORIES.get(str(payload.get("pipeline_tag"))),
+        )
+
     async def enrich(self, repo_id: str) -> HFEnrichment:
         encoded_repo = quote(repo_id, safe="/")
         metadata_response = await self.client.get(f"{HF_API_URL}/{encoded_repo}")
@@ -129,25 +189,35 @@ class HuggingFaceAdapter:
         if not isinstance(metadata, dict):
             raise ValueError("Hugging Face model metadata must be a JSON object")
 
-        config_url = (
-            f"https://huggingface.co/{encoded_repo}/resolve/main/config.json"
-        )
-        config_response = await self.client.get(config_url)
-        config_response.raise_for_status()
-        config = config_response.json()
-        if not isinstance(config, dict):
-            config = {}
-
         records = [
             HFEnrichmentRecord(
                 kind="metadata",
                 source_record=self._record_from_response(metadata_response),
             ),
-            HFEnrichmentRecord(
-                kind="config",
-                source_record=self._record_from_response(config_response),
-            ),
         ]
+
+        # Only the metadata fetch above is fatal. A repository without a
+        # root config.json (GGUF-only uploads, adapters, datasets-style
+        # layouts) must keep its metadata, card, license, and lineage
+        # evidence; architecture fields simply stay unknown.
+        config: dict[str, Any] = {}
+        config_url = (
+            f"https://huggingface.co/{encoded_repo}/resolve/main/config.json"
+        )
+        config_response = await self.client.get(config_url)
+        if config_response.status_code < 400:
+            try:
+                config_payload = config_response.json()
+            except ValueError:
+                config_payload = None
+            if isinstance(config_payload, dict):
+                config = config_payload
+            records.append(
+                HFEnrichmentRecord(
+                    kind="config",
+                    source_record=self._record_from_response(config_response),
+                )
+            )
         records.extend(
             self._metadata_slices(
                 repo_id,
@@ -166,6 +236,24 @@ class HuggingFaceAdapter:
                 )
             )
 
+        api_base_models: Any = None
+        base_models_response = await self.client.get(
+            f"{HF_API_URL}/{encoded_repo}",
+            params={"expand": ["baseModels"]},
+        )
+        if base_models_response.status_code < 400:
+            payload = base_models_response.json()
+            if isinstance(payload, dict):
+                api_base_models = payload.get("baseModels")
+            records.append(
+                HFEnrichmentRecord(
+                    kind="base_models",
+                    source_record=self._record_from_response(
+                        base_models_response
+                    ),
+                )
+            )
+
         siblings = _sibling_names(metadata)
         artifact_urls = [f"https://huggingface.co/{repo_id}"]
         artifact_urls.extend(
@@ -175,7 +263,7 @@ class HuggingFaceAdapter:
         return HFEnrichment(
             repo_id=repo_id,
             records=records,
-            claims=_enrichment_claims(metadata, config),
+            claims=_enrichment_claims(metadata, config, api_base_models),
             artifact_urls=artifact_urls,
         )
 
@@ -183,7 +271,7 @@ class HuggingFaceAdapter:
         self,
         item: dict[str, Any],
         record: SourceRecord,
-        category: ModelCategory,
+        category: ModelCategory | None,
     ) -> DiscoveryCandidate:
         repo_id = str(item["id"])
         owner, _, release_name = repo_id.partition("/")
@@ -252,6 +340,49 @@ class HuggingFaceAdapter:
         ]
 
 
+async def fetch_base_models(
+    client: httpx.AsyncClient,
+    repo_id: str,
+    *,
+    source_id: str = "huggingface",
+    clock: Callable[[], datetime] | None = None,
+) -> tuple[SourceRecord | None, list[dict[str, Any]]]:
+    """Fetch the server-resolved base-model declaration for one repository.
+
+    Returns ``(None, [])`` on any failure so backfill callers can skip
+    without special-casing; a successful call with no declared parents
+    returns the evidence record and an empty entry list, which marks the
+    repository as checked.
+    """
+    encoded_repo = quote(repo_id, safe="/")
+    response = await _get_with_rate_limit_retry(
+        client,
+        f"{HF_API_URL}/{encoded_repo}",
+        params={"expand": ["baseModels"]},
+    )
+    if response is None or response.status_code >= 400:
+        return None, []
+    try:
+        payload = response.json()
+    except ValueError:
+        return None, []
+    if not isinstance(payload, dict):
+        return None, []
+    entries = _normalize_lineage(
+        _lineage_entries_from_api(payload.get("baseModels")),
+        repo_id,
+    )
+    record = SourceRecord.from_bytes(
+        source_id=source_id,
+        url=str(response.request.url),
+        body=response.content,
+        retrieved_at=(clock or (lambda: datetime.now(UTC)))(),
+        strength=EvidenceStrength.TRUSTED_REGISTRY,
+        content_type=response.headers.get("content-type"),
+    )
+    return record, entries
+
+
 def _canonical_json(value: Any) -> bytes:
     return json.dumps(
         value,
@@ -281,6 +412,89 @@ def _sibling_names(metadata: dict[str, Any]) -> list[str]:
     )
 
 
+def _lineage_entries_from_metadata(
+    metadata: dict[str, Any],
+) -> list[tuple[Any, str | None, str]]:
+    entries: list[tuple[Any, str | None, str]] = []
+    tags = metadata.get("tags")
+    if isinstance(tags, list):
+        for tag in tags:
+            if not isinstance(tag, str) or not tag.startswith(
+                LINEAGE_TAG_PREFIX
+            ):
+                continue
+            rest = tag[len(LINEAGE_TAG_PREFIX) :]
+            head, _, tail = rest.partition(":")
+            if head in LINEAGE_TAG_RELATIONS and tail:
+                entries.append((tail, head, "tags"))
+            else:
+                entries.append((rest, None, "tags"))
+    card = metadata.get("cardData")
+    if isinstance(card, dict):
+        declared = card.get("base_model")
+        relation_value = card.get("base_model_relation")
+        relation = (
+            relation_value if isinstance(relation_value, str) else None
+        )
+        parents = declared if isinstance(declared, list) else [declared]
+        entries.extend((parent, relation, "card") for parent in parents)
+    return entries
+
+
+def _lineage_entries_from_api(
+    payload: Any,
+) -> list[tuple[Any, str | None, str]]:
+    groups = payload if isinstance(payload, list) else [payload]
+    entries: list[tuple[Any, str | None, str]] = []
+    for group in groups:
+        if not isinstance(group, dict):
+            continue
+        relation_value = group.get("relation")
+        relation = (
+            relation_value if isinstance(relation_value, str) else None
+        )
+        for model in group.get("models") or []:
+            parent = model.get("id") if isinstance(model, dict) else model
+            entries.append((parent, relation, "api"))
+    return entries
+
+
+def _normalize_lineage(
+    entries: list[tuple[Any, str | None, str]],
+    repo_id: Any,
+) -> list[dict[str, Any]]:
+    """Dedupe declared parents; a relation-qualified entry beats a bare one.
+
+    Entry order encodes source priority (feed authoritative sources first);
+    the first entry for a given (parent, relation) wins.
+    """
+    by_key: dict[tuple[str, str | None], dict[str, Any]] = {}
+    for parent, relation, via in entries:
+        if not isinstance(parent, str):
+            continue
+        parent = parent.strip()
+        if "/" not in parent or not parent or parent == repo_id:
+            continue
+        by_key.setdefault(
+            (parent.casefold(), relation),
+            {"parent_repo": parent, "relation": relation, "via": via},
+        )
+    by_parent: dict[str, list[dict[str, Any]]] = {}
+    for (parent_key, _), entry in by_key.items():
+        by_parent.setdefault(parent_key, []).append(entry)
+    collapsed: list[dict[str, Any]] = []
+    for parent_key in sorted(by_parent):
+        group = by_parent[parent_key]
+        qualified = [entry for entry in group if entry["relation"]]
+        collapsed.extend(
+            sorted(
+                qualified or group[:1],
+                key=lambda entry: entry["relation"] or "",
+            )
+        )
+    return collapsed
+
+
 def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
     card = metadata.get("cardData")
     if not isinstance(card, dict):
@@ -300,6 +514,11 @@ def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
         "gated": bool(metadata.get("gated")),
         "license": card.get("license") or metadata.get("license"),
         "params_total": safetensors.get("total"),
+        "lineage_declared": _normalize_lineage(
+            _lineage_entries_from_metadata(metadata),
+            metadata.get("id"),
+        )
+        or None,
     }
     return {key: value for key, value in values.items() if value is not None}
 
@@ -307,20 +526,31 @@ def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
 def _enrichment_claims(
     metadata: dict[str, Any],
     config: dict[str, Any],
+    api_base_models: Any = None,
 ) -> dict[str, Any]:
     claims = _metadata_claims(metadata)
-    architecture = parse_architecture(config)
-    claims.update(
-        {
-            "num_layers": config.get("num_hidden_layers"),
-            "hidden_size": config.get("hidden_size"),
-            "context_length": config.get("max_position_embeddings"),
-            "architecture": architecture.model_dump(mode="json"),
-            "quantization_format": parse_quant_format(config),
-            "quantization_config": config.get("quantization_config"),
-            "siblings": _sibling_names(metadata),
-        }
+    lineage = _normalize_lineage(
+        _lineage_entries_from_api(api_base_models)
+        + _lineage_entries_from_metadata(metadata),
+        metadata.get("id"),
     )
+    if lineage:
+        claims["lineage_declared"] = lineage
+    else:
+        claims.pop("lineage_declared", None)
+    claims["siblings"] = _sibling_names(metadata)
+    if config:
+        architecture = parse_architecture(config)
+        claims.update(
+            {
+                "num_layers": config.get("num_hidden_layers"),
+                "hidden_size": config.get("hidden_size"),
+                "context_length": config.get("max_position_embeddings"),
+                "architecture": architecture.model_dump(mode="json"),
+                "quantization_format": parse_quant_format(config),
+                "quantization_config": config.get("quantization_config"),
+            }
+        )
     return {
         key: value
         for key, value in claims.items()

@@ -37,6 +37,7 @@ from radar.intelligence.events import IntelligenceEvent
 from radar.intelligence.identity import IdentityResolver
 from radar.intelligence.jobs import JobKind, JobResult
 from radar.intelligence.lifecycle import LifecycleService
+from radar.intelligence.lineage import LineageService
 from radar.intelligence.platforms import PlatformIntelligenceService
 from radar.intelligence.qualification import QualificationService
 from radar.intelligence.recommendations import RecommendationService
@@ -159,65 +160,29 @@ class IntelligenceJobRunner:
             candidates.extend(rows)
 
         created = updated = rejected = conflicted = 0
+        lineage_batch: list[tuple[str, Any, str, datetime]] = []
         resolver = IdentityResolver(self.repository)
         for candidate in sorted(
             candidates,
             key=lambda item: (item.source_record.source_id, item.external_id.casefold()),
         ):
-            evidence = self._persist_source_record(candidate.source_record)
-            self._ensure_provisional_publisher(candidate)
-            resolution = resolver.resolve(candidate)
-            if resolution.publisher_id is None or resolution.release_id is None:
-                self._open_identity_review(candidate, evidence, now, resolution.review_code)
-                conflicted += 1
-                continue
-            existing = self.repository.get_release(resolution.release_id)
-            if existing is None:
-                if resolution.family_id is None:
-                    rejected += 1
-                    continue
-                self._ensure_family(
-                    resolution.family_id,
-                    resolution.publisher_id,
-                    candidate.release_name,
-                )
-                release = Release(
-                    id=resolution.release_id,
-                    family_id=resolution.family_id,
-                    publisher_id=resolution.publisher_id,
-                    name=candidate.release_name,
-                    category=candidate.category_hint or ModelCategory.TEXT_REASONING,
-                    lane=_candidate_lane(candidate),
-                    lifecycle=LifecycleState.DETECTED,
-                    first_observed_at=candidate.source_record.retrieved_at,
-                    discovery_evidence_strength=candidate.source_record.strength,
-                )
-                self.repository.upsert_release(release)
+            release_id, status = self._ingest_candidate(
+                candidate,
+                resolver,
+                now,
+                lineage_batch,
+            )
+            del release_id
+            if status == "created":
                 created += 1
-                self._emit_lifecycle(
-                    release.id,
-                    None,
-                    LifecycleState.DETECTED,
-                    candidate.source_record.retrieved_at,
-                    [evidence.id],
-                )
-            else:
+            elif status == "updated":
                 updated += 1
-            release_id = resolution.release_id
-            candidate_claims = dict(candidate.claims)
-            repo_id = candidate_claims.pop("repo_id", None)
-            if repo_id is not None and "hf_repo" not in candidate_claims:
-                candidate_claims["hf_repo"] = repo_id
-            claims = {
-                **candidate_claims,
-                **(
-                    {"artifact_url": candidate.artifact_urls[0]}
-                    if candidate.artifact_urls
-                    else {}
-                ),
-            }
-            for predicate, value in sorted(claims.items()):
-                self._append_claim(release_id, predicate, value, evidence)
+            elif status == "rejected":
+                rejected += 1
+            else:
+                conflicted += 1
+
+        self._sync_lineage(lineage_batch, now)
 
         return JobResult(
             job_id=job_id,
@@ -232,6 +197,7 @@ class IntelligenceJobRunner:
     async def _enrich(self, job_id: str) -> JobResult:
         updated = 0
         warnings: list[str] = []
+        lineage_batch: list[tuple[str, Any, str, datetime]] = []
         enrichers = [adapter for adapter in self.adapters if hasattr(adapter, "enrich")]
         eligible: list[tuple[Release, str]] = []
         for release in self.repository.list_all_releases():
@@ -293,7 +259,18 @@ class IntelligenceJobRunner:
                     enrichment.claims,
                     evidence[0],
                 )
+                declared_lineage = enrichment.claims.get("lineage_declared")
+                if declared_lineage:
+                    lineage_batch.append(
+                        (
+                            release.id,
+                            declared_lineage,
+                            evidence[0].id,
+                            evidence[0].retrieved_at,
+                        )
+                    )
                 updated += 1
+        self._sync_lineage(lineage_batch, self.clock())
         return JobResult(
             job_id=job_id,
             processed=len(selected),
@@ -302,6 +279,100 @@ class IntelligenceJobRunner:
             updated=updated,
             warnings=tuple(warnings),
         )
+
+    def _ingest_candidate(
+        self,
+        candidate: DiscoveryCandidate,
+        resolver: IdentityResolver,
+        now: datetime,
+        lineage_batch: list[tuple[str, Any, str, datetime]],
+    ) -> tuple[str | None, str]:
+        """Persist one discovery candidate; returns (release_id, status)."""
+        evidence = self._persist_source_record(candidate.source_record)
+        self._ensure_provisional_publisher(candidate)
+        resolution = resolver.resolve(candidate)
+        if resolution.publisher_id is None or resolution.release_id is None:
+            self._open_identity_review(
+                candidate,
+                evidence,
+                now,
+                resolution.review_code,
+            )
+            return None, "conflicted"
+        existing = self.repository.get_release(resolution.release_id)
+        if existing is None:
+            if resolution.family_id is None:
+                return None, "rejected"
+            self._ensure_family(
+                resolution.family_id,
+                resolution.publisher_id,
+                candidate.release_name,
+            )
+            release = Release(
+                id=resolution.release_id,
+                family_id=resolution.family_id,
+                publisher_id=resolution.publisher_id,
+                name=candidate.release_name,
+                category=candidate.category_hint or ModelCategory.TEXT_REASONING,
+                lane=_candidate_lane(candidate),
+                lifecycle=LifecycleState.DETECTED,
+                first_observed_at=candidate.source_record.retrieved_at,
+                discovery_evidence_strength=candidate.source_record.strength,
+            )
+            self.repository.upsert_release(release)
+            self._emit_lifecycle(
+                release.id,
+                None,
+                LifecycleState.DETECTED,
+                candidate.source_record.retrieved_at,
+                [evidence.id],
+            )
+            status = "created"
+        else:
+            status = "updated"
+        release_id = resolution.release_id
+        candidate_claims = dict(candidate.claims)
+        repo_id = candidate_claims.pop("repo_id", None)
+        if repo_id is not None and "hf_repo" not in candidate_claims:
+            candidate_claims["hf_repo"] = repo_id
+        claims = {
+            **candidate_claims,
+            **(
+                {"artifact_url": candidate.artifact_urls[0]}
+                if candidate.artifact_urls
+                else {}
+            ),
+        }
+        for predicate, value in sorted(claims.items()):
+            self._append_claim(release_id, predicate, value, evidence)
+        declared_lineage = claims.get("lineage_declared")
+        if declared_lineage:
+            lineage_batch.append(
+                (
+                    release_id,
+                    declared_lineage,
+                    evidence.id,
+                    evidence.retrieved_at,
+                )
+            )
+        return release_id, status
+
+    def _sync_lineage(
+        self,
+        batch: list[tuple[str, Any, str, datetime]],
+        now: datetime,
+    ) -> None:
+        if not batch:
+            return
+        service = LineageService(self.repository)
+        for release_id, declared, evidence_id, observed_at in batch:
+            service.ingest_declared(
+                release_id,
+                declared,
+                evidence_ids=[evidence_id],
+                observed_at=observed_at,
+            )
+        service.sync_roots(now)
 
     def _repository_identity(self, release_id: str) -> str | None:
         for predicate in ("hf_repo", "repo_id"):
@@ -675,6 +746,199 @@ def _attempt_priority(
         attempts.get(release.id, datetime.min.replace(tzinfo=UTC)),
         *_processing_priority(release),
     )
+
+
+async def run_lineage_backfill(
+    root: Path,
+    repository: Any,
+    *,
+    fetch_limit: int = 0,
+    parent_limit: int | None = None,
+    clock: Callable[[], datetime] | None = None,
+    client: httpx.AsyncClient | None = None,
+) -> dict[str, int]:
+    """Backfill lineage edges for the existing index.
+
+    Always replays stored ``lineage_declared`` claims (no network). With
+    ``fetch_limit > 0`` it additionally queries the HF ``baseModels``
+    expansion for the highest-download releases that have never been
+    checked, storing the response as evidence plus a claim so future
+    backfills replay it offline. ``parent_limit`` (default: ``fetch_limit``)
+    independently budgets registering declared parents that are missing
+    from the index, so parent resolution can run without new sweeps.
+    Idempotent; ends with a full root sync.
+    """
+    from radar.intelligence.sources.huggingface import fetch_base_models
+
+    now = (clock or (lambda: datetime.now(UTC)))()
+    service = LineageService(repository)
+    runner = IntelligenceJobRunner(root=root, repository=repository)
+    releases = repository.list_all_releases()
+    release_ids = [release.id for release in releases]
+    stored = repository.latest_claim_values(release_ids, {"lineage_declared"})
+
+    replayed_edges = 0
+    for release_id in sorted(stored):
+        declared = stored[release_id].get("lineage_declared")
+        if not declared:
+            continue
+        claims = [
+            claim
+            for claim in repository.list_claims_for_subject(release_id)
+            if claim.predicate == "lineage_declared"
+        ]
+        latest = max(claims, key=lambda claim: (claim.observed_at, claim.id))
+        replayed_edges += service.ingest_declared(
+            release_id,
+            declared,
+            evidence_ids=latest.evidence_ids,
+            observed_at=latest.observed_at,
+        )
+
+    effective_parent_limit = fetch_limit if parent_limit is None else parent_limit
+    fetched = fetched_edges = parents_registered = parent_fetch_failures = 0
+    if fetch_limit > 0 or effective_parent_limit > 0:
+        from radar.intelligence.sources.huggingface import HuggingFaceAdapter
+
+        headers = {}
+        if token := os.environ.get("HF_TOKEN"):
+            headers["Authorization"] = f"Bearer {token}"
+        owned_client = client is None
+        active_client = client or httpx.AsyncClient(
+            headers=headers,
+            timeout=httpx.Timeout(30.0),
+            follow_redirects=True,
+        )
+        try:
+            if fetch_limit > 0:
+                metadata = repository.latest_claim_values(
+                    release_ids,
+                    {"hf_repo", "repo_id", "downloads"},
+                )
+                pending: list[tuple[int, str, str]] = []
+                for release in releases:
+                    if release.id in stored:
+                        continue
+                    values = metadata.get(release.id, {})
+                    repo = values.get("hf_repo") or values.get("repo_id")
+                    if not isinstance(repo, str) or "/" not in repo:
+                        continue
+                    downloads = values.get("downloads")
+                    pending.append(
+                        (
+                            -(downloads if isinstance(downloads, int) else 0),
+                            release.id,
+                            repo,
+                        )
+                    )
+                pending.sort()
+                for _, release_id, repo in pending[:fetch_limit]:
+                    record, entries = await fetch_base_models(
+                        active_client,
+                        repo,
+                        clock=lambda: now,
+                    )
+                    if record is None:
+                        parent_fetch_failures += 1
+                        continue
+                    evidence = runner._persist_source_record(record)
+                    runner._append_claim(
+                        release_id,
+                        "lineage_declared",
+                        entries,
+                        evidence,
+                    )
+                    if entries:
+                        fetched_edges += service.ingest_declared(
+                            release_id,
+                            entries,
+                            evidence_ids=[evidence.id],
+                            observed_at=evidence.retrieved_at,
+                        )
+                    fetched += 1
+
+            # Declared parents outside the index (e.g. the -Base repo an
+            # instruct model derives from) can never resolve from the
+            # rolling discovery window. Register them through the normal
+            # ingestion path, iterating so grandparent chains close too.
+            if effective_parent_limit > 0:
+                publishers = {
+                    account: publisher.id
+                    for publisher in repository.list_publishers()
+                    for account in publisher.official_accounts
+                }
+                adapter = HuggingFaceAdapter(active_client, publishers)
+                attempted: set[str] = set()
+                for _round in range(3):
+                    round_service = LineageService(repository)
+                    round_service.sync_roots(now)
+                    unresolved_refs = sorted(
+                        {
+                            edge.parent_external_ref.removeprefix("hf:")
+                            for edge in repository.list_unresolved_lineage()
+                            if edge.parent_external_ref.startswith("hf:")
+                        }
+                        - attempted
+                    )[:effective_parent_limit]
+                    if not unresolved_refs:
+                        break
+                    resolver = IdentityResolver(repository)
+                    parent_lineage: list[tuple[str, Any, str, datetime]] = []
+                    progressed = False
+                    for repo in unresolved_refs:
+                        attempted.add(repo)
+                        candidate = await adapter.fetch_candidate(repo)
+                        if candidate is None:
+                            parent_fetch_failures += 1
+                            continue
+                        parent_id, _status = runner._ingest_candidate(
+                            candidate,
+                            resolver,
+                            now,
+                            parent_lineage,
+                        )
+                        if parent_id is not None:
+                            parents_registered += 1
+                            progressed = True
+                            if not candidate.claims.get("lineage_declared"):
+                                # Mark parentless parents as checked so they
+                                # read as confirmed bases, not never-asked.
+                                runner._append_claim(
+                                    parent_id,
+                                    "lineage_declared",
+                                    [],
+                                    runner._persist_source_record(
+                                        candidate.source_record
+                                    ),
+                                )
+                    ingest_service = LineageService(repository)
+                    for entry in parent_lineage:
+                        parent_id, declared, evidence_id, observed_at = entry
+                        fetched_edges += ingest_service.ingest_declared(
+                            parent_id,
+                            declared,
+                            evidence_ids=[evidence_id],
+                            observed_at=observed_at,
+                        )
+                    if not progressed:
+                        break
+        finally:
+            if owned_client:
+                await active_client.aclose()
+
+    result = LineageService(repository).sync_roots(now)
+    return {
+        "replayed_edges": replayed_edges,
+        "fetched": fetched,
+        "fetched_edges": fetched_edges,
+        "parents_registered": parents_registered,
+        "parent_fetch_failures": parent_fetch_failures,
+        "edges_total": len(result.edges),
+        "roots_resolved": sum(
+            1 for root_id in result.roots.values() if root_id is not None
+        ),
+        "review_findings": len(result.findings),
+    }
 
 
 async def run_configured_job(

@@ -96,6 +96,13 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: uv run radar intelligence-run discovery --root .
 
+      - name: Backfill lineage
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          uv run radar intelligence-lineage-backfill --root . \
+            --fetch-limit 150 --parent-limit 100
+
       - name: Checkpoint discovered intelligence
         env:
           GH_TOKEN: ${{ github.token }}

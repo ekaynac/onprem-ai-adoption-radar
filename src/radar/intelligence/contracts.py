@@ -203,6 +203,58 @@ class LifecycleTransition(FrozenModel):
     evidence_ids: list[str]
 
 
+class LineageRelation(StrEnum):
+    BASE = "base"
+    FINETUNE = "finetune"
+    ADAPTER = "adapter"
+    MERGE = "merge"
+    QUANTIZED = "quantized"
+    CONVERTED = "converted"
+    DISTILLED = "distilled"
+    PRUNED = "pruned"
+    CHECKPOINT = "checkpoint"
+
+
+class LineageReviewStatus(StrEnum):
+    CLEAR = "clear"
+    OPEN = "open"
+    RESOLVED = "resolved"
+
+
+class LineageEdge(FrozenModel):
+    """A parent relationship between a release and its upstream model.
+
+    ``parent_external_ref`` carries the declared identity as observed at the
+    source (e.g. ``hf:moonshotai/Kimi-K3``); ``parent_release_id`` and
+    ``root_release_id`` are filled once identity resolution maps the ref into
+    the canonical release namespace, which may happen later than discovery.
+    """
+
+    id: str
+    child_release_id: str
+    parent_external_ref: str
+    parent_release_id: str | None = None
+    root_release_id: str | None = None
+    relation: LineageRelation
+    declared: bool
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence_ids: list[str] = Field(default_factory=list)
+    extractor_version: str
+    review_status: LineageReviewStatus = LineageReviewStatus.CLEAR
+    observed_at: datetime
+
+    @model_validator(mode="after")
+    def validate_edge(self) -> LineageEdge:
+        if self.declared and not self.evidence_ids:
+            raise ValueError("Declared lineage edges require evidence")
+        if (
+            self.parent_release_id is not None
+            and self.parent_release_id == self.child_release_id
+        ):
+            raise ValueError("A release cannot be its own lineage parent")
+        return self
+
+
 class ReviewException(FrozenModel):
     id: str
     subject_id: str

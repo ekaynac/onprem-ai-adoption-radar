@@ -35,11 +35,13 @@ def test_publish_checkpoints_discovery_and_verified_state_before_export():
     text = _publish_workflow()
 
     discovery_idx = text.index("radar intelligence-run discovery")
+    lineage_idx = text.index("radar intelligence-lineage-backfill")
     discovery_checkpoint_idx = text.index("Checkpoint discovered intelligence")
     verify_new_idx = text.index("radar intelligence-run verify-new")
     verified_checkpoint_idx = text.index("Checkpoint verified intelligence")
     export_idx = text.index("radar export")
 
+    assert discovery_idx < lineage_idx < discovery_checkpoint_idx
     assert discovery_idx < discovery_checkpoint_idx < verify_new_idx
     assert verify_new_idx < verified_checkpoint_idx < export_idx
     assert text.count("gh release upload radar-state") >= 2
