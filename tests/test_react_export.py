@@ -75,6 +75,9 @@ def test_static_export_contains_no_workspace_payload(tmp_path: Path) -> None:
     assert (out / "index.html").exists()
     assert (out / "404.html").exists()
     assert (out / "changes.rss").exists()
+    manifest = json.loads((out / "data" / "model-index.v1.json").read_text())
+    assert manifest["total"] == snapshot["model_index"]["total"]
+    assert all((out / shard["path"]).is_file() for shard in manifest["shards"])
     assert "vLLM" in (out / "changes.rss").read_text()
     for promised_download in (
         "history.jsonl",

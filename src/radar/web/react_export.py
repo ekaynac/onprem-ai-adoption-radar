@@ -17,6 +17,7 @@ from radar.storage.history_log import load_events
 from radar.storage.history_store import HistoryStore
 from radar.web.intelligence_snapshot import (
     build_public_snapshot,
+    write_model_index,
     write_public_snapshot,
 )
 
@@ -121,12 +122,15 @@ def export_react_site(
 
     _database, repository = build_intelligence_repository(root)
     now = generated_at or datetime.now(UTC)
+    canonical_releases = repository.list_all_releases()
     snapshot = build_public_snapshot(
         build_services(repository),
         now,
         root=root,
+        canonical_releases=canonical_releases,
     )
     write_public_snapshot(snapshot, out_dir)
+    write_model_index(canonical_releases, out_dir, now)
     events = repository.list_events(limit=500, public_only=True)
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()
