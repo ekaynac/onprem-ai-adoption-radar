@@ -25,3 +25,18 @@ def test_catalog_search_is_stable_and_workspace_aware(tmp_path) -> None:
     assert first == second
     assert first.items[0].release_id == "release:moonshot-ai:kimi:k3"
     assert first.items[0].workspace_recommendation is not None
+
+
+def test_catalog_get_uses_keyed_release_lookup(tmp_path, monkeypatch) -> None:
+    repository = lifecycle_repository(tmp_path)
+    seed_recommendable_release(repository)
+    services = build_services(repository)
+
+    def fail_scan():
+        raise AssertionError("single-release lookup must not scan the catalog")
+
+    monkeypatch.setattr(repository, "list_all_releases", fail_scan)
+
+    item = services.catalog.get("release:moonshot-ai:kimi:k3")
+
+    assert item.name == "Kimi K3"

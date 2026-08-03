@@ -35,12 +35,14 @@ def test_readme_describes_current_verification_behavior_without_refetch_claims()
     assert "re-fetch and re-evaluate every trusted claim" not in readme
 
 
-def test_persistence_artifacts_are_committed_by_publish_workflow() -> None:
+def test_persistence_artifacts_are_checkpointed_outside_git() -> None:
     commands = all_run_commands(load_yaml(".github/workflows/publish.yml"))
 
-    assert "git add -f data/intelligence.db" in commands
-    assert "git add -f data/intelligence/events.jsonl" in commands
-    assert "git add -f data/intelligence/snapshots" in commands
+    assert "radar intelligence-state-pack" in commands
+    assert "gh release upload radar-state" in commands
+    assert "git add -f data/intelligence.db" not in commands
+    assert "git add -f data/intelligence/events.jsonl" not in commands
+    assert "git add -f data/intelligence/snapshots" not in commands
 
 
 def test_persistence_documents_recovery_order_and_derived_snapshot() -> None:

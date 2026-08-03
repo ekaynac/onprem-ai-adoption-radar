@@ -55,6 +55,8 @@ class ReleaseChange(FrozenModel):
 class ReleaseRepository(Protocol):
     def list_all_releases(self) -> list[Release]: ...
 
+    def get_release(self, release_id: str) -> Release | None: ...
+
     def list_claims_for_subject(self, subject_id: str) -> list[Claim]: ...
 
     def get_evidence(
@@ -106,14 +108,7 @@ class ReleaseService:
         )
 
     def get(self, release_id: str, *, now: datetime) -> ReleaseChange:
-        release = next(
-            (
-                item
-                for item in self.repository.list_all_releases()
-                if item.id == release_id
-            ),
-            None,
-        )
+        release = self.repository.get_release(release_id)
         if release is None:
             raise KeyError(f"Unknown release: {release_id}")
         return self._project(release, now)

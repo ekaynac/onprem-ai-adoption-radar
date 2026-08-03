@@ -1,7 +1,8 @@
 import json
 import logging
 import shutil
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 from intelligence.lifecycle_helpers import lifecycle_repository
 from intelligence.test_recommendations import seed_recommendable_release
@@ -10,6 +11,10 @@ from radar.intelligence.contracts import (
     ClaimState,
     EvidenceObservation,
     EvidenceStrength,
+    LifecycleState,
+    ModelCategory,
+    Release,
+    ReleaseLane,
 )
 from radar.intelligence.services.container import build_services
 from radar.models import Category, DecisionCard, Ring
@@ -20,7 +25,9 @@ from radar.storage.model_candidate_log import (
     append_model_candidates,
 )
 from radar.web.intelligence_snapshot import (
+    PUBLIC_RECENT_RELEASE_LIMIT,
     build_public_snapshot,
+    write_model_index,
     write_public_snapshot,
 )
 
@@ -143,6 +150,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "source_health",
         "latest_digest",
         "project_data",
+        "model_index",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -153,6 +161,140 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
     assert payload["source_health"]["stale_claim_count"] >= 1
     assert payload["hardware"]
     assert "workspace" not in first.decode().casefold()
+
+
+def _release(index: int, *, legacy: bool = False) -> Release:
+    identifier = (
+        f"release:legacy:model-{index}"
+        if legacy
+        else f"release:hf:publisher/model-{index}"
+    )
+    return Release(
+        id=identifier,
+        family_id=f"family:{index}",
+        publisher_id="publisher:test",
+        name=f"Model {index}",
+        category=ModelCategory.TEXT_REASONING,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.DETECTED,
+        first_observed_at=datetime(2026, 1, 1, tzinfo=UTC)
+        + timedelta(minutes=index),
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+
+
+def test_public_snapshot_bounds_expensive_detail_projection() -> None:
+    legacy = [_release(index, legacy=True) for index in range(5)]
+    discovered = [_release(index) for index in range(315)]
+    canonical = [*legacy, *discovered]
+    release_calls: list[str] = []
+    catalog_calls: list[str] = []
+
+    class Repository:
+        def list_all_releases(self):
+            return canonical
+
+        def list_platforms(self):
+            return []
+
+        def list_events(self, *, limit, public_only):
+            return []
+
+    def release_detail(release_id, *, now):
+        release_calls.append(release_id)
+        return SimpleNamespace(
+            model_dump=lambda mode: {
+                "release_id": release_id,
+                "first_observed_at": next(
+                    row.first_observed_at.isoformat()
+                    for row in canonical
+                    if row.id == release_id
+                ),
+            }
+        )
+
+    def catalog_detail(release_id):
+        catalog_calls.append(release_id)
+        release = next(row for row in canonical if row.id == release_id)
+        return SimpleNamespace(
+            release_id=release.id,
+            name=release.name,
+            category=release.category,
+            lane=release.lane.value,
+            lifecycle=release.lifecycle,
+            first_observed_at=release.first_observed_at.isoformat(),
+            public_recommendation=SimpleNamespace(
+                ring=None, reasons=[], evidence_ids=[]
+            ),
+        )
+
+    services = SimpleNamespace(
+        catalog=SimpleNamespace(
+            repository=Repository(),
+            get=catalog_detail,
+        ),
+        releases=SimpleNamespace(get=release_detail),
+        operations=SimpleNamespace(
+            snapshot=lambda: SimpleNamespace(
+                model_dump=lambda mode: {
+                    "source_health": [],
+                    "stale_claim_count": 0,
+                }
+            )
+        ),
+    )
+
+    snapshot = build_public_snapshot(
+        services,
+        datetime(2026, 8, 3, tzinfo=UTC),
+    )
+
+    assert len(release_calls) == len(legacy) + PUBLIC_RECENT_RELEASE_LIMIT
+    assert catalog_calls == release_calls
+    assert {row.id for row in legacy}.issubset(release_calls)
+    assert discovered[-1].id in release_calls
+    assert discovered[0].id not in release_calls
+    assert snapshot.model_index.total == len(canonical)
+
+
+def test_model_index_shards_every_release_once_and_is_deterministic(tmp_path) -> None:
+    canonical = [_release(index) for index in range(20_001)]
+    generated_at = datetime(2026, 8, 3, tzinfo=UTC)
+
+    first = write_model_index(
+        canonical,
+        tmp_path / "_site",
+        generated_at,
+        shard_size=2_000,
+    )
+    first_bytes = {
+        path.relative_to(tmp_path / "_site").as_posix(): path.read_bytes()
+        for path in sorted((tmp_path / "_site" / "data").rglob("*.json"))
+    }
+    second = write_model_index(
+        list(reversed(canonical)),
+        tmp_path / "_site",
+        generated_at,
+        shard_size=2_000,
+    )
+    second_bytes = {
+        path.relative_to(tmp_path / "_site").as_posix(): path.read_bytes()
+        for path in sorted((tmp_path / "_site" / "data").rglob("*.json"))
+    }
+
+    assert first == second
+    assert first.total == len(canonical)
+    assert [shard.count for shard in first.shards] == [2_000] * 10 + [1]
+    assert first_bytes == second_bytes
+    rows = []
+    for shard in first.shards:
+        payload = json.loads((tmp_path / "_site" / shard.path).read_text())
+        assert len(payload["items"]) == shard.count
+        rows.extend(payload["items"])
+    assert len(rows) == len(canonical)
+    assert len({row["release_id"] for row in rows}) == len(canonical)
+    assert rows[0]["release_id"] == canonical[-1].id
+    assert rows[0]["source_url"].startswith("https://huggingface.co/")
 
 
 def test_public_snapshot_exposes_latest_valid_digest(tmp_path, caplog) -> None:

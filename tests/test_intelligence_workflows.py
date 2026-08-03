@@ -29,12 +29,12 @@ def load_all_workflows() -> dict[Path, dict[str, Any]]:
     }
 
 
-def test_only_publish_workflow_mutates_intelligence_db_and_deploys_pages() -> None:
+def test_only_publish_workflow_checkpoints_intelligence_and_deploys_pages() -> None:
     workflows = load_all_workflows()
-    db_owners = [
+    state_owners = [
         path
         for path, workflow in workflows.items()
-        if "git add -f data/intelligence.db" in all_run_commands(workflow)
+        if "radar intelligence-state-pack" in all_run_commands(workflow)
     ]
     page_deployers = [
         path
@@ -43,14 +43,16 @@ def test_only_publish_workflow_mutates_intelligence_db_and_deploys_pages() -> No
     ]
 
     publish = Path(".github/workflows/publish.yml")
-    assert db_owners == [publish]
+    assert state_owners == [publish]
     assert page_deployers == [publish]
 
     commands = all_run_commands(workflows[publish])
     assert "radar intelligence-run discovery" in commands
     assert "radar intelligence-run verify-new" in commands
-    assert "data/intelligence/events.jsonl" in commands
-    assert "git add -f data/intelligence/snapshots" in commands
+    assert "radar intelligence-state-restore" in commands
+    assert "gh release upload radar-state" in commands
+    assert "git add -f data/intelligence.db" not in commands
+    assert "git add -f data/intelligence/snapshots" not in commands
 
 
 def test_two_hour_publish_and_weekly_verification_are_split() -> None:
@@ -65,8 +67,8 @@ def test_two_hour_publish_and_weekly_verification_are_split() -> None:
     assert "radar intelligence-run recommendations" in commands
     assert "radar models platforms-verify" in commands
     assert "radar intelligence-run verification" in commands
-    assert "git add -f data/intelligence.db" in commands
-    assert "git add -f data/intelligence/snapshots" in commands
+    assert commands.count("radar intelligence-state-pack") == 2
+    assert commands.count("gh release upload radar-state") == 2
 
 
 def test_ci_runs_backend_frontend_postgres_and_openapi_drift_checks() -> None:

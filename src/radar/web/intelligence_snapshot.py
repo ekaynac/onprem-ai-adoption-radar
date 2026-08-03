@@ -3,17 +3,45 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from radar.intelligence.contracts import Release
+
+
+PUBLIC_RECENT_RELEASE_LIMIT = 250
+MODEL_INDEX_SHARD_SIZE = 2_000
+
 
 class PublicProjectDataState(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     mode: Literal["live_projection", "last_published_baseline", "unavailable"]
     generated_at: datetime | None = None
+
+
+class ModelIndexReference(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    manifest_path: str = "data/model-index.v1.json"
+    total: int
+
+
+class ModelIndexShard(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    path: str
+    count: int
+
+
+class ModelIndexManifest(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    total: int
+    shard_size: int
+    shards: list[ModelIndexShard]
 
 
 class PublicSnapshot(BaseModel):
@@ -30,7 +58,29 @@ class PublicSnapshot(BaseModel):
     events: list[dict[str, Any]]
     source_health: dict[str, Any]
     project_data: PublicProjectDataState
+    model_index: ModelIndexReference
     latest_digest: dict[str, str] | None = None
+
+
+def _release_sort_key(release: Release) -> tuple[float, str]:
+    return (-release.first_observed_at.timestamp(), release.id)
+
+
+def _select_public_releases(
+    releases: Sequence[Release],
+    *,
+    recent_limit: int = PUBLIC_RECENT_RELEASE_LIMIT,
+) -> list[Release]:
+    legacy = [release for release in releases if release.id.startswith("release:legacy:")]
+    recent = sorted(
+        (
+            release
+            for release in releases
+            if not release.id.startswith("release:legacy:")
+        ),
+        key=_release_sort_key,
+    )[:recent_limit]
+    return sorted([*legacy, *recent], key=_release_sort_key)
 
 
 def build_public_snapshot(
@@ -38,16 +88,22 @@ def build_public_snapshot(
     generated_at: datetime,
     *,
     root: Path | None = None,
+    canonical_releases: Sequence[Release] | None = None,
 ) -> PublicSnapshot:
     repository = services.catalog.repository
-    canonical_releases = repository.list_all_releases()
+    all_releases = list(
+        canonical_releases
+        if canonical_releases is not None
+        else repository.list_all_releases()
+    )
+    public_releases = _select_public_releases(all_releases)
     releases = [
         services.releases.get(release.id, now=generated_at)
-        for release in canonical_releases
+        for release in public_releases
     ]
     models = [
         services.catalog.get(release.id)
-        for release in canonical_releases
+        for release in public_releases
     ]
     from radar.models_radar.devices import (
         CLUSTER_PRESETS,
@@ -286,6 +342,7 @@ def build_public_snapshot(
         ],
         source_health=operation_payload,
         project_data=project_data,
+        model_index=ModelIndexReference(total=len(all_releases)),
         latest_digest=latest_digest,
     )
 
@@ -302,3 +359,77 @@ def write_public_snapshot(snapshot: PublicSnapshot, site_root: Path) -> Path:
         encoding="utf-8",
     )
     return destination
+
+
+def _compact_model_row(release: Release) -> dict[str, Any]:
+    source_url = None
+    if release.id.startswith("release:hf:"):
+        source_url = f"https://huggingface.co/{release.id.removeprefix('release:hf:')}"
+    return {
+        "release_id": release.id,
+        "name": release.name,
+        "category": release.category.value,
+        "lane": release.lane.value,
+        "lifecycle": release.lifecycle.value,
+        "first_observed_at": release.first_observed_at.isoformat(),
+        "public_ring": None,
+        "reasons": [],
+        "evidence_ids": [],
+        "source_url": source_url,
+        "source_strength": (
+            release.discovery_evidence_strength.value if source_url else None
+        ),
+        "profile": None,
+        "claims": [],
+    }
+
+
+def _write_compact_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
+
+
+def write_model_index(
+    releases: Sequence[Release],
+    site_root: Path,
+    generated_at: datetime,
+    *,
+    shard_size: int = MODEL_INDEX_SHARD_SIZE,
+) -> ModelIndexManifest:
+    """Write a deterministic, compact index covering every canonical release."""
+    if shard_size < 1:
+        raise ValueError("shard_size must be positive")
+    ordered = sorted(releases, key=_release_sort_key)
+    shard_root = site_root / "data" / "model-index"
+    shard_root.mkdir(parents=True, exist_ok=True)
+    for stale in shard_root.glob("model-index-*.json"):
+        stale.unlink()
+
+    shards: list[ModelIndexShard] = []
+    for index, offset in enumerate(range(0, len(ordered), shard_size)):
+        selected = ordered[offset : offset + shard_size]
+        relative = f"data/model-index/model-index-{index:05d}.json"
+        _write_compact_json(
+            site_root / relative,
+            {
+                "schema_version": "1.0",
+                "generated_at": generated_at.isoformat(),
+                "items": [_compact_model_row(release) for release in selected],
+            },
+        )
+        shards.append(ModelIndexShard(path=relative, count=len(selected)))
+
+    manifest = ModelIndexManifest(
+        generated_at=generated_at,
+        total=len(ordered),
+        shard_size=shard_size,
+        shards=shards,
+    )
+    _write_compact_json(
+        site_root / "data" / "model-index.v1.json",
+        manifest.model_dump(mode="json"),
+    )
+    return manifest
