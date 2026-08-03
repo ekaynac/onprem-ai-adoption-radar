@@ -16,14 +16,14 @@ function response(payload: unknown) {
 }
 
 
-function renderOverview() {
+function renderOverview(staticMode = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <OverviewPage />
+        <OverviewPage staticMode={staticMode} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -101,4 +101,48 @@ test("shows freshness and review exceptions", async () => {
   expect(await screen.findByText("97%")).toBeVisible();
   expect(screen.getByText("4 stale claims")).toBeVisible();
   expect(screen.getByText("3 review exceptions")).toBeVisible();
+});
+
+
+test("counts only explicitly healthy sources with closed circuits", async () => {
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/releases") || url.includes("/catalog")) {
+      return response({ items: [], next_cursor: null });
+    }
+    return response({
+      source_health: [
+        { source_id: "ok", status: "ok", consecutive_failures: 0 },
+        { source_id: "empty", status: "empty", consecutive_failures: 0 },
+        { source_id: "failed", status: "error", consecutive_failures: 2 },
+        { source_id: "open", status: "ok", consecutive_failures: 5, circuit_open_until: "2026-08-04T00:00:00Z" },
+      ],
+      open_review_count: 0,
+      stale_claim_count: 0,
+    });
+  }));
+
+  renderOverview();
+
+  expect(await screen.findByText("2/4 healthy")).toBeVisible();
+});
+
+
+test("static mode labels the generated snapshot without live or estate claims", async () => {
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/releases") || url.includes("/catalog")) {
+      return response({ items: [], next_cursor: null });
+    }
+    if (url.includes("public-snapshot")) {
+      return response({ generated_at: "2026-08-03T08:00:00Z" });
+    }
+    return response({ source_health: [], open_review_count: 0, stale_claim_count: 0 });
+  }));
+
+  renderOverview(true);
+
+  expect(await screen.findByText(/Snapshot generated/)).toBeVisible();
+  expect(screen.queryByText(/Live data/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Your estate and policies applied/)).not.toBeInTheDocument();
 });

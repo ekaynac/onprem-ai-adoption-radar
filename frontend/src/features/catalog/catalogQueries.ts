@@ -48,7 +48,15 @@ export type CatalogSearch = {
   modality: string;
   platform: string;
   freshness: string;
-  review: string;
+};
+
+export type CatalogFacets = {
+  publisher: string[];
+  license: string[];
+  hardware: string[];
+  modality: string[];
+  platform: string[];
+  freshness: string[];
 };
 
 type CatalogPage = {
@@ -78,6 +86,39 @@ export type PublicSnapshot = {
     stale_claim_count: number;
     source_health: SourceHealthRecord[];
   };
+  quality?: {
+    models?: {
+      total: number;
+      verified_or_better: number;
+      with_license?: number;
+      with_parameters?: number;
+      with_context?: number;
+      with_hardware_tier?: number;
+    };
+    hardware?: {
+      total: number;
+      with_spec_url?: number;
+      with_bandwidth?: number;
+      with_power?: number;
+      with_interconnect?: number;
+    };
+    projects?: {
+      total: number;
+      with_repository?: number;
+      with_evidence?: number;
+    };
+    research?: {
+      total: number;
+      with_papers?: number;
+      with_implementations?: number;
+    };
+  };
+  source_coverage?: Array<{
+    id: string;
+    type: string;
+    enabled: boolean;
+    status: string;
+  }>;
 };
 
 export type PublicProject = {
@@ -191,6 +232,7 @@ export type SourceHealthRecord = {
   latency_ms?: number | null;
   items_count?: number | null;
   circuit_open_until?: string | null;
+  status?: "ok" | "empty" | "error" | "stale" | string;
 };
 
 export function useCatalogSearch(
@@ -213,6 +255,16 @@ export function useCatalogSearch(
       if (filters.lane !== "all") {
         params.set("lane", filters.lane);
       }
+      for (const name of [
+        "publisher",
+        "license",
+        "hardware",
+        "modality",
+        "platform",
+        "freshness",
+      ] as const) {
+        if (filters[name] !== "all") params.set(name, filters[name]);
+      }
       if (workspaceId) {
         params.set("workspace_id", workspaceId);
       }
@@ -221,6 +273,15 @@ export function useCatalogSearch(
         { signal },
       );
     },
+  });
+}
+
+
+export function useCatalogFacets() {
+  return useQuery({
+    queryKey: ["catalog", "facets"],
+    queryFn: ({ signal }) =>
+      apiFetch<CatalogFacets>("/api/v1/catalog/facets", { signal }),
   });
 }
 
@@ -245,7 +306,7 @@ export function useCatalogDetail(
 }
 
 
-export function usePublicSnapshot() {
+export function usePublicSnapshot(enabled = true) {
   return useQuery({
     queryKey: ["public-snapshot"],
     queryFn: ({ signal }) =>
@@ -253,5 +314,6 @@ export function usePublicSnapshot() {
         "/api/v1/integrations/public-snapshot",
         { signal },
       ),
+    enabled,
   });
 }

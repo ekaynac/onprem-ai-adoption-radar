@@ -31,7 +31,7 @@ export function App({
   return (
     <Routes>
       <Route element={<AppShell staticMode={staticMode} />}>
-        <Route path="/overview" element={<OverviewPage />} />
+        <Route path="/overview" element={<OverviewPage staticMode={staticMode} />} />
         <Route path="/releases" element={<ReleaseStreamPage />} />
         <Route path="/releases/:releaseId" element={<ReleaseDetailPage />} />
         <Route path="/catalog" element={<CatalogPage />} />
@@ -47,7 +47,7 @@ export function App({
         <Route path="/compare" element={<ComparePage />} />
         {!staticMode && <Route path="/planner" element={<PlannerPage />} />}
         {!staticMode && <Route path="/workspaces" element={<WorkspacePage />} />}
-        <Route path="/operations" element={<SourceHealthPage />} />
+        <Route path="/operations" element={<SourceHealthPage staticMode={staticMode} />} />
         {!staticMode && (
           <Route path="/operations/reviews" element={<ReviewQueuePage />} />
         )}

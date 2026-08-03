@@ -43,7 +43,7 @@ let catalogModelsPromise: Promise<Array<Record<string, unknown>>> | undefined;
 
 
 function modelTimestamp(model: Record<string, unknown>): number {
-  const value = Date.parse(String(model.first_observed_at ?? ""));
+  const value = Date.parse(String(model.released_at ?? model.first_observed_at ?? ""));
   return Number.isNaN(value) ? 0 : value;
 }
 
@@ -149,6 +149,24 @@ export function projectStaticRequest(
       (item) => item.release_id === releaseId,
     );
   }
+  if (url.pathname === "/api/v1/catalog/facets") {
+    const facet = (name: string) => [...new Set(
+      catalogModels
+        .map((model) => {
+          const profile = (model.profile ?? {}) as Record<string, unknown>;
+          return profile[name];
+        })
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    )].sort((left, right) => left.localeCompare(right));
+    return {
+      publisher: facet("publisher"),
+      license: facet("license"),
+      hardware: facet("hardware_tier"),
+      modality: facet("modality"),
+      platform: facet("library_name"),
+      freshness: catalogModels.length ? ["fresh", "stale"] : [],
+    };
+  }
   if (url.pathname === "/api/v1/catalog") {
     const tokens = (url.searchParams.get("q") ?? "")
       .toLocaleLowerCase()
@@ -158,23 +176,46 @@ export function projectStaticRequest(
     const category = url.searchParams.get("category");
     const lifecycle = url.searchParams.get("lifecycle");
     const lane = url.searchParams.get("lane");
+    const publisher = url.searchParams.get("publisher");
+    const license = url.searchParams.get("license");
+    const hardware = url.searchParams.get("hardware");
+    const modality = url.searchParams.get("modality");
+    const platform = url.searchParams.get("platform");
+    const freshness = url.searchParams.get("freshness");
+    const generatedAt = Date.parse(snapshot.generated_at);
     const filtered = catalogModels
-      .map(catalogItem)
-      .filter((item) => {
+      .filter((model) => {
+        const profile = (model.profile ?? {}) as Record<string, unknown>;
+        const releasedAt = Date.parse(String(model.released_at ?? model.first_observed_at ?? ""));
+        const isFresh = !Number.isNaN(releasedAt)
+          && !Number.isNaN(generatedAt)
+          && generatedAt - releasedAt <= 7 * 24 * 60 * 60 * 1000;
         const haystack = [
-          item.name,
-          item.release_id,
-          item.category,
-          item.lane,
-          item.lifecycle,
+          model.name,
+          model.release_id,
+          model.category,
+          model.lane,
+          model.lifecycle,
+          profile.publisher,
+          profile.license,
+          profile.modality,
+          profile.hardware_tier,
+          profile.library_name,
         ].join(" ").toLocaleLowerCase().replaceAll("-", " ");
         return (
           tokens.every((token) => haystack.includes(token)) &&
-          (!category || item.category === category) &&
-          (!lifecycle || item.lifecycle === lifecycle) &&
-          (!lane || item.lane === lane)
+          (!category || model.category === category) &&
+          (!lifecycle || model.lifecycle === lifecycle) &&
+          (!lane || model.lane === lane) &&
+          (!publisher || profile.publisher === publisher) &&
+          (!license || profile.license === license) &&
+          (!hardware || profile.hardware_tier === hardware) &&
+          (!modality || profile.modality === modality) &&
+          (!platform || profile.library_name === platform) &&
+          (!freshness || (freshness === "fresh") === isFresh)
         );
-      });
+      })
+      .map(catalogItem);
     const items = filtered.slice(0, 500);
     return {
       items,

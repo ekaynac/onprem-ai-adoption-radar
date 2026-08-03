@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query
 
 from radar.api.dependencies import get_root, get_services
-from radar.intelligence.contracts import LifecycleState, ModelCategory
+from radar.intelligence.contracts import LifecycleState, ModelCategory, ReleaseLane
 from radar.intelligence.recommendations import RecommendationView
 from radar.intelligence.services import Page
 from radar.intelligence.services.catalog import (
@@ -28,6 +28,13 @@ def search_catalog(
     q: str = "",
     category: ModelCategory | None = None,
     lifecycle: LifecycleState | None = None,
+    lane: ReleaseLane | None = None,
+    publisher: str | None = None,
+    license: str | None = None,
+    hardware: str | None = None,
+    modality: str | None = None,
+    platform: str | None = None,
+    freshness: str | None = Query(default=None, pattern="^(fresh|stale)$"),
     workspace_id: str | None = None,
     cursor: str | None = None,
     limit: int = Query(default=50, ge=1, le=100),
@@ -38,6 +45,14 @@ def search_catalog(
         q,
         category=category,
         lifecycle=lifecycle,
+        lane=lane.value if lane is not None else None,
+        publisher=publisher,
+        license=license,
+        hardware=hardware,
+        modality=modality,
+        platform=platform,
+        freshness=freshness,
+        now=datetime.now(UTC),
         workspace_id=workspace_id,
         cursor=cursor,
         limit=100,
@@ -62,6 +77,7 @@ def search_catalog(
             ).casefold()
             for token in tokens
         )
+        and (lane is None or item.lane == lane.value)
     ]
     rows = sorted(
         [*canonical.items, *filtered],
@@ -72,6 +88,13 @@ def search_catalog(
         items=rows[:limit],
         next_cursor=(rows[limit - 1].release_id if len(rows) > limit else None),
     )
+
+
+@router.get("/catalog/facets", response_model=dict[str, list[str]])
+def catalog_facets(
+    services: IntelligenceServices = Depends(get_services),
+) -> dict[str, list[str]]:
+    return services.catalog.facets()
 
 
 @router.get("/catalog/{release_id:path}", response_model=CatalogDetail)

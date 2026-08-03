@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { StatusBadge, type IntelligenceStatus } from "../../design/StatusBadge";
-import type { ReleaseChange } from "../releases/releaseQueries";
+import { releaseAgeHours, type ReleaseChange } from "../releases/releaseQueries";
 
 
 function ageLabel(hours: number) {
@@ -56,7 +56,9 @@ export function PriorityIntelligence({ items }: { items: ReleaseChange[] }) {
             </div>
             <div className="signal-metrics">
               <span>{Math.round(item.confidence * 100)}% confidence</span>
-              <time dateTime={item.first_observed_at}>{ageLabel(item.age_hours)}</time>
+              <time dateTime={item.released_at ?? item.first_observed_at}>
+                {ageLabel(releaseAgeHours(item))}
+              </time>
             </div>
           </article>
         ))}

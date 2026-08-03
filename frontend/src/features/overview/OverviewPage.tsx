@@ -7,6 +7,7 @@ import {
   usePriorityReleases,
   useRecommendedActions,
 } from "../releases/releaseQueries";
+import { usePublicSnapshot } from "../catalog/catalogQueries";
 
 
 function QueryFailure({ retry }: { retry: () => void }) {
@@ -19,11 +20,12 @@ function QueryFailure({ retry }: { retry: () => void }) {
 }
 
 
-export function OverviewPage() {
+export function OverviewPage({ staticMode = false }: { staticMode?: boolean }) {
   const workspaceId = useActiveWorkspaceId();
   const releases = usePriorityReleases(workspaceId);
   const actions = useRecommendedActions(workspaceId);
   const health = useCatalogHealth();
+  const snapshot = usePublicSnapshot(staticMode);
   const failed = releases.isError || actions.isError || health.isError;
 
   return (
@@ -33,8 +35,9 @@ export function OverviewPage() {
           <p className="eyebrow">Architect Workspace · Decision briefing</p>
           <h1 id="overview-title">What changed since your last visit</h1>
           <p className="lede">
-            Your estate and policies applied. Detection is separated from
-            verified deployment advice.
+            {staticMode
+              ? "Public evidence snapshot. Detection is separated from verified deployment advice."
+              : "Your estate and policies applied. Detection is separated from verified deployment advice."}
           </p>
         </div>
         <div className="freshness-stamp" aria-label="Freshness objective">
@@ -65,7 +68,11 @@ export function OverviewPage() {
             <CatalogTrust health={health.data} />
           </div>
           <p className="data-timestamp">
-            Live data · refreshed automatically every minute
+            {staticMode
+              ? `Snapshot generated ${snapshot.data?.generated_at
+                  ? new Date(snapshot.data.generated_at).toLocaleString()
+                  : "at an unavailable time"} · checked when this page loaded`
+              : "Live API · checked automatically every minute"}
           </p>
         </>
       )}

@@ -48,6 +48,21 @@ test("static mode removes private workspace and mutation navigation", () => {
 });
 
 
+test("static operations page does not link to the disabled review route", () => {
+  vi.stubGlobal("fetch", vi.fn(() => new Promise(() => undefined)));
+  render(
+    <AppProviders>
+      <MemoryRouter initialEntries={["/operations"]}>
+        <App staticMode />
+      </MemoryRouter>
+    </AppProviders>,
+  );
+
+  expect(screen.queryByRole("link", { name: /Review queue/ })).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+
 test("classic radar links are sibling documents with the latest digest", async () => {
   const queryClient = new QueryClient();
   queryClient.setQueryData(["public-snapshot"], {

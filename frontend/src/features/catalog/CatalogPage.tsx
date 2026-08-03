@@ -6,6 +6,7 @@ import { CatalogFilters } from "./CatalogFilters";
 import { CatalogTable } from "./CatalogTable";
 import {
   useCatalogSearch,
+  useCatalogFacets,
   type CatalogSearch,
 } from "./catalogQueries";
 
@@ -20,7 +21,6 @@ const filterNames: Array<keyof CatalogSearch> = [
   "modality",
   "platform",
   "freshness",
-  "review",
 ];
 
 
@@ -42,6 +42,7 @@ export function CatalogPage() {
     return { query: debouncedQuery, ...values };
   }, [debouncedQuery, params]);
   const catalog = useCatalogSearch(filters, workspaceId);
+  const facets = useCatalogFacets();
   const visible = (catalog.data?.items ?? []).filter(
     (item) => filters.lane === "all" || item.lane === filters.lane,
   );
@@ -73,7 +74,11 @@ export function CatalogPage() {
           </p>
         </div>
       </header>
-      <CatalogFilters filters={{ ...filters, query }} onChange={update} />
+      <CatalogFilters
+        filters={{ ...filters, query }}
+        facets={facets.data}
+        onChange={update}
+      />
       {catalog.isLoading ? (
         <div className="loading-grid" aria-label="Loading catalog"><span /><span /></div>
       ) : catalog.isError ? (

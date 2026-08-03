@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 from pydantic import Field
@@ -88,6 +89,12 @@ class CatalogRepository(Protocol):
 
     def get_qualification(self, release_id: str) -> Qualification | None: ...
 
+    def latest_claim_values(
+        self,
+        subject_ids: list[str],
+        predicates: set[str],
+    ) -> dict[str, dict[str, Any]]: ...
+
 
 class CatalogService:
     def __init__(
@@ -104,6 +111,14 @@ class CatalogService:
         *,
         category: ModelCategory | None = None,
         lifecycle: LifecycleState | None = None,
+        lane: str | None = None,
+        publisher: str | None = None,
+        license: str | None = None,
+        hardware: str | None = None,
+        modality: str | None = None,
+        platform: str | None = None,
+        freshness: str | None = None,
+        now: datetime | None = None,
         workspace_id: str | None = None,
         cursor: str | None = None,
         limit: int = 50,
@@ -113,12 +128,48 @@ class CatalogService:
             for token in query.casefold().replace("-", " ").split()
             if token
         ]
+        releases = self.repository.list_all_releases()
+        metadata = self.repository.latest_claim_values(
+            [release.id for release in releases],
+            {
+                "hardware_tier",
+                "last_modified",
+                "library_name",
+                "license",
+                "modality",
+                "pipeline_tag",
+            },
+        )
+        current = now or datetime.now(UTC)
         matches: list[tuple[int, Release, list[str]]] = []
-        for release in self.repository.list_all_releases():
+        for release in releases:
             if category is not None and release.category is not category:
                 continue
             if lifecycle is not None and release.lifecycle is not lifecycle:
                 continue
+            values = metadata.get(release.id, {})
+            if lane is not None and release.lane.value != lane:
+                continue
+            if publisher is not None and release.publisher_id != publisher:
+                continue
+            if license is not None and values.get("license") != license:
+                continue
+            if hardware is not None and values.get("hardware_tier") != hardware:
+                continue
+            release_modality = (
+                values.get("modality")
+                or values.get("pipeline_tag")
+                or release.category.value
+            )
+            if modality is not None and release_modality != modality:
+                continue
+            if platform is not None and values.get("library_name") != platform:
+                continue
+            if freshness is not None:
+                timestamp = _claim_datetime(values.get("last_modified")) or release.first_observed_at
+                is_fresh = current - timestamp <= timedelta(days=7)
+                if (freshness == "fresh") != is_fresh:
+                    continue
             haystack = " ".join(
                 (
                     release.id,
@@ -160,6 +211,45 @@ class CatalogService:
             ],
             next_cursor=next_cursor,
         )
+
+    def facets(self) -> dict[str, list[str]]:
+        releases = self.repository.list_all_releases()
+        metadata = self.repository.latest_claim_values(
+            [release.id for release in releases],
+            {
+                "hardware_tier",
+                "library_name",
+                "license",
+                "modality",
+                "pipeline_tag",
+            },
+        )
+
+        def values(predicate: str) -> list[str]:
+            return sorted(
+                {
+                    str(claims[predicate])
+                    for claims in metadata.values()
+                    if claims.get(predicate) not in {None, ""}
+                },
+                key=str.casefold,
+            )
+
+        modalities = {
+            release.category.value for release in releases
+        } | {
+            str(claims.get("modality") or claims.get("pipeline_tag"))
+            for claims in metadata.values()
+            if claims.get("modality") or claims.get("pipeline_tag")
+        }
+        return {
+            "publisher": sorted({release.publisher_id for release in releases}, key=str.casefold),
+            "license": values("license"),
+            "hardware": values("hardware_tier"),
+            "modality": sorted(modalities, key=str.casefold),
+            "platform": values("library_name"),
+            "freshness": ["fresh", "stale"] if releases else [],
+        }
 
     def get(
         self,
@@ -261,6 +351,18 @@ class CatalogService:
             ),
             matched_terms=matched_terms,
         )
+
+
+def _claim_datetime(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        return value.replace(tzinfo=value.tzinfo or UTC)
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=parsed.tzinfo or UTC)
 
 
 def _cursor_for(release: Release) -> str:

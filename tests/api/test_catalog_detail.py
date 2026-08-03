@@ -50,3 +50,11 @@ def test_catalog_and_detail_include_fresh_hf_candidates(
     assert detail.status_code == 200
     assert detail.json()["release"]["name"] == "Kimi-K3"
     assert detail.json()["claims"]
+
+
+def test_catalog_facets_are_available_before_the_detail_catchall(api_client) -> None:
+    response = api_client.get("/api/v1/catalog/facets")
+
+    assert response.status_code == 200
+    assert response.json()["publisher"] == ["publisher:moonshot-ai"]
+    assert response.json()["license"] == ["kimi-k3"]

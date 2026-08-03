@@ -2,13 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../../api/client";
 import type { components } from "../../api/generated/schema";
+import type { SourceHealthRecord } from "../catalog/catalogQueries";
 import { useActiveWorkspaceId } from "../workspaces/workspaceStore";
 
 
-export type ReleaseChange = components["schemas"]["ReleaseChange"];
+export type ReleaseChange = components["schemas"]["ReleaseChange"] & {
+  released_at?: string | null;
+};
 export type CatalogItem = components["schemas"]["CatalogItem"];
-export type OperationsHealth = components["schemas"]["OperationsSnapshot"] & {
+export type OperationsHealth = Omit<
+  components["schemas"]["OperationsSnapshot"],
+  "source_health"
+> & {
   fresh_claim_pct?: number;
+  source_health: SourceHealthRecord[];
 };
 
 type Page<T> = {
@@ -18,6 +25,13 @@ type Page<T> = {
 
 
 export { useActiveWorkspaceId };
+
+
+export function releaseAgeHours(item: ReleaseChange, now = Date.now()) {
+  const timestamp = Date.parse(item.released_at ?? item.first_observed_at);
+  if (Number.isNaN(timestamp)) return Number.POSITIVE_INFINITY;
+  return Math.max(0, (now - timestamp) / (60 * 60 * 1000));
+}
 
 
 export function usePriorityReleases(
