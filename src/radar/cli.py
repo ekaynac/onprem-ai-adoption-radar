@@ -146,6 +146,31 @@ def intelligence_migrate(
     console.print_json(data=asdict(report))
 
 
+@app.command("intelligence-lineage-backfill")
+def intelligence_lineage_backfill(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    fetch_limit: int = typer.Option(
+        0,
+        "--fetch-limit",
+        help=(
+            "Also query the HF baseModels expansion for up to N unchecked "
+            "releases, highest downloads first (0 = replay stored claims only)."
+        ),
+    ),
+) -> None:
+    """Backfill model lineage edges and resolve root releases."""
+    import asyncio
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.pipeline import run_lineage_backfill
+
+    _database, repository = build_intelligence_repository(root)
+    report = asyncio.run(
+        run_lineage_backfill(root, repository, fetch_limit=fetch_limit)
+    )
+    console.print_json(data=report)
+
+
 @app.command("intelligence-shadow")
 def intelligence_shadow(
     root: Path = typer.Option(Path("."), help="Project root."),

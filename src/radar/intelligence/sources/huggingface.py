@@ -282,6 +282,51 @@ class HuggingFaceAdapter:
         ]
 
 
+async def fetch_base_models(
+    client: httpx.AsyncClient,
+    repo_id: str,
+    *,
+    source_id: str = "huggingface",
+    clock: Callable[[], datetime] | None = None,
+) -> tuple[SourceRecord | None, list[dict[str, Any]]]:
+    """Fetch the server-resolved base-model declaration for one repository.
+
+    Returns ``(None, [])`` on any failure so backfill callers can skip
+    without special-casing; a successful call with no declared parents
+    returns the evidence record and an empty entry list, which marks the
+    repository as checked.
+    """
+    encoded_repo = quote(repo_id, safe="/")
+    try:
+        response = await client.get(
+            f"{HF_API_URL}/{encoded_repo}",
+            params={"expand": ["baseModels"]},
+        )
+    except httpx.HTTPError:
+        return None, []
+    if response.status_code >= 400:
+        return None, []
+    try:
+        payload = response.json()
+    except ValueError:
+        return None, []
+    if not isinstance(payload, dict):
+        return None, []
+    entries = _normalize_lineage(
+        _lineage_entries_from_api(payload.get("baseModels")),
+        repo_id,
+    )
+    record = SourceRecord.from_bytes(
+        source_id=source_id,
+        url=str(response.request.url),
+        body=response.content,
+        retrieved_at=(clock or (lambda: datetime.now(UTC)))(),
+        strength=EvidenceStrength.TRUSTED_REGISTRY,
+        content_type=response.headers.get("content-type"),
+    )
+    return record, entries
+
+
 def _canonical_json(value: Any) -> bytes:
     return json.dumps(
         value,
