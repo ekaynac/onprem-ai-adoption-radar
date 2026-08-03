@@ -520,3 +520,10 @@ async def test_backfill_registers_out_of_index_parents(tmp_path) -> None:
     assert parent_edge.parent_release_id == base_id
     assert parent_edge.root_release_id == base_id
     assert repo.list_review_exceptions(open_only=True) == []
+    # The parentless grandparent is stamped as checked (confirmed base).
+    base_lineage_claims = [
+        claim
+        for claim in repo.list_claims_for_subject(base_id)
+        if claim.predicate == "lineage_declared"
+    ]
+    assert base_lineage_claims and base_lineage_claims[0].value == []

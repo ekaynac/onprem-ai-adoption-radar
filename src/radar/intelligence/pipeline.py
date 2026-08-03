@@ -900,6 +900,17 @@ async def run_lineage_backfill(
                         if parent_id is not None:
                             parents_registered += 1
                             progressed = True
+                            if not candidate.claims.get("lineage_declared"):
+                                # Mark parentless parents as checked so they
+                                # read as confirmed bases, not never-asked.
+                                runner._append_claim(
+                                    parent_id,
+                                    "lineage_declared",
+                                    [],
+                                    runner._persist_source_record(
+                                        candidate.source_record
+                                    ),
+                                )
                     ingest_service = LineageService(repository)
                     for entry in parent_lineage:
                         parent_id, declared, evidence_id, observed_at = entry
