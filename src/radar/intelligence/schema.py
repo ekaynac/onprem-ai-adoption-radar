@@ -110,6 +110,38 @@ class LifecycleTransitionRow(Base):
     evidence_ids: Mapped[list[str]] = mapped_column(JSON)
 
 
+class LineageEdgeRow(Base):
+    __tablename__ = "intelligence_lineage_edges"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    child_release_id: Mapped[str] = mapped_column(
+        ForeignKey("intelligence_releases.id"), index=True
+    )
+    parent_external_ref: Mapped[str] = mapped_column(String(512), index=True)
+    parent_release_id: Mapped[str | None] = mapped_column(
+        String(255), index=True
+    )
+    root_release_id: Mapped[str | None] = mapped_column(
+        String(255), index=True
+    )
+    relation: Mapped[str] = mapped_column(String(24), index=True)
+    declared: Mapped[bool]
+    confidence: Mapped[float] = mapped_column(Float)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSON)
+    extractor_version: Mapped[str] = mapped_column(String(80))
+    review_status: Mapped[str] = mapped_column(String(16), index=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint(
+            "child_release_id",
+            "parent_external_ref",
+            "relation",
+            name="uq_lineage_child_parent_relation",
+        ),
+    )
+
+
 class ReviewExceptionRow(Base):
     __tablename__ = "intelligence_review_exceptions"
 

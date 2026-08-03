@@ -33,4 +33,5 @@ def test_initial_migration_creates_intelligence_ledger(tmp_path: Path) -> None:
         "intelligence_workspaces",
         "intelligence_events",
         "intelligence_webhook_attempts",
+        "intelligence_lineage_edges",
     } <= tables

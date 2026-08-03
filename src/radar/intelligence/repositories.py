@@ -19,6 +19,9 @@ from radar.intelligence.contracts import (
     EvidenceStrength,
     LifecycleState,
     LifecycleTransition,
+    LineageEdge,
+    LineageRelation,
+    LineageReviewStatus,
     ModelCategory,
     ProductFamily,
     Publisher,
@@ -41,6 +44,7 @@ from radar.intelligence.schema import (
     JobRow,
     LegacyEventRow,
     LifecycleTransitionRow,
+    LineageEdgeRow,
     PlatformRow,
     PublisherRow,
     QualificationRow,
@@ -173,6 +177,23 @@ def _compatibility_from_row(row: CompatibilityRow) -> CompatibilityAssertion:
         evidence_level=EvidenceLevel(row.evidence_level),
         evidence_ids=row.evidence_ids,
         hardware_scope=row.hardware_scope,
+    )
+
+
+def _lineage_from_row(row: LineageEdgeRow) -> LineageEdge:
+    return LineageEdge(
+        id=row.id,
+        child_release_id=row.child_release_id,
+        parent_external_ref=row.parent_external_ref,
+        parent_release_id=row.parent_release_id,
+        root_release_id=row.root_release_id,
+        relation=LineageRelation(row.relation),
+        declared=row.declared,
+        confidence=row.confidence,
+        evidence_ids=list(row.evidence_ids),
+        extractor_version=row.extractor_version,
+        review_status=LineageReviewStatus(row.review_status),
+        observed_at=_as_utc(row.observed_at) or row.observed_at,
     )
 
 
@@ -863,6 +884,109 @@ class SqlAlchemyIntelligenceRepository:
             for assertion in self.list_compatibility(release.id)
             if evidence_id in assertion.evidence_ids
         ]
+
+    def upsert_lineage_edge(self, edge: LineageEdge) -> bool:
+        """Create or update a lineage edge; returns True when anything changed.
+
+        Identity is the edge ID (deterministic per child/parent-ref/relation);
+        re-observing the same declaration is a no-op, while resolution updates
+        (parent/root/review) and refreshed evidence overwrite in place.
+        """
+        with self.database.session() as session:
+            row = session.get(LineageEdgeRow, edge.id)
+            if row is None:
+                session.add(
+                    LineageEdgeRow(
+                        id=edge.id,
+                        child_release_id=edge.child_release_id,
+                        parent_external_ref=edge.parent_external_ref,
+                        parent_release_id=edge.parent_release_id,
+                        root_release_id=edge.root_release_id,
+                        relation=edge.relation.value,
+                        declared=edge.declared,
+                        confidence=edge.confidence,
+                        evidence_ids=edge.evidence_ids,
+                        extractor_version=edge.extractor_version,
+                        review_status=edge.review_status.value,
+                        observed_at=edge.observed_at,
+                    )
+                )
+                return True
+            if _lineage_from_row(row) == edge:
+                return False
+            if (
+                row.child_release_id != edge.child_release_id
+                or row.parent_external_ref != edge.parent_external_ref
+                or row.relation != edge.relation.value
+            ):
+                raise RepositoryConflict(
+                    f"Lineage edge id reused for different edge: {edge.id}"
+                )
+            row.parent_release_id = edge.parent_release_id
+            row.root_release_id = edge.root_release_id
+            row.declared = edge.declared
+            row.confidence = edge.confidence
+            row.evidence_ids = edge.evidence_ids
+            row.extractor_version = edge.extractor_version
+            row.review_status = edge.review_status.value
+            row.observed_at = edge.observed_at
+            return True
+
+    def get_lineage_edge(self, edge_id: str) -> LineageEdge | None:
+        with self.database.session() as session:
+            row = session.get(LineageEdgeRow, edge_id)
+            return _lineage_from_row(row) if row is not None else None
+
+    def list_lineage_for_child(
+        self,
+        child_release_id: str,
+    ) -> list[LineageEdge]:
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(LineageEdgeRow)
+                .where(LineageEdgeRow.child_release_id == child_release_id)
+                .order_by(LineageEdgeRow.id)
+            )
+            return [_lineage_from_row(row) for row in rows]
+
+    def list_lineage_children(
+        self,
+        parent_release_id: str,
+    ) -> list[LineageEdge]:
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(LineageEdgeRow)
+                .where(LineageEdgeRow.parent_release_id == parent_release_id)
+                .order_by(LineageEdgeRow.id)
+            )
+            return [_lineage_from_row(row) for row in rows]
+
+    def list_unresolved_lineage(
+        self,
+        limit: int | None = None,
+    ) -> list[LineageEdge]:
+        with self.database.session() as session:
+            query = (
+                select(LineageEdgeRow)
+                .where(LineageEdgeRow.parent_release_id.is_(None))
+                .order_by(LineageEdgeRow.id)
+            )
+            if limit is not None:
+                query = query.limit(limit)
+            return [_lineage_from_row(row) for row in session.scalars(query)]
+
+    def list_all_lineage_edges(self) -> list[LineageEdge]:
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(LineageEdgeRow).order_by(LineageEdgeRow.id)
+            )
+            return [_lineage_from_row(row) for row in rows]
+
+    def count_lineage_edges(self) -> int:
+        with self.database.session() as session:
+            return session.scalar(
+                select(func.count()).select_from(LineageEdgeRow)
+            ) or 0
 
     def list_all_releases(self) -> list[Release]:
         with self.database.session() as session:
