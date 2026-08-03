@@ -6,6 +6,10 @@ export type ApiPaths = paths;
 type StaticSnapshot = {
   schema_version: string;
   generated_at: string;
+  model_index?: {
+    manifest_path: string;
+    total: number;
+  };
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";
     generated_at?: string | null;
@@ -26,7 +30,79 @@ type StaticSnapshot = {
   source_health: Record<string, unknown>;
 };
 
+type StaticModelIndexManifest = {
+  schema_version: string;
+  generated_at: string;
+  total: number;
+  shard_size: number;
+  shards: Array<{ path: string; count: number }>;
+};
+
 let snapshotPromise: Promise<StaticSnapshot> | undefined;
+let catalogModelsPromise: Promise<Array<Record<string, unknown>>> | undefined;
+
+
+function modelTimestamp(model: Record<string, unknown>): number {
+  const value = Date.parse(String(model.first_observed_at ?? ""));
+  return Number.isNaN(value) ? 0 : value;
+}
+
+
+export function mergeCatalogModels(
+  compact: Array<Record<string, unknown>>,
+  detailed: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  const byRelease = new Map<string, Record<string, unknown>>();
+  for (const model of compact) {
+    byRelease.set(String(model.release_id), model);
+  }
+  for (const model of detailed) {
+    byRelease.set(String(model.release_id), model);
+  }
+  return [...byRelease.values()].sort((left, right) => {
+    const timeDifference = modelTimestamp(right) - modelTimestamp(left);
+    if (timeDifference !== 0) return timeDifference;
+    return String(left.release_id).localeCompare(String(right.release_id));
+  });
+}
+
+
+export async function loadStaticCatalogModels(
+  snapshot: StaticSnapshot,
+  fetcher: typeof fetch = fetch,
+): Promise<Array<Record<string, unknown>>> {
+  const reference = snapshot.model_index;
+  if (!reference) return snapshot.models;
+  try {
+    const manifestResponse = await fetcher(
+      new URL(`./${reference.manifest_path}`, document.baseURI),
+    );
+    if (!manifestResponse.ok) throw new Error("Model index manifest unavailable");
+    const manifest = (await manifestResponse.json()) as StaticModelIndexManifest;
+    const shardPayloads = await Promise.all(
+      manifest.shards.map(async (shard) => {
+        const response = await fetcher(
+          new URL(`./${shard.path}`, document.baseURI),
+        );
+        if (!response.ok) throw new Error(`Model index shard unavailable: ${shard.path}`);
+        const payload = (await response.json()) as {
+          items?: Array<Record<string, unknown>>;
+        };
+        if (!Array.isArray(payload.items) || payload.items.length !== shard.count) {
+          throw new Error(`Invalid model index shard: ${shard.path}`);
+        }
+        return payload.items;
+      }),
+    );
+    const compact = shardPayloads.flat();
+    if (compact.length !== manifest.total || manifest.total !== reference.total) {
+      throw new Error("Model index count mismatch");
+    }
+    return mergeCatalogModels(compact, snapshot.models);
+  } catch {
+    return snapshot.models;
+  }
+}
 
 
 function catalogItem(model: Record<string, unknown>) {
@@ -59,6 +135,7 @@ function catalogItem(model: Record<string, unknown>) {
 export function projectStaticRequest(
   path: string,
   snapshot: StaticSnapshot,
+  catalogModels: Array<Record<string, unknown>> = snapshot.models,
 ): unknown {
   const url = new URL(path, "https://static.radar.invalid");
   if (url.pathname === "/api/v1/releases") {
@@ -76,7 +153,7 @@ export function projectStaticRequest(
     const query = (url.searchParams.get("q") ?? "").toLocaleLowerCase();
     const category = url.searchParams.get("category");
     const lifecycle = url.searchParams.get("lifecycle");
-    const items = snapshot.models
+    const filtered = catalogModels
       .map(catalogItem)
       .filter((item) => {
         const haystack = `${item.name} ${item.release_id}`.toLocaleLowerCase();
@@ -86,13 +163,20 @@ export function projectStaticRequest(
           (!lifecycle || item.lifecycle === lifecycle)
         );
       });
-    return { items, next_cursor: null };
+    const items = filtered.slice(0, 500);
+    return {
+      items,
+      next_cursor:
+        filtered.length > items.length
+          ? String(items.at(-1)?.release_id ?? "")
+          : null,
+    };
   }
   if (url.pathname.startsWith("/api/v1/catalog/")) {
     const releaseId = decodeURIComponent(
       url.pathname.slice("/api/v1/catalog/".length),
     );
-    const model = snapshot.models.find(
+    const model = catalogModels.find(
       (item) => item.release_id === releaseId,
     );
     if (!model) return undefined;
@@ -131,7 +215,14 @@ async function staticApiFetch<T>(path: string): Promise<T> {
     }
     return response.json() as Promise<StaticSnapshot>;
   });
-  const result = projectStaticRequest(path, await snapshotPromise);
+  const snapshot = await snapshotPromise;
+  const pathname = new URL(path, "https://static.radar.invalid").pathname;
+  const needsCatalog = pathname === "/api/v1/catalog"
+    || pathname.startsWith("/api/v1/catalog/");
+  const catalogModels = needsCatalog
+    ? await (catalogModelsPromise ??= loadStaticCatalogModels(snapshot))
+    : snapshot.models;
+  const result = projectStaticRequest(path, snapshot, catalogModels);
   if (result === undefined) {
     throw new Error("Entity is absent from the public snapshot");
   }

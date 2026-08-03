@@ -1,4 +1,8 @@
-import { projectStaticRequest } from "./client";
+import {
+  loadStaticCatalogModels,
+  mergeCatalogModels,
+  projectStaticRequest,
+} from "./client";
 
 
 test("projects the public snapshot through the REST-shaped client", () => {
@@ -62,4 +66,102 @@ test("projects the public snapshot through the REST-shaped client", () => {
     source_url: "https://huggingface.co/moonshotai/Kimi-K3",
     claims: [{ predicate: "hf_repo", value: "moonshotai/Kimi-K3" }],
   });
+});
+
+
+test("merges compact models with detailed snapshot data winning", () => {
+  const compact = [
+    {
+      release_id: "release:one",
+      name: "Compact name",
+      first_observed_at: "2026-07-30T10:00:00Z",
+      claims: [],
+    },
+    {
+      release_id: "release:two",
+      name: "Second model",
+      first_observed_at: "2026-07-29T10:00:00Z",
+    },
+  ];
+  const detailed = [
+    {
+      release_id: "release:one",
+      name: "Detailed name",
+      first_observed_at: "2026-07-30T10:00:00Z",
+      claims: [{ predicate: "parameters", value: 10 }],
+    },
+  ];
+
+  expect(mergeCatalogModels(compact, detailed)).toEqual([
+    detailed[0],
+    compact[1],
+  ]);
+});
+
+
+test("filters the complete catalog before capping rendered rows", () => {
+  const models = Array.from({ length: 650 }, (_, index) => ({
+    release_id: `release:model-${index}`,
+    name: index === 649 ? "Needle Model" : `Model ${index}`,
+    category: "text_reasoning",
+    lane: "deployable_onprem",
+    lifecycle: "detected",
+    first_observed_at: `2026-07-30T${String(index % 24).padStart(2, "0")}:00:00Z`,
+  }));
+  const snapshot = {
+    schema_version: "1.0",
+    generated_at: "2026-07-30T10:00:00Z",
+    releases: [],
+    models: [],
+    projects: [],
+    model_candidates: [],
+    platforms: [],
+    hardware: [],
+    research: [],
+    events: [],
+    source_health: {},
+  };
+
+  const all = projectStaticRequest("/api/v1/catalog", snapshot, models) as {
+    items: Array<{ release_id: string }>;
+    next_cursor: string | null;
+  };
+  const search = projectStaticRequest(
+    "/api/v1/catalog?q=needle",
+    snapshot,
+    models,
+  ) as { items: Array<{ release_id: string }>; next_cursor: string | null };
+
+  expect(all.items).toHaveLength(500);
+  expect(all.next_cursor).toBe("release:model-499");
+  expect(search.items.map((item) => item.release_id)).toEqual([
+    "release:model-649",
+  ]);
+  expect(search.next_cursor).toBeNull();
+});
+
+
+test("falls back to detailed snapshot models when the index is unavailable", async () => {
+  const snapshot = {
+    schema_version: "1.0",
+    generated_at: "2026-07-30T10:00:00Z",
+    releases: [],
+    models: [{ release_id: "release:fallback", name: "Fallback" }],
+    model_index: {
+      manifest_path: "data/model-index.v1.json",
+      total: 10,
+    },
+    projects: [],
+    model_candidates: [],
+    platforms: [],
+    hardware: [],
+    research: [],
+    events: [],
+    source_health: {},
+  };
+  const unavailable = async () => new Response(null, { status: 404 });
+
+  await expect(loadStaticCatalogModels(snapshot, unavailable)).resolves.toEqual(
+    snapshot.models,
+  );
 });
