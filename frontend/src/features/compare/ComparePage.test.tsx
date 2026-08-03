@@ -37,3 +37,48 @@ test("searches the complete catalog before offering compare candidates", async (
   expect(await screen.findByText("Kimi K3")).toBeVisible();
   vi.unstubAllGlobals();
 });
+
+
+test("preserves selected models while searching for another candidate", async () => {
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    const match = url.includes("q=Kimi")
+      ? [catalogItem("release:kimi", "Kimi")]
+      : url.includes("q=Qwen")
+        ? [catalogItem("release:qwen", "Qwen")]
+        : [];
+    return Promise.resolve(new Response(JSON.stringify({ items: match, next_cursor: null }), { status: 200 }));
+  }));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter><ComparePage /></MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  const search = screen.getByRole("searchbox", { name: "Find models to compare" });
+  await user.type(search, "Kimi");
+  await user.click(await screen.findByRole("checkbox", { name: "Kimi" }));
+  await user.clear(search);
+  await user.type(search, "Qwen");
+  await user.click(await screen.findByRole("checkbox", { name: "Qwen" }));
+
+  expect(screen.getByRole("heading", { name: "Kimi" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Qwen" })).toBeVisible();
+  vi.unstubAllGlobals();
+});
+
+
+function catalogItem(releaseId: string, name: string) {
+  return {
+    release_id: releaseId,
+    name,
+    category: "text_reasoning",
+    lane: "onprem_adjacent",
+    lifecycle: "detected",
+    first_observed_at: "2026-08-03T08:00:00Z",
+    public_recommendation: { ring: null },
+    workspace_recommendation: null,
+  };
+}

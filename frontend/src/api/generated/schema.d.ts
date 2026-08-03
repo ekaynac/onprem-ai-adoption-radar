@@ -948,6 +948,7 @@ export interface operations {
             query?: {
                 since?: string | null;
                 workspace_id?: string | null;
+                priority_only?: boolean;
                 limit?: number;
             };
             header?: never;

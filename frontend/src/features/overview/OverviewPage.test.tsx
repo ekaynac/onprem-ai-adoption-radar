@@ -79,6 +79,45 @@ test("shows detected releases without presenting them as recommendations", async
 });
 
 
+test("keeps low-confidence releases searchable but out of priority intelligence", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/releases")) {
+        return response({
+          items: [
+            {
+              release_id: "release:untrusted",
+              name: "Untrusted Candidate",
+              lifecycle: "detected",
+              lane: "onprem_adjacent",
+              category: "text_reasoning",
+              first_observed_at: "2026-08-03T08:00:00Z",
+              age_hours: 0.2,
+              freshness: "fresh",
+              confidence: 0.45,
+              review_status: "clear",
+              citations: [],
+            },
+          ],
+          next_cursor: null,
+        });
+      }
+      if (url.includes("/catalog")) {
+        return response({ items: [], next_cursor: null });
+      }
+      return response({ source_health: [], open_review_count: 0, stale_claim_count: 0 });
+    }),
+  );
+
+  renderOverview();
+
+  expect(await screen.findByText("No new intelligence in this window")).toBeVisible();
+  expect(screen.queryByText("Untrusted Candidate")).not.toBeInTheDocument();
+});
+
+
 test("shows freshness and review exceptions", async () => {
   vi.stubGlobal(
     "fetch",

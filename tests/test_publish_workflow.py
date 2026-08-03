@@ -199,6 +199,7 @@ def test_pages_artifact_upload_is_not_blocked_by_history_persistence():
     persist = steps[persist_index]
 
     assert upload_index < persist_index
+    assert "if" not in persist
     assert persist["continue-on-error"] is True
     assert "scripts/persist_publication.sh" in persist["run"]
 

@@ -16,7 +16,10 @@ function ageLabel(hours: number) {
 
 
 export function PriorityIntelligence({ items }: { items: ReleaseChange[] }) {
-  if (!items.length) {
+  const priorityItems = items.filter(
+    (item) => item.confidence >= 0.7 && item.review_status === "clear",
+  );
+  if (!priorityItems.length) {
     return (
       <div className="empty-state">
         <strong>No new intelligence in this window</strong>
@@ -35,7 +38,7 @@ export function PriorityIntelligence({ items }: { items: ReleaseChange[] }) {
         <Link to="/releases" className="text-link">Open release stream →</Link>
       </div>
       <div className="priority-list">
-        {items.slice(0, 5).map((item) => (
+        {priorityItems.slice(0, 5).map((item) => (
           <article className="priority-item" key={item.release_id}>
             <div className="priority-main">
               <StatusBadge

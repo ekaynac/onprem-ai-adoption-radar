@@ -37,13 +37,23 @@ export function releaseAgeHours(item: ReleaseChange, now = Date.now()) {
 export function usePriorityReleases(
   workspaceId?: string,
   limit = 50,
+  priorityOnly = false,
 ) {
   return useQuery({
-    queryKey: ["releases", "priority", workspaceId ?? "public", limit],
+    queryKey: [
+      "releases",
+      "priority",
+      workspaceId ?? "public",
+      limit,
+      priorityOnly,
+    ],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(limit),
       });
+      if (priorityOnly) {
+        params.set("priority_only", "true");
+      }
       if (workspaceId) {
         params.set("workspace_id", workspaceId);
       }

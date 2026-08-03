@@ -1231,3 +1231,25 @@ class SqlAlchemyIntelligenceRepository:
         with self.database.session() as session:
             row = session.get(JobRow, job_id)
             return _job_from_row(row) if row is not None else None
+
+    def latest_processed_attempts(self, kind: str) -> dict[str, datetime]:
+        """Return the last completed attempt for each batched release."""
+        with self.database.session() as session:
+            rows = session.execute(
+                select(JobRow.completed_at, JobRow.result)
+                .where(
+                    JobRow.kind == kind,
+                    JobRow.status == JobStatus.COMPLETED.value,
+                    JobRow.completed_at.is_not(None),
+                )
+                .order_by(JobRow.completed_at)
+            )
+            attempts: dict[str, datetime] = {}
+            for completed_at, result in rows:
+                normalized = _as_utc(completed_at)
+                if normalized is None or not isinstance(result, dict):
+                    continue
+                for release_id in result.get("processed_ids") or []:
+                    if isinstance(release_id, str):
+                        attempts[release_id] = normalized
+            return attempts

@@ -13,10 +13,12 @@ afterEach(() => {
 
 
 test("filters the release stream by lifecycle", async () => {
+  const requested: string[] = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(() =>
-      Promise.resolve(
+    vi.fn((input: RequestInfo | URL) => {
+      requested.push(String(input));
+      return Promise.resolve(
         new Response(
           JSON.stringify({
             items: [
@@ -51,8 +53,8 @@ test("filters the release stream by lifecycle", async () => {
           }),
           { status: 200 },
         ),
-      ),
-    ),
+      );
+    }),
   );
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -68,6 +70,7 @@ test("filters the release stream by lifecycle", async () => {
   );
 
   expect(await screen.findByText("Kimi K3")).toBeVisible();
+  expect(requested.some((url) => url.includes("priority_only"))).toBe(false);
   await user.selectOptions(
     screen.getByRole("combobox", { name: "Lifecycle" }),
     "verified",

@@ -22,7 +22,7 @@ function QueryFailure({ retry }: { retry: () => void }) {
 
 export function OverviewPage({ staticMode = false }: { staticMode?: boolean }) {
   const workspaceId = useActiveWorkspaceId();
-  const releases = usePriorityReleases(workspaceId);
+  const releases = usePriorityReleases(workspaceId, 50, true);
   const actions = useRecommendedActions(workspaceId);
   const health = useCatalogHealth();
   const snapshot = usePublicSnapshot(staticMode);

@@ -205,7 +205,6 @@ jobs:
       # is intentionally after artifact upload and non-blocking: an unrelated
       # bot commit must not prevent a verified site from deploying.
       - name: Persist history log + keepalive
-        if: always()
         continue-on-error: true
         run: |
           scripts/persist_publication.sh \

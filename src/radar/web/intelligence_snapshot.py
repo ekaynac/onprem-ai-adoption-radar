@@ -18,6 +18,7 @@ MODEL_INDEX_SHARD_SIZE = 2_000
 _INDEX_PREDICATES = {
     "context_length",
     "downloads",
+    "hardware_tier",
     "hf_repo",
     "last_modified",
     "library_name",
@@ -26,7 +27,10 @@ _INDEX_PREDICATES = {
     "modality",
     "params_total",
     "pipeline_tag",
+    "published_at",
+    "pushed_at",
     "quantization_format",
+    "release_date",
 }
 
 
@@ -77,14 +81,22 @@ class PublicSnapshot(BaseModel):
     latest_digest: dict[str, str] | None = None
 
 
-def _release_sort_key(release: Release) -> tuple[float, str]:
-    return (-release.first_observed_at.timestamp(), release.id)
+def _release_sort_key(
+    release: Release,
+    metadata: dict[str, dict[str, Any]] | None = None,
+) -> tuple[float, str]:
+    values = (metadata or {}).get(release.id, {})
+    released_at = datetime.fromisoformat(
+        _released_at(values, release.first_observed_at).replace("Z", "+00:00")
+    )
+    return (-released_at.timestamp(), release.id)
 
 
 def _select_public_releases(
     releases: Sequence[Release],
     *,
     recent_limit: int = PUBLIC_RECENT_RELEASE_LIMIT,
+    metadata: dict[str, dict[str, Any]] | None = None,
 ) -> list[Release]:
     legacy = [release for release in releases if release.id.startswith("release:legacy:")]
     recent = sorted(
@@ -93,9 +105,12 @@ def _select_public_releases(
             for release in releases
             if not release.id.startswith("release:legacy:")
         ),
-        key=_release_sort_key,
+        key=lambda release: _release_sort_key(release, metadata),
     )[:recent_limit]
-    return sorted([*legacy, *recent], key=_release_sort_key)
+    return sorted(
+        [*legacy, *recent],
+        key=lambda release: _release_sort_key(release, metadata),
+    )
 
 
 def _claim_metadata(repository: Any, releases: Sequence[Release]) -> dict[str, dict[str, Any]]:
@@ -106,7 +121,19 @@ def _claim_metadata(repository: Any, releases: Sequence[Release]) -> dict[str, d
 
 
 def _released_at(values: dict[str, Any], fallback: datetime | str) -> str:
-    value = values.get("last_modified") or fallback
+    value = next(
+        (
+            values[predicate]
+            for predicate in (
+                "last_modified",
+                "published_at",
+                "pushed_at",
+                "release_date",
+            )
+            if values.get(predicate)
+        ),
+        fallback,
+    )
     if isinstance(value, datetime):
         return value.isoformat()
     text = str(value)
@@ -120,7 +147,7 @@ def _released_at(values: dict[str, Any], fallback: datetime | str) -> str:
 def _confidence(values: dict[str, Any], *, official_publisher: bool) -> float:
     score = 0.35
     score += 0.15 if official_publisher else 0.0
-    score += 0.10 if values.get("last_modified") else 0.0
+    score += 0.10 if _released_at(values, "") else 0.0
     score += 0.10 if values.get("license") else 0.0
     score += 0.10 if values.get("pipeline_tag") or values.get("modality") else 0.0
     score += 0.10 if int(values.get("downloads") or 0) >= 100 else 0.0
@@ -215,8 +242,15 @@ def build_public_snapshot(
         if canonical_releases is not None
         else repository.list_all_releases()
     )
-    public_releases = _select_public_releases(all_releases)
-    release_metadata = _claim_metadata(repository, public_releases)
+    all_release_metadata = _claim_metadata(repository, all_releases)
+    public_releases = _select_public_releases(
+        all_releases,
+        metadata=all_release_metadata,
+    )
+    release_metadata = {
+        release.id: all_release_metadata.get(release.id, {})
+        for release in public_releases
+    }
     releases = [
         services.releases.get(release.id, now=generated_at)
         for release in public_releases

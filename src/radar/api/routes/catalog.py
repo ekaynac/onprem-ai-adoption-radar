@@ -57,28 +57,39 @@ def search_catalog(
         cursor=cursor,
         limit=100,
     )
-    candidates = _candidate_items(services, root)
+    now = datetime.now(UTC)
+    candidate_models = _candidate_models(services, root, now)
     tokens = [token for token in q.casefold().replace("-", " ").split() if token]
-    filtered = [
-        item
-        for item in candidates
-        if (category is None or item.category is category)
-        and (lifecycle is None or item.lifecycle is lifecycle)
-        and all(
-            token
-            in " ".join(
-                (
-                    item.release_id,
-                    item.name,
-                    item.category.value,
-                    item.lane,
-                    item.lifecycle.value,
-                )
-            ).casefold()
-            for token in tokens
-        )
-        and (lane is None or item.lane == lane.value)
-    ]
+    filtered: list[CatalogItem] = []
+    for model in candidate_models:
+        item = _candidate_item(model)
+        haystack = " ".join(
+            (
+                item.release_id,
+                item.name,
+                item.category.value,
+                item.lane,
+                item.lifecycle.value,
+            )
+        ).casefold()
+        if not (
+            (category is None or item.category is category)
+            and (lifecycle is None or item.lifecycle is lifecycle)
+            and all(token in haystack for token in tokens)
+            and (lane is None or item.lane == lane.value)
+            and _candidate_matches_metadata(
+                model,
+                publisher=publisher,
+                license=license,
+                hardware=hardware,
+                modality=modality,
+                platform=platform,
+                freshness=freshness,
+                now=now,
+            )
+        ):
+            continue
+        filtered.append(item)
     rows = sorted(
         [*canonical.items, *filtered],
         key=lambda item: item.first_observed_at,
@@ -175,16 +186,52 @@ def _candidate_item(model: dict) -> CatalogItem:
     )
 
 
-def _candidate_items(
+def _candidate_models(
     services: IntelligenceServices,
     root: Path,
-) -> list[CatalogItem]:
+    now: datetime,
+) -> list[dict]:
     return [
-        _candidate_item(model)
+        model
         for model in build_public_snapshot(
             services,
-            datetime.now(UTC),
+            now,
             root=root,
         ).models
         if str(model["release_id"]).startswith("release:hf:")
     ]
+
+
+def _candidate_matches_metadata(
+    model: dict,
+    *,
+    publisher: str | None,
+    license: str | None,
+    hardware: str | None,
+    modality: str | None,
+    platform: str | None,
+    freshness: str | None,
+    now: datetime,
+) -> bool:
+    profile = model.get("profile") or {}
+    candidate_publisher = profile.get("publisher") or profile.get("family")
+    if publisher is not None and candidate_publisher != publisher:
+        return False
+    if license is not None and profile.get("license") != license:
+        return False
+    if hardware is not None and profile.get("hardware_tier") != hardware:
+        return False
+    if modality is not None and profile.get("modality") != modality:
+        return False
+    if platform is not None and profile.get("library_name") != platform:
+        return False
+    if freshness is not None:
+        raw = model.get("released_at") or model.get("first_observed_at")
+        try:
+            released_at = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            return freshness == "stale"
+        is_fresh = (now - released_at).total_seconds() <= 7 * 24 * 60 * 60
+        if (freshness == "fresh") != is_fresh:
+            return False
+    return True

@@ -2,7 +2,11 @@ import { useState } from "react";
 
 import { StatusBadge } from "../../design/StatusBadge";
 import { useActiveWorkspaceId } from "../workspaces/workspaceStore";
-import { useCatalogSearch, type CatalogSearch } from "../catalog/catalogQueries";
+import {
+  useCatalogSearch,
+  type CatalogItem,
+  type CatalogSearch,
+} from "../catalog/catalogQueries";
 
 
 const filters: CatalogSearch = {
@@ -21,22 +25,23 @@ const filters: CatalogSearch = {
 
 export function ComparePage() {
   const workspaceId = useActiveWorkspaceId();
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Record<string, CatalogItem>>({});
   const [query, setQuery] = useState("");
   const catalogFilters = { ...filters, query };
   const catalog = useCatalogSearch(catalogFilters, workspaceId);
-  const rows = (catalog.data?.items ?? []).filter((item) =>
-    selected.includes(item.release_id),
-  );
+  const rows = Object.values(selected);
 
-  function toggle(id: string) {
-    setSelected((current) =>
-      current.includes(id)
-        ? current.filter((value) => value !== id)
-        : current.length < 6
-          ? [...current, id]
-          : current,
-    );
+  function toggle(item: CatalogItem) {
+    setSelected((current) => {
+      if (current[item.release_id]) {
+        const next = { ...current };
+        delete next[item.release_id];
+        return next;
+      }
+      return Object.keys(current).length < 6
+        ? { ...current, [item.release_id]: item }
+        : current;
+    });
   }
 
   return (
@@ -62,9 +67,9 @@ export function ComparePage() {
           <label key={item.release_id}>
             <input
               type="checkbox"
-              checked={selected.includes(item.release_id)}
-              disabled={!selected.includes(item.release_id) && selected.length >= 6}
-              onChange={() => toggle(item.release_id)}
+              checked={Boolean(selected[item.release_id])}
+              disabled={!selected[item.release_id] && rows.length >= 6}
+              onChange={() => toggle(item)}
             />
             {item.name}
           </label>

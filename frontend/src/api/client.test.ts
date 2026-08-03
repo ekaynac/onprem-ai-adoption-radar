@@ -69,6 +69,38 @@ test("projects the public snapshot through the REST-shaped client", () => {
 });
 
 
+test("filters and ranks priority releases before applying the response cap", () => {
+  const lowConfidence = Array.from({ length: 50 }, (_, index) => ({
+    release_id: `release:low-${index}`,
+    name: `Low ${index}`,
+    confidence: 0.45,
+    review_status: "clear",
+    released_at: "2026-08-03T10:00:00Z",
+  }));
+  const authority = {
+    release_id: "release:authority",
+    name: "Authoritative release",
+    confidence: 0.9,
+    review_status: "clear",
+    released_at: "2026-08-02T10:00:00Z",
+  };
+  const snapshot = {
+    schema_version: "1.0",
+    generated_at: "2026-08-03T10:00:00Z",
+    releases: [...lowConfidence, authority],
+    models: [], projects: [], model_candidates: [], platforms: [], hardware: [],
+    research: [], events: [], source_health: {},
+  };
+
+  const result = projectStaticRequest(
+    "/api/v1/releases?priority_only=true&limit=1",
+    snapshot,
+  ) as { items: Array<{ release_id: string }> };
+
+  expect(result.items.map((item) => item.release_id)).toEqual(["release:authority"]);
+});
+
+
 test("merges compact models with detailed snapshot data winning", () => {
   const compact = [
     {

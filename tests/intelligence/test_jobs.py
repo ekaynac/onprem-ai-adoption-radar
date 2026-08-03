@@ -59,6 +59,7 @@ def test_completed_job_is_idempotent(tmp_path) -> None:
         "job_id": lease.id,
         "processed": 0,
         "remaining": 0,
+        "processed_ids": [],
         "discovered": 12,
         "created": 3,
         "updated": 0,

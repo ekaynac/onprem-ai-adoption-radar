@@ -139,7 +139,21 @@ export function projectStaticRequest(
 ): unknown {
   const url = new URL(path, "https://static.radar.invalid");
   if (url.pathname === "/api/v1/releases") {
-    return { items: snapshot.releases, next_cursor: null };
+    const limit = Number(url.searchParams.get("limit") ?? 50);
+    const priorityOnly = url.searchParams.get("priority_only") === "true";
+    const rows = priorityOnly
+      ? snapshot.releases
+          .filter((item) => Number(item.confidence ?? 0) >= 0.7 && item.review_status === "clear")
+          .sort((left, right) => {
+            const confidence = Number(right.confidence ?? 0) - Number(left.confidence ?? 0);
+            return confidence || modelTimestamp(right) - modelTimestamp(left);
+          })
+      : snapshot.releases;
+    const items = rows.slice(0, limit);
+    return {
+      items,
+      next_cursor: rows.length > items.length ? String(items.at(-1)?.release_id ?? "") : null,
+    };
   }
   if (url.pathname.startsWith("/api/v1/releases/")) {
     const releaseId = decodeURIComponent(

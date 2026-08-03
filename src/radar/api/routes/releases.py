@@ -21,6 +21,7 @@ router = APIRouter(tags=["releases"])
 def list_releases(
     since: datetime | None = None,
     workspace_id: str | None = None,
+    priority_only: bool = False,
     limit: int = Query(default=50, ge=1, le=100),
     services: IntelligenceServices = Depends(get_services),
     root: Path = Depends(get_root),
@@ -37,6 +38,19 @@ def list_releases(
         if since is None
         or datetime.fromisoformat(str(item["first_observed_at"])) >= since
     ]
+    if priority_only:
+        rows = [
+            item
+            for item in rows
+            if item.confidence >= 0.7 and item.review_status == "clear"
+        ]
+        rows.sort(
+            key=lambda item: (
+                item.confidence,
+                item.released_at or item.first_observed_at,
+            ),
+            reverse=True,
+        )
     return Page(
         items=rows[:limit],
         next_cursor=(rows[limit - 1].release_id if len(rows) > limit else None),

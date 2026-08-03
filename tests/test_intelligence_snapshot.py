@@ -33,6 +33,7 @@ from radar.storage.source_health_log import (
 )
 from radar.web.intelligence_snapshot import (
     PUBLIC_RECENT_RELEASE_LIMIT,
+    _select_public_releases,
     build_public_snapshot,
     write_model_index,
     write_public_snapshot,
@@ -58,6 +59,27 @@ def _public_project_payload() -> dict:
         "history": [],
         "latest_metrics": None,
     }
+
+
+@pytest.mark.parametrize("predicate", ["published_at", "pushed_at"])
+def test_public_release_selection_uses_upstream_dates(predicate: str) -> None:
+    discovered_late = _release(1).model_copy(
+        update={"first_observed_at": datetime(2026, 8, 3, tzinfo=UTC)}
+    )
+    released_late = _release(2).model_copy(
+        update={"first_observed_at": datetime(2026, 7, 1, tzinfo=UTC)}
+    )
+
+    selected = _select_public_releases(
+        [discovered_late, released_late],
+        recent_limit=1,
+        metadata={
+            discovered_late.id: {predicate: "2026-06-01T00:00:00Z"},
+            released_late.id: {predicate: "2026-08-03T07:59:00Z"},
+        },
+    )
+
+    assert selected == [released_late]
 
 
 def test_public_projects_fall_back_to_tracked_snapshot_without_database(
@@ -329,6 +351,7 @@ def test_model_index_uses_claim_metadata_for_release_time_rank_and_facets(
         ("downloads", 12_345),
         ("likes", 678),
         ("license", "modified-mit"),
+        ("hardware_tier", "4x H100 80GB"),
         ("pipeline_tag", "image-text-to-text"),
     ):
         repository.append_claim(
@@ -355,6 +378,7 @@ def test_model_index_uses_claim_metadata_for_release_time_rank_and_facets(
     assert item["released_at"] == "2026-08-03T07:55:00Z"
     assert item["profile"]["publisher"] == release.publisher_id
     assert item["profile"]["license"] == "modified-mit"
+    assert item["profile"]["hardware_tier"] == "4x H100 80GB"
     assert item["profile"]["modality"] == "image-text-to-text"
     assert item["profile"]["hf_downloads"] == 12_345
     assert item["confidence"] > 0.8
