@@ -268,6 +268,43 @@ async def test_enrichment_prefers_api_declared_base_models() -> None:
 
 
 @pytest.mark.asyncio
+async def test_enrichment_without_config_json_keeps_metadata_evidence() -> None:
+    metadata = load_fixture("hf_kimi_k3_gguf.json")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.startswith("/api/models/"):
+            if request.url.params.get("expand") == "baseModels":
+                return httpx.Response(500, request=request)
+            return httpx.Response(200, json=metadata, request=request)
+        if request.url.path.endswith("/config.json"):
+            return httpx.Response(404, request=request)
+        if request.url.path.endswith("/README.md"):
+            return httpx.Response(200, text="# Kimi K3 GGUF", request=request)
+        return httpx.Response(404, request=request)
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        adapter = HuggingFaceAdapter(client=client, publishers={}, clock=lambda: NOW)
+        enrichment = await adapter.enrich("grearl/Kimi-K3-GGUF")
+
+    kinds = {record.kind for record in enrichment.records}
+    assert "metadata" in kinds
+    assert "model_card" in kinds
+    assert "config" not in kinds
+    assert enrichment.claims["license"] == "mit"
+    assert enrichment.claims["lineage_declared"] == [
+        {
+            "parent_repo": "moonshotai/Kimi-K3",
+            "relation": "quantized",
+            "via": "tags",
+        }
+    ]
+    assert "architecture" not in enrichment.claims
+    assert "num_layers" not in enrichment.claims
+
+
+@pytest.mark.asyncio
 async def test_enrichment_survives_unavailable_base_models_expand() -> None:
     metadata = load_fixture("hf_kimi_k3_gguf.json")
 

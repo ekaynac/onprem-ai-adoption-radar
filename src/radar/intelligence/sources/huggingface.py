@@ -131,25 +131,35 @@ class HuggingFaceAdapter:
         if not isinstance(metadata, dict):
             raise ValueError("Hugging Face model metadata must be a JSON object")
 
-        config_url = (
-            f"https://huggingface.co/{encoded_repo}/resolve/main/config.json"
-        )
-        config_response = await self.client.get(config_url)
-        config_response.raise_for_status()
-        config = config_response.json()
-        if not isinstance(config, dict):
-            config = {}
-
         records = [
             HFEnrichmentRecord(
                 kind="metadata",
                 source_record=self._record_from_response(metadata_response),
             ),
-            HFEnrichmentRecord(
-                kind="config",
-                source_record=self._record_from_response(config_response),
-            ),
         ]
+
+        # Only the metadata fetch above is fatal. A repository without a
+        # root config.json (GGUF-only uploads, adapters, datasets-style
+        # layouts) must keep its metadata, card, license, and lineage
+        # evidence; architecture fields simply stay unknown.
+        config: dict[str, Any] = {}
+        config_url = (
+            f"https://huggingface.co/{encoded_repo}/resolve/main/config.json"
+        )
+        config_response = await self.client.get(config_url)
+        if config_response.status_code < 400:
+            try:
+                config_payload = config_response.json()
+            except ValueError:
+                config_payload = None
+            if isinstance(config_payload, dict):
+                config = config_payload
+            records.append(
+                HFEnrichmentRecord(
+                    kind="config",
+                    source_record=self._record_from_response(config_response),
+                )
+            )
         records.extend(
             self._metadata_slices(
                 repo_id,
@@ -427,18 +437,19 @@ def _enrichment_claims(
         claims["lineage_declared"] = lineage
     else:
         claims.pop("lineage_declared", None)
-    architecture = parse_architecture(config)
-    claims.update(
-        {
-            "num_layers": config.get("num_hidden_layers"),
-            "hidden_size": config.get("hidden_size"),
-            "context_length": config.get("max_position_embeddings"),
-            "architecture": architecture.model_dump(mode="json"),
-            "quantization_format": parse_quant_format(config),
-            "quantization_config": config.get("quantization_config"),
-            "siblings": _sibling_names(metadata),
-        }
-    )
+    claims["siblings"] = _sibling_names(metadata)
+    if config:
+        architecture = parse_architecture(config)
+        claims.update(
+            {
+                "num_layers": config.get("num_hidden_layers"),
+                "hidden_size": config.get("hidden_size"),
+                "context_length": config.get("max_position_embeddings"),
+                "architecture": architecture.model_dump(mode="json"),
+                "quantization_format": parse_quant_format(config),
+                "quantization_config": config.get("quantization_config"),
+            }
+        )
     return {
         key: value
         for key, value in claims.items()
