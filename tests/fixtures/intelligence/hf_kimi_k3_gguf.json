@@ -1,0 +1,30 @@
+{
+  "_id": "kimi-k3-gguf",
+  "id": "grearl/Kimi-K3-GGUF",
+  "author": "grearl",
+  "pipeline_tag": "image-text-to-text",
+  "lastModified": "2026-07-30T09:30:00.000Z",
+  "sha": "def456",
+  "downloads": 120000,
+  "likes": 310,
+  "gated": false,
+  "tags": [
+    "gguf",
+    "base_model:moonshotai/Kimi-K3",
+    "base_model:quantized:moonshotai/Kimi-K3",
+    "license:mit"
+  ],
+  "cardData": {
+    "license": "mit",
+    "base_model": "moonshotai/Kimi-K3",
+    "base_model_relation": "quantized"
+  },
+  "siblings": [
+    {
+      "rfilename": "Kimi-K3-Q4_K_M.gguf"
+    },
+    {
+      "rfilename": "README.md"
+    }
+  ]
+}

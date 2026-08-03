@@ -21,6 +21,8 @@ from radar.models_radar.hf_config import parse_architecture, parse_quant_format
 
 
 HF_API_URL = "https://huggingface.co/api/models"
+LINEAGE_TAG_PREFIX = "base_model:"
+LINEAGE_TAG_RELATIONS = frozenset({"finetune", "quantized", "merge", "adapter"})
 HF_PIPELINE_CATEGORIES = {
     "text-generation": ModelCategory.TEXT_REASONING,
     "image-text-to-text": ModelCategory.MULTIMODAL,
@@ -166,6 +168,24 @@ class HuggingFaceAdapter:
                 )
             )
 
+        api_base_models: Any = None
+        base_models_response = await self.client.get(
+            f"{HF_API_URL}/{encoded_repo}",
+            params={"expand": ["baseModels"]},
+        )
+        if base_models_response.status_code < 400:
+            payload = base_models_response.json()
+            if isinstance(payload, dict):
+                api_base_models = payload.get("baseModels")
+            records.append(
+                HFEnrichmentRecord(
+                    kind="base_models",
+                    source_record=self._record_from_response(
+                        base_models_response
+                    ),
+                )
+            )
+
         siblings = _sibling_names(metadata)
         artifact_urls = [f"https://huggingface.co/{repo_id}"]
         artifact_urls.extend(
@@ -175,7 +195,7 @@ class HuggingFaceAdapter:
         return HFEnrichment(
             repo_id=repo_id,
             records=records,
-            claims=_enrichment_claims(metadata, config),
+            claims=_enrichment_claims(metadata, config, api_base_models),
             artifact_urls=artifact_urls,
         )
 
@@ -281,6 +301,89 @@ def _sibling_names(metadata: dict[str, Any]) -> list[str]:
     )
 
 
+def _lineage_entries_from_metadata(
+    metadata: dict[str, Any],
+) -> list[tuple[Any, str | None, str]]:
+    entries: list[tuple[Any, str | None, str]] = []
+    tags = metadata.get("tags")
+    if isinstance(tags, list):
+        for tag in tags:
+            if not isinstance(tag, str) or not tag.startswith(
+                LINEAGE_TAG_PREFIX
+            ):
+                continue
+            rest = tag[len(LINEAGE_TAG_PREFIX) :]
+            head, _, tail = rest.partition(":")
+            if head in LINEAGE_TAG_RELATIONS and tail:
+                entries.append((tail, head, "tags"))
+            else:
+                entries.append((rest, None, "tags"))
+    card = metadata.get("cardData")
+    if isinstance(card, dict):
+        declared = card.get("base_model")
+        relation_value = card.get("base_model_relation")
+        relation = (
+            relation_value if isinstance(relation_value, str) else None
+        )
+        parents = declared if isinstance(declared, list) else [declared]
+        entries.extend((parent, relation, "card") for parent in parents)
+    return entries
+
+
+def _lineage_entries_from_api(
+    payload: Any,
+) -> list[tuple[Any, str | None, str]]:
+    groups = payload if isinstance(payload, list) else [payload]
+    entries: list[tuple[Any, str | None, str]] = []
+    for group in groups:
+        if not isinstance(group, dict):
+            continue
+        relation_value = group.get("relation")
+        relation = (
+            relation_value if isinstance(relation_value, str) else None
+        )
+        for model in group.get("models") or []:
+            parent = model.get("id") if isinstance(model, dict) else model
+            entries.append((parent, relation, "api"))
+    return entries
+
+
+def _normalize_lineage(
+    entries: list[tuple[Any, str | None, str]],
+    repo_id: Any,
+) -> list[dict[str, Any]]:
+    """Dedupe declared parents; a relation-qualified entry beats a bare one.
+
+    Entry order encodes source priority (feed authoritative sources first);
+    the first entry for a given (parent, relation) wins.
+    """
+    by_key: dict[tuple[str, str | None], dict[str, Any]] = {}
+    for parent, relation, via in entries:
+        if not isinstance(parent, str):
+            continue
+        parent = parent.strip()
+        if "/" not in parent or not parent or parent == repo_id:
+            continue
+        by_key.setdefault(
+            (parent.casefold(), relation),
+            {"parent_repo": parent, "relation": relation, "via": via},
+        )
+    by_parent: dict[str, list[dict[str, Any]]] = {}
+    for (parent_key, _), entry in by_key.items():
+        by_parent.setdefault(parent_key, []).append(entry)
+    collapsed: list[dict[str, Any]] = []
+    for parent_key in sorted(by_parent):
+        group = by_parent[parent_key]
+        qualified = [entry for entry in group if entry["relation"]]
+        collapsed.extend(
+            sorted(
+                qualified or group[:1],
+                key=lambda entry: entry["relation"] or "",
+            )
+        )
+    return collapsed
+
+
 def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
     card = metadata.get("cardData")
     if not isinstance(card, dict):
@@ -300,6 +403,11 @@ def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
         "gated": bool(metadata.get("gated")),
         "license": card.get("license") or metadata.get("license"),
         "params_total": safetensors.get("total"),
+        "lineage_declared": _normalize_lineage(
+            _lineage_entries_from_metadata(metadata),
+            metadata.get("id"),
+        )
+        or None,
     }
     return {key: value for key, value in values.items() if value is not None}
 
@@ -307,8 +415,18 @@ def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
 def _enrichment_claims(
     metadata: dict[str, Any],
     config: dict[str, Any],
+    api_base_models: Any = None,
 ) -> dict[str, Any]:
     claims = _metadata_claims(metadata)
+    lineage = _normalize_lineage(
+        _lineage_entries_from_api(api_base_models)
+        + _lineage_entries_from_metadata(metadata),
+        metadata.get("id"),
+    )
+    if lineage:
+        claims["lineage_declared"] = lineage
+    else:
+        claims.pop("lineage_declared", None)
     architecture = parse_architecture(config)
     claims.update(
         {
