@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { StatusBadge, type IntelligenceStatus } from "../../design/StatusBadge";
-import type { ReleaseChange } from "../releases/releaseQueries";
+import { releaseAgeHours, type ReleaseChange } from "../releases/releaseQueries";
 
 
 function ageLabel(hours: number) {
@@ -16,7 +16,10 @@ function ageLabel(hours: number) {
 
 
 export function PriorityIntelligence({ items }: { items: ReleaseChange[] }) {
-  if (!items.length) {
+  const priorityItems = items.filter(
+    (item) => item.confidence >= 0.7 && item.review_status === "clear",
+  );
+  if (!priorityItems.length) {
     return (
       <div className="empty-state">
         <strong>No new intelligence in this window</strong>
@@ -35,7 +38,7 @@ export function PriorityIntelligence({ items }: { items: ReleaseChange[] }) {
         <Link to="/releases" className="text-link">Open release stream →</Link>
       </div>
       <div className="priority-list">
-        {items.slice(0, 5).map((item) => (
+        {priorityItems.slice(0, 5).map((item) => (
           <article className="priority-item" key={item.release_id}>
             <div className="priority-main">
               <StatusBadge
@@ -56,7 +59,9 @@ export function PriorityIntelligence({ items }: { items: ReleaseChange[] }) {
             </div>
             <div className="signal-metrics">
               <span>{Math.round(item.confidence * 100)}% confidence</span>
-              <time dateTime={item.first_observed_at}>{ageLabel(item.age_hours)}</time>
+              <time dateTime={item.released_at ?? item.first_observed_at}>
+                {ageLabel(releaseAgeHours(item))}
+              </time>
             </div>
           </article>
         ))}

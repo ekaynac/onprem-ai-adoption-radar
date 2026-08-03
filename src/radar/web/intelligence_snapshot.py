@@ -15,6 +15,23 @@ from radar.intelligence.contracts import Release
 
 PUBLIC_RECENT_RELEASE_LIMIT = 250
 MODEL_INDEX_SHARD_SIZE = 2_000
+_INDEX_PREDICATES = {
+    "context_length",
+    "downloads",
+    "hardware_tier",
+    "hf_repo",
+    "last_modified",
+    "library_name",
+    "license",
+    "likes",
+    "modality",
+    "params_total",
+    "pipeline_tag",
+    "published_at",
+    "pushed_at",
+    "quantization_format",
+    "release_date",
+}
 
 
 class PublicProjectDataState(BaseModel):
@@ -59,17 +76,27 @@ class PublicSnapshot(BaseModel):
     source_health: dict[str, Any]
     project_data: PublicProjectDataState
     model_index: ModelIndexReference
+    quality: dict[str, Any]
+    source_coverage: list[dict[str, Any]]
     latest_digest: dict[str, str] | None = None
 
 
-def _release_sort_key(release: Release) -> tuple[float, str]:
-    return (-release.first_observed_at.timestamp(), release.id)
+def _release_sort_key(
+    release: Release,
+    metadata: dict[str, dict[str, Any]] | None = None,
+) -> tuple[float, str]:
+    values = (metadata or {}).get(release.id, {})
+    released_at = datetime.fromisoformat(
+        _released_at(values, release.first_observed_at).replace("Z", "+00:00")
+    )
+    return (-released_at.timestamp(), release.id)
 
 
 def _select_public_releases(
     releases: Sequence[Release],
     *,
     recent_limit: int = PUBLIC_RECENT_RELEASE_LIMIT,
+    metadata: dict[str, dict[str, Any]] | None = None,
 ) -> list[Release]:
     legacy = [release for release in releases if release.id.startswith("release:legacy:")]
     recent = sorted(
@@ -78,9 +105,128 @@ def _select_public_releases(
             for release in releases
             if not release.id.startswith("release:legacy:")
         ),
-        key=_release_sort_key,
+        key=lambda release: _release_sort_key(release, metadata),
     )[:recent_limit]
-    return sorted([*legacy, *recent], key=_release_sort_key)
+    return sorted(
+        [*legacy, *recent],
+        key=lambda release: _release_sort_key(release, metadata),
+    )
+
+
+def _claim_metadata(repository: Any, releases: Sequence[Release]) -> dict[str, dict[str, Any]]:
+    method = getattr(repository, "latest_claim_values", None)
+    if method is None:
+        return {}
+    return method([release.id for release in releases], _INDEX_PREDICATES)
+
+
+def _released_at(values: dict[str, Any], fallback: datetime | str) -> str:
+    value = next(
+        (
+            values[predicate]
+            for predicate in (
+                "last_modified",
+                "published_at",
+                "pushed_at",
+                "release_date",
+            )
+            if values.get(predicate)
+        ),
+        fallback,
+    )
+    if isinstance(value, datetime):
+        return value.isoformat()
+    text = str(value)
+    try:
+        datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return str(fallback)
+    return text
+
+
+def _confidence(values: dict[str, Any], *, official_publisher: bool) -> float:
+    score = 0.35
+    score += 0.15 if official_publisher else 0.0
+    score += 0.10 if _released_at(values, "") else 0.0
+    score += 0.10 if values.get("license") else 0.0
+    score += 0.10 if values.get("pipeline_tag") or values.get("modality") else 0.0
+    score += 0.10 if int(values.get("downloads") or 0) >= 100 else 0.0
+    score += 0.05 if int(values.get("likes") or 0) >= 10 else 0.0
+    score += 0.05 if values.get("params_total") or values.get("library_name") else 0.0
+    return round(min(score, 0.99), 2)
+
+
+def _quality_metrics(
+    models: list[dict[str, Any]],
+    hardware: list[dict[str, Any]],
+    projects: list[dict[str, Any]],
+    research: list[dict[str, Any]],
+) -> dict[str, Any]:
+    profiles = [item.get("profile") or {} for item in models]
+    return {
+        "models": {
+            "total": len(models),
+            "verified_or_better": sum(
+                item.get("lifecycle") != "detected" for item in models
+            ),
+            "with_license": sum(bool(profile.get("license")) for profile in profiles),
+            "with_parameters": sum(
+                profile.get("params_total") is not None for profile in profiles
+            ),
+            "with_context": sum(
+                profile.get("context_length") is not None for profile in profiles
+            ),
+            "with_hardware_tier": sum(
+                bool(profile.get("hardware_tier")) for profile in profiles
+            ),
+        },
+        "hardware": {
+            "total": len(hardware),
+            "with_spec_url": sum(bool(item.get("spec_url")) for item in hardware),
+            "with_bandwidth": sum(
+                item.get("memory_bandwidth_gbs") is not None for item in hardware
+            ),
+            "with_power": sum(item.get("tdp_watts") is not None for item in hardware),
+            "with_interconnect": sum(bool(item.get("interconnect")) for item in hardware),
+        },
+        "projects": {
+            "total": len(projects),
+            "with_repository": sum(bool(item.get("repository_url")) for item in projects),
+            "with_evidence": sum(bool(item.get("evidence")) for item in projects),
+        },
+        "research": {
+            "total": len(research),
+            "with_papers": sum(bool(item.get("papers")) for item in research),
+            "with_implementations": sum(
+                bool(item.get("resolved_implementations")) for item in research
+            ),
+        },
+    }
+
+
+def _source_coverage(root: Path | None) -> list[dict[str, Any]]:
+    if root is None:
+        return []
+    path = root / "config" / "intelligence-sources.yaml"
+    if not path.exists():
+        return []
+    import yaml
+
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return [
+        {
+            "id": str(source.get("id") or ""),
+            "type": str(source.get("type") or ""),
+            "enabled": bool(source.get("enabled")),
+            "status": (
+                "active"
+                if source.get("enabled")
+                else "disabled_pending_contract_verification"
+            ),
+        }
+        for source in payload.get("sources") or []
+        if isinstance(source, dict)
+    ]
 
 
 def build_public_snapshot(
@@ -96,7 +242,15 @@ def build_public_snapshot(
         if canonical_releases is not None
         else repository.list_all_releases()
     )
-    public_releases = _select_public_releases(all_releases)
+    all_release_metadata = _claim_metadata(repository, all_releases)
+    public_releases = _select_public_releases(
+        all_releases,
+        metadata=all_release_metadata,
+    )
+    release_metadata = {
+        release.id: all_release_metadata.get(release.id, {})
+        for release in public_releases
+    }
     releases = [
         services.releases.get(release.id, now=generated_at)
         for release in public_releases
@@ -158,10 +312,25 @@ def build_public_snapshot(
         latest_digest = load_latest_digest(root)
     operations = services.operations.snapshot()
     release_rows = [item.model_dump(mode="json") for item in releases]
+    release_by_id = {release.id: release for release in public_releases}
+    for row in release_rows:
+        release_id = str(row.get("release_id") or "")
+        release = release_by_id.get(release_id)
+        if release is None:
+            continue
+        metadata = release_metadata.get(release_id, {})
+        row["released_at"] = _released_at(metadata, release.first_observed_at)
+        row["confidence"] = _confidence(
+            metadata,
+            official_publisher=not release.publisher_id.startswith(
+                "publisher:provisional:"
+            ),
+        )
     model_rows = []
     from radar.web.public_context import normalize_public_platforms, profile_claims
 
     for item in models:
+        metadata = release_metadata.get(item.release_id, {})
         legacy_id = item.release_id.removeprefix("release:legacy:")
         profile = profiles.get(legacy_id)
         source_url = (
@@ -177,6 +346,13 @@ def build_public_snapshot(
                 "lane": item.lane,
                 "lifecycle": item.lifecycle.value,
                 "first_observed_at": item.first_observed_at,
+                "released_at": _released_at(metadata, item.first_observed_at),
+                "confidence": _confidence(
+                    metadata,
+                    official_publisher=not release_by_id[
+                        item.release_id
+                    ].publisher_id.startswith("publisher:provisional:"),
+                ),
                 "public_ring": (
                     item.public_recommendation.ring.value
                     if item.public_recommendation.ring
@@ -192,11 +368,15 @@ def build_public_snapshot(
         )
     for candidate in candidates:
         release_id = f"release:hf:{candidate['hf_repo'].casefold()}"
+        released_at = _released_at(
+            candidate,
+            candidate["first_observed_at"],
+        )
         age_hours = max(
             0.0,
             (
                 generated_at
-                - datetime.fromisoformat(candidate["first_observed_at"])
+                - datetime.fromisoformat(released_at)
             ).total_seconds()
             / 3600,
         )
@@ -223,9 +403,21 @@ def build_public_snapshot(
                 "lane": "onprem_adjacent",
                 "lifecycle": "detected",
                 "first_observed_at": candidate["first_observed_at"],
+                "released_at": released_at,
                 "age_hours": age_hours,
                 "freshness": freshness,
-                "confidence": 0.7,
+                "confidence": _confidence(
+                    candidate,
+                    official_publisher=(
+                        str(candidate.get("family") or "").casefold()
+                        in {
+                            "01-ai", "bigcode", "cohereforai", "deepseek-ai",
+                            "google", "ibm-granite", "meta-llama", "microsoft",
+                            "mistralai", "moonshotai", "nvidia", "openai",
+                            "openbmb", "qwen", "zai-org",
+                        }
+                    ),
+                ),
                 "review_status": "clear",
                 "citations": [citation],
             }
@@ -248,6 +440,7 @@ def build_public_snapshot(
                 "lane": "onprem_adjacent",
                 "lifecycle": "detected",
                 "first_observed_at": candidate["first_observed_at"],
+                "released_at": released_at,
                 "public_ring": None,
                 "reasons": [
                     "Detected from Hugging Face; verification and qualification are pending"
@@ -284,11 +477,17 @@ def build_public_snapshot(
             }
         )
     release_rows.sort(
-        key=lambda item: str(item.get("first_observed_at") or ""),
+        key=lambda item: (
+            str(item.get("released_at") or item.get("first_observed_at") or ""),
+            float(item.get("confidence") or 0),
+        ),
         reverse=True,
     )
     model_rows.sort(
-        key=lambda item: str(item.get("first_observed_at") or ""),
+        key=lambda item: (
+            str(item.get("released_at") or item.get("first_observed_at") or ""),
+            float(item.get("confidence") or 0),
+        ),
         reverse=True,
     )
     operation_payload = operations.model_dump(mode="json")
@@ -343,6 +542,8 @@ def build_public_snapshot(
         source_health=operation_payload,
         project_data=project_data,
         model_index=ModelIndexReference(total=len(all_releases)),
+        quality=_quality_metrics(model_rows, hardware, projects, research),
+        source_coverage=_source_coverage(root),
         latest_digest=latest_digest,
     )
 
@@ -361,10 +562,29 @@ def write_public_snapshot(snapshot: PublicSnapshot, site_root: Path) -> Path:
     return destination
 
 
-def _compact_model_row(release: Release) -> dict[str, Any]:
-    source_url = None
-    if release.id.startswith("release:hf:"):
+def _compact_model_row(
+    release: Release,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    metadata = metadata or {}
+    hf_repo = metadata.get("hf_repo")
+    source_url = f"https://huggingface.co/{hf_repo}" if hf_repo else None
+    if source_url is None and release.id.startswith("release:hf:"):
         source_url = f"https://huggingface.co/{release.id.removeprefix('release:hf:')}"
+    profile = {
+        "publisher": release.publisher_id,
+        "hf_repo": hf_repo,
+        "license": metadata.get("license"),
+        "modality": metadata.get("modality") or metadata.get("pipeline_tag"),
+        "hardware_tier": metadata.get("hardware_tier"),
+        "params_total": metadata.get("params_total"),
+        "context_length": metadata.get("context_length"),
+        "hf_downloads": metadata.get("downloads"),
+        "hf_likes": metadata.get("likes"),
+        "last_modified": metadata.get("last_modified"),
+        "library_name": metadata.get("library_name"),
+        "quantization_format": metadata.get("quantization_format"),
+    }
     return {
         "release_id": release.id,
         "name": release.name,
@@ -372,6 +592,13 @@ def _compact_model_row(release: Release) -> dict[str, Any]:
         "lane": release.lane.value,
         "lifecycle": release.lifecycle.value,
         "first_observed_at": release.first_observed_at.isoformat(),
+        "released_at": _released_at(metadata, release.first_observed_at),
+        "confidence": _confidence(
+            metadata,
+            official_publisher=not release.publisher_id.startswith(
+                "publisher:provisional:"
+            ),
+        ),
         "public_ring": None,
         "reasons": [],
         "evidence_ids": [],
@@ -379,7 +606,7 @@ def _compact_model_row(release: Release) -> dict[str, Any]:
         "source_strength": (
             release.discovery_evidence_strength.value if source_url else None
         ),
-        "profile": None,
+        "profile": profile,
         "claims": [],
     }
 
@@ -398,11 +625,26 @@ def write_model_index(
     generated_at: datetime,
     *,
     shard_size: int = MODEL_INDEX_SHARD_SIZE,
+    repository: Any | None = None,
 ) -> ModelIndexManifest:
     """Write a deterministic, compact index covering every canonical release."""
     if shard_size < 1:
         raise ValueError("shard_size must be positive")
-    ordered = sorted(releases, key=_release_sort_key)
+    metadata = _claim_metadata(repository, releases) if repository is not None else {}
+    ordered = sorted(
+        releases,
+        key=lambda release: (
+            _released_at(metadata.get(release.id, {}), release.first_observed_at),
+            _confidence(
+                metadata.get(release.id, {}),
+                official_publisher=not release.publisher_id.startswith(
+                    "publisher:provisional:"
+                ),
+            ),
+            release.id,
+        ),
+        reverse=True,
+    )
     shard_root = site_root / "data" / "model-index"
     shard_root.mkdir(parents=True, exist_ok=True)
     for stale in shard_root.glob("model-index-*.json"):
@@ -417,7 +659,10 @@ def write_model_index(
             {
                 "schema_version": "1.0",
                 "generated_at": generated_at.isoformat(),
-                "items": [_compact_model_row(release) for release in selected],
+                "items": [
+                    _compact_model_row(release, metadata.get(release.id))
+                    for release in selected
+                ],
             },
         )
         shards.append(ModelIndexShard(path=relative, count=len(selected)))

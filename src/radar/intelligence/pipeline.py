@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import os
@@ -21,6 +22,7 @@ from radar.intelligence.contracts import (
     CompatibilityAssertion,
     EvidenceLevel,
     EvidenceObservation,
+    EvidenceStrength,
     LifecycleState,
     ModelCategory,
     ProductFamily,
@@ -47,6 +49,20 @@ from radar.intelligence.sources.registry import (
 from radar.intelligence.verification import VerificationService
 
 
+DISCOVERY_OVERLAP = timedelta(minutes=15)
+DEFAULT_VERIFICATION_BATCH_SIZE = 500
+DEFAULT_ENRICHMENT_BATCH_SIZE = 100
+DEFAULT_ADAPTER_TIMEOUT_SECONDS = 600.0
+DEFAULT_ENRICHMENT_CONCURRENCY = 8
+_WEIGHT_SUFFIXES = (
+    ".bin",
+    ".gguf",
+    ".ggml",
+    ".onnx",
+    ".safetensors",
+)
+
+
 class IntelligenceJobRunner:
     """Run real, deterministic ingestion and decision lifecycle work."""
 
@@ -57,11 +73,19 @@ class IntelligenceJobRunner:
         repository: Any,
         adapters: Sequence[SourceAdapter] = (),
         clock: Callable[[], datetime] | None = None,
+        verification_batch_size: int = DEFAULT_VERIFICATION_BATCH_SIZE,
+        enrichment_batch_size: int = DEFAULT_ENRICHMENT_BATCH_SIZE,
+        adapter_timeout_seconds: float = DEFAULT_ADAPTER_TIMEOUT_SECONDS,
+        enrichment_concurrency: int = DEFAULT_ENRICHMENT_CONCURRENCY,
     ):
         self.root = root
         self.repository = repository
         self.adapters = list(adapters)
         self.clock = clock or (lambda: datetime.now(UTC))
+        self.verification_batch_size = max(1, verification_batch_size)
+        self.enrichment_batch_size = max(1, enrichment_batch_size)
+        self.adapter_timeout_seconds = max(0.001, adapter_timeout_seconds)
+        self.enrichment_concurrency = max(1, enrichment_concurrency)
         self.event_log = EventLog(root / "data" / "intelligence" / "events.jsonl")
 
     async def run(self, kind: JobKind, job_id: str) -> JobResult:
@@ -84,26 +108,51 @@ class IntelligenceJobRunner:
         candidates: list[DiscoveryCandidate] = []
         warnings: list[str] = []
         health = SourceHealthService(self.repository)
+        pending: list[tuple[SourceAdapter, datetime, float]] = []
         for adapter in self.adapters:
             if health.should_skip(adapter.id, now):
                 warnings.append(f"{adapter.id}: circuit open")
                 continue
-            started = time.monotonic()
+            state = self.repository.get_source_health(adapter.id)
+            since = (
+                now - timedelta(days=3650)
+                if state is None or state.last_success_at is None
+                else min(now, state.last_success_at) - DISCOVERY_OVERLAP
+            )
+            pending.append((adapter, since, time.monotonic()))
+
+        async def discover_one(
+            adapter: SourceAdapter,
+            since: datetime,
+            started: float,
+        ) -> tuple[SourceAdapter, list[DiscoveryCandidate], float, str | None]:
             try:
-                state = self.repository.get_source_health(adapter.id)
-                lookback = (
-                    timedelta(days=3650)
-                    if state is None or state.last_success_at is None
-                    else timedelta(hours=2)
+                rows = await asyncio.wait_for(
+                    adapter.discover(since),
+                    timeout=self.adapter_timeout_seconds,
                 )
-                rows = await adapter.discover(now - lookback)
+                return adapter, rows, (time.monotonic() - started) * 1000, None
+            except TimeoutError:
+                return (
+                    adapter,
+                    [],
+                    (time.monotonic() - started) * 1000,
+                    f"timed out after {self.adapter_timeout_seconds:g}s",
+                )
             except Exception as exc:
-                health.record_failure(adapter.id, str(exc), now)
-                warnings.append(f"{adapter.id}: {exc}")
+                return adapter, [], (time.monotonic() - started) * 1000, str(exc)
+
+        outcomes = await asyncio.gather(
+            *(discover_one(*operation) for operation in pending)
+        )
+        for adapter, rows, latency_ms, error in outcomes:
+            if error is not None:
+                health.record_failure(adapter.id, error, now)
+                warnings.append(f"{adapter.id}: {error}")
                 continue
             health.record_success(
                 adapter.id,
-                latency_ms=(time.monotonic() - started) * 1000,
+                latency_ms=latency_ms,
                 items=len(rows),
                 now=now,
             )
@@ -138,11 +187,7 @@ class IntelligenceJobRunner:
                     publisher_id=resolution.publisher_id,
                     name=candidate.release_name,
                     category=candidate.category_hint or ModelCategory.TEXT_REASONING,
-                    lane=(
-                        ReleaseLane.DEPLOYABLE
-                        if candidate.artifact_urls
-                        else ReleaseLane.MARKET_REFERENCE
-                    ),
+                    lane=_candidate_lane(candidate),
                     lifecycle=LifecycleState.DETECTED,
                     first_observed_at=candidate.source_record.retrieved_at,
                     discovery_evidence_strength=candidate.source_record.strength,
@@ -188,16 +233,51 @@ class IntelligenceJobRunner:
         updated = 0
         warnings: list[str] = []
         enrichers = [adapter for adapter in self.adapters if hasattr(adapter, "enrich")]
+        eligible: list[tuple[Release, str]] = []
         for release in self.repository.list_all_releases():
-            repo_id = self._repository_identity(release.id)
-            if repo_id is None:
+            if release.lifecycle is not LifecycleState.VERIFIED:
                 continue
-            for adapter in enrichers:
+            repo_id = self._repository_identity(release.id)
+            if repo_id is not None:
+                eligible.append((release, repo_id))
+        attempts = self._latest_processed_attempts(JobKind.ENRICHMENT)
+        eligible.sort(
+            key=lambda item: _attempt_priority(item[0], attempts)
+        )
+        selected = eligible[: self.enrichment_batch_size]
+        semaphore = asyncio.Semaphore(self.enrichment_concurrency)
+
+        async def enrich_one(release: Release, repo_id: str, adapter: Any):
+            async with semaphore:
                 try:
-                    enrichment = await adapter.enrich(repo_id)
+                    enrichment = await asyncio.wait_for(
+                        adapter.enrich(repo_id),
+                        timeout=self.adapter_timeout_seconds,
+                    )
+                    return release, repo_id, adapter, enrichment, None
+                except TimeoutError:
+                    return (
+                        release,
+                        repo_id,
+                        adapter,
+                        None,
+                        f"timed out after {self.adapter_timeout_seconds:g}s",
+                    )
                 except Exception as exc:
-                    warnings.append(f"{adapter.id}:{repo_id}: {exc}")
-                    continue
+                    return release, repo_id, adapter, None, str(exc)
+
+        outcomes = await asyncio.gather(
+            *(
+                enrich_one(release, repo_id, adapter)
+                for release, repo_id in selected
+                for adapter in enrichers
+            )
+        )
+        for release, repo_id, adapter, enrichment, error in outcomes:
+            if error is not None:
+                warnings.append(f"{adapter.id}:{repo_id}: {error}")
+                continue
+            if enrichment is not None:
                 evidence = [
                     self._persist_source_record(record.source_record)
                     for record in enrichment.records
@@ -214,7 +294,14 @@ class IntelligenceJobRunner:
                     evidence[0],
                 )
                 updated += 1
-        return JobResult(job_id=job_id, updated=updated, warnings=tuple(warnings))
+        return JobResult(
+            job_id=job_id,
+            processed=len(selected),
+            remaining=max(0, len(eligible) - len(selected)),
+            processed_ids=tuple(release.id for release, _repo_id in selected),
+            updated=updated,
+            warnings=tuple(warnings),
+        )
 
     def _repository_identity(self, release_id: str) -> str | None:
         for predicate in ("hf_repo", "repo_id"):
@@ -226,9 +313,18 @@ class IntelligenceJobRunner:
     def _verify(self, job_id: str, *, detected_only: bool) -> JobResult:
         service = VerificationService(self.repository)
         updated = conflicted = 0
-        for release in self.repository.list_all_releases():
-            if detected_only and release.lifecycle is not LifecycleState.DETECTED:
-                continue
+        eligible = [
+            release
+            for release in self.repository.list_all_releases()
+            if not detected_only
+            or release.lifecycle is LifecycleState.DETECTED
+        ]
+        attempts = self._latest_processed_attempts(
+            JobKind.VERIFY_NEW if detected_only else JobKind.VERIFICATION
+        )
+        eligible.sort(key=lambda release: _attempt_priority(release, attempts))
+        selected = eligible[: self.verification_batch_size]
+        for release in selected:
             result = service.verify_release(release.id, self.clock())
             if result.verified:
                 updated += 1
@@ -242,7 +338,21 @@ class IntelligenceJobRunner:
                     )
             if result.review_exception is not None:
                 conflicted += 1
-        return JobResult(job_id=job_id, updated=updated, conflicted=conflicted)
+        return JobResult(
+            job_id=job_id,
+            processed=len(selected),
+            remaining=max(0, len(eligible) - len(selected)),
+            processed_ids=tuple(release.id for release in selected),
+            updated=updated,
+            conflicted=conflicted,
+        )
+
+    def _latest_processed_attempts(
+        self,
+        kind: JobKind,
+    ) -> dict[str, datetime]:
+        method = getattr(self.repository, "latest_processed_attempts", None)
+        return method(kind.value) if method is not None else {}
 
     def _qualify(self, job_id: str) -> JobResult:
         verification = VerificationService(self.repository)
@@ -509,6 +619,62 @@ class IntelligenceJobRunner:
                 for evidence_id in claim.evidence_ids
             }
         )
+
+
+def _candidate_lane(candidate: DiscoveryCandidate) -> ReleaseLane:
+    artifact_paths = [url.casefold().split("?", 1)[0] for url in candidate.artifact_urls]
+    supported_task_or_runtime = candidate.category_hint is not None or any(
+        candidate.claims.get(predicate)
+        for predicate in (
+            "library_name",
+            "pipeline_tag",
+            "runtime",
+            "runtime_support",
+        )
+    )
+    if (
+        supported_task_or_runtime
+        and any(path.endswith(_WEIGHT_SUFFIXES) for path in artifact_paths)
+    ):
+        return ReleaseLane.DEPLOYABLE
+    if artifact_paths:
+        return ReleaseLane.ADJACENT
+    return ReleaseLane.MARKET_REFERENCE
+
+
+def _processing_priority(release: Release) -> tuple[int, float, int, str]:
+    strength_rank = {
+        strength: index
+        for index, strength in enumerate(
+            (
+                EvidenceStrength.OFFICIAL_ARTIFACT,
+                EvidenceStrength.OFFICIAL_DOCUMENTATION,
+                EvidenceStrength.OFFICIAL_REPOSITORY,
+                EvidenceStrength.OFFICIAL_ANNOUNCEMENT,
+                EvidenceStrength.TRUSTED_REGISTRY,
+                EvidenceStrength.BENCHMARK_MAINTAINER,
+                EvidenceStrength.AGGREGATOR,
+                EvidenceStrength.COMMUNITY,
+            )
+        )
+    }
+    provisional = release.publisher_id.startswith("publisher:provisional:")
+    return (
+        int(provisional),
+        -release.first_observed_at.timestamp(),
+        strength_rank[release.discovery_evidence_strength],
+        release.id,
+    )
+
+
+def _attempt_priority(
+    release: Release,
+    attempts: dict[str, datetime],
+) -> tuple[datetime, int, float, int, str]:
+    return (
+        attempts.get(release.id, datetime.min.replace(tzinfo=UTC)),
+        *_processing_priority(release),
+    )
 
 
 async def run_configured_job(

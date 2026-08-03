@@ -130,7 +130,7 @@ def export_react_site(
         canonical_releases=canonical_releases,
     )
     write_public_snapshot(snapshot, out_dir)
-    write_model_index(canonical_releases, out_dir, now)
+    write_model_index(canonical_releases, out_dir, now, repository=repository)
     events = repository.list_events(limit=500, public_only=True)
     history = HistoryStore(root / "data" / "radar.db")
     history.initialize()

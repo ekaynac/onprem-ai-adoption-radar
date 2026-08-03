@@ -2,7 +2,11 @@ import { useState } from "react";
 
 import { StatusBadge } from "../../design/StatusBadge";
 import { useActiveWorkspaceId } from "../workspaces/workspaceStore";
-import { useCatalogSearch, type CatalogSearch } from "../catalog/catalogQueries";
+import {
+  useCatalogSearch,
+  type CatalogItem,
+  type CatalogSearch,
+} from "../catalog/catalogQueries";
 
 
 const filters: CatalogSearch = {
@@ -16,26 +20,28 @@ const filters: CatalogSearch = {
   modality: "all",
   platform: "all",
   freshness: "all",
-  review: "all",
 };
 
 
 export function ComparePage() {
   const workspaceId = useActiveWorkspaceId();
-  const catalog = useCatalogSearch(filters, workspaceId);
-  const [selected, setSelected] = useState<string[]>([]);
-  const rows = (catalog.data?.items ?? []).filter((item) =>
-    selected.includes(item.release_id),
-  );
+  const [selected, setSelected] = useState<Record<string, CatalogItem>>({});
+  const [query, setQuery] = useState("");
+  const catalogFilters = { ...filters, query };
+  const catalog = useCatalogSearch(catalogFilters, workspaceId);
+  const rows = Object.values(selected);
 
-  function toggle(id: string) {
-    setSelected((current) =>
-      current.includes(id)
-        ? current.filter((value) => value !== id)
-        : current.length < 6
-          ? [...current, id]
-          : current,
-    );
+  function toggle(item: CatalogItem) {
+    setSelected((current) => {
+      if (current[item.release_id]) {
+        const next = { ...current };
+        delete next[item.release_id];
+        return next;
+      }
+      return Object.keys(current).length < 6
+        ? { ...current, [item.release_id]: item }
+        : current;
+    });
   }
 
   return (
@@ -47,14 +53,23 @@ export function ComparePage() {
           <p className="lede">Select two to six candidates. Public and workspace verdicts stay separate.</p>
         </div>
       </header>
+      <label className="catalog-search">
+        <span>Find models to compare</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search the complete model index…"
+        />
+      </label>
       <div className="compare-picker">
-        {(catalog.data?.items ?? []).slice(0, 20).map((item) => (
+        {(catalog.data?.items ?? []).slice(0, 50).map((item) => (
           <label key={item.release_id}>
             <input
               type="checkbox"
-              checked={selected.includes(item.release_id)}
-              disabled={!selected.includes(item.release_id) && selected.length >= 6}
-              onChange={() => toggle(item.release_id)}
+              checked={Boolean(selected[item.release_id])}
+              disabled={!selected[item.release_id] && rows.length >= 6}
+              onChange={() => toggle(item)}
             />
             {item.name}
           </label>

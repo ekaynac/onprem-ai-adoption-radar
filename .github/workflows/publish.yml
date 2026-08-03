@@ -115,7 +115,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: uv run radar intelligence-run verify-new --root .
+        run: |
+          started_at="$(date +%s)"
+          verify_output="$(uv run radar intelligence-run verify-new --root .)"
+          echo "$verify_output"
+          processed="$(jq -r '.result.processed // 0' <<<"$verify_output")"
+          remaining="$(jq -r '.result.remaining // 0' <<<"$verify_output")"
+          elapsed="$(( $(date +%s) - started_at ))"
+          {
+            echo "### Verify new intelligence"
+            echo "- Processed: ${processed}"
+            echo "- Remaining: ${remaining}"
+            echo "- Elapsed seconds: ${elapsed}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Reverify trusted claims
         if: github.event.schedule == '43 5 * * 0' || github.event_name == 'workflow_dispatch'
@@ -136,7 +148,13 @@ jobs:
           uv run radar research scan --root .
           uv run radar research candidates scan --root .
           uv run radar trending scan --root .
-          uv run radar intelligence-run enrichment --root .
+          enrichment_output="$(uv run radar intelligence-run enrichment --root .)"
+          echo "$enrichment_output"
+          {
+            echo "### Intelligence enrichment"
+            echo "- Processed: $(jq -r '.result.processed // 0' <<<"$enrichment_output")"
+            echo "- Remaining: $(jq -r '.result.remaining // 0' <<<"$enrichment_output")"
+          } >> "$GITHUB_STEP_SUMMARY"
           uv run radar intelligence-run qualification --root .
           uv run radar intelligence-run recommendations --root .
 
@@ -178,31 +196,28 @@ jobs:
           cp _site/data/public-snapshot.v1.json \
             data/intelligence/public-snapshot.v1.json
 
-      # Persist only diff-friendly public logs and derived delivery data. The
-      # canonical database, event log, and evidence snapshots live in the
-      # radar-state Release asset and must never enter Git history.
-      - name: Persist history log + keepalive
-        if: always()
-        run: |
-          git config user.name "radar-bot"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f data/history.jsonl || true
-          git add -f data/source-health.jsonl || true
-          git add -f data/model-history.jsonl || true
-          git add -f data/model-metrics.jsonl || true
-          git add -f data/model-candidate-observations.jsonl || true
-          git add -f data/technique-candidate-observations.jsonl || true
-          git add -f data/technique-history.jsonl || true
-          git add -f data/technique-metrics.jsonl || true
-          git add -f data/trending-observations.jsonl || true
-          git add -f data/intelligence/public-snapshot.v1.json || true
-          git commit --allow-empty -m "chore: radar history $(date -u +%F) [skip ci]"
-          git push
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+
+      # Persist only diff-friendly public logs and derived delivery data. This
+      # is intentionally after artifact upload and non-blocking: an unrelated
+      # bot commit must not prevent a verified site from deploying.
+      - name: Persist history log + keepalive
+        continue-on-error: true
+        run: |
+          scripts/persist_publication.sh \
+            data/history.jsonl \
+            data/source-health.jsonl \
+            data/model-history.jsonl \
+            data/model-metrics.jsonl \
+            data/model-candidate-observations.jsonl \
+            data/technique-candidate-observations.jsonl \
+            data/technique-history.jsonl \
+            data/technique-metrics.jsonl \
+            data/trending-observations.jsonl \
+            data/intelligence/public-snapshot.v1.json
 
   deploy:
     needs: build

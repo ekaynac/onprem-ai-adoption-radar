@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalog Facets */
+        get: operations["catalog_facets_api_v1_catalog_facets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog/{release_id}": {
         parameters: {
             query?: never;
@@ -460,9 +477,16 @@ export interface components {
             name: string;
             /** Release Id */
             release_id: string;
+            /** Released At */
+            released_at?: string | null;
             /** Review Status */
             review_status: string;
         };
+        /**
+         * ReleaseLane
+         * @enum {string}
+         */
+        ReleaseLane: "deployable_onprem" | "onprem_adjacent" | "market_reference";
         /** ReviewException */
         ReviewException: {
             /** Code */
@@ -607,6 +631,13 @@ export interface operations {
                 q?: string;
                 category?: components["schemas"]["ModelCategory"] | null;
                 lifecycle?: components["schemas"]["LifecycleState"] | null;
+                lane?: components["schemas"]["ReleaseLane"] | null;
+                publisher?: string | null;
+                license?: string | null;
+                hardware?: string | null;
+                modality?: string | null;
+                platform?: string | null;
+                freshness?: string | null;
                 workspace_id?: string | null;
                 cursor?: string | null;
                 limit?: number;
@@ -633,6 +664,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    catalog_facets_api_v1_catalog_facets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string[];
+                    };
                 };
             };
         };
@@ -895,6 +948,7 @@ export interface operations {
             query?: {
                 since?: string | null;
                 workspace_id?: string | null;
+                priority_only?: boolean;
                 limit?: number;
             };
             header?: never;

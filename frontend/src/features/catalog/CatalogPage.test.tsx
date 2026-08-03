@@ -77,3 +77,40 @@ test("sends the selected lane to catalog search", async () => {
   });
   vi.unstubAllGlobals();
 });
+
+
+test("populates metadata facets and sends selected license", async () => {
+  const fetchMock = vi.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    const payload = url.includes("/catalog/facets")
+      ? {
+          publisher: ["publisher:moonshot-ai"],
+          license: ["modified-mit"],
+          hardware: ["datacenter"],
+          modality: ["image-text-to-text"],
+          platform: ["transformers"],
+          freshness: ["fresh", "stale"],
+        }
+      : { items: [], next_cursor: null };
+    return Promise.resolve(new Response(JSON.stringify(payload), { status: 200 }));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const user = userEvent.setup();
+
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter><CatalogPage /></MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  await user.selectOptions(await screen.findByLabelText("License"), "modified-mit");
+  await waitFor(() => {
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("license=modified-mit"),
+      expect.anything(),
+    );
+  });
+  expect(screen.queryByLabelText("Review status")).not.toBeInTheDocument();
+  vi.unstubAllGlobals();
+});

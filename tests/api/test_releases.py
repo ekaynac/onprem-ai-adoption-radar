@@ -47,3 +47,42 @@ def test_release_stream_includes_fresh_hf_candidates_by_default(
 
     assert response.status_code == 200
     assert any(item["name"] == "Kimi-K3" for item in response.json()["items"])
+
+
+def test_priority_release_filter_runs_before_limit(api_client, tmp_path) -> None:
+    observations = [
+        ModelCandidateObservation(
+            hf_repo=f"community/model-{index}",
+            name=f"Low {index}",
+            family=f"community-{index}",
+            downloads=0,
+            likes=0,
+            last_modified="2026-08-03T09:00:00Z",
+            observed_at=datetime.now(UTC),
+        )
+        for index in range(50)
+    ]
+    observations.append(
+        ModelCandidateObservation(
+            hf_repo="moonshotai/Authority",
+            name="Authoritative release",
+            family="moonshotai",
+            downloads=10_000,
+            likes=500,
+            pipeline_tag="text-generation",
+            last_modified="2026-08-02T09:00:00Z",
+            observed_at=datetime.now(UTC),
+        )
+    )
+    append_model_candidates(
+        tmp_path / "data" / "model-candidate-observations.jsonl",
+        observations,
+    )
+
+    response = api_client.get(
+        "/api/v1/releases",
+        params={"priority_only": "true", "limit": 1},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["name"] == "Authoritative release"

@@ -40,3 +40,27 @@ def test_catalog_get_uses_keyed_release_lookup(tmp_path, monkeypatch) -> None:
     item = services.catalog.get("release:moonshot-ai:kimi:k3")
 
     assert item.name == "Kimi K3"
+
+
+def test_catalog_filters_and_facets_use_claim_metadata(tmp_path) -> None:
+    repository = lifecycle_repository(tmp_path)
+    seed_recommendable_release(repository)
+    services = build_services(repository)
+
+    matching = services.catalog.search(
+        "",
+        publisher="publisher:moonshot-ai",
+        license="kimi-k3",
+        modality="multimodal",
+        lane="deployable_onprem",
+    )
+    excluded = services.catalog.search("", license="apache-2.0")
+    facets = services.catalog.facets()
+
+    assert [item.release_id for item in matching.items] == [
+        "release:moonshot-ai:kimi:k3"
+    ]
+    assert excluded.items == []
+    assert facets["publisher"] == ["publisher:moonshot-ai"]
+    assert facets["license"] == ["kimi-k3"]
+    assert facets["modality"] == ["multimodal"]

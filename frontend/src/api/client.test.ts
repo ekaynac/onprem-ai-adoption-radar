@@ -69,6 +69,38 @@ test("projects the public snapshot through the REST-shaped client", () => {
 });
 
 
+test("filters and ranks priority releases before applying the response cap", () => {
+  const lowConfidence = Array.from({ length: 50 }, (_, index) => ({
+    release_id: `release:low-${index}`,
+    name: `Low ${index}`,
+    confidence: 0.45,
+    review_status: "clear",
+    released_at: "2026-08-03T10:00:00Z",
+  }));
+  const authority = {
+    release_id: "release:authority",
+    name: "Authoritative release",
+    confidence: 0.9,
+    review_status: "clear",
+    released_at: "2026-08-02T10:00:00Z",
+  };
+  const snapshot = {
+    schema_version: "1.0",
+    generated_at: "2026-08-03T10:00:00Z",
+    releases: [...lowConfidence, authority],
+    models: [], projects: [], model_candidates: [], platforms: [], hardware: [],
+    research: [], events: [], source_health: {},
+  };
+
+  const result = projectStaticRequest(
+    "/api/v1/releases?priority_only=true&limit=1",
+    snapshot,
+  ) as { items: Array<{ release_id: string }> };
+
+  expect(result.items.map((item) => item.release_id)).toEqual(["release:authority"]);
+});
+
+
 test("merges compact models with detailed snapshot data winning", () => {
   const compact = [
     {
@@ -181,6 +213,48 @@ test("applies lane and canonical-field search before the render cap", () => {
   expect(canonicalSearch.items.map((item) => item.release_id)).toEqual([
     "release:model-649",
   ]);
+});
+
+
+test("applies metadata filters across the complete catalog before capping", () => {
+  const models = Array.from({ length: 650 }, (_, index) => ({
+    release_id: `release:model-${index}`,
+    name: `Model ${index}`,
+    category: "text_reasoning",
+    lane: "deployable_onprem",
+    lifecycle: "detected",
+    first_observed_at: "2026-07-30T10:00:00Z",
+    released_at: index === 649 ? "2026-08-03T10:00:00Z" : "2026-07-30T10:00:00Z",
+    profile: {
+      publisher: index === 649 ? "publisher:moonshot-ai" : "publisher:other",
+      license: index === 649 ? "modified-mit" : "apache-2.0",
+      modality: index === 649 ? "image-text-to-text" : "text-generation",
+      hardware_tier: index === 649 ? "datacenter" : "workstation",
+      library_name: index === 649 ? "transformers" : "llama.cpp",
+    },
+  }));
+  const snapshot = {
+    schema_version: "1.0",
+    generated_at: "2026-08-03T10:15:00Z",
+    releases: [], models: [], projects: [], model_candidates: [], platforms: [],
+    hardware: [], research: [], events: [], source_health: {},
+  };
+
+  const result = projectStaticRequest(
+    "/api/v1/catalog?publisher=publisher%3Amoonshot-ai&license=modified-mit&modality=image-text-to-text&hardware=datacenter&platform=transformers&freshness=fresh",
+    snapshot,
+    models,
+  ) as { items: Array<{ release_id: string }> };
+  const facets = projectStaticRequest(
+    "/api/v1/catalog/facets",
+    snapshot,
+    models,
+  ) as Record<string, string[]>;
+
+  expect(result.items.map((item) => item.release_id)).toEqual(["release:model-649"]);
+  expect(facets.publisher).toEqual(["publisher:moonshot-ai", "publisher:other"]);
+  expect(facets.license).toEqual(["apache-2.0", "modified-mit"]);
+  expect(facets.platform).toEqual(["llama.cpp", "transformers"]);
 });
 
 

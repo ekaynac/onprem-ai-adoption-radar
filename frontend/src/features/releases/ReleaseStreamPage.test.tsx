@@ -13,10 +13,12 @@ afterEach(() => {
 
 
 test("filters the release stream by lifecycle", async () => {
+  const requested: string[] = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(() =>
-      Promise.resolve(
+    vi.fn((input: RequestInfo | URL) => {
+      requested.push(String(input));
+      return Promise.resolve(
         new Response(
           JSON.stringify({
             items: [
@@ -51,8 +53,8 @@ test("filters the release stream by lifecycle", async () => {
           }),
           { status: 200 },
         ),
-      ),
-    ),
+      );
+    }),
   );
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -68,6 +70,7 @@ test("filters the release stream by lifecycle", async () => {
   );
 
   expect(await screen.findByText("Kimi K3")).toBeVisible();
+  expect(requested.some((url) => url.includes("priority_only"))).toBe(false);
   await user.selectOptions(
     screen.getByRole("combobox", { name: "Lifecycle" }),
     "verified",
@@ -121,4 +124,37 @@ test("shows older releases by default instead of opening on an empty stream", as
 
   expect(await screen.findByText("Older Release")).toBeVisible();
   expect(screen.getByRole("combobox", { name: "Age" })).toHaveValue("all");
+});
+
+
+test("computes age from the release timestamp instead of frozen snapshot hours", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date("2026-08-03T10:00:00Z"));
+  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({
+    items: [{
+      release_id: "release:wall-clock",
+      name: "Wall Clock Model",
+      lifecycle: "detected",
+      lane: "onprem_adjacent",
+      category: "text_reasoning",
+      first_observed_at: "2026-08-02T10:00:00Z",
+      age_hours: 0.2,
+      freshness: "fresh",
+      confidence: 0.8,
+      review_status: "clear",
+      citations: [],
+    }],
+    next_cursor: null,
+  }), { status: 200 }))));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter><ReleaseStreamPage /></MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  expect(await screen.findByText("Wall Clock Model")).toBeVisible();
+  expect(screen.getByText("24h")).toBeVisible();
+  vi.useRealTimers();
 });

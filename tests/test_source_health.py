@@ -71,7 +71,7 @@ def test_latest_counts_uses_most_recent_run(tmp_path: Path):
 def test_empty_store_has_no_stale(tmp_path: Path):
     store = SourceHealthStore(tmp_path / "radar.db")
     store.initialize()
-    assert store.stale_source_ids() == set()
+    assert store.stale_source_ids(window=7) == set()
     assert store.latest_counts() == {}
 
 
@@ -86,6 +86,26 @@ def test_default_window_tolerates_low_frequency_feed(tmp_path: Path):
 
     store.record(f"run-{DEFAULT_STALE_WINDOW}", _at(DEFAULT_STALE_WINDOW), {"rss-weekly": 0})
     assert "rss-weekly" in store.stale_source_ids()
+
+
+def test_default_window_represents_seven_days_at_two_hour_cadence(tmp_path: Path):
+    store = SourceHealthStore(tmp_path / "radar.db")
+    store.initialize()
+    for scan in range(83):
+        store.record(
+            f"run-{scan}",
+            BASE + timedelta(hours=scan * 2),
+            {"rss-low-frequency": 0},
+        )
+
+    assert store.stale_source_ids() == set()
+
+    store.record(
+        "run-83",
+        BASE + timedelta(hours=83 * 2),
+        {"rss-low-frequency": 0},
+    )
+    assert store.stale_source_ids() == {"rss-low-frequency"}
 
 
 def test_accepts_str_path(tmp_path: Path):
@@ -110,11 +130,11 @@ def test_record_with_statuses_and_error_rows_excluded_from_stale(tmp_path):
     for i in range(3):
         store.record(f"run-err-{i}", when, {"rss-x": 0}, {"rss-x": "error"})
     # Only 4 non-error zero scans -> below the 7-scan window -> not stale.
-    assert store.stale_source_ids() == set()
+    assert store.stale_source_ids(window=7) == set()
     # 3 more genuine empties -> 7 non-error zeros -> stale.
     for i in range(3):
         store.record(f"run-empty2-{i}", when, {"rss-x": 0}, {"rss-x": "empty"})
-    assert store.stale_source_ids() == {"rss-x"}
+    assert store.stale_source_ids(window=7) == {"rss-x"}
 
 
 def test_record_derives_status_when_omitted(tmp_path):

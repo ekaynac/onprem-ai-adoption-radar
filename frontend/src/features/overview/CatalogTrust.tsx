@@ -8,7 +8,12 @@ export function CatalogTrust({ health }: { health?: OperationsHealth }) {
     (health ? Math.max(0, 100 - health.stale_claim_count) : 0);
   const sources = health?.source_health ?? [];
   const healthySources =
-    sources.filter((source) => !source.circuit_open_until).length;
+    sources.filter(
+      (source) =>
+        ["ok", "empty"].includes(source.status ?? "") &&
+        !source.circuit_open_until &&
+        source.consecutive_failures === 0,
+    ).length;
   const sourceCount = sources.length;
 
   return (

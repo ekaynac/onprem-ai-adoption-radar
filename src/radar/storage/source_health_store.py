@@ -18,10 +18,9 @@ if TYPE_CHECKING:
     from radar.storage.source_health_log import SourceHealthRecord
 
 
-# Scans run daily, so a 7-scan window means "produced nothing for ~a week"
-# before a source is called stale. A shorter window false-positives on healthy
-# low-frequency feeds (e.g. a blog that posts ~weekly).
-DEFAULT_STALE_WINDOW = 7
+# Publication scans run every two hours. Require seven full days of successful
+# but empty fetches before treating a low-frequency source as stale.
+DEFAULT_STALE_WINDOW = 7 * 12
 
 
 class SourceHealthStore:

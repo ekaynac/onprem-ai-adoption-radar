@@ -1,13 +1,29 @@
-import type { CatalogSearch } from "./catalogQueries";
+import type { CatalogFacets, CatalogSearch } from "./catalogQueries";
 
 
 type Props = {
   filters: CatalogSearch;
+  facets?: CatalogFacets;
   onChange: (name: keyof CatalogSearch, value: string) => void;
 };
 
 
-export function CatalogFilters({ filters, onChange }: Props) {
+const facetLabels: Array<[keyof CatalogFacets, string]> = [
+  ["publisher", "Publisher"],
+  ["license", "License"],
+  ["hardware", "Hardware fit"],
+  ["modality", "Modality"],
+  ["platform", "Platform"],
+  ["freshness", "Freshness"],
+];
+
+
+function optionLabel(value: string) {
+  return value.replace(/^publisher:/, "").replaceAll("_", " ");
+}
+
+
+export function CatalogFilters({ filters, facets, onChange }: Props) {
   return (
     <div className="catalog-filters" aria-label="Catalog filters">
       <label className="catalog-search">
@@ -56,15 +72,7 @@ export function CatalogFilters({ filters, onChange }: Props) {
           <option value="market_reference">Market reference</option>
         </select>
       </label>
-      {[
-        ["publisher", "Publisher"],
-        ["license", "License"],
-        ["hardware", "Hardware fit"],
-        ["modality", "Modality"],
-        ["platform", "Platform"],
-        ["freshness", "Freshness"],
-        ["review", "Review status"],
-      ].map(([name, label]) => (
+      {facetLabels.filter(([name]) => (facets?.[name]?.length ?? 0) > 0).map(([name, label]) => (
         <label key={name}>
           <span>{label}</span>
           <select
@@ -74,9 +82,9 @@ export function CatalogFilters({ filters, onChange }: Props) {
             }
           >
             <option value="all">Any</option>
-            {name === "freshness" && <option value="fresh">Fresh</option>}
-            {name === "freshness" && <option value="stale">Stale</option>}
-            {name === "review" && <option value="open">Exception open</option>}
+            {facets?.[name].map((value) => (
+              <option key={value} value={value}>{optionLabel(value)}</option>
+            ))}
           </select>
         </label>
       ))}

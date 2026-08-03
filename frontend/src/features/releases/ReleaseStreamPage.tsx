@@ -5,6 +5,7 @@ import { StatusBadge, type IntelligenceStatus } from "../../design/StatusBadge";
 import {
   useActiveWorkspaceId,
   usePriorityReleases,
+  releaseAgeHours,
 } from "./releaseQueries";
 
 
@@ -33,7 +34,7 @@ export function ReleaseStreamPage() {
             (item.citations ?? []).some(
               (citation) => citation.strength === source,
             )) &&
-          (age === ALL || item.age_hours <= age),
+          (age === ALL || releaseAgeHours(item) <= age),
       ),
     [age, category, lane, lifecycle, releases.data?.items, review, source],
   );
@@ -153,7 +154,7 @@ export function ReleaseStreamPage() {
                   </td>
                   <td>{item.lane.replaceAll("_", " ")}</td>
                   <td>{Math.round(item.confidence * 100)}%</td>
-                  <td>{item.age_hours < 1 ? "<1h" : `${Math.round(item.age_hours)}h`}</td>
+                  <td>{releaseAgeHours(item) < 1 ? "<1h" : `${Math.round(releaseAgeHours(item))}h`}</td>
                   <td>{item.review_status}</td>
                 </tr>
               ))}

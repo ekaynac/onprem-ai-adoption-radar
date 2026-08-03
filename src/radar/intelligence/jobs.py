@@ -42,6 +42,9 @@ class JobLease:
 @dataclass(frozen=True)
 class JobResult:
     job_id: str
+    processed: int = 0
+    remaining: int = 0
+    processed_ids: tuple[str, ...] = ()
     discovered: int = 0
     created: int = 0
     updated: int = 0
@@ -70,6 +73,8 @@ class JobRepository(Protocol):
     def fail_job(self, job_id: str, error: str, now: datetime) -> None: ...
 
     def get_job(self, job_id: str) -> JobLease | None: ...
+
+    def latest_processed_attempts(self, kind: str) -> dict[str, datetime]: ...
 
 
 class JobService:
