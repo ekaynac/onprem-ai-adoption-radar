@@ -42,7 +42,11 @@ def list_releases(
         rows = [
             item
             for item in rows
-            if item.confidence >= 0.7 and item.review_status == "clear"
+            if item.confidence >= 0.7
+            and item.review_status == "clear"
+            # Derivatives never lead the briefing: the upstream release is
+            # the subject, its variants aggregate beneath it.
+            and (item.lineage or {}).get("relation") is None
         ]
         rows.sort(
             key=lambda item: (

@@ -469,10 +469,16 @@ export interface components {
             first_observed_at: string;
             /** Freshness */
             freshness: string;
+            /** Is Official */
+            is_official?: boolean | null;
             /** Lane */
             lane: string;
             /** Lifecycle */
             lifecycle: string;
+            /** Lineage */
+            lineage?: {
+                [key: string]: unknown;
+            } | null;
             /** Name */
             name: string;
             /** Release Id */
@@ -481,6 +487,10 @@ export interface components {
             released_at?: string | null;
             /** Review Status */
             review_status: string;
+            /** Significance */
+            significance?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * ReleaseLane

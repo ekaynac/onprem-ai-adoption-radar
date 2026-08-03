@@ -394,6 +394,138 @@ def test_model_index_uses_claim_metadata_for_release_time_rank_and_facets(
     assert release_row["confidence"] > 0.8
 
 
+def test_significance_ranks_official_root_above_fresh_popular_derivative(
+    tmp_path,
+) -> None:
+    from radar.intelligence.contracts import (
+        LineageEdge,
+        LineageRelation,
+        ProductFamily,
+        Publisher,
+    )
+
+    repository = lifecycle_repository(tmp_path)
+    root_release = repository.list_all_releases()[0]
+    repository.upsert_publisher(
+        Publisher(
+            id="publisher:provisional:grearl",
+            name="grearl",
+            official_domains=[],
+            official_accounts=["grearl"],
+        )
+    )
+    repository.upsert_family(
+        ProductFamily(
+            id="family:provisional:grearl:kimi",
+            publisher_id="publisher:provisional:grearl",
+            name="Kimi",
+        )
+    )
+    derivative = Release(
+        id="release:provisional:grearl:kimi:k3:gguf",
+        family_id="family:provisional:grearl:kimi",
+        publisher_id="publisher:provisional:grearl",
+        name="Kimi K3 GGUF",
+        category=ModelCategory.MULTIMODAL,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=datetime(2026, 8, 3, 7, tzinfo=UTC),
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    repository.upsert_release(derivative)
+    evidence = EvidenceObservation(
+        id="evidence:lineage-metadata",
+        source_url="https://huggingface.co/moonshotai/Kimi-K3",
+        strength=EvidenceStrength.TRUSTED_REGISTRY,
+        retrieved_at=datetime(2026, 8, 3, 8, tzinfo=UTC),
+        checksum="lineage-metadata",
+        extractor_version="test",
+    )
+    repository.append_evidence(evidence)
+    claims = (
+        # Root: checked base, older, modest downloads.
+        (root_release.id, "hf_repo", "moonshotai/Kimi-K3"),
+        (root_release.id, "last_modified", "2026-06-01T00:00:00Z"),
+        (root_release.id, "downloads", 950_000),
+        (root_release.id, "lineage_declared", []),
+        # Derivative: freshly touched, far more downloads.
+        (derivative.id, "hf_repo", "grearl/Kimi-K3-GGUF"),
+        (derivative.id, "last_modified", "2026-08-03T07:55:00Z"),
+        (derivative.id, "downloads", 5_000_000),
+    )
+    for index, (subject_id, predicate, value) in enumerate(claims):
+        repository.append_claim(
+            Claim(
+                id=f"claim:lineage-rank:{index}",
+                subject_id=subject_id,
+                predicate=predicate,
+                value=value,
+                state=ClaimState.CANDIDATE,
+                observed_at=evidence.retrieved_at,
+                evidence_ids=[evidence.id],
+            )
+        )
+    repository.upsert_lineage_edge(
+        LineageEdge(
+            id=f"lineage:{derivative.id}:quantized:hf:moonshotai/kimi-k3",
+            child_release_id=derivative.id,
+            parent_external_ref="hf:moonshotai/Kimi-K3",
+            parent_release_id=root_release.id,
+            root_release_id=root_release.id,
+            relation=LineageRelation.QUANTIZED,
+            declared=True,
+            confidence=0.95,
+            evidence_ids=[evidence.id],
+            extractor_version="test",
+            observed_at=evidence.retrieved_at,
+        )
+    )
+
+    generated_at = datetime(2026, 8, 3, 9, tzinfo=UTC)
+    manifest = write_model_index(
+        repository.list_all_releases(),
+        tmp_path / "_site",
+        generated_at,
+        repository=repository,
+    )
+    payload = json.loads((tmp_path / "_site" / manifest.shards[0].path).read_text())
+    ordered_ids = [item["release_id"] for item in payload["items"]]
+    assert ordered_ids.index(root_release.id) < ordered_ids.index(derivative.id)
+
+    root_item = payload["items"][ordered_ids.index(root_release.id)]
+    derived_item = payload["items"][ordered_ids.index(derivative.id)]
+    assert root_item["significance"]["class"] == "official_root"
+    assert root_item["is_official"] is True
+    assert root_item["lineage"]["root_release"] == root_release.id
+    assert root_item["lineage"]["derivative_counts"] == {"quantized": 1}
+    assert derived_item["significance"]["class"] == "declared_derivative"
+    assert derived_item["is_official"] is False
+    assert derived_item["lineage"] == {
+        "base_release": root_release.id,
+        "relation": "quantized",
+        "root_release": root_release.id,
+        "derivative_counts": None,
+    }
+    assert any(
+        factor.startswith("class ")
+        for factor in root_item["significance"]["factors"]
+    )
+
+    snapshot = build_public_snapshot(
+        build_services(repository),
+        generated_at,
+    ).model_dump(mode="json")
+    model_ids = [row["release_id"] for row in snapshot["models"]]
+    assert model_ids.index(root_release.id) < model_ids.index(derivative.id)
+    derivative_row = next(
+        row
+        for row in snapshot["releases"]
+        if row["release_id"] == derivative.id
+    )
+    assert derivative_row["lineage"]["relation"] == "quantized"
+    assert derivative_row["lineage"]["root_release"] == root_release.id
+
+
 def test_public_snapshot_exposes_latest_valid_digest(tmp_path, caplog) -> None:
     repository = lifecycle_repository(tmp_path)
     digest_path = tmp_path / "data" / "digest-log.jsonl"

@@ -11,10 +11,27 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from radar.intelligence.contracts import Release
+from radar.intelligence.significance import (
+    SIGNIFICANCE_RANK,
+    Significance,
+    compute_significance,
+)
 
 
 PUBLIC_RECENT_RELEASE_LIMIT = 250
 MODEL_INDEX_SHARD_SIZE = 2_000
+_OFFICIAL_FAMILIES = {
+    "01-ai", "bigcode", "cohereforai", "deepseek-ai",
+    "google", "ibm-granite", "meta-llama", "microsoft",
+    "mistralai", "moonshotai", "nvidia", "openai",
+    "openbmb", "qwen", "zai-org",
+}
+_EMPTY_LINEAGE = {
+    "base_release": None,
+    "relation": None,
+    "root_release": None,
+    "derivative_counts": None,
+}
 _INDEX_PREDICATES = {
     "context_length",
     "downloads",
@@ -24,6 +41,7 @@ _INDEX_PREDICATES = {
     "library_name",
     "license",
     "likes",
+    "lineage_declared",
     "modality",
     "params_total",
     "pipeline_tag",
@@ -111,6 +129,148 @@ def _select_public_releases(
         [*legacy, *recent],
         key=lambda release: _release_sort_key(release, metadata),
     )
+
+
+class _LineageContext:
+    """Lineage edges reshaped for row building: parents, roots, and counts."""
+
+    def __init__(self) -> None:
+        self.parent_by_child: dict[str, dict[str, Any]] = {}
+        self.children_count: dict[str, int] = {}
+        self.derivative_counts: dict[str, dict[str, int]] = {}
+
+    @classmethod
+    def load(cls, repository: Any) -> _LineageContext:
+        context = cls()
+        lister = getattr(repository, "list_all_lineage_edges", None)
+        if lister is None:
+            return context
+        by_child: dict[str, list[Any]] = {}
+        for edge in lister():
+            by_child.setdefault(edge.child_release_id, []).append(edge)
+        for child_id, edges in by_child.items():
+            primary = max(
+                edges,
+                key=lambda edge: (
+                    edge.confidence,
+                    edge.parent_release_id or "",
+                    edge.id,
+                ),
+            )
+            context.parent_by_child[child_id] = {
+                "base_release": primary.parent_release_id,
+                "relation": primary.relation.value,
+                "root_release": primary.root_release_id,
+            }
+            for edge in edges:
+                if edge.parent_release_id is not None:
+                    context.children_count[edge.parent_release_id] = (
+                        context.children_count.get(edge.parent_release_id, 0)
+                        + 1
+                    )
+                group_id = edge.root_release_id or edge.parent_release_id
+                if group_id is None:
+                    continue
+                counts = context.derivative_counts.setdefault(group_id, {})
+                counts[edge.relation.value] = (
+                    counts.get(edge.relation.value, 0) + 1
+                )
+        return context
+
+    def fields(
+        self,
+        release_id: str,
+        metadata: dict[str, Any],
+    ) -> tuple[dict[str, Any], bool | None, bool]:
+        """Return (lineage row payload, is_root, has_declared_parent)."""
+        declared = metadata.get("lineage_declared")
+        checked_base = declared == []
+        primary = self.parent_by_child.get(release_id)
+        children = self.children_count.get(release_id, 0)
+        derivative_counts = self.derivative_counts.get(release_id)
+        if primary is not None:
+            lineage = {
+                **primary,
+                "derivative_counts": derivative_counts,
+            }
+            return lineage, False, True
+        is_root = True if checked_base or children > 0 else None
+        lineage = {
+            "base_release": None,
+            "relation": None,
+            "root_release": release_id if is_root else None,
+            "derivative_counts": derivative_counts,
+        }
+        return lineage, is_root, bool(declared)
+
+
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) else None
+
+
+def _parse_released_at(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _release_significance(
+    release: Release,
+    metadata: dict[str, Any],
+    lineage_context: _LineageContext,
+    now: datetime,
+) -> tuple[dict[str, Any], Significance]:
+    lineage, is_root, has_declared_parent = lineage_context.fields(
+        release.id,
+        metadata,
+    )
+    significance = compute_significance(
+        official=not release.publisher_id.startswith("publisher:provisional:"),
+        lifecycle=release.lifecycle.value,
+        curated=release.id.startswith("release:legacy:"),
+        is_root=is_root,
+        has_declared_parent=has_declared_parent,
+        released_at=_parse_released_at(
+            _released_at(metadata, release.first_observed_at)
+        ),
+        now=now,
+        downloads=_int_or_none(metadata.get("downloads")),
+        likes=_int_or_none(metadata.get("likes")),
+        children_count=lineage_context.children_count.get(release.id, 0),
+        has_params=metadata.get("params_total") is not None,
+        has_context=metadata.get("context_length") is not None,
+        has_license=metadata.get("license") is not None,
+    )
+    return lineage, significance
+
+
+def _model_row_order(row: dict[str, Any]) -> tuple[int, float, str, str]:
+    """Significance class, then score, then recency, then stable id.
+
+    Repository modification time is a freshness display value, not the
+    definition of importance — a recently touched clone must not outrank
+    the official upstream release.
+    """
+    significance = row.get("significance") or {}
+    rank = significance.get("rank")
+    score = significance.get("score")
+    return (
+        rank if isinstance(rank, int) else len(SIGNIFICANCE_RANK),
+        -(score if isinstance(score, int | float) else 0.0),
+        # Newest first within equal rank+score (ISO strings compare safely).
+        _inverted_text(
+            str(row.get("released_at") or row.get("first_observed_at") or "")
+        ),
+        str(row.get("release_id") or ""),
+    )
+
+
+def _inverted_text(value: str) -> str:
+    """Map a string so ascending sort yields descending original order."""
+    return "".join(chr(0x10FFFF - ord(character)) for character in value)
 
 
 def _claim_metadata(repository: Any, releases: Sequence[Release]) -> dict[str, dict[str, Any]]:
@@ -243,6 +403,7 @@ def build_public_snapshot(
         else repository.list_all_releases()
     )
     all_release_metadata = _claim_metadata(repository, all_releases)
+    lineage_context = _LineageContext.load(repository)
     public_releases = _select_public_releases(
         all_releases,
         metadata=all_release_metadata,
@@ -326,6 +487,17 @@ def build_public_snapshot(
                 "publisher:provisional:"
             ),
         )
+        lineage, significance = _release_significance(
+            release,
+            metadata,
+            lineage_context,
+            generated_at,
+        )
+        row["lineage"] = lineage
+        row["is_official"] = not release.publisher_id.startswith(
+            "publisher:provisional:"
+        )
+        row["significance"] = significance.as_dict()
     model_rows = []
     from radar.web.public_context import normalize_public_platforms, profile_claims
 
@@ -338,8 +510,19 @@ def build_public_snapshot(
             if profile and profile.get("hf_repo")
             else None
         )
+        lineage, significance = _release_significance(
+            release_by_id[item.release_id],
+            metadata,
+            lineage_context,
+            generated_at,
+        )
         model_rows.append(
             {
+                "lineage": lineage,
+                "is_official": not release_by_id[
+                    item.release_id
+                ].publisher_id.startswith("publisher:provisional:"),
+                "significance": significance.as_dict(),
                 "release_id": item.release_id,
                 "name": item.name,
                 "category": item.category.value,
@@ -395,6 +578,18 @@ def build_public_snapshot(
             "url": candidate["source_url"],
         }
         freshness = "fresh" if observation_age_hours <= 2 else "stale"
+        official_family = (
+            str(candidate.get("family") or "").casefold() in _OFFICIAL_FAMILIES
+        )
+        candidate_significance = compute_significance(
+            official=official_family,
+            lifecycle="detected",
+            is_root=None,
+            released_at=_parse_released_at(released_at),
+            now=generated_at,
+            downloads=_int_or_none(candidate.get("downloads")),
+            likes=_int_or_none(candidate.get("likes")),
+        )
         release_rows.append(
             {
                 "release_id": release_id,
@@ -408,18 +603,13 @@ def build_public_snapshot(
                 "freshness": freshness,
                 "confidence": _confidence(
                     candidate,
-                    official_publisher=(
-                        str(candidate.get("family") or "").casefold()
-                        in {
-                            "01-ai", "bigcode", "cohereforai", "deepseek-ai",
-                            "google", "ibm-granite", "meta-llama", "microsoft",
-                            "mistralai", "moonshotai", "nvidia", "openai",
-                            "openbmb", "qwen", "zai-org",
-                        }
-                    ),
+                    official_publisher=official_family,
                 ),
                 "review_status": "clear",
                 "citations": [citation],
+                "lineage": dict(_EMPTY_LINEAGE),
+                "is_official": official_family,
+                "significance": candidate_significance.as_dict(),
             }
         )
         profile = {
@@ -441,6 +631,9 @@ def build_public_snapshot(
                 "lifecycle": "detected",
                 "first_observed_at": candidate["first_observed_at"],
                 "released_at": released_at,
+                "lineage": dict(_EMPTY_LINEAGE),
+                "is_official": official_family,
+                "significance": candidate_significance.as_dict(),
                 "public_ring": None,
                 "reasons": [
                     "Detected from Hugging Face; verification and qualification are pending"
@@ -483,13 +676,7 @@ def build_public_snapshot(
         ),
         reverse=True,
     )
-    model_rows.sort(
-        key=lambda item: (
-            str(item.get("released_at") or item.get("first_observed_at") or ""),
-            float(item.get("confidence") or 0),
-        ),
-        reverse=True,
-    )
+    model_rows.sort(key=_model_row_order)
     operation_payload = operations.model_dump(mode="json")
     canonical_health = operation_payload.get("source_health") or []
     health_by_id = {
@@ -565,12 +752,25 @@ def write_public_snapshot(snapshot: PublicSnapshot, site_root: Path) -> Path:
 def _compact_model_row(
     release: Release,
     metadata: dict[str, Any] | None = None,
+    *,
+    lineage_context: _LineageContext | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     metadata = metadata or {}
     hf_repo = metadata.get("hf_repo")
     source_url = f"https://huggingface.co/{hf_repo}" if hf_repo else None
     if source_url is None and release.id.startswith("release:hf:"):
         source_url = f"https://huggingface.co/{release.id.removeprefix('release:hf:')}"
+    lineage = dict(_EMPTY_LINEAGE)
+    significance_payload: dict[str, Any] | None = None
+    if lineage_context is not None and now is not None:
+        lineage, significance = _release_significance(
+            release,
+            metadata,
+            lineage_context,
+            now,
+        )
+        significance_payload = significance.as_dict()
     profile = {
         "publisher": release.publisher_id,
         "hf_repo": hf_repo,
@@ -599,6 +799,11 @@ def _compact_model_row(
                 "publisher:provisional:"
             ),
         ),
+        "lineage": lineage,
+        "is_official": not release.publisher_id.startswith(
+            "publisher:provisional:"
+        ),
+        "significance": significance_payload,
         "public_ring": None,
         "reasons": [],
         "evidence_ids": [],
@@ -631,45 +836,45 @@ def write_model_index(
     if shard_size < 1:
         raise ValueError("shard_size must be positive")
     metadata = _claim_metadata(repository, releases) if repository is not None else {}
-    ordered = sorted(
-        releases,
-        key=lambda release: (
-            _released_at(metadata.get(release.id, {}), release.first_observed_at),
-            _confidence(
-                metadata.get(release.id, {}),
-                official_publisher=not release.publisher_id.startswith(
-                    "publisher:provisional:"
-                ),
-            ),
-            release.id,
-        ),
-        reverse=True,
+    lineage_context = (
+        _LineageContext.load(repository)
+        if repository is not None
+        else _LineageContext()
     )
+    rows = [
+        _compact_model_row(
+            release,
+            metadata.get(release.id),
+            lineage_context=lineage_context,
+            now=generated_at,
+        )
+        for release in releases
+    ]
+    # Same ordering as the snapshot's model rows: significance class first,
+    # score second, recency only as a tiebreak within equals.
+    rows.sort(key=_model_row_order)
     shard_root = site_root / "data" / "model-index"
     shard_root.mkdir(parents=True, exist_ok=True)
     for stale in shard_root.glob("model-index-*.json"):
         stale.unlink()
 
     shards: list[ModelIndexShard] = []
-    for index, offset in enumerate(range(0, len(ordered), shard_size)):
-        selected = ordered[offset : offset + shard_size]
+    for index, offset in enumerate(range(0, len(rows), shard_size)):
+        selected = rows[offset : offset + shard_size]
         relative = f"data/model-index/model-index-{index:05d}.json"
         _write_compact_json(
             site_root / relative,
             {
                 "schema_version": "1.0",
                 "generated_at": generated_at.isoformat(),
-                "items": [
-                    _compact_model_row(release, metadata.get(release.id))
-                    for release in selected
-                ],
+                "items": selected,
             },
         )
         shards.append(ModelIndexShard(path=relative, count=len(selected)))
 
     manifest = ModelIndexManifest(
         generated_at=generated_at,
-        total=len(ordered),
+        total=len(rows),
         shard_size=shard_size,
         shards=shards,
     )
