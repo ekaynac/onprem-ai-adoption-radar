@@ -1,19 +1,14 @@
 import { Link } from "react-router-dom";
 
 import type { OperationsHealth } from "../releases/releaseQueries";
+import { isSourceHealthy } from "../operations/sourceHealth";
 
 
 export function CatalogTrust({ health }: { health?: OperationsHealth }) {
   const fresh = health?.fresh_claim_pct ??
     (health ? Math.max(0, 100 - health.stale_claim_count) : 0);
   const sources = health?.source_health ?? [];
-  const healthySources =
-    sources.filter(
-      (source) =>
-        ["ok", "empty"].includes(source.status ?? "") &&
-        !source.circuit_open_until &&
-        source.consecutive_failures === 0,
-    ).length;
+  const healthySources = sources.filter(isSourceHealthy).length;
   const sourceCount = sources.length;
 
   return (

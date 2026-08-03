@@ -94,7 +94,7 @@ platforms:
       - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/overview.mdx
       - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/amd_gpu.mdx
       - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/apple_metal.mdx
-      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/ascend-npus/ascend_npu.mdx
+      - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/ascend-npus/getting-started/installation.mdx
       - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/hardware-platforms/cpu_server.mdx
       - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/quantization.mdx
       - https://raw.githubusercontent.com/sgl-project/sglang/main/docs_new/docs/advanced_features/quantized_kv_cache.mdx

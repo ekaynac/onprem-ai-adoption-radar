@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 
 import { usePublicSnapshot } from "../../features/catalog/catalogQueries";
+import { isSourceHealthy } from "../../features/operations/sourceHealth";
 
 
 const navigation = [
@@ -57,9 +58,7 @@ export function Sidebar({ staticMode }: { staticMode: boolean }) {
   const snapshot = usePublicSnapshot();
   const sources = snapshot.data?.source_health.source_health ?? [];
   const latestDigest = snapshot.data?.latest_digest;
-  const failures = sources.filter(
-    (source) => source.consecutive_failures > 0 || source.circuit_open_until,
-  ).length;
+  const failures = sources.filter((source) => !isSourceHealthy(source)).length;
   return (
     <aside className="sidebar">
       <div className="brand-lockup">
