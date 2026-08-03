@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Weekly Digest — 2026-W32</title>
+    <link rel="icon" type="image/png" href="../static/brand/favicon.png" />
+    
+<style>
+  /* Type stack: the licensed Mega corporate face (Centrale Sans) is used when a
+     visitor has it installed; otherwise the bundled OFL near-match (Hanken
+     Grotesk) loads; otherwise system-ui. Centrale Sans is commercial (Typedepot)
+     and is NOT bundled — drop its web fonts at static/brand/fonts/ to self-host. */
+  @font-face {
+    font-family: "Centrale Sans"; font-weight: 700; font-display: swap;
+    src: local("Centrale Sans Bold"), local("CentraleSans-Bold");
+  }
+  @font-face {
+    font-family: "Centrale Sans"; font-weight: 400; font-display: swap;
+    src: local("Centrale Sans"), local("CentraleSans-Regular");
+  }
+  @font-face {
+    font-family: "Hanken Grotesk"; font-weight: 400; font-style: normal; font-display: swap;
+    src: url("../static/brand/fonts/hanken-grotesk-400.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Hanken Grotesk"; font-weight: 700; font-style: normal; font-display: swap;
+    src: url("../static/brand/fonts/hanken-grotesk-700.woff2") format("woff2");
+  }
+  :root {
+    --blue: #009FDA; --blue-dark: #0082B3; --blue-darker: #005F85;
+    --hero-bg: #005F85; --watch: #8C6200; --avoid: #B93025;
+    --cool-gray: #BCBEC0; --surface-30: #E8E8E9; --surface-20: #F0F0F0;
+    --bg: #ffffff; --surface: #ffffff; --text: #1A1A1A; --muted: #6B7280;
+    --border: #E8E8E9; --border-mid: #BCBEC0; --link: #0082B3; --row-hover: #F0F0F0;
+    --font: "Centrale Sans", "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --blue: #009FDA; --blue-dark: #33B3E8; --blue-darker: #60AACC;
+      --hero-bg: #005F85; --watch: #D9A519; --avoid: #EC6A60; /* avoid: ≥4.6:1 on surface AND avoid-pill tint */
+      --cool-gray: #2E3D52; --surface-30: #141820; --surface-20: #141820;
+      --bg: #0C1118; --surface: #181E2A; --text: #DDE4EF; --muted: #8499B5;
+      --border: #222B3A; --border-mid: #2E3D52; --link: #33C0F0; --row-hover: #141820;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font);
+    margin: 0; background: var(--bg); color: var(--text);
+    line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1060px; margin: 0 auto; padding: 0 1.25rem 3rem; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1 { margin: 0 0 0.25rem; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; }
+  h2 { margin: 2rem 0 0.5rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+
+  /* Hero — Process Blue brand band with a subtle Buka dot-pattern */
+  .hero {
+    position: relative; overflow: hidden;
+    background: var(--hero-bg); color: #fff;
+    padding: 1.6rem 0 1.4rem; margin-bottom: 1.5rem;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+  .hero .container { position: relative; z-index: 1; padding-bottom: 0; }
+  .hero h1 { color: #fff; }
+  .hero a { color: #fff; }
+  /* Mega logo lockup */
+  .brand-lockup { display: flex; align-items: center; margin-bottom: 0.9rem; }
+  .brand-logo { height: 44px; width: auto; display: block; }
+  .tagline { color: rgba(255,255,255,0.95); margin: 0.25rem 0 0.85rem; max-width: 62ch; }
+  .positioning { color: rgba(255,255,255,0.85); font-style: italic; font-size: 0.9rem; margin: 0 0 0.6rem; max-width: 62ch; }
+  .hero-nav { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.92rem; font-weight: 600; }
+  .generated { color: rgba(255,255,255,0.9); font-size: 0.85rem; margin: 0.75rem 0 0; }
+
+  /* Stat cards — colored top accent per ring */
+  .stats { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0.25rem 0 0.5rem; }
+  .stat {
+    position: relative; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem;
+    padding: 0.7rem 1rem 0.55rem; min-width: 5rem; box-shadow: var(--shadow-sm);
+  }
+  .stat::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--border-mid); }
+  .stat-adopt::before { background: var(--blue); }
+  .stat-pilot::before { background: var(--blue-darker); }
+  .stat-watch::before { background: #C89100; }
+  .stat-avoid::before { background: var(--avoid); }
+  .stat .num { font-size: 1.5rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+  .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .stat-adopt .num { color: var(--blue-dark); }
+  .stat-pilot .num { color: var(--blue-darker); }
+  .stat-watch .num { color: var(--watch); }
+  .stat-avoid .num { color: var(--avoid); }
+
+  /* Tables */
+  table {
+    border-collapse: collapse; width: 100%; margin-bottom: 1.5rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;
+  }
+  th, td { border-bottom: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+  th { background: var(--row-hover); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--muted); }
+  th:first-child { border-left: 3px solid var(--blue); }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr:last-child td { border-bottom: none; }
+  .mono { font-family: ui-monospace, "SF Mono", monospace; }
+  .spark svg { vertical-align: middle; color: var(--blue-dark); }
+  td.spark { min-width: 128px; }
+  tr.disabled td { color: var(--muted); }
+  h3 { margin: 1.5rem 0 0.4rem; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+  main p { max-width: 70ch; }
+  .warning { color: var(--avoid); font-weight: 600; }
+  .model-warning { display: block; margin-top: 0.25rem; font-size: 0.75rem; line-height: 1.3; }
+  .error { color: var(--avoid); font-weight: 600; }
+  .prov-unverified { color: var(--muted); font-style: normal; font-weight: 600; font-size: 0.75rem; margin-left: 0.3rem; }
+  .table-wrap { overflow-x: auto; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.dim { font-weight: 600; }
+  .trend-up { color: var(--blue-dark); font-weight: 700; }
+  .trend-down { color: var(--avoid); font-weight: 700; }
+  .trend-flat { color: var(--muted); }
+  .risk-low { background: rgba(0,159,218,0.12); color: var(--blue-dark); border-color: rgba(0,159,218,0.35); }
+  .risk-medium { background: rgba(200,145,0,0.12); color: var(--watch); border-color: rgba(200,145,0,0.35); }
+  .risk-high { background: rgba(185,48,37,0.10); color: var(--avoid); border-color: rgba(185,48,37,0.30); }
+  .fit-yes { background: rgba(0,159,218,0.12); color: var(--blue-dark); border-color: rgba(0,159,218,0.35); }
+  .fit-tight { background: rgba(200,145,0,0.12); color: var(--watch); border-color: rgba(200,145,0,0.35); }
+  .fit-no { background: rgba(185,48,37,0.10); color: var(--avoid); border-color: rgba(185,48,37,0.30); }
+
+  /* Ring pills — Mega palette (adopt = Process Blue family) */
+  .ring { font-family: ui-monospace, monospace; }
+  .ring-pill {
+    display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 0.12rem 0.55rem; border-radius: 999px; border: 1px solid;
+  }
+  .ring-adopt { background: rgba(0,159,218,0.12); color: var(--blue-dark); border-color: rgba(0,159,218,0.35); }
+  .ring-pilot { background: rgba(0,95,133,0.10); color: var(--blue-darker); border-color: rgba(0,95,133,0.30); }
+  .ring-watch { background: rgba(200,145,0,0.12); color: var(--watch); border-color: rgba(200,145,0,0.35); }
+  .ring-avoid { background: rgba(185,48,37,0.10); color: var(--avoid); border-color: rgba(185,48,37,0.30); }
+  .adopt { color: var(--blue-dark); font-weight: 600; }
+  .pilot { color: var(--blue-darker); font-weight: 600; }
+  .watch { color: var(--watch); }
+  .avoid { color: var(--avoid); }
+
+  /* Generic badges */
+  .badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 600;
+    padding: 0.05rem 0.4rem; border-radius: 0.3rem; margin-right: 0.3rem; white-space: nowrap;
+  }
+  .badge-risk { background: rgba(185,48,37,0.12); color: var(--avoid); }
+  .badge-risk-low { background: rgba(200,145,0,0.14); color: var(--watch); }
+  .badge-pinned { background: rgba(0,159,218,0.14); color: var(--blue-dark); }
+
+  /* Receipts chips (e.g. HN mention count) */
+  .chip {
+    display: inline-block; font-size: 0.7rem; font-weight: 600;
+    padding: 0.05rem 0.4rem; border-radius: 0.3rem; margin-right: 0.3rem; white-space: nowrap;
+    border: 1px solid var(--blue-dark); color: var(--blue-dark); background: transparent;
+  }
+
+  /* Backer badges */
+  .backer {
+    display: inline-block; font-size: 0.75rem; font-weight: 600;
+    padding: 0.05rem 0.4rem; border-radius: 0.3rem; white-space: nowrap;
+  }
+  .backer-big_tech { background: rgba(0,159,218,0.14); color: var(--blue-dark); }
+  .backer-startup { background: #ede9fe; color: #6d28d9; }
+  .backer-community { background: #dcfce7; color: #166534; }
+  .backer-individual { background: #fef9c3; color: #854d0e; }
+  .backer-academic { background: #fce7f3; color: #9d174d; }
+  .backer-none { color: var(--muted); }
+  .backer-line { margin: 0.25rem 0 0.5rem; }
+  .backer-type-label { color: var(--muted); font-size: 0.85rem; }
+
+  /* Evidence + scan health */
+  .evidence { margin: 0.3rem 0 0; padding-left: 1rem; color: var(--muted); font-size: 0.82rem; }
+  .tenure { color: var(--muted); font-size: 0.78rem; margin-top: 0.2rem; }
+  .scan-health { margin: 0.75rem 0 1.25rem; font-size: 0.9rem; }
+  .scan-health summary { cursor: pointer; color: var(--watch); }
+  .scan-health ul { margin: 0.4rem 0 0; color: var(--muted); }
+  .scan-health-ok { color: #15803d; margin: 0; }
+
+  /* Filter bar (sticky) */
+  .filter-bar {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    margin: 0.5rem 0 1rem; padding: 0.5rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap;
+  }
+  .filter-bar input, .filter-bar select {
+    padding: 0.45rem 0.7rem; font-size: 0.9rem; border: 1px solid var(--border-mid);
+    border-radius: 0.4rem; background: var(--surface); color: var(--text);
+    font-family: var(--font); outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  .filter-bar input { flex: 1; min-width: 12rem; }
+  .filter-bar input:focus, .filter-bar select:focus {
+    border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,159,218,0.16);
+  }
+  .filter-bar label { display: flex; flex-direction: column; gap: 0.25rem; }
+  .filter-bar button {
+    padding: 0.45rem 0.9rem; border: 1px solid var(--border-mid); border-radius: 6px;
+    background: var(--surface); color: var(--text); cursor: pointer;
+  }
+
+  /* Window tabs (velocity 7d/30d/90d) — mirrors the filter-bar pill styling */
+  .tabs { display: flex; gap: 0.4rem; margin: 0.5rem 0 1rem; flex-wrap: wrap; }
+  .tab {
+    display: inline-block; padding: 0.3rem 0.85rem; border: 1px solid var(--border-mid);
+    border-radius: 999px; background: var(--surface); color: var(--text);
+    font-size: 0.85rem; text-decoration: none;
+  }
+  .tab:hover { border-color: var(--blue); }
+  .tab-active {
+    background: rgba(0,159,218,0.12); color: var(--blue-dark);
+    border-color: rgba(0,159,218,0.35); font-weight: 700;
+  }
+
+  /* Legend */
+  .legend { margin: 0.5rem 0 1.5rem; font-size: 0.9rem; }
+  .legend summary { cursor: pointer; color: var(--muted); font-weight: 700; }
+  .legend-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 0.75rem; }
+  .legend-col h4 { margin: 0 0 0.4rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .legend-col ul { list-style: none; margin: 0; padding: 0; }
+  .legend-col li { margin: 0.25rem 0; }
+
+  /* Downloads + footer — Cool Gray Buka dot-pattern */
+  .footer {
+    position: relative; overflow: hidden;
+    border-top: 1px solid var(--border); margin-top: 2.5rem;
+    background: var(--surface-20); color: var(--muted); font-size: 0.88rem;
+  }
+  .footer::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(188,190,192,0.45) 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+  .footer .container { position: relative; z-index: 1; padding-top: 1.25rem; }
+  .footer h4 { margin: 0 0 0.4rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem; }
+  .dl {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0.4rem; color: var(--link);
+  }
+  .dl:hover { border-color: var(--blue); text-decoration: none; }
+
+  /* Project detail */
+  .meta { color: var(--muted); }
+  .pinned-note { color: var(--watch); }
+
+  /* Badge section (Task 5) — copy-ready Markdown snippet under the preview */
+  .badge-snippet {
+    background: var(--surface-20); border: 1px solid var(--border); border-radius: 0.4rem;
+    padding: 0.6rem 0.8rem; margin: 0.4rem 0 1.25rem;
+    font-family: ui-monospace, "SF Mono", monospace; font-size: 0.82rem;
+    overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text);
+  }
+</style>
+  </head>
+  <body>
+    
+    
+    
+    
+    
+<header class="hero">
+  <div class="container">
+    <div class="brand-lockup">
+      <img class="brand-logo" src="../static/brand/mega-logo-white.svg"
+           alt="Mega Bilgisayar Tic. Ltd. Şti." width="220" height="71" />
+    </div>
+    <h1>Weekly Digest — 2026-W32</h1>
+    <p class="tagline">Week 2026-W32: 1 source(s) added · 0 ring change(s) · 5 on-prem candidate(s)</p>
+    <p class="positioning">Trending tells you what&#39;s hot. The radar tells you what to adopt — and what it takes to run it.</p>
+    <nav class="hero-nav">
+      <a href="../index.html">Radar</a><a href="../trending.html">Trending</a>
+    </nav>
+    
+  </div>
+</header>
+    <main class="container">
+      
+      
+      <h2>On-prem radar candidates</h2>
+      <table>
+        <thead><tr><th>Repo</th><th>Stars</th><th>Velocity/day</th></tr></thead>
+        <tbody>
+          
+          <tr>
+            <td><a href="https://github.com/img2threejs/img2threejs">img2threejs/img2threejs</a></td>
+            <td>7941</td>
+            <td>791.5</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/drumih/turbo-fieldfare">drumih/turbo-fieldfare</a></td>
+            <td>2252</td>
+            <td>500.5</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/perplexityai/numbat">perplexityai/numbat</a></td>
+            <td>453</td>
+            <td>290.0</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/worldwonderer/novel-to-game">worldwonderer/novel-to-game</a></td>
+            <td>448</td>
+            <td>60.3</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/deerwork-ai/deer-workflow">deerwork-ai/deer-workflow</a></td>
+            <td>362</td>
+            <td>52.2</td>
+          </tr>
+          
+        </tbody>
+      </table>
+      
+      
+      
+      <h2>Elsewhere in AI</h2>
+      <table>
+        <thead><tr><th>Repo</th><th>Stars</th><th>Velocity/day</th></tr></thead>
+        <tbody>
+          
+          <tr>
+            <td><a href="https://github.com/Graphify-Labs/graphify">Graphify-Labs/graphify</a></td>
+            <td>99372</td>
+            <td>663.2</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/affaan-m/ECC">affaan-m/ECC</a></td>
+            <td>236437</td>
+            <td>660.0</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/DietrichGebert/ponytail">DietrichGebert/ponytail</a></td>
+            <td>92676</td>
+            <td>652.2</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/firecrawl/firecrawl">firecrawl/firecrawl</a></td>
+            <td>158498</td>
+            <td>454.0</td>
+          </tr>
+          
+          <tr>
+            <td><a href="https://github.com/JuliusBrussee/caveman">JuliusBrussee/caveman</a></td>
+            <td>94756</td>
+            <td>355.0</td>
+          </tr>
+          
+        </tbody>
+      </table>
+      
+      
+
+      <h2>Auto-added this week</h2>
+      
+      <ul>
+        
+        <li>drumih/turbo-fieldfare — model_serving</li>
+        
+      </ul>
+      
+
+      <h2>Ring changes this week</h2>
+      
+      <p>No ring changes this week.</p>
+      
+    </main>
+    
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="../index.html">Radar</a><a href="../trending.html">Trending</a>
+    </div>
+    
+    <p>Auto-updated daily · deterministic &amp; self-hosted · <a href="https://github.com/ekaynac/onprem-ai-adoption-radar">source on GitHub</a></p>
+    <p>Built by Enes Kaynakcı · Software Engineer at <a href="https://www.megabilgisayar.com.tr">Mega Bilgisayar Tic. Ltd. Şti.</a></p>
+  </div>
+</footer>
+  </body>
+</html>
