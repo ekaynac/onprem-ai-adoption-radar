@@ -4,6 +4,8 @@ import shutil
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
+import pytest
+
 from intelligence.lifecycle_helpers import lifecycle_repository
 from intelligence.test_recommendations import seed_recommendable_release
 from radar.intelligence.contracts import (
@@ -23,6 +25,11 @@ from radar.storage.digest_log import DigestLogEntry, append_digest
 from radar.storage.model_candidate_log import (
     ModelCandidateObservation,
     append_model_candidates,
+)
+from radar.storage.source_health_log import (
+    SourceHealthRecord,
+    SourceOutcome,
+    append_source_health,
 )
 from radar.web.intelligence_snapshot import (
     PUBLIC_RECENT_RELEASE_LIMIT,
@@ -151,6 +158,8 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "latest_digest",
         "project_data",
         "model_index",
+        "quality",
+        "source_coverage",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -160,6 +169,8 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
     assert payload["platforms"][0]["verification_status"] == "stale"
     assert payload["source_health"]["stale_claim_count"] >= 1
     assert payload["hardware"]
+    assert payload["quality"]["models"]["total"] == len(payload["models"])
+    assert payload["quality"]["hardware"]["total"] == len(payload["hardware"])
     assert "workspace" not in first.decode().casefold()
 
 
@@ -297,6 +308,68 @@ def test_model_index_shards_every_release_once_and_is_deterministic(tmp_path) ->
     assert rows[0]["source_url"].startswith("https://huggingface.co/")
 
 
+def test_model_index_uses_claim_metadata_for_release_time_rank_and_facets(
+    tmp_path,
+) -> None:
+    repository = lifecycle_repository(tmp_path)
+    seed_recommendable_release(repository)
+    release = repository.list_all_releases()[0]
+    evidence = EvidenceObservation(
+        id="evidence:index-metadata",
+        source_url="https://huggingface.co/moonshotai/Kimi-K3",
+        strength=EvidenceStrength.TRUSTED_REGISTRY,
+        retrieved_at=datetime(2026, 8, 3, 8, tzinfo=UTC),
+        checksum="index-metadata",
+        extractor_version="test",
+    )
+    repository.append_evidence(evidence)
+    for predicate, value in (
+        ("hf_repo", "moonshotai/Kimi-K3"),
+        ("last_modified", "2026-08-03T07:55:00Z"),
+        ("downloads", 12_345),
+        ("likes", 678),
+        ("license", "modified-mit"),
+        ("pipeline_tag", "image-text-to-text"),
+    ):
+        repository.append_claim(
+            Claim(
+                id=f"claim:index:{predicate}",
+                subject_id=release.id,
+                predicate=predicate,
+                value=value,
+                state=ClaimState.CANDIDATE,
+                observed_at=evidence.retrieved_at,
+                evidence_ids=[evidence.id],
+            )
+        )
+
+    manifest = write_model_index(
+        repository.list_all_releases(),
+        tmp_path / "_site",
+        datetime(2026, 8, 3, 8, 15, tzinfo=UTC),
+        repository=repository,
+    )
+    payload = json.loads((tmp_path / "_site" / manifest.shards[0].path).read_text())
+    item = payload["items"][0]
+
+    assert item["released_at"] == "2026-08-03T07:55:00Z"
+    assert item["profile"]["publisher"] == release.publisher_id
+    assert item["profile"]["license"] == "modified-mit"
+    assert item["profile"]["modality"] == "image-text-to-text"
+    assert item["profile"]["hf_downloads"] == 12_345
+    assert item["confidence"] > 0.8
+
+    snapshot = build_public_snapshot(
+        build_services(repository),
+        datetime(2026, 8, 3, 8, 15, tzinfo=UTC),
+    ).model_dump(mode="json")
+    release_row = next(
+        row for row in snapshot["releases"] if row["release_id"] == release.id
+    )
+    assert release_row["released_at"] == "2026-08-03T07:55:00Z"
+    assert release_row["confidence"] > 0.8
+
+
 def test_public_snapshot_exposes_latest_valid_digest(tmp_path, caplog) -> None:
     repository = lifecycle_repository(tmp_path)
     digest_path = tmp_path / "data" / "digest-log.jsonl"
@@ -409,6 +482,37 @@ def test_public_snapshot_restores_projects_and_fresh_hf_candidates(
     assert next(
         item for item in snapshot["releases"] if item["name"] == "Kimi-K3"
     )["freshness"] == "fresh"
+    kimi_release = next(
+        item for item in snapshot["releases"] if item["name"] == "Kimi-K3"
+    )
+    assert kimi_release["released_at"] == "2026-07-31T07:58:00Z"
+    assert kimi_release["age_hours"] == pytest.approx(17 / 60)
+    assert kimi_release["confidence"] > 0.8
+
+
+def test_public_source_health_treats_recent_empty_fetch_as_success(tmp_path) -> None:
+    observed_at = datetime(2026, 8, 3, 8, tzinfo=UTC)
+    append_source_health(
+        tmp_path / "data" / "source-health.jsonl",
+        SourceHealthRecord(
+            run_id="run:empty",
+            observed_at=observed_at,
+            sources={
+                "rss-ollama-blog": SourceOutcome(count=0, status="empty"),
+            },
+        ),
+    )
+
+    from radar.web.public_context import load_public_source_health
+
+    health = load_public_source_health(
+        tmp_path,
+        now=observed_at + timedelta(hours=3),
+    )[0]
+
+    assert health["status"] == "empty"
+    assert health["consecutive_failures"] == 0
+    assert health["last_success_at"] == observed_at.isoformat()
 
 
 def test_candidate_projection_reserves_space_for_new_low_download_releases(

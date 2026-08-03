@@ -471,15 +471,16 @@ def load_public_source_health(
             candidate = record.sources.get(source_id)
             if candidate is None:
                 continue
-            if candidate.status == "ok":
+            if candidate.status in {"ok", "empty"}:
                 last_success_at = record.observed_at.isoformat()
                 break
-            consecutive_failures += 1
+            if candidate.status == "error":
+                consecutive_failures += 1
         status = outcome.status
         if (
             now is not None
             and now - latest_record.observed_at
-            > timedelta(hours=2)
+            > timedelta(hours=6)
         ):
             status = "stale"
             consecutive_failures = max(1, consecutive_failures)

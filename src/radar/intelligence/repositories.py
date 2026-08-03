@@ -360,6 +360,39 @@ class SqlAlchemyIntelligenceRepository:
             )
             return [_claim_from_session(session, row) for row in rows]
 
+    def latest_claim_values(
+        self,
+        subject_ids: list[str],
+        predicates: set[str],
+    ) -> dict[str, dict[str, Any]]:
+        """Return latest values for selected claims in one bounded query."""
+        if not subject_ids or not predicates:
+            return {}
+        with self.database.session() as session:
+            rows = list(
+                session.execute(
+                    select(
+                        ClaimRow.subject_id,
+                        ClaimRow.predicate,
+                        ClaimRow.value,
+                        ClaimRow.observed_at,
+                        ClaimRow.id,
+                    )
+                    .where(ClaimRow.subject_id.in_(subject_ids))
+                    .where(ClaimRow.predicate.in_(predicates))
+                    .order_by(
+                        ClaimRow.subject_id,
+                        ClaimRow.predicate,
+                        ClaimRow.observed_at,
+                        ClaimRow.id,
+                    )
+                )
+            )
+        values: dict[str, dict[str, Any]] = {}
+        for subject_id, predicate, value, _observed_at, _claim_id in rows:
+            values.setdefault(subject_id, {})[predicate] = value
+        return values
+
     def upsert_publisher(self, publisher: Publisher) -> bool:
         with self.database.session() as session:
             existing = session.get(PublisherRow, publisher.id)
