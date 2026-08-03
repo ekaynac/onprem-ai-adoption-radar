@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import yaml
+
 
 def _publish_workflow() -> str:
     return Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
@@ -45,12 +47,18 @@ def test_publish_checkpoints_discovery_and_verified_state_before_export():
 
 
 def test_publish_does_not_commit_raw_canonical_state():
-    lines = [line.strip() for line in _publish_workflow().splitlines()]
+    workflow = yaml.safe_load(_publish_workflow())
+    persist = next(
+        step
+        for step in workflow["jobs"]["build"]["steps"]
+        if step.get("name") == "Persist history log + keepalive"
+    )
+    command = persist["run"]
 
-    assert "git add -f data/intelligence.db" not in lines
-    assert "git add -f data/intelligence/events.jsonl || true" not in lines
-    assert "git add -f data/intelligence/snapshots || true" not in lines
-    assert "git add -f data/intelligence/public-snapshot.v1.json || true" in lines
+    assert "data/intelligence.db" not in command
+    assert "data/intelligence/events.jsonl" not in command
+    assert "data/intelligence/snapshots" not in command
+    assert "data/intelligence/public-snapshot.v1.json" in command
 
 
 def test_raw_canonical_state_is_not_tracked_by_git():
@@ -155,9 +163,14 @@ def test_publish_scan_step_uses_publish_history_flag():
 
 
 def test_publish_persist_step_force_adds_source_health_log():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+    workflow = yaml.safe_load(_publish_workflow())
+    persist = next(
+        step
+        for step in workflow["jobs"]["build"]["steps"]
+        if step.get("name") == "Persist history log + keepalive"
+    )
 
-    assert "git add -f data/source-health.jsonl" in text
+    assert "data/source-health.jsonl" in persist["run"]
 
 
 def test_spec_verify_workflow_runs_check():
@@ -175,3 +188,29 @@ def test_publish_deploy_retries_on_transient_pages_failure():
     # fails the job).
     assert text.count("uses: actions/deploy-pages@v5") >= 2
     assert "continue-on-error: true" in text
+
+
+def test_pages_artifact_upload_is_not_blocked_by_history_persistence():
+    workflow = yaml.safe_load(_publish_workflow())
+    steps = workflow["jobs"]["build"]["steps"]
+    names = [step.get("name") for step in steps]
+    upload_index = names.index("Upload Pages artifact")
+    persist_index = names.index("Persist history log + keepalive")
+    persist = steps[persist_index]
+
+    assert upload_index < persist_index
+    assert persist["continue-on-error"] is True
+    assert "scripts/persist_publication.sh" in persist["run"]
+
+
+def test_bounded_pipeline_results_are_written_to_the_job_summary():
+    workflow = yaml.safe_load(_publish_workflow())
+    steps = workflow["jobs"]["build"]["steps"]
+    verify = next(step for step in steps if step.get("name") == "Verify new intelligence")
+    scan = next(step for step in steps if step.get("name") == "Scan")
+
+    assert "GITHUB_STEP_SUMMARY" in verify["run"]
+    assert "processed" in verify["run"]
+    assert "remaining" in verify["run"]
+    assert "GITHUB_STEP_SUMMARY" in scan["run"]
+    assert "enrichment" in scan["run"]
