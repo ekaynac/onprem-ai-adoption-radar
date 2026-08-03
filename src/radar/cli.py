@@ -157,6 +157,14 @@ def intelligence_lineage_backfill(
             "releases, highest downloads first (0 = replay stored claims only)."
         ),
     ),
+    parent_limit: int = typer.Option(
+        -1,
+        "--parent-limit",
+        help=(
+            "Budget for registering declared parents missing from the index "
+            "(-1 = same as --fetch-limit; 0 = skip parent registration)."
+        ),
+    ),
 ) -> None:
     """Backfill model lineage edges and resolve root releases."""
     import asyncio
@@ -166,7 +174,12 @@ def intelligence_lineage_backfill(
 
     _database, repository = build_intelligence_repository(root)
     report = asyncio.run(
-        run_lineage_backfill(root, repository, fetch_limit=fetch_limit)
+        run_lineage_backfill(
+            root,
+            repository,
+            fetch_limit=fetch_limit,
+            parent_limit=None if parent_limit < 0 else parent_limit,
+        )
     )
     console.print_json(data=report)
 

@@ -753,6 +753,7 @@ async def run_lineage_backfill(
     repository: Any,
     *,
     fetch_limit: int = 0,
+    parent_limit: int | None = None,
     clock: Callable[[], datetime] | None = None,
     client: httpx.AsyncClient | None = None,
 ) -> dict[str, int]:
@@ -762,7 +763,10 @@ async def run_lineage_backfill(
     ``fetch_limit > 0`` it additionally queries the HF ``baseModels``
     expansion for the highest-download releases that have never been
     checked, storing the response as evidence plus a claim so future
-    backfills replay it offline. Idempotent; ends with a full root sync.
+    backfills replay it offline. ``parent_limit`` (default: ``fetch_limit``)
+    independently budgets registering declared parents that are missing
+    from the index, so parent resolution can run without new sweeps.
+    Idempotent; ends with a full root sync.
     """
     from radar.intelligence.sources.huggingface import fetch_base_models
 
@@ -791,31 +795,11 @@ async def run_lineage_backfill(
             observed_at=latest.observed_at,
         )
 
-    fetched = fetched_edges = parents_registered = 0
-    if fetch_limit > 0:
+    effective_parent_limit = fetch_limit if parent_limit is None else parent_limit
+    fetched = fetched_edges = parents_registered = parent_fetch_failures = 0
+    if fetch_limit > 0 or effective_parent_limit > 0:
         from radar.intelligence.sources.huggingface import HuggingFaceAdapter
 
-        metadata = repository.latest_claim_values(
-            release_ids,
-            {"hf_repo", "repo_id", "downloads"},
-        )
-        pending: list[tuple[int, str, str]] = []
-        for release in releases:
-            if release.id in stored:
-                continue
-            values = metadata.get(release.id, {})
-            repo = values.get("hf_repo") or values.get("repo_id")
-            if not isinstance(repo, str) or "/" not in repo:
-                continue
-            downloads = values.get("downloads")
-            pending.append(
-                (
-                    -(downloads if isinstance(downloads, int) else 0),
-                    release.id,
-                    repo,
-                )
-            )
-        pending.sort()
         headers = {}
         if token := os.environ.get("HF_TOKEN"):
             headers["Authorization"] = f"Bearer {token}"
@@ -826,82 +810,107 @@ async def run_lineage_backfill(
             follow_redirects=True,
         )
         try:
-            for _, release_id, repo in pending[:fetch_limit]:
-                record, entries = await fetch_base_models(
-                    active_client,
-                    repo,
-                    clock=lambda: now,
+            if fetch_limit > 0:
+                metadata = repository.latest_claim_values(
+                    release_ids,
+                    {"hf_repo", "repo_id", "downloads"},
                 )
-                if record is None:
-                    continue
-                evidence = runner._persist_source_record(record)
-                runner._append_claim(
-                    release_id,
-                    "lineage_declared",
-                    entries,
-                    evidence,
-                )
-                if entries:
-                    fetched_edges += service.ingest_declared(
-                        release_id,
-                        entries,
-                        evidence_ids=[evidence.id],
-                        observed_at=evidence.retrieved_at,
+                pending: list[tuple[int, str, str]] = []
+                for release in releases:
+                    if release.id in stored:
+                        continue
+                    values = metadata.get(release.id, {})
+                    repo = values.get("hf_repo") or values.get("repo_id")
+                    if not isinstance(repo, str) or "/" not in repo:
+                        continue
+                    downloads = values.get("downloads")
+                    pending.append(
+                        (
+                            -(downloads if isinstance(downloads, int) else 0),
+                            release.id,
+                            repo,
+                        )
                     )
-                fetched += 1
+                pending.sort()
+                for _, release_id, repo in pending[:fetch_limit]:
+                    record, entries = await fetch_base_models(
+                        active_client,
+                        repo,
+                        clock=lambda: now,
+                    )
+                    if record is None:
+                        parent_fetch_failures += 1
+                        continue
+                    evidence = runner._persist_source_record(record)
+                    runner._append_claim(
+                        release_id,
+                        "lineage_declared",
+                        entries,
+                        evidence,
+                    )
+                    if entries:
+                        fetched_edges += service.ingest_declared(
+                            release_id,
+                            entries,
+                            evidence_ids=[evidence.id],
+                            observed_at=evidence.retrieved_at,
+                        )
+                    fetched += 1
 
             # Declared parents outside the index (e.g. the -Base repo an
             # instruct model derives from) can never resolve from the
             # rolling discovery window. Register them through the normal
             # ingestion path, iterating so grandparent chains close too.
-            publishers = {
-                account: publisher.id
-                for publisher in repository.list_publishers()
-                for account in publisher.official_accounts
-            }
-            adapter = HuggingFaceAdapter(active_client, publishers)
-            attempted: set[str] = set()
-            for _round in range(3):
-                round_service = LineageService(repository)
-                round_service.sync_roots(now)
-                unresolved_refs = sorted(
-                    {
-                        edge.parent_external_ref.removeprefix("hf:")
-                        for edge in repository.list_unresolved_lineage()
-                        if edge.parent_external_ref.startswith("hf:")
-                    }
-                    - attempted
-                )[:fetch_limit]
-                if not unresolved_refs:
-                    break
-                resolver = IdentityResolver(repository)
-                parent_lineage: list[tuple[str, Any, str, datetime]] = []
-                progressed = False
-                for repo in unresolved_refs:
-                    attempted.add(repo)
-                    candidate = await adapter.fetch_candidate(repo)
-                    if candidate is None:
-                        continue
-                    parent_id, _status = runner._ingest_candidate(
-                        candidate,
-                        resolver,
-                        now,
-                        parent_lineage,
-                    )
-                    if parent_id is not None:
-                        parents_registered += 1
-                        progressed = True
-                ingest_service = LineageService(repository)
-                for entry in parent_lineage:
-                    parent_id, declared, evidence_id, observed_at = entry
-                    fetched_edges += ingest_service.ingest_declared(
-                        parent_id,
-                        declared,
-                        evidence_ids=[evidence_id],
-                        observed_at=observed_at,
-                    )
-                if not progressed:
-                    break
+            if effective_parent_limit > 0:
+                publishers = {
+                    account: publisher.id
+                    for publisher in repository.list_publishers()
+                    for account in publisher.official_accounts
+                }
+                adapter = HuggingFaceAdapter(active_client, publishers)
+                attempted: set[str] = set()
+                for _round in range(3):
+                    round_service = LineageService(repository)
+                    round_service.sync_roots(now)
+                    unresolved_refs = sorted(
+                        {
+                            edge.parent_external_ref.removeprefix("hf:")
+                            for edge in repository.list_unresolved_lineage()
+                            if edge.parent_external_ref.startswith("hf:")
+                        }
+                        - attempted
+                    )[:effective_parent_limit]
+                    if not unresolved_refs:
+                        break
+                    resolver = IdentityResolver(repository)
+                    parent_lineage: list[tuple[str, Any, str, datetime]] = []
+                    progressed = False
+                    for repo in unresolved_refs:
+                        attempted.add(repo)
+                        candidate = await adapter.fetch_candidate(repo)
+                        if candidate is None:
+                            parent_fetch_failures += 1
+                            continue
+                        parent_id, _status = runner._ingest_candidate(
+                            candidate,
+                            resolver,
+                            now,
+                            parent_lineage,
+                        )
+                        if parent_id is not None:
+                            parents_registered += 1
+                            progressed = True
+                    ingest_service = LineageService(repository)
+                    for entry in parent_lineage:
+                        parent_id, declared, evidence_id, observed_at = entry
+                        fetched_edges += ingest_service.ingest_declared(
+                            parent_id,
+                            declared,
+                            evidence_ids=[evidence_id],
+                            observed_at=observed_at,
+                        )
+                    if not progressed:
+                        break
         finally:
             if owned_client:
                 await active_client.aclose()
@@ -912,6 +921,7 @@ async def run_lineage_backfill(
         "fetched": fetched,
         "fetched_edges": fetched_edges,
         "parents_registered": parents_registered,
+        "parent_fetch_failures": parent_fetch_failures,
         "edges_total": len(result.edges),
         "roots_resolved": sum(
             1 for root_id in result.roots.values() if root_id is not None

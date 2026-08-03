@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -23,6 +24,37 @@ from radar.models_radar.hf_config import parse_architecture, parse_quant_format
 HF_API_URL = "https://huggingface.co/api/models"
 LINEAGE_TAG_PREFIX = "base_model:"
 LINEAGE_TAG_RELATIONS = frozenset({"finetune", "quantized", "merge", "adapter"})
+RATE_LIMIT_RETRIES = 3
+RATE_LIMIT_MAX_WAIT_SECONDS = 65.0
+
+
+async def _get_with_rate_limit_retry(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+) -> httpx.Response | None:
+    """GET with bounded 429 backoff; None on transport failure.
+
+    Backfill sweeps make hundreds of anonymous API calls; without honoring
+    Retry-After every request after the limit silently degrades to a skip,
+    which reads as \"no declared parent\" when the truth is \"never asked\".
+    """
+    response: httpx.Response | None = None
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            response = await client.get(url, params=params)
+        except httpx.HTTPError:
+            return None
+        if response.status_code != 429 or attempt == RATE_LIMIT_RETRIES:
+            return response
+        retry_after = response.headers.get("retry-after")
+        try:
+            wait = min(float(retry_after or 5.0), RATE_LIMIT_MAX_WAIT_SECONDS)
+        except ValueError:
+            wait = 5.0
+        await asyncio.sleep(wait * (attempt + 1))
+    return response
 HF_PIPELINE_CATEGORIES = {
     "text-generation": ModelCategory.TEXT_REASONING,
     "image-text-to-text": ModelCategory.MULTIMODAL,
@@ -131,11 +163,11 @@ class HuggingFaceAdapter:
         callers can leave the parent unresolved.
         """
         encoded_repo = quote(repo_id, safe="/")
-        try:
-            response = await self.client.get(f"{HF_API_URL}/{encoded_repo}")
-        except httpx.HTTPError:
-            return None
-        if response.status_code >= 400:
+        response = await _get_with_rate_limit_retry(
+            self.client,
+            f"{HF_API_URL}/{encoded_repo}",
+        )
+        if response is None or response.status_code >= 400:
             return None
         try:
             payload = response.json()
@@ -323,14 +355,12 @@ async def fetch_base_models(
     repository as checked.
     """
     encoded_repo = quote(repo_id, safe="/")
-    try:
-        response = await client.get(
-            f"{HF_API_URL}/{encoded_repo}",
-            params={"expand": ["baseModels"]},
-        )
-    except httpx.HTTPError:
-        return None, []
-    if response.status_code >= 400:
+    response = await _get_with_rate_limit_retry(
+        client,
+        f"{HF_API_URL}/{encoded_repo}",
+        params={"expand": ["baseModels"]},
+    )
+    if response is None or response.status_code >= 400:
         return None, []
     try:
         payload = response.json()
