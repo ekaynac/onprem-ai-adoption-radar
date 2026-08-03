@@ -230,6 +230,8 @@ async def test_discovery_opens_review_for_unresolvable_parent(tmp_path) -> None:
     edge = repo.list_all_lineage_edges()[0]
     assert edge.parent_release_id is not None
     assert edge.root_release_id == edge.parent_release_id
+    assert edge.review_status is LineageReviewStatus.CLEAR
+    assert repo.list_review_exceptions(open_only=True) == []
 
 
 @pytest.mark.asyncio
@@ -404,3 +406,117 @@ async def test_backfill_replays_stored_claims_and_fetches_unchecked(
         tmp_path, repo, fetch_limit=0, clock=lambda: NOW
     )
     assert rerun["edges_total"] == 2
+
+
+@pytest.mark.asyncio
+async def test_backfill_registers_out_of_index_parents(tmp_path) -> None:
+    """A derivative whose declared parent was never discovered still resolves:
+
+    the backfill fetches the parent repo, ingests it through the normal
+    discovery path, and the chain closes — including the grandparent hop.
+    """
+    repo = repository(tmp_path)
+    derivative = Release(
+        id="release:provisional-grearl:kimi:k3:gguf",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Kimi K3 GGUF",
+        category=ModelCategory.MULTIMODAL,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    repo.upsert_release(derivative)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    evidence = runner._persist_source_record(
+        make_record("https://huggingface.co/grearl/Kimi-K3-GGUF", b"{}")
+    )
+    runner._append_claim(
+        derivative.id, "hf_repo", "grearl/Kimi-K3-GGUF", evidence
+    )
+    runner._append_claim(derivative.id, "downloads", 50000, evidence)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if request.url.params.get("expand") == "baseModels":
+            if path.endswith("/grearl/Kimi-K3-GGUF"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "id": "grearl/Kimi-K3-GGUF",
+                        "baseModels": {
+                            "relation": "quantized",
+                            "models": [{"id": "moonshotai/Kimi-K3"}],
+                        },
+                    },
+                    request=request,
+                )
+            return httpx.Response(404, request=request)
+        if path.endswith("/api/models/moonshotai/Kimi-K3"):
+            return httpx.Response(
+                200,
+                json={
+                    "id": "moonshotai/Kimi-K3",
+                    "author": "moonshotai",
+                    "pipeline_tag": "image-text-to-text",
+                    "lastModified": "2026-07-30T08:15:00.000Z",
+                    "downloads": 968000,
+                    "likes": 9700,
+                    "tags": [
+                        "base_model:finetune:moonshotai/Kimi-K3-Base",
+                    ],
+                    "cardData": {"license": "modified-mit"},
+                    "siblings": [{"rfilename": "model.safetensors"}],
+                },
+                request=request,
+            )
+        if path.endswith("/api/models/moonshotai/Kimi-K3-Base"):
+            return httpx.Response(
+                200,
+                json={
+                    "id": "moonshotai/Kimi-K3-Base",
+                    "author": "moonshotai",
+                    "pipeline_tag": "image-text-to-text",
+                    "lastModified": "2026-07-29T08:15:00.000Z",
+                    "downloads": 120000,
+                    "likes": 800,
+                    "tags": [],
+                    "cardData": {"license": "modified-mit"},
+                    "siblings": [{"rfilename": "model.safetensors"}],
+                },
+                request=request,
+            )
+        return httpx.Response(404, request=request)
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        report = await run_lineage_backfill(
+            tmp_path,
+            repo,
+            fetch_limit=5,
+            clock=lambda: NOW,
+            client=client,
+        )
+
+    assert report["parents_registered"] == 2
+    assert report["review_findings"] == 0
+
+    releases_by_repo = {}
+    values = repo.latest_claim_values(
+        [release.id for release in repo.list_all_releases()],
+        {"hf_repo"},
+    )
+    for release_id, claims in values.items():
+        releases_by_repo[claims.get("hf_repo")] = release_id
+    base_id = releases_by_repo["moonshotai/Kimi-K3-Base"]
+    parent_id = releases_by_repo["moonshotai/Kimi-K3"]
+
+    derivative_edge = repo.list_lineage_for_child(derivative.id)[0]
+    assert derivative_edge.parent_release_id == parent_id
+    assert derivative_edge.root_release_id == base_id
+    parent_edge = repo.list_lineage_for_child(parent_id)[0]
+    assert parent_edge.parent_release_id == base_id
+    assert parent_edge.root_release_id == base_id
+    assert repo.list_review_exceptions(open_only=True) == []

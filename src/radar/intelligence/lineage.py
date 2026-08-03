@@ -27,6 +27,14 @@ LINEAGE_EXTRACTOR_VERSION = "hf-lineage-v1"
 REVIEW_CODE_CONFLICT = "lineage-conflict"
 REVIEW_CODE_UNRESOLVED_PARENT = "lineage-unresolved-parent"
 REVIEW_CODE_CYCLE = "lineage-cycle"
+_LINEAGE_REVIEW_CODES = frozenset(
+    {REVIEW_CODE_CONFLICT, REVIEW_CODE_UNRESOLVED_PARENT, REVIEW_CODE_CYCLE}
+)
+
+
+def _lineage_review_id(subject_id: str, code: str) -> str:
+    digest = hashlib.sha256(f"{subject_id}|{code}".encode()).hexdigest()
+    return f"review:lineage:{digest}"
 
 DECLARED_CONFIDENCE = {
     "api": 0.95,
@@ -254,6 +262,20 @@ class LineageRepository(Protocol):
         exception_id: str,
     ) -> ReviewException | None: ...
 
+    def list_review_exceptions(
+        self,
+        *,
+        open_only: bool = False,
+    ) -> list[ReviewException]: ...
+
+    def resolve_review_exception(
+        self,
+        exception_id: str,
+        resolution: str,
+        evidence_ids: list[str],
+        now: datetime,
+    ) -> None: ...
+
 
 class LineageService:
     """Persist declared lineage and keep parent/root resolution current."""
@@ -341,11 +363,10 @@ class LineageService:
             evidence_by_child.setdefault(edge.child_release_id, []).extend(
                 edge.evidence_ids
             )
+        current_review_ids: set[str] = set()
         for finding in result.findings:
-            digest = hashlib.sha256(
-                f"{finding.subject_id}|{finding.code}".encode()
-            ).hexdigest()
-            review_id = f"review:lineage:{digest}"
+            review_id = _lineage_review_id(finding.subject_id, finding.code)
+            current_review_ids.add(review_id)
             if self.repository.get_review_exception(review_id) is not None:
                 continue
             self.repository.open_review_exception(
@@ -359,5 +380,18 @@ class LineageService:
                     ),
                     opened_at=now,
                 )
+            )
+        for review in self.repository.list_review_exceptions(open_only=True):
+            if review.code not in _LINEAGE_REVIEW_CODES:
+                continue
+            if not review.id.startswith("review:lineage:"):
+                continue
+            if review.id in current_review_ids:
+                continue
+            self.repository.resolve_review_exception(
+                review.id,
+                "Lineage finding no longer present after re-resolution",
+                [],
+                now,
             )
         return result

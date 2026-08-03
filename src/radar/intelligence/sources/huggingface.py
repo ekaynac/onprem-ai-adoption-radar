@@ -123,6 +123,32 @@ class HuggingFaceAdapter:
         response.raise_for_status()
         return self._record_from_response(response)
 
+    async def fetch_candidate(self, repo_id: str) -> DiscoveryCandidate | None:
+        """Fetch one repository and shape it as a discovery candidate.
+
+        Used by the lineage backfill to register declared parents that the
+        rolling discovery window never saw. Returns None on any failure so
+        callers can leave the parent unresolved.
+        """
+        encoded_repo = quote(repo_id, safe="/")
+        try:
+            response = await self.client.get(f"{HF_API_URL}/{encoded_repo}")
+        except httpx.HTTPError:
+            return None
+        if response.status_code >= 400:
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            return None
+        if not isinstance(payload, dict) or not payload.get("id"):
+            return None
+        return self._candidate(
+            payload,
+            self._record_from_response(response),
+            HF_PIPELINE_CATEGORIES.get(str(payload.get("pipeline_tag"))),
+        )
+
     async def enrich(self, repo_id: str) -> HFEnrichment:
         encoded_repo = quote(repo_id, safe="/")
         metadata_response = await self.client.get(f"{HF_API_URL}/{encoded_repo}")
@@ -213,7 +239,7 @@ class HuggingFaceAdapter:
         self,
         item: dict[str, Any],
         record: SourceRecord,
-        category: ModelCategory,
+        category: ModelCategory | None,
     ) -> DiscoveryCandidate:
         repo_id = str(item["id"])
         owner, _, release_name = repo_id.partition("/")

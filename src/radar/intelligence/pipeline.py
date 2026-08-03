@@ -166,70 +166,21 @@ class IntelligenceJobRunner:
             candidates,
             key=lambda item: (item.source_record.source_id, item.external_id.casefold()),
         ):
-            evidence = self._persist_source_record(candidate.source_record)
-            self._ensure_provisional_publisher(candidate)
-            resolution = resolver.resolve(candidate)
-            if resolution.publisher_id is None or resolution.release_id is None:
-                self._open_identity_review(candidate, evidence, now, resolution.review_code)
-                conflicted += 1
-                continue
-            existing = self.repository.get_release(resolution.release_id)
-            if existing is None:
-                if resolution.family_id is None:
-                    rejected += 1
-                    continue
-                self._ensure_family(
-                    resolution.family_id,
-                    resolution.publisher_id,
-                    candidate.release_name,
-                )
-                release = Release(
-                    id=resolution.release_id,
-                    family_id=resolution.family_id,
-                    publisher_id=resolution.publisher_id,
-                    name=candidate.release_name,
-                    category=candidate.category_hint or ModelCategory.TEXT_REASONING,
-                    lane=_candidate_lane(candidate),
-                    lifecycle=LifecycleState.DETECTED,
-                    first_observed_at=candidate.source_record.retrieved_at,
-                    discovery_evidence_strength=candidate.source_record.strength,
-                )
-                self.repository.upsert_release(release)
+            release_id, status = self._ingest_candidate(
+                candidate,
+                resolver,
+                now,
+                lineage_batch,
+            )
+            del release_id
+            if status == "created":
                 created += 1
-                self._emit_lifecycle(
-                    release.id,
-                    None,
-                    LifecycleState.DETECTED,
-                    candidate.source_record.retrieved_at,
-                    [evidence.id],
-                )
-            else:
+            elif status == "updated":
                 updated += 1
-            release_id = resolution.release_id
-            candidate_claims = dict(candidate.claims)
-            repo_id = candidate_claims.pop("repo_id", None)
-            if repo_id is not None and "hf_repo" not in candidate_claims:
-                candidate_claims["hf_repo"] = repo_id
-            claims = {
-                **candidate_claims,
-                **(
-                    {"artifact_url": candidate.artifact_urls[0]}
-                    if candidate.artifact_urls
-                    else {}
-                ),
-            }
-            for predicate, value in sorted(claims.items()):
-                self._append_claim(release_id, predicate, value, evidence)
-            declared_lineage = claims.get("lineage_declared")
-            if declared_lineage:
-                lineage_batch.append(
-                    (
-                        release_id,
-                        declared_lineage,
-                        evidence.id,
-                        evidence.retrieved_at,
-                    )
-                )
+            elif status == "rejected":
+                rejected += 1
+            else:
+                conflicted += 1
 
         self._sync_lineage(lineage_batch, now)
 
@@ -328,6 +279,83 @@ class IntelligenceJobRunner:
             updated=updated,
             warnings=tuple(warnings),
         )
+
+    def _ingest_candidate(
+        self,
+        candidate: DiscoveryCandidate,
+        resolver: IdentityResolver,
+        now: datetime,
+        lineage_batch: list[tuple[str, Any, str, datetime]],
+    ) -> tuple[str | None, str]:
+        """Persist one discovery candidate; returns (release_id, status)."""
+        evidence = self._persist_source_record(candidate.source_record)
+        self._ensure_provisional_publisher(candidate)
+        resolution = resolver.resolve(candidate)
+        if resolution.publisher_id is None or resolution.release_id is None:
+            self._open_identity_review(
+                candidate,
+                evidence,
+                now,
+                resolution.review_code,
+            )
+            return None, "conflicted"
+        existing = self.repository.get_release(resolution.release_id)
+        if existing is None:
+            if resolution.family_id is None:
+                return None, "rejected"
+            self._ensure_family(
+                resolution.family_id,
+                resolution.publisher_id,
+                candidate.release_name,
+            )
+            release = Release(
+                id=resolution.release_id,
+                family_id=resolution.family_id,
+                publisher_id=resolution.publisher_id,
+                name=candidate.release_name,
+                category=candidate.category_hint or ModelCategory.TEXT_REASONING,
+                lane=_candidate_lane(candidate),
+                lifecycle=LifecycleState.DETECTED,
+                first_observed_at=candidate.source_record.retrieved_at,
+                discovery_evidence_strength=candidate.source_record.strength,
+            )
+            self.repository.upsert_release(release)
+            self._emit_lifecycle(
+                release.id,
+                None,
+                LifecycleState.DETECTED,
+                candidate.source_record.retrieved_at,
+                [evidence.id],
+            )
+            status = "created"
+        else:
+            status = "updated"
+        release_id = resolution.release_id
+        candidate_claims = dict(candidate.claims)
+        repo_id = candidate_claims.pop("repo_id", None)
+        if repo_id is not None and "hf_repo" not in candidate_claims:
+            candidate_claims["hf_repo"] = repo_id
+        claims = {
+            **candidate_claims,
+            **(
+                {"artifact_url": candidate.artifact_urls[0]}
+                if candidate.artifact_urls
+                else {}
+            ),
+        }
+        for predicate, value in sorted(claims.items()):
+            self._append_claim(release_id, predicate, value, evidence)
+        declared_lineage = claims.get("lineage_declared")
+        if declared_lineage:
+            lineage_batch.append(
+                (
+                    release_id,
+                    declared_lineage,
+                    evidence.id,
+                    evidence.retrieved_at,
+                )
+            )
+        return release_id, status
 
     def _sync_lineage(
         self,
@@ -763,8 +791,10 @@ async def run_lineage_backfill(
             observed_at=latest.observed_at,
         )
 
-    fetched = fetched_edges = 0
+    fetched = fetched_edges = parents_registered = 0
     if fetch_limit > 0:
+        from radar.intelligence.sources.huggingface import HuggingFaceAdapter
+
         metadata = repository.latest_claim_values(
             release_ids,
             {"hf_repo", "repo_id", "downloads"},
@@ -819,15 +849,69 @@ async def run_lineage_backfill(
                         observed_at=evidence.retrieved_at,
                     )
                 fetched += 1
+
+            # Declared parents outside the index (e.g. the -Base repo an
+            # instruct model derives from) can never resolve from the
+            # rolling discovery window. Register them through the normal
+            # ingestion path, iterating so grandparent chains close too.
+            publishers = {
+                account: publisher.id
+                for publisher in repository.list_publishers()
+                for account in publisher.official_accounts
+            }
+            adapter = HuggingFaceAdapter(active_client, publishers)
+            attempted: set[str] = set()
+            for _round in range(3):
+                round_service = LineageService(repository)
+                round_service.sync_roots(now)
+                unresolved_refs = sorted(
+                    {
+                        edge.parent_external_ref.removeprefix("hf:")
+                        for edge in repository.list_unresolved_lineage()
+                        if edge.parent_external_ref.startswith("hf:")
+                    }
+                    - attempted
+                )[:fetch_limit]
+                if not unresolved_refs:
+                    break
+                resolver = IdentityResolver(repository)
+                parent_lineage: list[tuple[str, Any, str, datetime]] = []
+                progressed = False
+                for repo in unresolved_refs:
+                    attempted.add(repo)
+                    candidate = await adapter.fetch_candidate(repo)
+                    if candidate is None:
+                        continue
+                    parent_id, _status = runner._ingest_candidate(
+                        candidate,
+                        resolver,
+                        now,
+                        parent_lineage,
+                    )
+                    if parent_id is not None:
+                        parents_registered += 1
+                        progressed = True
+                ingest_service = LineageService(repository)
+                for entry in parent_lineage:
+                    parent_id, declared, evidence_id, observed_at = entry
+                    fetched_edges += ingest_service.ingest_declared(
+                        parent_id,
+                        declared,
+                        evidence_ids=[evidence_id],
+                        observed_at=observed_at,
+                    )
+                if not progressed:
+                    break
         finally:
             if owned_client:
                 await active_client.aclose()
 
-    result = service.sync_roots(now)
+    result = LineageService(repository).sync_roots(now)
     return {
         "replayed_edges": replayed_edges,
         "fetched": fetched,
         "fetched_edges": fetched_edges,
+        "parents_registered": parents_registered,
         "edges_total": len(result.edges),
         "roots_resolved": sum(
             1 for root_id in result.roots.values() if root_id is not None
