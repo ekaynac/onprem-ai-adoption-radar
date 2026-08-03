@@ -662,6 +662,14 @@ sources:
     url: https://github.com/Vincentwei1021/video-shotcraft
     tags: [agent-skills, ai-agents, ai-video, claude-code, auto-added]
     backer: {name: Vincentwei1021, type: community}
+  - id: github-turbo-fieldfare
+    type: github_repo
+    enabled: true
+    project: turbo-fieldfare
+    category: model_serving
+    url: https://github.com/drumih/turbo-fieldfare
+    tags: [apple-silicon, gemma, gemma4, gemma4-26b-a4b, auto-added]
+    backer: {name: drumih, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
