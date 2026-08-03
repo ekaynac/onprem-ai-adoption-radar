@@ -738,3 +738,17 @@ models:
     license: apache-2.0
     openness: open-permissive
     release_date: 2026-06
+
+  - id: hf-laguna-s-2-1-nvfp4
+    name: Laguna-S-2.1-NVFP4
+    family: poolside
+    hf_repo: poolside/Laguna-S-2.1-NVFP4
+    backer: {name: "poolside", type: community}
+    params_total: 117561977600
+    num_layers: 48
+    hidden_size: 3072
+    context_length: 1048576
+    modality: text
+    license: openmdw-1.1
+    openness: open-restricted
+    release_date: 2026-08
