@@ -295,9 +295,15 @@ export interface components {
             category: components["schemas"]["ModelCategory"];
             /** First Observed At */
             first_observed_at: string;
+            /** Is Official */
+            is_official?: boolean | null;
             /** Lane */
             lane: string;
             lifecycle: components["schemas"]["LifecycleState"];
+            /** Lineage */
+            lineage?: {
+                [key: string]: unknown;
+            } | null;
             /** Matched Terms */
             matched_terms?: string[];
             /** Name */

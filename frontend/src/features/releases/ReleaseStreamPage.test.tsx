@@ -158,3 +158,94 @@ test("computes age from the release timestamp instead of frozen snapshot hours",
   expect(screen.getByText("24h")).toBeVisible();
   vi.useRealTimers();
 });
+
+
+test("groups derivatives beneath their root and expands on demand", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                release_id: "release:grearl:kimi-k3-gguf",
+                name: "Kimi K3 GGUF",
+                lifecycle: "detected",
+                lane: "deployable_onprem",
+                category: "multimodal",
+                first_observed_at: "2026-08-03T09:00:00Z",
+                age_hours: 1,
+                freshness: "fresh",
+                confidence: 0.75,
+                review_status: "clear",
+                citations: [],
+                lineage: {
+                  base_release: "release:moonshot-ai:kimi:k3",
+                  relation: "quantized",
+                  root_release: "release:moonshot-ai:kimi:k3",
+                  derivative_counts: null,
+                },
+              },
+              {
+                release_id: "release:moonshot-ai:kimi:k3",
+                name: "Kimi K3",
+                lifecycle: "verified",
+                lane: "deployable_onprem",
+                category: "multimodal",
+                first_observed_at: "2026-08-01T09:00:00Z",
+                age_hours: 48,
+                freshness: "fresh",
+                confidence: 0.95,
+                review_status: "clear",
+                citations: [],
+                lineage: {
+                  base_release: null,
+                  relation: null,
+                  root_release: "release:moonshot-ai:kimi:k3",
+                  derivative_counts: { quantized: 1 },
+                },
+              },
+            ],
+            next_cursor: null,
+          }),
+          { status: 200 },
+        ),
+      ),
+    ),
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <ReleaseStreamPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  // Default view: one row per root, derivative hidden behind the toggle.
+  expect(await screen.findByText("Kimi K3")).toBeVisible();
+  expect(screen.queryByText("Kimi K3 GGUF")).not.toBeInTheDocument();
+  const toggle = screen.getByRole("button", { name: /1 quantized/i });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+  await user.click(toggle);
+  expect(screen.getByText("Kimi K3 GGUF")).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: /1 quantized/i }),
+  ).toHaveAttribute("aria-expanded", "true");
+
+  // All-artifacts view flattens the grouping.
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "View" }),
+    "all",
+  );
+  expect(screen.getByText("Kimi K3 GGUF")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: /1 quantized/i }),
+  ).not.toBeInTheDocument();
+});
