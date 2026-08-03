@@ -185,6 +185,40 @@ def intelligence_replay_events(
     console.print_json(data={"events_replayed": count})
 
 
+@app.command("intelligence-state-pack")
+def intelligence_state_pack(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    out: Path = typer.Option(
+        Path("build/intelligence-state.tar.gz"),
+        "--out",
+        help="Destination archive.",
+    ),
+) -> None:
+    """Pack canonical intelligence state for durable workflow storage."""
+    from dataclasses import asdict
+
+    from radar.intelligence.state_bundle import pack_intelligence_state
+
+    console.print_json(data=asdict(pack_intelligence_state(root, out)))
+
+
+@app.command("intelligence-state-restore")
+def intelligence_state_restore(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    archive: Path = typer.Option(
+        Path("build/intelligence-state.tar.gz"),
+        "--archive",
+        help="State archive to restore.",
+    ),
+) -> None:
+    """Restore validated canonical intelligence workflow state."""
+    from dataclasses import asdict
+
+    from radar.intelligence.state_bundle import restore_intelligence_state
+
+    console.print_json(data=asdict(restore_intelligence_state(root, archive)))
+
+
 def _execute_intelligence_job(root: Path, kind: JobKind) -> dict[str, Any]:
     import asyncio
     from dataclasses import asdict
