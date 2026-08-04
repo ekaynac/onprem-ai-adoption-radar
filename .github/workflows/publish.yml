@@ -156,6 +156,7 @@ jobs:
           uv run radar research scan --root .
           uv run radar research candidates scan --root .
           uv run radar trending scan --root .
+          uv run radar desk brief --root .
           enrichment_output="$(uv run radar intelligence-run enrichment --root .)"
           echo "$enrichment_output"
           {
@@ -226,6 +227,8 @@ jobs:
             data/technique-history.jsonl \
             data/technique-metrics.jsonl \
             data/trending-observations.jsonl \
+            data/calls-ledger.jsonl \
+            "data/briefs/" \
             data/intelligence/public-snapshot.v1.json
 
   deploy:

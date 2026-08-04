@@ -1,0 +1,253 @@
+{
+ "version": "brief-v1",
+ "id": "brief-2026-W32",
+ "generated_at": "2026-08-04T10:37:12.209378+00:00",
+ "window_days": 7,
+ "items": [
+  {
+   "id": "call:brief-2026-W32:ring-moves:deepseek-r1",
+   "section": "ring-moves",
+   "subject": "deepseek-r1",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:gemma-3-12b",
+   "section": "ring-moves",
+   "subject": "gemma-3-12b",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-deepseek-v4-flash",
+   "section": "ring-moves",
+   "subject": "hf-deepseek-v4-flash",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-deepseek-v4-flash-dspark",
+   "section": "ring-moves",
+   "subject": "hf-deepseek-v4-flash-dspark",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-gemma-4-26b-a4b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-gemma-4-26b-a4b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-gpt-oss-120b",
+   "section": "ring-moves",
+   "subject": "hf-gpt-oss-120b",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-qwen3-6-27b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-qwen3-6-27b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-qwen3-6-35b-a3b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-qwen3-6-35b-a3b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-07-28T11:54:15.400873+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-laguna-s-2-1-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-laguna-s-2-1-nvfp4",
+   "what_happened": "Model ring new → pilot (new)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-03T11:10:09.003238+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:turbo-fieldfare",
+   "section": "ring-moves",
+   "subject": "turbo-fieldfare",
+   "what_happened": "Project ring new → adopt (new)",
+   "why_it_matters": "Project rings track the serving/tooling stack around the models",
+   "verdict": "evaluate",
+   "rationale": "Entered adopt: worth a scoped evaluation",
+   "receipts": [
+    "data/history.jsonl"
+   ],
+   "observed_at": "2026-08-03T11:09:58.009403+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:benchmark-moves:qwen2-5-coder-32b---aider-polyglot",
+   "section": "benchmark-moves",
+   "subject": "qwen2.5-coder-32b · aider-polyglot",
+   "what_happened": "aider-polyglot moved +8.4 points on aider-polyglot (8 → 16.4)",
+   "why_it_matters": "Independent benchmark movement changes the capability ranking the Answer Machine uses",
+   "verdict": "evaluate",
+   "rationale": "Re-rank candidates for affected tasks",
+   "receipts": [
+    "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/website/_data/polyglot_leaderboard.yml"
+   ],
+   "observed_at": "2026-08-04T10:01:07.189906+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:perplexityai-numbat",
+   "section": "new-repos",
+   "subject": "perplexityai/numbat",
+   "what_happened": "New repo at +121.8 stars/day (650 total)",
+   "why_it_matters": "Visibility into AI agent activity on endpoints, with on-device detection, optional pre-action blocking, and forensic reconstruction.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/perplexityai/numbat"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:amazingang-old-coder",
+   "section": "new-repos",
+   "subject": "AmazingAng/old-coder",
+   "what_happened": "New repo at +23 stars/day (252 total)",
+   "why_it_matters": "An old coder's strategy for the agent era: don't read the code — make it run the gauntlet. Evidence-first development skill for coding agents, inspired by Uncle Bob.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/AmazingAng/old-coder"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:deerwork-ai-deer-workflow",
+   "section": "new-repos",
+   "subject": "deerwork-ai/deer-workflow",
+   "what_happened": "New repo at +12.2 stars/day (382 total)",
+   "why_it_matters": "An open-source graph engineering runtime that keeps orchestration in TypeScript and delegates semantic work to replaceable Agent runtimes.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/deerwork-ai/deer-workflow"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:finna-finn-loop",
+   "section": "new-repos",
+   "subject": "finna/Finn-loop",
+   "what_happened": "New repo at +9.7 stars/day (286 total)",
+   "why_it_matters": "The Finn-loop: a 3-skill AI software factory for Claude Code — spec, build, review. Humans merge.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/finna/Finn-loop"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:yanhua1010-self-media-content-workflow",
+   "section": "new-repos",
+   "subject": "yanhua1010/self-media-content-workflow",
+   "what_happened": "New repo at +6.7 stars/day (335 total)",
+   "why_it_matters": "通用、模块化的自媒体内容生产与经营 Skills / A modular, tool-agnostic self-media content skill suite",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/yanhua1010/self-media-content-workflow"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:mikehasa-agentacct",
+   "section": "new-repos",
+   "subject": "mikehasa/agentacct",
+   "what_happened": "New repo at +2.5 stars/day (543 total)",
+   "why_it_matters": "See what your coding agents did and what it cost. Breaks each task down into work steps — tools used, files changed, tests run, time and tokens spent. Local-first dashboard for Claude Code, Codex, Ope",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/mikehasa/agentacct"
+   ],
+   "observed_at": null
+  }
+ ],
+ "verdict_counts": {
+  "act": 8,
+  "evaluate": 3,
+  "ignore": 6
+ },
+ "spotlight": {
+  "task": "coding",
+  "task_label": "Coding assistant",
+  "device": "rtx-4090-24gb",
+  "top_candidate": {
+   "model_id": "mistral-small-3",
+   "name": "Mistral Small 3",
+   "ring": "adopt",
+   "fit_verdict": "fits",
+   "reasons": [
+    "Fit: fits on RTX 4090 (24GB)",
+    "Best quant Q4_K_M (~18.8 GB of 20.4 GB usable)",
+    "Task capability p100 across 1 tracked benchmark(s)",
+    "Curated ring: adopt"
+   ]
+  },
+  "note": "This week's worked answer: Coding assistant on rtx-4090-24gb → Mistral Small 3"
+ },
+ "verdict_rules": "Deterministic v1 rules: adopt-promotions and adopt-exits are act; pilot entries, ≥3-point independent benchmark moves, and new on-prem repos at ≥200 stars/day are evaluate; slower new repos are ignore (recorded, so misses score too)"
+}

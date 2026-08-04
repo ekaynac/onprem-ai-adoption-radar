@@ -15,6 +15,7 @@ const navigation = [
   {
     label: "Intelligence",
     items: [
+      { to: "/desk", label: "Weekly brief", mark: "WB" },
       { to: "/releases", label: "Release stream", mark: "RS" },
       { to: "/catalog", label: "Catalog", mark: "CA" },
       { to: "/projects", label: "GitHub projects", mark: "GH" },

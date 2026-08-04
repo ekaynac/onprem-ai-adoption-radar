@@ -214,6 +214,61 @@ export type AdvisorSection = {
   answers: Record<string, AdvisorAnswer>;
 };
 
+export type DeskBriefItem = {
+  id: string;
+  section: string;
+  subject: string;
+  what_happened: string;
+  why_it_matters: string;
+  verdict: "act" | "evaluate" | "ignore";
+  rationale: string;
+  receipts: string[];
+  observed_at?: string | null;
+};
+
+export type DeskSection = {
+  brief?: {
+    id: string;
+    generated_at: string;
+    window_days: number;
+    items: DeskBriefItem[];
+    verdict_counts: Record<string, number>;
+    verdict_rules: string;
+    spotlight?: {
+      task: string;
+      task_label: string;
+      device: string;
+      top_candidate: {
+        model_id: string;
+        name: string;
+        ring?: string | null;
+        fit_verdict: string;
+        reasons: string[];
+      };
+      note: string;
+    } | null;
+  } | null;
+  calls: Array<{
+    call_id: string;
+    brief_id: string;
+    subject: string;
+    verdict: string;
+    rationale: string;
+    made_at: string;
+    status: string;
+    resolved_at?: string | null;
+    note?: string | null;
+  }>;
+  track_record: {
+    total: number;
+    open: number;
+    confirmed: number;
+    wrong: number;
+    expired: number;
+    hit_rate_pct: number | null;
+  };
+};
+
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
@@ -221,6 +276,7 @@ export type PublicSnapshot = {
   planner?: PlannerGrid | null;
   trending?: TrendingSection | null;
   advisor?: AdvisorSection | null;
+  desk?: DeskSection | null;
   models?: Array<Record<string, unknown>>;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";
