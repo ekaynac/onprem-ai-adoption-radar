@@ -209,3 +209,78 @@ def test_list_trending_tool_returns_rows(tmp_path: Path):
     payload = result[1].get("result", result[1])
 
     assert any(item["repo"] == "acme/rocket" for item in payload)
+
+
+def test_server_registers_product_tools(tmp_path: Path) -> None:
+    server = build_mcp_server(tmp_path)
+    names = {tool.name for tool in asyncio.run(server.list_tools())}
+    assert {"recommend", "benchmarks", "whats_new"} <= names
+
+
+def test_whats_new_tool_diffs_a_stack_and_skips_unknown_devices(
+    tmp_path: Path,
+) -> None:
+    import json
+    from datetime import UTC, datetime, timedelta
+
+    recent = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+    data = tmp_path / "data"
+    data.mkdir(parents=True, exist_ok=True)
+    (data / "news-observations.jsonl").write_text(
+        json.dumps(
+            {
+                "id": "news:vllm-break",
+                "source_id": "vllm-blog",
+                "title": "vLLM drops V0 engine",
+                "url": "https://blog.vllm.ai/v0-removal",
+                "summary": "V0 removed",
+                "published_at": recent,
+                "observed_at": recent,
+            }
+        )
+        + "\n"
+    )
+    (data / "news-classified.jsonl").write_text(
+        json.dumps(
+            {
+                "news_id": "news:vllm-break",
+                "relevant": True,
+                "event_type": "breaking-change",
+                "components": ["vllm"],
+                "operational_impact": "breaking",
+                "summary": "V0 removed; migrate.",
+                "citation": "https://blog.vllm.ai/v0-removal",
+                "model": "claude-opus-5",
+                "classified_at": recent,
+            }
+        )
+        + "\n"
+    )
+    server = build_mcp_server(tmp_path)
+
+    result = asyncio.run(
+        server.call_tool(
+            "whats_new",
+            {
+                "engines": ["vllm"],
+                "models_in_production": ["qwen3-32b"],
+                "devices": ["rtx-4090-24gb", "not-a-device"],
+            },
+        )
+    )
+    payload = result[1].get("result", result[1])
+
+    assert payload["counts"]["act"] == 1
+    assert payload["alerts"][0]["subject"] == "vLLM drops V0 engine"
+    assert payload["unknown_devices"] == ["not-a-device"]
+
+
+def test_benchmarks_tool_returns_none_for_unknown_model(tmp_path: Path) -> None:
+    server = build_mcp_server(tmp_path)
+
+    result = asyncio.run(
+        server.call_tool("benchmarks", {"model_id": "no-such-model"})
+    )
+    payload = result[1].get("result", result[1]) if result[1] else None
+
+    assert payload in (None, {})

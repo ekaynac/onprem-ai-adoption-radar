@@ -201,6 +201,81 @@ def build_mcp_server(root: Path) -> FastMCP:
         )
 
     @mcp.tool()
+    def benchmarks(model_id: str) -> dict[str, Any] | None:
+        """Triangulated benchmark table for one model.
+
+        Per-benchmark: every source's latest score with URL, the
+        independent consensus, the self-reported-vs-independent gap
+        (flagged when it exceeds the configured threshold), and the
+        percentile among tracked models. Never a number without a
+        source. None for unknown models.
+        """
+        from radar.web.public_context import load_public_model_profiles
+
+        profile = load_public_model_profiles(root).get(model_id)
+        if profile is None:
+            return None
+        return {
+            "model_id": model_id,
+            "family": profile.get("family"),
+            "ring": profile.get("ring"),
+            "benchmark_aggregates": profile.get("benchmark_aggregates", []),
+            "self_reported_benchmarks": profile.get("benchmarks", []),
+        }
+
+    @mcp.tool()
+    def whats_new(
+        engines: list[str] | None = None,
+        models_in_production: list[str] | None = None,
+        quant_formats: list[str] | None = None,
+        devices: list[str] | None = None,
+        window_days: int = 14,
+    ) -> dict[str, Any]:
+        """What changed that touches THIS stack? Silence for everything else.
+
+        Describe the stack (engine names like "vllm", model ids like
+        "qwen3-32b", quant formats like "gguf", device preset ids) and
+        get back Act/Evaluate alerts with receipts, diffed from
+        classified news and curated ring moves over the window. Unknown
+        device ids are skipped and reported, never fatal.
+        """
+        from datetime import UTC, datetime
+
+        from radar.intelligence.alerts import build_alerts
+        from radar.intelligence.workspaces import (
+            WorkspaceDevice,
+            WorkspaceEngine,
+            WorkspaceStack,
+        )
+
+        stack = WorkspaceStack(
+            engines=[
+                WorkspaceEngine(name=name)
+                for name in (engines or [])
+                if name.strip()
+            ],
+            models=list(models_in_production or []),
+            quant_formats=list(quant_formats or []),
+        )
+        device_entries: list[WorkspaceDevice] = []
+        unknown_devices: list[str] = []
+        for device_id in devices or []:
+            try:
+                device_entries.append(WorkspaceDevice(device_id=device_id))
+            except Exception:
+                unknown_devices.append(device_id)
+        payload = build_alerts(
+            root,
+            devices=device_entries,
+            stack=stack,
+            now=datetime.now(UTC),
+            window_days=window_days,
+        )
+        if unknown_devices:
+            payload["unknown_devices"] = unknown_devices
+        return payload
+
+    @mcp.tool()
     def plan_capacity(
         model_id: str,
         device: str,
