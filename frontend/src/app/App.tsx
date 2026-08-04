@@ -45,7 +45,7 @@ export function App({
         <Route path="/research" element={<ResearchPage />} />
         <Route path="/research/:researchId" element={<ResearchDetailPage />} />
         <Route path="/compare" element={<ComparePage />} />
-        {!staticMode && <Route path="/planner" element={<PlannerPage />} />}
+        <Route path="/planner" element={<PlannerPage staticMode={staticMode} />} />
         {!staticMode && <Route path="/workspaces" element={<WorkspacePage />} />}
         <Route path="/operations" element={<SourceHealthPage staticMode={staticMode} />} />
         {!staticMode && (

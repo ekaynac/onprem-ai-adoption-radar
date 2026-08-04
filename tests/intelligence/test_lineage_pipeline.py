@@ -11,6 +11,7 @@ import pytest
 from radar.intelligence.contracts import (
     EvidenceStrength,
     LifecycleState,
+    LineageEdge,
     LineageRelation,
     LineageReviewStatus,
     ModelCategory,
@@ -310,6 +311,95 @@ async def test_enrichment_ingests_api_declared_lineage(tmp_path) -> None:
     assert edges[0].parent_release_id == base.id
     assert edges[0].root_release_id == base.id
     assert edges[0].confidence == 0.95
+
+
+@pytest.mark.asyncio
+async def test_enrichment_prioritizes_roots_over_their_derivatives(
+    tmp_path,
+) -> None:
+    """Same attempt band, same publisher: the root with descendants leads,
+    the declared derivative waits."""
+    repo = repository(tmp_path)
+    base = Release(
+        id="release:moonshot-ai:kimi:k3",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Kimi K3",
+        category=ModelCategory.MULTIMODAL,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    derivative = base.model_copy(
+        update={
+            "id": "release:moonshot-ai:kimi:k3:gguf",
+            "name": "Kimi K3 GGUF",
+            # More recent: would win under pure recency ordering.
+            "first_observed_at": NOW.replace(hour=13),
+        }
+    )
+    repo.upsert_release(base)
+    repo.upsert_release(derivative)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    evidence = runner._persist_source_record(
+        make_record("https://huggingface.co/moonshotai/Kimi-K3", b"{}")
+    )
+    runner._append_claim(base.id, "hf_repo", "moonshotai/Kimi-K3", evidence)
+    runner._append_claim(
+        derivative.id, "hf_repo", "grearl/Kimi-K3-GGUF", evidence
+    )
+    repo.upsert_lineage_edge(
+        LineageEdge(
+            id=f"lineage:{derivative.id}:quantized:hf:moonshotai/kimi-k3",
+            child_release_id=derivative.id,
+            parent_external_ref="hf:moonshotai/Kimi-K3",
+            parent_release_id=base.id,
+            root_release_id=base.id,
+            relation=LineageRelation.QUANTIZED,
+            declared=True,
+            confidence=0.95,
+            evidence_ids=[evidence.id],
+            extractor_version="test",
+            observed_at=NOW,
+        )
+    )
+
+    class RecordingAdapter:
+        id = "fixture"
+
+        def __init__(self) -> None:
+            self.enriched: list[str] = []
+
+        async def discover(self, since):
+            return []
+
+        async def fetch(self, url):
+            raise NotImplementedError
+
+        async def enrich(self, repo_id: str):
+            self.enriched.append(repo_id)
+            record = make_record(
+                f"https://huggingface.co/api/models/{repo_id}", b"{}"
+            )
+            return SimpleNamespace(
+                records=[SimpleNamespace(source_record=record)],
+                claims={},
+                artifact_urls=[],
+            )
+
+    adapter = RecordingAdapter()
+    runner_with_adapter = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[adapter],
+        clock=lambda: NOW,
+        enrichment_batch_size=1,
+    )
+    await runner_with_adapter.run(JobKind.ENRICHMENT, "job:priority")
+
+    # Batch of one: the root is selected before its fresher derivative.
+    assert adapter.enriched == ["moonshotai/Kimi-K3"]
 
 
 @pytest.mark.asyncio

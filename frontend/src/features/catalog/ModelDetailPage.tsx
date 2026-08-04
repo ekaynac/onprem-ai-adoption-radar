@@ -119,6 +119,9 @@ export function ModelDetailPage() {
     );
   });
   const tenure = tenureLabel(profile?.first_tracked_at);
+  const runsOn = (snapshot.data?.planner?.fits ?? []).filter(
+    (fit) => profile?.id != null && fit.model_id === profile.id,
+  );
   return (
     <section className="page-stack" aria-labelledby="model-title">
       <Link className="text-link" to="/catalog">← Unified catalog</Link>
@@ -299,6 +302,45 @@ export function ModelDetailPage() {
               </div>
             </>
           )}
+        </section>
+      )}
+      {runsOn.length > 0 && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Runs on</p>
+              <h2>Device fit from the capacity engine</h2>
+            </div>
+            <Link to="/planner" className="text-link">
+              Open planner →
+            </Link>
+          </div>
+          <div className="release-table-wrap">
+            <table className="release-table">
+              <thead>
+                <tr>
+                  <th>Device</th>
+                  <th>Verdict</th>
+                  <th>Best quant</th>
+                  <th>Memory</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runsOn.map((fit) => (
+                  <tr key={fit.device}>
+                    <td>{fit.device}</td>
+                    <td>{fit.verdict.replaceAll("_", " ")}</td>
+                    <td>{fit.best_quant_format ?? "—"}</td>
+                    <td>
+                      {fit.best_quant_memory_gb != null
+                        ? `${fit.best_quant_memory_gb.toFixed(1)} / ${fit.usable_gb.toFixed(1)} GB`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
       <section className="panel">

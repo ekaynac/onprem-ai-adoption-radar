@@ -105,10 +105,29 @@ export type Briefing = {
   movers: BriefingMover[];
 };
 
+export type PlannerFit = {
+  device: string;
+  model_id: string;
+  device_name: string;
+  usable_gb: number;
+  verdict: string;
+  best_quant_format?: string | null;
+  best_quant_memory_gb?: number | null;
+  context_tokens: number;
+  note?: string;
+};
+
+export type PlannerGrid = {
+  devices: string[];
+  context_tokens: number;
+  fits: PlannerFit[];
+};
+
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
   briefing?: Briefing | null;
+  planner?: PlannerGrid | null;
   models?: Array<Record<string, unknown>>;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";

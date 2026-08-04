@@ -32,6 +32,9 @@ test("static command center exposes no workspace mutation controls", async ({ pa
   await expect(page).toHaveURL(/#\/overview$/);
   await expect(page.getByLabel(/email|password|username/i)).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Workspace profiles" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Deployment planner" })).toHaveCount(0);
+  // The planner is read-only (precomputed fit grid) and ships in static mode.
+  await expect(
+    page.getByRole("link", { name: "Deployment planner" }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Save workspace" })).toHaveCount(0);
 });

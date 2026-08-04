@@ -183,6 +183,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "quality",
         "source_coverage",
         "briefing",
+        "planner",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -764,6 +765,70 @@ def test_profiles_carry_tenure_and_download_series_from_metrics(tmp_path) -> Non
         1500,
         2400,
     ]
+
+
+def test_planner_grid_matches_the_fit_engine_verbatim(tmp_path) -> None:
+    from radar.mcp_server.model_queries import ModelQueryService
+
+    (tmp_path / "data" / "runs" / "run-1").mkdir(parents=True)
+    (tmp_path / "data" / "runs" / "run-1" / "meta.json").write_text(
+        '{"run_id": "run-1", "kind": "models"}'
+    )
+    (tmp_path / "data" / "runs" / "run-1" / "model_cards.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "kimi-k3-mini",
+                    "name": "Kimi K3 Mini",
+                    "family": "Kimi",
+                    "params_total": 8_000_000_000,
+                    "num_layers": 32,
+                    "hidden_size": 4096,
+                    "context_length": 32768,
+                    "quants": [
+                        {
+                            "format": "GGUF Q4_K_M",
+                            "bits_per_weight": 4.5,
+                            "source": "manual",
+                        }
+                    ],
+                }
+            ]
+        )
+    )
+    repository = lifecycle_repository(tmp_path)
+
+    snapshot = build_public_snapshot(
+        build_services(repository),
+        datetime(2026, 8, 4, 10, tzinfo=UTC),
+        root=tmp_path,
+    ).model_dump(mode="json")
+
+    planner = snapshot["planner"]
+    assert planner["context_tokens"] == 4096
+    assert set(planner["devices"]) >= {"rtx-4090-24gb", "h100-80gb"}
+    row = next(
+        fit
+        for fit in planner["fits"]
+        if fit["device"] == "rtx-4090-24gb"
+        and fit["model_id"] == "kimi-k3-mini"
+    )
+    # Golden parity: the grid is a projection of the same engine the CLI
+    # and MCP answer from — byte-for-byte identical verdicts.
+    golden = ModelQueryService(tmp_path).can_run(
+        "kimi-k3-mini",
+        "rtx-4090-24gb",
+        4096,
+    )
+    assert golden is not None
+    assert {key: row[key] for key in golden} == golden
+    assert row["verdict"] in {
+        "fits",
+        "fits_tight",
+        "fits_quantized",
+        "wont_fit",
+        "unknown",
+    }
 
 
 def test_platform_reverification_is_repeatable_and_failure_marks_current_claim_stale(

@@ -102,6 +102,7 @@ class PublicSnapshot(BaseModel):
     source_coverage: list[dict[str, Any]]
     latest_digest: dict[str, str] | None = None
     briefing: dict[str, Any] | None = None
+    planner: dict[str, Any] | None = None
 
 
 def _release_sort_key(
@@ -250,6 +251,51 @@ def _release_significance(
         has_license=metadata.get("license") is not None,
     )
     return lineage, significance
+
+
+_PLANNER_DEVICES = (
+    "rtx-4090-24gb",
+    "rtx-5090-32gb",
+    "mac-64gb",
+    "mac-128gb",
+    "rtx-6000-ada-48gb",
+    "a100-80gb",
+    "h100-80gb",
+    "h200-141gb",
+    "b200-192gb",
+    "8x-h100-80gb",
+    "hgx-h200-8",
+    "mi300x-192gb",
+)
+_PLANNER_CONTEXT_TOKENS = 4096
+
+
+def _build_planner(root: Path) -> dict[str, Any] | None:
+    """Precompute the curated-model × device fit grid for the static site.
+
+    Every verdict comes from the same deterministic fit engine the CLI and
+    MCP use — the static planner is a projection of it, never a re-implementation.
+    """
+    try:
+        from radar.mcp_server.model_queries import ModelQueryService
+
+        service = ModelQueryService(root)
+        fits: list[dict[str, Any]] = []
+        for device in _PLANNER_DEVICES:
+            for fit in service.device_fit_report(
+                device,
+                _PLANNER_CONTEXT_TOKENS,
+            ):
+                fits.append({"device": device, **fit})
+    except Exception:  # planner data is additive, never fatal to publish
+        return None
+    if not fits:
+        return None
+    return {
+        "devices": list(_PLANNER_DEVICES),
+        "context_tokens": _PLANNER_CONTEXT_TOKENS,
+        "fits": fits,
+    }
 
 
 _MOVER_WINDOW_DAYS = 14
@@ -457,6 +503,31 @@ def _quality_metrics(
             ),
             "with_hardware_tier": sum(
                 bool(profile.get("hardware_tier")) for profile in profiles
+            ),
+            "with_ring": sum(
+                bool(item.get("public_ring")) for item in models
+            ),
+            "decision_complete": sum(
+                bool(item.get("public_ring"))
+                and profile.get("params_total") is not None
+                and profile.get("context_length") is not None
+                and bool(profile.get("license"))
+                for item, profile in zip(models, profiles, strict=True)
+            ),
+        },
+        "lineage": {
+            "with_resolved_root": sum(
+                bool((item.get("lineage") or {}).get("root_release"))
+                for item in models
+            ),
+            "derivatives": sum(
+                bool((item.get("lineage") or {}).get("relation"))
+                for item in models
+            ),
+            "roots_with_derivatives": sum(
+                bool((item.get("lineage") or {}).get("derivative_counts"))
+                and not (item.get("lineage") or {}).get("relation")
+                for item in models
             ),
         },
         "hardware": {
@@ -880,6 +951,7 @@ def build_public_snapshot(
         source_coverage=_source_coverage(root),
         latest_digest=latest_digest,
         briefing=_build_briefing(projects, model_rows, generated_at, root),
+        planner=_build_planner(root) if root is not None else None,
     )
 
 

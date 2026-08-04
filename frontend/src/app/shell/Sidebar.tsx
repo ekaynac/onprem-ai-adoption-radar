@@ -27,7 +27,7 @@ const navigation = [
     label: "Decide",
     items: [
       { to: "/compare", label: "Compare", mark: "CO" },
-      { to: "/planner", label: "Deployment planner", mark: "DP", liveOnly: true },
+      { to: "/planner", label: "Deployment planner", mark: "DP" },
     ],
   },
   {
