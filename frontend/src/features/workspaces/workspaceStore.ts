@@ -18,10 +18,15 @@ export function getActiveWorkspaceId() {
 
 
 export function setActiveWorkspaceId(workspaceId?: string) {
-  if (workspaceId) {
-    window.localStorage.setItem(ACTIVE_WORKSPACE_KEY, workspaceId);
-  } else {
-    window.localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+  try {
+    if (workspaceId) {
+      window.localStorage.setItem(ACTIVE_WORKSPACE_KEY, workspaceId);
+    } else {
+      window.localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+    }
+  } catch {
+    // Storage can be unavailable (private mode, hardened browsers);
+    // activation is a convenience, not a requirement.
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }

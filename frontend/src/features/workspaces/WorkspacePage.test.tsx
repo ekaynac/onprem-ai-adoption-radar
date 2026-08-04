@@ -10,7 +10,22 @@ test("workspace creation requires no account fields", async () => {
   let workspaces: unknown[] = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+    vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("/alerts")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              version: "alerts-v1",
+              generated_at: "2026-08-04T10:00:00Z",
+              window_days: 14,
+              profile_terms: ["vllm"],
+              alerts: [],
+              counts: { act: 0, evaluate: 0 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
       if (init?.method === "POST") {
         const body = JSON.parse(String(init.body));
         const created = {

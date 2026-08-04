@@ -50,12 +50,17 @@ function parseList(raw: string) {
 
 
 export function AlertFeedPanel({
-  feed,
+  feed: rawFeed,
   title,
 }: {
   feed: AlertFeed | null | undefined;
   title: string;
 }) {
+  // Defensive: only trust a payload that actually looks like a feed.
+  const feed =
+    rawFeed && Array.isArray(rawFeed.alerts) && rawFeed.counts
+      ? rawFeed
+      : null;
   return (
     <section className="panel" aria-label={title}>
       <div className="panel-heading">
