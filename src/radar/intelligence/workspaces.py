@@ -39,6 +39,52 @@ class WorkspaceDevice(BaseModel):
         return self
 
 
+class WorkspaceEngine(BaseModel):
+    """One running serving/tooling component, optionally version-pinned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=60)
+    version: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def normalize(self) -> WorkspaceEngine:
+        object.__setattr__(self, "name", self.name.strip().casefold())
+        return self
+
+
+class WorkspaceStack(BaseModel):
+    """The running stack: engines + production models + quant formats.
+
+    This is what alerts diff events against — a change only matters if
+    it touches something listed here (or the estate's devices).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    engines: list[WorkspaceEngine] = Field(default_factory=list)
+    models: list[str] = Field(default_factory=list)
+    quant_formats: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def normalize(self) -> WorkspaceStack:
+        object.__setattr__(
+            self,
+            "models",
+            [value.strip().casefold() for value in self.models if value.strip()],
+        )
+        object.__setattr__(
+            self,
+            "quant_formats",
+            [
+                value.strip().casefold()
+                for value in self.quant_formats
+                if value.strip()
+            ],
+        )
+        return self
+
+
 class WorkspaceInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -47,6 +93,7 @@ class WorkspaceInput(BaseModel):
     workloads: list[dict[str, Any]] = Field(default_factory=list)
     policies: dict[str, Any] = Field(default_factory=dict)
     watchlists: list[dict[str, Any]] = Field(default_factory=list)
+    stack: WorkspaceStack = Field(default_factory=WorkspaceStack)
 
 
 class Workspace(FrozenModel):
@@ -57,6 +104,7 @@ class Workspace(FrozenModel):
     workloads: list[dict[str, Any]] = Field(default_factory=list)
     policies: dict[str, Any] = Field(default_factory=dict)
     watchlists: list[dict[str, Any]] = Field(default_factory=list)
+    stack: WorkspaceStack = Field(default_factory=WorkspaceStack)
 
 
 class WorkspaceRepository(Protocol):

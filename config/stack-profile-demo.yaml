@@ -1,0 +1,28 @@
+# Public demo stack profile — a representative Mega reference
+# architecture. Static mode ships this profile + its computed alert
+# feed so the mechanism is demonstrable without a workspace. Every
+# component uses ids the radar already tracks (devices from the
+# planner presets, models from config/model-seed.yaml, engines from
+# the news component taxonomy).
+version: "1"
+name: "Mega reference stack (demo)"
+devices:
+  - device_id: rtx-4090-24gb
+    count: 2
+  - device_id: a100-80gb
+    count: 1
+stack:
+  engines:
+    - name: vllm
+      version: "0.10"
+    - name: ollama
+      version: null
+    - name: llama.cpp
+      version: null
+  models:
+    - qwen3-32b
+    - deepseek-r1
+    - mistral-small-3
+  quant_formats:
+    - gguf
+    - awq
