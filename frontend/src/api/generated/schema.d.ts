@@ -259,6 +259,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recommend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recommend */
+        post: operations["recommend_api_v1_recommend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -523,6 +540,22 @@ export interface components {
             reasons: string[];
             /** Release Id */
             release_id: string;
+        };
+        /** RecommendRequest */
+        RecommendRequest: {
+            /** Allowed Licenses */
+            allowed_licenses?: string[] | null;
+            /** Device */
+            device: string;
+            /**
+             * Limit
+             * @default 5
+             */
+            limit: number;
+            /** Min Context */
+            min_context?: number | null;
+            /** Task */
+            task: string;
         };
         /** RecommendationView */
         RecommendationView: {
@@ -1126,6 +1159,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewException"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recommend_api_v1_recommend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecommendRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

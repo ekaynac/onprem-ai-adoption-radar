@@ -173,6 +173,34 @@ def build_mcp_server(root: Path) -> FastMCP:
         return trending.list_trending(lane=lane, limit=limit)
 
     @mcp.tool()
+    def recommend(
+        task: str,
+        device: str,
+        allowed_licenses: list[str] | None = None,
+        min_context: int | None = None,
+        limit: int = 5,
+    ) -> dict[str, Any]:
+        """What should I run? Ranked, cited candidates for a task on a device.
+
+        Tasks: coding, general-chat, reasoning, rag, vision. Each candidate
+        carries fit (capacity engine), tracked-set task percentile, license
+        gate, curated ring, and the factor list behind its rank; exclusions
+        come back with reasons. `allowed_licenses` filters to a policy;
+        `min_context` raises the working-context requirement.
+        """
+        from radar.models_radar.advisor import build_answers
+        from radar.web.public_context import load_public_model_profiles
+
+        return build_answers(
+            load_public_model_profiles(root),
+            device,
+            task,
+            allowed_licenses=allowed_licenses,
+            min_context=min_context,
+            limit=limit,
+        )
+
+    @mcp.tool()
     def plan_capacity(
         model_id: str,
         device: str,
