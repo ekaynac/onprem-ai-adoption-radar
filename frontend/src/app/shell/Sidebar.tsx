@@ -20,6 +20,7 @@ const navigation = [
       { to: "/catalog", label: "Catalog", mark: "CA" },
       { to: "/projects", label: "GitHub projects", mark: "GH" },
       { to: "/trending", label: "Trending repos", mark: "TR" },
+      { to: "/newsroom", label: "Newsroom", mark: "NW" },
       { to: "/platforms", label: "Platforms", mark: "PL" },
       { to: "/hardware", label: "Hardware", mark: "HW" },
       { to: "/research", label: "Research", mark: "RE" },

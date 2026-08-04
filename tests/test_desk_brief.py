@@ -178,6 +178,76 @@ def _seed_stores(tmp_path) -> None:
     (data / "trending-observations.jsonl").write_text(
         "\n".join(json.dumps(row) for row in trending) + "\n"
     )
+    news_items = [
+        {
+            "id": "news:break",
+            "source_id": "vllm-blog",
+            "title": "vLLM drops V0 engine",
+            "url": "https://blog.vllm.ai/v0-removal",
+            "summary": "V0 removed",
+            "published_at": "2026-08-02T09:00:00Z",
+            "observed_at": "2026-08-02T10:00:00Z",
+        },
+        {
+            "id": "news:improve",
+            "source_id": "vllm-blog",
+            "title": "vLLM speeds up prefill",
+            "url": "https://blog.vllm.ai/prefill",
+            "summary": "Faster",
+            "published_at": "2026-08-02T09:00:00Z",
+            "observed_at": "2026-08-02T10:00:00Z",
+        },
+        {
+            "id": "news:old-break",
+            "source_id": "vllm-blog",
+            "title": "Ancient breaking change",
+            "url": "https://blog.vllm.ai/old",
+            "summary": "Old",
+            "published_at": "2026-07-01T09:00:00Z",
+            "observed_at": "2026-07-01T10:00:00Z",
+        },
+    ]
+    (data / "news-observations.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in news_items) + "\n"
+    )
+    classifications = [
+        {
+            "news_id": "news:break",
+            "relevant": True,
+            "event_type": "breaking-change",
+            "components": ["vllm"],
+            "operational_impact": "breaking",
+            "summary": "V0 engine removed; pinned deployments must migrate.",
+            "citation": "https://blog.vllm.ai/v0-removal",
+            "model": "claude-opus-5",
+            "classified_at": "2026-08-03T10:00:00Z",
+        },
+        {
+            "news_id": "news:improve",
+            "relevant": True,
+            "event_type": "performance",
+            "components": ["vllm"],
+            "operational_impact": "improvement",
+            "summary": "Prefill got faster.",
+            "citation": "https://blog.vllm.ai/prefill",
+            "model": "claude-opus-5",
+            "classified_at": "2026-08-03T10:00:00Z",
+        },
+        {
+            "news_id": "news:old-break",
+            "relevant": True,
+            "event_type": "breaking-change",
+            "components": ["vllm"],
+            "operational_impact": "breaking",
+            "summary": "Outside the window.",
+            "citation": "https://blog.vllm.ai/old",
+            "model": "claude-opus-5",
+            "classified_at": "2026-07-02T10:00:00Z",
+        },
+    ]
+    (data / "news-classified.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in classifications) + "\n"
+    )
 
 
 def test_brief_applies_documented_verdict_rules(tmp_path) -> None:
@@ -204,6 +274,14 @@ def test_brief_applies_documented_verdict_rules(tmp_path) -> None:
     slow = by_subject["acme/slow-tool"]
     assert slow["verdict"] == "ignore"
     assert "scoreable" in slow["rationale"]
+
+    breaking = by_subject["vLLM drops V0 engine"]
+    assert breaking["section"] == "news"
+    assert breaking["verdict"] == "evaluate"
+    assert breaking["receipts"] == ["https://blog.vllm.ai/v0-removal"]
+    # Improvements stay newsroom-only; stale breaking news is windowed out.
+    assert "vLLM speeds up prefill" not in by_subject
+    assert "Ancient breaking change" not in by_subject
 
     assert brief["verdict_counts"]["act"] == 1
     assert brief["verdict_counts"]["ignore"] == 1

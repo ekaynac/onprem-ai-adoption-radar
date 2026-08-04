@@ -1967,3 +1967,9 @@ h1 {
 .verdict-pill.verdict-act { color: #cf222e; border-color: #cf222e; }
 .verdict-pill.verdict-evaluate { color: #9a6700; border-color: #9a6700; }
 .verdict-pill.verdict-ignore { color: #57606a; }
+
+/* Newsroom operational-impact pills (namespaced impact-*, same base). */
+.verdict-pill.impact-breaking { color: #cf222e; border-color: #cf222e; }
+.verdict-pill.impact-improvement { color: #116329; border-color: #116329; }
+.verdict-pill.impact-informational { color: #57606a; }
+.verdict-pill.impact-unclassified { color: #57606a; border-style: dashed; }

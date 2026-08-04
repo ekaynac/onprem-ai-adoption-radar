@@ -106,6 +106,7 @@ class PublicSnapshot(BaseModel):
     trending: dict[str, Any] | None = None
     advisor: dict[str, Any] | None = None
     desk: dict[str, Any] | None = None
+    newsroom: dict[str, Any] | None = None
 
 
 def _release_sort_key(
@@ -404,6 +405,82 @@ def _build_desk(root: Path) -> dict[str, Any] | None:
             "track_record": track_record(states),
         }
     except Exception:  # the desk is additive, never fatal to publish
+        return None
+
+
+_NEWSROOM_ITEM_LIMIT = 80
+
+
+def _build_newsroom(root: Path) -> dict[str, Any] | None:
+    """Classified change intelligence + the raw firehose, newest first.
+
+    Only schema-validated classifications reach the section; items the
+    classifier judged irrelevant (or hasn't reached yet) surface solely
+    in the ``unclassified``/firehose sense via ``classification: null``.
+    """
+    try:
+        from radar.storage.news_log import (
+            NEWS_EVENT_TYPES,
+            load_news_classifications,
+            load_news_items,
+        )
+
+        items = load_news_items(root / "data" / "news-observations.jsonl")
+        if not items:
+            return None
+        classifications = {
+            row.news_id: row
+            for row in load_news_classifications(
+                root / "data" / "news-classified.jsonl"
+            )
+        }
+        items.sort(
+            key=lambda item: (item.published_at or item.observed_at),
+            reverse=True,
+        )
+        rows: list[dict[str, Any]] = []
+        impact_counts = {"breaking": 0, "improvement": 0, "informational": 0}
+        classified = 0
+        for item in items[:_NEWSROOM_ITEM_LIMIT]:
+            classification = classifications.get(item.id)
+            payload: dict[str, Any] | None = None
+            if classification is not None and classification.relevant:
+                classified += 1
+                impact_counts[classification.operational_impact] += 1
+                payload = {
+                    "event_type": classification.event_type,
+                    "components": classification.components,
+                    "operational_impact": classification.operational_impact,
+                    "summary": classification.summary,
+                    "citation": classification.citation,
+                    "model": classification.model,
+                }
+            rows.append(
+                {
+                    "id": item.id,
+                    "source_id": item.source_id,
+                    "title": item.title,
+                    "url": item.url,
+                    "summary": item.summary,
+                    "published_at": (
+                        item.published_at.isoformat()
+                        if item.published_at
+                        else None
+                    ),
+                    "classification": payload,
+                }
+            )
+        return {
+            "items": rows,
+            "counts": {
+                "total": len(rows),
+                "classified": classified,
+                "unclassified": len(rows) - classified,
+                **impact_counts,
+            },
+            "event_types": list(NEWS_EVENT_TYPES),
+        }
+    except Exception:  # the newsroom is additive, never fatal to publish
         return None
 
 
@@ -1117,6 +1194,7 @@ def build_public_snapshot(
         ),
         advisor=_build_advisor(profiles),
         desk=_build_desk(root) if root is not None else None,
+        newsroom=_build_newsroom(root) if root is not None else None,
     )
 
 

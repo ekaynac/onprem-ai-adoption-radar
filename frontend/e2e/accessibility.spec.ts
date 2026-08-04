@@ -13,6 +13,7 @@ const routes = [
   "/#/compare",
   "/#/planner",
   "/#/trending",
+  "/#/newsroom",
   "/#/advisor",
   "/#/desk",
   "/#/workspaces",
