@@ -36,6 +36,14 @@ models:
     hf_repo: mistralai/Mistral-Small-24B-Instruct-2501
     ollama_name: mistral-small
     backer: {name: "Mistral AI", type: startup}
+    # Self-reported scores transcribed from the official model card
+    # (mistral-small-24B-instruct-2501 column; card publishes fractions,
+    # transcribed on the 0-100 scale) 2026-08-04. gpqa_main excluded
+    # (main split, not diamond — methodology differs).
+    benchmarks:
+      - {name: mmlu-pro, score: 66.3, source_url: "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501"}
+      - {name: humaneval, score: 84.8, source_url: "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501"}
+      - {name: ifeval, score: 82.9, source_url: "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501"}
 
   - id: gemma-3-12b
     name: Gemma 3 12B
@@ -50,6 +58,12 @@ models:
     hf_repo: microsoft/phi-4
     ollama_name: phi4
     backer: {name: "Microsoft", type: big_tech}
+    # Self-reported scores transcribed from the official model card
+    # (phi-4 (14B) column) 2026-08-04. Card's "GPQA" excluded — the
+    # split (diamond vs main) is unspecified, so no canonical key fits.
+    benchmarks:
+      - {name: mmlu, score: 84.8, source_url: "https://huggingface.co/microsoft/phi-4"}
+      - {name: humaneval, score: 82.6, source_url: "https://huggingface.co/microsoft/phi-4"}
 
   - id: gpt-oss-20b
     name: gpt-oss-20b
@@ -248,6 +262,15 @@ models:
     release_date: "2025-01"
     use_case: reasoning (MoE)
     spec_verified: true
+    # Self-reported scores transcribed from the official model card's
+    # evaluation table (DeepSeek-R1 column) 2026-08-04:
+    benchmarks:
+      - {name: mmlu, score: 90.8, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-R1"}
+      - {name: mmlu-pro, score: 84.0, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-R1"}
+      - {name: gpqa-diamond, score: 71.5, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-R1"}
+      - {name: livecodebench, score: 65.9, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-R1"}
+      - {name: ifeval, score: 83.3, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-R1"}
+      - {name: aime-2024, score: 79.8, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-R1"}
     # All fields below verified against config.json:
     # https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/main/config.json (verified 2026-07-28)
     architecture:
@@ -279,6 +302,16 @@ models:
     release_date: "2024-12"
     use_case: general chat, high capability (MoE)
     spec_verified: true
+    # Self-reported scores transcribed from the official model card's
+    # chat-evaluation table (DeepSeek-V3 column; MMLU-Pro and
+    # GPQA-Diamond cross-confirmed against the R1 card's V3 column)
+    # 2026-08-04. HumanEval-Mul excluded (multilingual variant).
+    benchmarks:
+      - {name: mmlu, score: 88.5, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-V3"}
+      - {name: mmlu-pro, score: 75.9, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-V3"}
+      - {name: gpqa-diamond, score: 59.1, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-V3"}
+      - {name: livecodebench, score: 40.5, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-V3"}
+      - {name: ifeval, score: 86.1, source_url: "https://huggingface.co/deepseek-ai/DeepSeek-V3"}
     # All fields below verified against config.json:
     # https://huggingface.co/deepseek-ai/DeepSeek-V3/raw/main/config.json (verified 2026-07-28)
     architecture:

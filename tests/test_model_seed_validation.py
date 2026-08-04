@@ -114,3 +114,46 @@ def test_missing_provenance_is_advisory():
 
     advisories = entry_advisories(_entry(params_total=8_000_000_000))
     assert any("no provenance" in a for a in advisories)
+
+
+def test_benchmark_keys_and_scales_are_blocking() -> None:
+    from radar.models_radar.entities import BenchmarkScore, ModelSeed
+
+    def seed_with(name: str, score: float) -> ModelSeed:
+        return ModelSeed(
+            id="test-model",
+            name="Test Model",
+            family="Test",
+            benchmarks=[
+                BenchmarkScore(
+                    name=name, score=score, source_url="https://x.example"
+                )
+            ],
+        )
+
+    assert validate_seed(seed_with("mmlu-pro", 66.3)) == []
+    assert any(
+        "unknown benchmark key" in problem
+        for problem in validate_seed(seed_with("made-up-bench", 50.0))
+    )
+    assert any(
+        "looks fractional" in problem
+        for problem in validate_seed(seed_with("mmlu-pro", 0.663))
+    )
+    assert any(
+        "outside (0, 100]" in problem
+        for problem in validate_seed(seed_with("mmlu-pro", 663.0))
+    )
+
+
+def test_repo_seed_benchmarks_all_pass_validation() -> None:
+    from pathlib import Path
+
+    from radar.models_radar.seed import load_model_seed
+
+    seeds = load_model_seed(Path("config/model-seed.yaml"))
+    with_benchmarks = [seed for seed in seeds if seed.benchmarks]
+
+    assert len(with_benchmarks) >= 4
+    for seed in with_benchmarks:
+        assert validate_seed(seed) == [], seed.id

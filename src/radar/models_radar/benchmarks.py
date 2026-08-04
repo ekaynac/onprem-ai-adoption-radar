@@ -32,6 +32,7 @@ CANONICAL_BENCHMARKS: dict[str, str] = {
     "livebench-math-amps": "LiveBench AMPS hard",
     "humaneval": "HumanEval",
     "swe-bench-verified": "SWE-bench Verified",
+    "aime-2024": "AIME 2024",
     "aime-2025": "AIME 2025",
     "livecodebench": "LiveCodeBench",
 }
