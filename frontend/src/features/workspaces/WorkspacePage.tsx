@@ -210,6 +210,20 @@ export function WorkspacePage({
     },
     onError: (failure) => setError(String(failure)),
   });
+  const remove = useMutation({
+    mutationFn: (workspaceId: string) =>
+      apiFetch<void>(
+        `/api/v1/workspaces/${encodeURIComponent(workspaceId)}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: async (_data, workspaceId) => {
+      if (activeWorkspaceId === workspaceId) {
+        setActiveWorkspaceId(undefined);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+    },
+    onError: (failure) => setError(String(failure)),
+  });
 
   function save() {
     if (!name.trim()) return;
@@ -409,6 +423,13 @@ export function WorkspacePage({
                     type="button"
                   >
                     Export
+                  </button>
+                  <button
+                    className="text-button"
+                    onClick={() => remove.mutate(workspace.id)}
+                    type="button"
+                  >
+                    Delete
                   </button>
                 </div>
               </article>

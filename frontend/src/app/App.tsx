@@ -14,7 +14,6 @@ import { ComparePage } from "../features/compare/ComparePage";
 import { IntegrationsPage } from "../features/operations/IntegrationsPage";
 import { ReviewQueuePage } from "../features/operations/ReviewQueuePage";
 import { SourceHealthPage } from "../features/operations/SourceHealthPage";
-import { WatchlistsPage } from "../features/operations/WatchlistsPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { HomePage } from "../features/home/HomePage";
 import { AdvisorPage } from "../features/advisor/AdvisorPage";
@@ -61,7 +60,6 @@ export function App({
         {!staticMode && (
           <Route path="/operations/reviews" element={<ReviewQueuePage />} />
         )}
-        {!staticMode && <Route path="/watchlists" element={<WatchlistsPage />} />}
         <Route
           path="/integrations"
           element={<IntegrationsPage staticMode={staticMode} />}

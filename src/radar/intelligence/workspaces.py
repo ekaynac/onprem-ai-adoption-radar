@@ -112,6 +112,10 @@ class WorkspaceRepository(Protocol):
 
     def get_workspace(self, workspace_id: str) -> Workspace | None: ...
 
+    def update_workspace(self, workspace: Workspace) -> Workspace: ...
+
+    def delete_workspace(self, workspace_id: str) -> bool: ...
+
 
 class WorkspaceService:
     def __init__(self, repository: WorkspaceRepository):
@@ -130,6 +134,19 @@ class WorkspaceService:
         if workspace is None:
             raise KeyError(f"Unknown workspace: {workspace_id}")
         return workspace
+
+    def update(self, workspace_id: str, value: WorkspaceInput) -> Workspace:
+        existing = self.get(workspace_id)
+        workspace = Workspace(
+            id=existing.id,
+            schema_version=WORKSPACE_SCHEMA_VERSION,
+            **value.model_dump(mode="python"),
+        )
+        return self.repository.update_workspace(workspace)
+
+    def delete(self, workspace_id: str) -> None:
+        if not self.repository.delete_workspace(workspace_id):
+            raise KeyError(f"Unknown workspace: {workspace_id}")
 
     def export_document(self, workspace_id: str) -> dict[str, Any]:
         workspace = self.get(workspace_id)

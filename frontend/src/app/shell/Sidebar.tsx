@@ -40,7 +40,6 @@ const navigation = [
     items: [
       { to: "/operations", label: "Operations", mark: "OP" },
       { to: "/operations/reviews", label: "Review queue", mark: "RQ", liveOnly: true },
-      { to: "/watchlists", label: "Watchlists", mark: "WL", liveOnly: true },
     ],
   },
   {
