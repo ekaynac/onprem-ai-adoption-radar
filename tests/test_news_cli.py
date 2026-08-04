@@ -57,15 +57,16 @@ def test_news_scan_appends_and_records_health(tmp_path, monkeypatch):
     assert "news:vllm-blog" in health
 
 
-def test_news_classify_skips_visibly_without_key(tmp_path, monkeypatch):
+def test_news_classify_skips_visibly_without_any_engine(tmp_path, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr("shutil.which", lambda _name: None)
     (tmp_path / "data").mkdir(parents=True, exist_ok=True)
     runner = CliRunner()
 
     result = runner.invoke(app, ["news", "classify", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "ANTHROPIC_API_KEY" in result.stdout
+    assert "No classification engine available" in result.stdout
     assert not (tmp_path / "data" / "news-classified.jsonl").exists()
 
 

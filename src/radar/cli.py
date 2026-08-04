@@ -112,11 +112,21 @@ def news_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> Non
 
 
 @news_app.command("classify")
-def news_classify(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
-    """Classify unclassified items via the Claude API (budget-bounded).
+def news_classify(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    engine: str = typer.Option(
+        "auto",
+        help="auto | api | claude-cli. auto prefers the API key, then the "
+        "local claude CLI (subscription auth), then skips visibly.",
+    ),
+    limit: int = typer.Option(
+        0, help="Override the per-run item budget (0 = use config)."
+    ),
+) -> None:
+    """Classify unclassified items via Claude (budget-bounded).
 
     Skips visibly — exit code 0 — when classification is disabled or no
-    ANTHROPIC_API_KEY is available; the newsroom then stays a raw firehose.
+    engine is available; the newsroom then stays a raw firehose.
     """
     from datetime import UTC, datetime
 
@@ -124,6 +134,7 @@ def news_classify(root: Path = typer.Option(Path("."), help="Project root.")) ->
         build_anthropic_client,
         classify_news,
     )
+    from radar.discovery.news_claude_cli import build_claude_cli_client
     from radar.discovery.news_sweep import load_news_sources
     from radar.storage.news_log import (
         append_news_classifications,
@@ -135,13 +146,25 @@ def news_classify(root: Path = typer.Option(Path("."), help="Project root.")) ->
     if not config.classification.enabled:
         console.print("[yellow]News classification disabled in config; skipping.[/yellow]")
         return
-    client = build_anthropic_client()
+    if engine not in {"auto", "api", "claude-cli"}:
+        console.print(f"[red]Unknown engine '{engine}'.[/red]")
+        raise typer.Exit(code=2)
+    client = None
+    engine_used = engine
+    if engine in {"auto", "api"}:
+        client = build_anthropic_client()
+        engine_used = "api"
+    if client is None and engine in {"auto", "claude-cli"}:
+        client = build_claude_cli_client()
+        engine_used = "claude-cli"
     if client is None:
         console.print(
-            "[yellow]ANTHROPIC_API_KEY not set; skipping news classification "
-            "(newsroom stays raw-only this run).[/yellow]"
+            "[yellow]No classification engine available (no ANTHROPIC_API_KEY "
+            "and no claude CLI on PATH); skipping — newsroom stays raw-only "
+            "this run.[/yellow]"
         )
         return
+    console.print(f"Engine: {engine_used}")
 
     items = load_news_items(root / "data" / "news-observations.jsonl")
     classified_path = root / "data" / "news-classified.jsonl"
@@ -155,7 +178,12 @@ def news_classify(root: Path = typer.Option(Path("."), help="Project root.")) ->
         console.print("No unclassified news items.")
         return
     now = datetime.now(UTC)
-    result = classify_news(pending, config.classification, client, now)
+    classification_config = config.classification
+    if limit > 0:
+        classification_config = classification_config.model_copy(
+            update={"max_items_per_run": limit}
+        )
+    result = classify_news(pending, classification_config, client, now)
     appended = append_news_classifications(classified_path, result.classifications)
     console.print(
         f"Classified {appended} item(s) with {config.classification.model} "
