@@ -1915,3 +1915,13 @@ h1 {
   font-weight: 700;
   color: #116329;
 }
+
+.benchmark-sources {
+  color: var(--ink-600);
+  font-size: 11px;
+}
+
+.benchmark-flag {
+  color: #9a6700;
+  cursor: help;
+}

@@ -136,6 +136,15 @@ def test_publish_runs_candidate_scan_and_commits_store():
     assert "data/model-candidate-observations.jsonl" in text
 
 
+def test_publish_runs_benchmark_scan_and_commits_store():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+    cand_idx = text.index("radar models candidates scan")
+    bench_idx = text.index("radar models benchmarks scan")
+    export_idx = text.index("radar export")
+    assert cand_idx < bench_idx < export_idx
+    assert "data/benchmark-observations.jsonl" in text
+
+
 def test_publish_runs_paper_candidate_scan_and_commits_store():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
     research_idx = text.index("radar research scan")

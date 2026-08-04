@@ -292,3 +292,57 @@ def test_get_platform_support_falls_back_to_bundled_seed_without_override(tmp_pa
 
     assert rows and rows[0]["id"] == "vllm"
     assert rows[0]["features"]["mla"] == "yes"
+
+
+def test_get_model_exposes_triangulated_benchmark_aggregates(tmp_path: Path):
+    import shutil
+    from datetime import UTC, datetime
+
+    from radar.storage.benchmark_observations_log import (
+        BenchmarkObservation,
+        append_benchmark_observations,
+    )
+
+    run_store = RunStore(tmp_path / "data" / "runs")
+    rid = run_store.create_run()
+    entry = ModelEntry(id="deepseek-r1", name="DeepSeek-R1", family="DeepSeek")
+    run_store.save_stage(rid, "model_cards", [entry.model_dump(mode="json")])
+    run_store.update_meta(rid, {"kind": "models", "model_count": 1})
+    (tmp_path / "config").mkdir(exist_ok=True)
+    shutil.copy2("config/model-seed.yaml", tmp_path / "config" / "model-seed.yaml")
+    shutil.copy2(
+        "config/benchmark-sources.yaml",
+        tmp_path / "config" / "benchmark-sources.yaml",
+    )
+    append_benchmark_observations(
+        tmp_path / "data" / "benchmark-observations.jsonl",
+        [
+            BenchmarkObservation(
+                model_id="deepseek-r1",
+                benchmark="mmlu-pro",
+                score=75.0,
+                source_id="open-llm-leaderboard",
+                source_url="https://ollb.example",
+                observed_at=datetime(2026, 8, 4, 8, tzinfo=UTC),
+            ),
+            BenchmarkObservation(
+                model_id="mistral-small-3",
+                benchmark="mmlu-pro",
+                score=64.0,
+                source_id="open-llm-leaderboard",
+                source_url="https://ollb.example",
+                observed_at=datetime(2026, 8, 4, 8, tzinfo=UTC),
+            ),
+        ],
+    )
+    svc = ModelQueryService(tmp_path)
+
+    payload = svc.get_model("deepseek-r1")
+
+    assert payload is not None
+    rows = {row["benchmark"]: row for row in payload["benchmark_aggregates"]}
+    mmlu_pro = rows["mmlu-pro"]
+    assert mmlu_pro["flagged"] is True  # card 84.0 vs independent 75.0
+    # Percentile ranks across the tracked set, not just this model.
+    assert mmlu_pro["percentile"] is not None
+    assert mmlu_pro["sample_size"] >= 2

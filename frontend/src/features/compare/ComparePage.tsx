@@ -32,24 +32,68 @@ export function ComparePage() {
   const catalog = useCatalogSearch(catalogFilters, workspaceId);
   const rows = Object.values(selected);
 
-  // Union of benchmark names across the selection, ordered by how many of
-  // the selected models report them (most comparable first).
-  const benchmarkNames = useMemo(() => {
-    const counts = new Map<string, number>();
+  // Union of canonical benchmarks across the selection (aggregates first,
+  // legacy profile.benchmarks as fallback), ordered by how many of the
+  // selected models report them (most comparable first).
+  const benchmarkKeys = useMemo(() => {
+    const counts = new Map<string, { label: string; count: number }>();
     for (const item of rows) {
+      const aggregates = item.profile?.benchmark_aggregates;
+      if (aggregates?.length) {
+        for (const aggregate of aggregates) {
+          const entry = counts.get(aggregate.benchmark) ?? {
+            label: aggregate.label,
+            count: 0,
+          };
+          entry.count += 1;
+          counts.set(aggregate.benchmark, entry);
+        }
+        continue;
+      }
       for (const benchmark of item.profile?.benchmarks ?? []) {
-        counts.set(benchmark.name, (counts.get(benchmark.name) ?? 0) + 1);
+        const entry = counts.get(benchmark.name) ?? {
+          label: benchmark.name,
+          count: 0,
+        };
+        entry.count += 1;
+        counts.set(benchmark.name, entry);
       }
     }
     return [...counts.entries()]
-      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-      .map(([name]) => name);
+      .sort(
+        (left, right) =>
+          right[1].count - left[1].count || left[0].localeCompare(right[0]),
+      )
+      .map(([key, entry]) => ({ key, label: entry.label }));
   }, [rows]);
 
-  function benchmarkFor(item: CatalogItem, name: string) {
-    return (item.profile?.benchmarks ?? []).find(
-      (benchmark) => benchmark.name === name,
+  function aggregateFor(item: CatalogItem, key: string) {
+    const aggregate = (item.profile?.benchmark_aggregates ?? []).find(
+      (row) => row.benchmark === key,
     );
+    if (aggregate) return aggregate;
+    const legacy = (item.profile?.benchmarks ?? []).find(
+      (benchmark) => benchmark.name === key,
+    );
+    if (!legacy) return null;
+    return {
+      benchmark: key,
+      label: legacy.name,
+      consensus: legacy.score,
+      spread: null,
+      self_reported_gap: null,
+      flagged: false,
+      percentile: null,
+      sample_size: 0,
+      scores: [
+        {
+          source_id: "model-card",
+          score: legacy.score,
+          source_url: legacy.source_url,
+          self_reported: true,
+        },
+      ],
+    };
   }
 
   function toggle(item: CatalogItem) {
@@ -137,11 +181,11 @@ export function ComparePage() {
           <span>Differing fields will be pinned side by side.</span>
         </div>
       )}
-      {rows.length >= 2 && benchmarkNames.length > 0 && (
+      {rows.length >= 2 && benchmarkKeys.length > 0 && (
         <section className="panel" aria-labelledby="benchmark-compare-title">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Curated benchmarks</p>
+              <p className="eyebrow">Triangulated benchmarks</p>
               <h2 id="benchmark-compare-title">Score comparison</h2>
             </div>
           </div>
@@ -156,35 +200,56 @@ export function ComparePage() {
                 </tr>
               </thead>
               <tbody>
-                {benchmarkNames.map((name) => {
-                  const scores = rows.map((item) => benchmarkFor(item, name));
+                {benchmarkKeys.map(({ key, label }) => {
+                  const aggregates = rows.map((item) => aggregateFor(item, key));
                   const best = Math.max(
-                    ...scores.map((score) => score?.score ?? -Infinity),
+                    ...aggregates.map(
+                      (aggregate) => aggregate?.consensus ?? -Infinity,
+                    ),
                   );
                   return (
-                    <tr key={name}>
-                      <td>{name}</td>
+                    <tr key={key}>
+                      <td>{label}</td>
                       {rows.map((item) => {
-                        const benchmark = benchmarkFor(item, name);
-                        if (!benchmark) {
+                        const aggregate = aggregateFor(item, key);
+                        if (!aggregate || aggregate.consensus == null) {
                           return <td key={item.release_id}>—</td>;
                         }
+                        const primary =
+                          aggregate.scores.find(
+                            (score) => !score.self_reported,
+                          ) ?? aggregate.scores[0];
                         return (
                           <td
                             key={item.release_id}
                             className={
-                              benchmark.score === best
+                              aggregate.consensus === best
                                 ? "benchmark-best"
                                 : undefined
                             }
                           >
                             <a
-                              href={benchmark.source_url}
+                              href={primary.source_url}
                               rel="noreferrer"
                               target="_blank"
                             >
-                              {benchmark.score}
+                              {aggregate.consensus}
                             </a>
+                            {aggregate.scores.length > 1 && (
+                              <span className="benchmark-sources">
+                                {" "}
+                                · {aggregate.scores.length} src
+                              </span>
+                            )}
+                            {aggregate.flagged && (
+                              <span
+                                className="benchmark-flag"
+                                title={`Self-reported differs from independent by ${aggregate.self_reported_gap} points`}
+                              >
+                                {" "}
+                                ⚠
+                              </span>
+                            )}
                           </td>
                         );
                       })}
@@ -195,8 +260,10 @@ export function ComparePage() {
             </table>
           </div>
           <p className="claim-meta">
-            Every score links to its source. Missing scores stay missing —
-            models report different suites.
+            Consensus is the median of independent sources; ⚠ marks a
+            self-reported score that differs from independents beyond the
+            threshold. Every score links to its source; missing stays
+            missing.
           </p>
         </section>
       )}

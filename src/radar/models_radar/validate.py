@@ -8,6 +8,7 @@ entry (664,944-param "35B") from ever ranking again.
 from __future__ import annotations
 
 from radar.discovery.model_promotion import plausible_params
+from radar.models_radar.benchmarks import CANONICAL_BENCHMARKS
 from radar.models_radar.entities import ModelEntry, ModelSeed
 
 
@@ -30,6 +31,23 @@ def validate_seed(seed: ModelSeed) -> list[str]:
         problems.append(f"{seed.id}: params_active exceeds params_total")
     if seed.context_length is not None and seed.context_length <= 0:
         problems.append(f"{seed.id}: context_length must be positive")
+    for benchmark in seed.benchmarks:
+        if benchmark.name not in CANONICAL_BENCHMARKS:
+            problems.append(
+                f"{seed.id}: unknown benchmark key {benchmark.name!r} — "
+                f"use a canonical key from models_radar.benchmarks"
+            )
+        if 0 < benchmark.score <= 1:
+            problems.append(
+                f"{seed.id}: benchmark {benchmark.name} score "
+                f"{benchmark.score} looks fractional — transcribe on the "
+                f"0-100 scale"
+            )
+        elif benchmark.score <= 0 or benchmark.score > 100:
+            problems.append(
+                f"{seed.id}: benchmark {benchmark.name} score "
+                f"{benchmark.score} outside (0, 100]"
+            )
     return problems
 
 

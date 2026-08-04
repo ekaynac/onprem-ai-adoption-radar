@@ -874,6 +874,59 @@ def test_trending_section_builds_windows_and_star_series(tmp_path) -> None:
     assert [point["stars"] for point in series] == [100, 400, 900, 1600]
 
 
+def test_profiles_attach_triangulated_benchmark_aggregates(tmp_path) -> None:
+    import shutil as shutil_module
+
+    from radar.storage.benchmark_observations_log import (
+        BenchmarkObservation,
+        append_benchmark_observations,
+    )
+    from radar.web.public_context import load_public_model_profiles
+
+    (tmp_path / "config").mkdir()
+    shutil_module.copy2(
+        "config/model-seed.yaml", tmp_path / "config" / "model-seed.yaml"
+    )
+    shutil_module.copy2(
+        "config/benchmark-sources.yaml",
+        tmp_path / "config" / "benchmark-sources.yaml",
+    )
+    append_benchmark_observations(
+        tmp_path / "data" / "benchmark-observations.jsonl",
+        [
+            BenchmarkObservation(
+                model_id="deepseek-r1",
+                hf_repo="deepseek-ai/DeepSeek-R1",
+                benchmark="mmlu-pro",
+                score=75.0,
+                source_id="open-llm-leaderboard",
+                source_url="https://ollb.example",
+                observed_at=datetime(2026, 8, 4, 8, tzinfo=UTC),
+            )
+        ],
+    )
+
+    profiles = load_public_model_profiles(tmp_path)
+
+    aggregates = {
+        row["benchmark"]: row
+        for row in profiles["deepseek-r1"]["benchmark_aggregates"]
+    }
+    mmlu_pro = aggregates["mmlu-pro"]
+    # Independent 75.0 vs the card's self-reported 84.0 → gap 9.0, flagged.
+    assert mmlu_pro["consensus"] == 75.0
+    assert mmlu_pro["self_reported_gap"] == 9.0
+    assert mmlu_pro["flagged"] is True
+    assert {score["source_id"] for score in mmlu_pro["scores"]} == {
+        "open-llm-leaderboard",
+        "model-card",
+    }
+    # Card-only benchmarks surface too (self-reported channel).
+    assert aggregates["gpqa-diamond"]["scores"][0]["self_reported"] is True
+    # A model with no data has no aggregates key at all.
+    assert "benchmark_aggregates" not in profiles["qwen3-8b"]
+
+
 def test_platform_reverification_is_repeatable_and_failure_marks_current_claim_stale(
     tmp_path,
 ) -> None:

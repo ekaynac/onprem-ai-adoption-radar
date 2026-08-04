@@ -290,17 +290,73 @@ export function ModelDetailPage() {
               </div>
             </>
           )}
-          {(profile.benchmarks?.length ?? 0) > 0 && (
+          {(profile.benchmark_aggregates?.length ?? 0) > 0 ? (
             <>
-              <h3>Curated benchmarks</h3>
-              <div className="evidence-links">
-                {profile.benchmarks?.map((benchmark) => (
-                  <a href={benchmark.source_url} key={benchmark.name} rel="noreferrer" target="_blank">
-                    {benchmark.name}: {benchmark.score} ↗
-                  </a>
-                ))}
+              <h3>Benchmarks — triangulated</h3>
+              <div className="release-table-wrap">
+                <table className="release-table benchmark-table">
+                  <thead>
+                    <tr>
+                      <th>Benchmark</th>
+                      <th>Source</th>
+                      <th>Score</th>
+                      <th>Standing</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {profile.benchmark_aggregates?.flatMap((aggregate) =>
+                      aggregate.scores.map((score, index) => (
+                        <tr key={`${aggregate.benchmark}-${score.source_id}`}>
+                          <td>
+                            {index === 0 ? aggregate.label : ""}
+                            {index === 0 && aggregate.flagged && (
+                              <span
+                                className="benchmark-flag"
+                                title={`Self-reported differs from independent by ${aggregate.self_reported_gap} points`}
+                              >
+                                {" "}
+                                ⚠
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <a
+                              href={score.source_url}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              {score.source_id}
+                            </a>
+                            {score.self_reported && (
+                              <span className="lineage-chip">self-reported</span>
+                            )}
+                          </td>
+                          <td>{score.score}</td>
+                          <td>
+                            {index === 0 && aggregate.percentile != null
+                              ? `p${aggregate.percentile} of ${aggregate.sample_size} tracked`
+                              : ""}
+                          </td>
+                        </tr>
+                      )),
+                    )}
+                  </tbody>
+                </table>
               </div>
             </>
+          ) : (
+            (profile.benchmarks?.length ?? 0) > 0 && (
+              <>
+                <h3>Curated benchmarks</h3>
+                <div className="evidence-links">
+                  {profile.benchmarks?.map((benchmark) => (
+                    <a href={benchmark.source_url} key={benchmark.name} rel="noreferrer" target="_blank">
+                      {benchmark.name}: {benchmark.score} ↗
+                    </a>
+                  ))}
+                </div>
+              </>
+            )
           )}
         </section>
       )}
