@@ -228,6 +228,21 @@ def test_bounded_pipeline_results_are_written_to_the_job_summary():
     assert "enrichment" in scan["run"]
 
 
+def test_publish_runs_news_scan_and_classify_and_commits_stores():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+    trending_idx = text.index("radar trending scan")
+    news_idx = text.index("radar news scan")
+    classify_idx = text.index("radar news classify")
+    brief_idx = text.index("radar desk brief")
+    export_idx = text.index("radar export")
+    # News lands before the brief so breaking items can produce calls.
+    assert trending_idx < news_idx < classify_idx < brief_idx < export_idx
+    assert "data/news-observations.jsonl" in text
+    assert "data/news-classified.jsonl" in text
+    # Classification key must be available to the Scan step (optional secret).
+    assert "ANTHROPIC_API_KEY" in text
+
+
 def test_publish_builds_the_desk_brief_and_persists_the_ledger():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
     trending_idx = text.index("radar trending scan")

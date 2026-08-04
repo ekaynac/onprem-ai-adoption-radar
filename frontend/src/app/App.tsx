@@ -18,6 +18,7 @@ import { WatchlistsPage } from "../features/operations/WatchlistsPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { AdvisorPage } from "../features/advisor/AdvisorPage";
 import { DeskPage } from "../features/desk/DeskPage";
+import { NewsroomPage } from "../features/newsroom/NewsroomPage";
 import { PlannerPage } from "../features/planner/PlannerPage";
 import { TrendingPage } from "../features/trending/TrendingPage";
 import { ReleaseDetailPage } from "../features/releases/ReleaseDetailPage";
@@ -39,6 +40,7 @@ export function App({
         <Route path="/releases" element={<ReleaseStreamPage />} />
         <Route path="/releases/:releaseId" element={<ReleaseDetailPage />} />
         <Route path="/trending" element={<TrendingPage />} />
+        <Route path="/newsroom" element={<NewsroomPage />} />
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/catalog/:releaseId" element={<ModelDetailPage />} />
         <Route path="/projects" element={<ProjectsPage />} />

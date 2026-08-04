@@ -1,0 +1,53 @@
+# Newsroom feed roster + classification budget.
+#
+# Kinds: `rss` (RSS/Atom via feedparser) and `hn-algolia` (HN search
+# JSON API). The full query lives in the URL — adapters only GET it.
+#
+# Classification runs on the Anthropic API (official SDK). It is
+# budget-bounded per run (`max_items_per_run`) and skips gracefully —
+# with a visible warning, never an error — when ANTHROPIC_API_KEY is
+# absent. Items whose output fails schema validation stay unclassified
+# and never reach product surfaces (only the raw firehose).
+version: "1"
+classification:
+  enabled: true
+  # Default per the Claude API guidance; change deliberately, not for cost.
+  model: claude-opus-5
+  max_items_per_run: 25
+  max_output_tokens: 1024
+sources:
+  # Verified live 2026-08-04 (blog.vllm.ai serves no feed; vllm.ai does).
+  - id: vllm-blog
+    kind: rss
+    enabled: true
+    url: https://vllm.ai/blog/rss.xml
+  - id: hf-blog
+    kind: rss
+    enabled: true
+    url: https://huggingface.co/blog/feed.xml
+  # Verified live 2026-08-04 (`/blog/rss` 404s; `/blog/rss.xml` works).
+  - id: ollama-blog
+    kind: rss
+    enabled: true
+    url: https://ollama.com/blog/rss.xml
+  # EXCLUDED WITH REASON: Reddit returns 403/429 to unauthenticated
+  # non-browser clients regardless of a descriptive UA, and the project
+  # policy is an honest User-Agent (see constants.RSS_USER_AGENT) — no
+  # browser spoofing. Re-enable via the official OAuth API if the
+  # community signal proves worth the integration.
+  - id: r-localllama
+    kind: rss
+    enabled: false
+    url: https://www.reddit.com/r/LocalLLaMA/top/.rss?t=day
+  - id: hn-vllm
+    kind: hn-algolia
+    enabled: true
+    url: https://hn.algolia.com/api/v1/search_by_date?tags=story&query=vllm&hitsPerPage=30
+  - id: hn-ollama
+    kind: hn-algolia
+    enabled: true
+    url: https://hn.algolia.com/api/v1/search_by_date?tags=story&query=ollama&hitsPerPage=30
+  - id: hn-llamacpp
+    kind: hn-algolia
+    enabled: true
+    url: https://hn.algolia.com/api/v1/search_by_date?tags=story&query=llama.cpp&hitsPerPage=30

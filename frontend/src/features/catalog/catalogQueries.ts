@@ -269,6 +269,38 @@ export type DeskSection = {
   };
 };
 
+export type NewsroomClassification = {
+  event_type: string;
+  components: string[];
+  operational_impact: "breaking" | "improvement" | "informational";
+  summary: string;
+  citation: string;
+  model: string;
+};
+
+export type NewsroomItem = {
+  id: string;
+  source_id: string;
+  title: string;
+  url: string;
+  summary?: string | null;
+  published_at?: string | null;
+  classification?: NewsroomClassification | null;
+};
+
+export type NewsroomSection = {
+  items: NewsroomItem[];
+  counts: {
+    total: number;
+    classified: number;
+    unclassified: number;
+    breaking: number;
+    improvement: number;
+    informational: number;
+  };
+  event_types: string[];
+};
+
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
@@ -277,6 +309,7 @@ export type PublicSnapshot = {
   trending?: TrendingSection | null;
   advisor?: AdvisorSection | null;
   desk?: DeskSection | null;
+  newsroom?: NewsroomSection | null;
   models?: Array<Record<string, unknown>>;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";

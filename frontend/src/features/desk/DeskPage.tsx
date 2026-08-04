@@ -7,6 +7,7 @@ const SECTION_LABELS: Record<string, string> = {
   "ring-moves": "Ring moves",
   "benchmark-moves": "Benchmark moves",
   "new-repos": "New repositories",
+  news: "Breaking news",
 };
 
 const VERDICT_LABELS: Record<string, string> = {

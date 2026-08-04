@@ -16,6 +16,8 @@ Verdict rules (v1):
 - New (< 14 days) trending repo with star velocity ≥ 200/day in the
   on-prem lane → evaluate; below → ignore (recorded, so the miss is
   scoreable too).
+- Newsroom item classified ``breaking`` → evaluate (an operator must
+  assess exposure); ``improvement``/``informational`` stay newsroom-only.
 """
 
 from __future__ import annotations
@@ -254,6 +256,59 @@ def _trending_items(
     return items[:8]
 
 
+def _news_items(
+    brief_id: str,
+    root: Path,
+    cutoff: datetime,
+) -> list[dict[str, Any]]:
+    try:
+        from radar.storage.news_log import (
+            load_news_classifications,
+            load_news_items,
+        )
+
+        items_by_id = {
+            item.id: item
+            for item in load_news_items(
+                root / "data" / "news-observations.jsonl"
+            )
+        }
+        classifications = load_news_classifications(
+            root / "data" / "news-classified.jsonl"
+        )
+    except Exception:
+        return []
+    rows: list[dict[str, Any]] = []
+    for classification in classifications:
+        if not classification.relevant:
+            continue
+        if classification.operational_impact != "breaking":
+            continue
+        item = items_by_id.get(classification.news_id)
+        if item is None:
+            continue
+        observed = item.published_at or classification.classified_at
+        if observed < cutoff:
+            continue
+        rows.append(
+            _item(
+                brief_id,
+                "news",
+                item.title,
+                classification.summary,
+                "Classified as breaking for on-prem operators: action may "
+                "be required on "
+                + ", ".join(classification.components or ["the stack"]),
+                "evaluate",
+                "Assess exposure before the next upgrade window",
+                [classification.citation or item.url],
+                observed.isoformat(),
+            )
+        )
+    rows.sort(key=lambda row: row["observed_at"] or "", reverse=True)
+    return rows[:8]
+
+
 def _spotlight(brief_id: str, root: Path, now: datetime) -> dict[str, Any] | None:
     try:
         from radar.models_radar.advisor import TASKS, build_answers
@@ -299,6 +354,7 @@ def build_brief(root: Path, now: datetime | None = None) -> dict[str, Any]:
         *_ring_move_items(brief_id, root, cutoff),
         *_benchmark_move_items(brief_id, root, cutoff),
         *_trending_items(brief_id, root, current),
+        *_news_items(brief_id, root, cutoff),
     ]
     verdict_counts = {"act": 0, "evaluate": 0, "ignore": 0}
     for item in items:
@@ -313,8 +369,9 @@ def build_brief(root: Path, now: datetime | None = None) -> dict[str, Any]:
         "spotlight": _spotlight(brief_id, root, current),
         "verdict_rules": (
             "Deterministic v1 rules: adopt-promotions and adopt-exits are "
-            "act; pilot entries, ≥3-point independent benchmark moves, and "
-            "new on-prem repos at ≥200 stars/day are evaluate; slower new "
-            "repos are ignore (recorded, so misses score too)"
+            "act; pilot entries, ≥3-point independent benchmark moves, "
+            "new on-prem repos at ≥200 stars/day, and news classified as "
+            "breaking are evaluate; slower new repos are ignore (recorded, "
+            "so misses score too)"
         ),
     }

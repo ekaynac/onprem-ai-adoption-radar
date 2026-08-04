@@ -187,6 +187,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "trending",
         "advisor",
         "desk",
+        "newsroom",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -874,6 +875,98 @@ def test_trending_section_builds_windows_and_star_series(tmp_path) -> None:
     # 14-day sparkline window: the day-1 point (11 days before generated_at
     # is inside; all four observations qualify).
     assert [point["stars"] for point in series] == [100, 400, 900, 1600]
+
+
+def test_newsroom_joins_classifications_and_counts_impacts(tmp_path) -> None:
+    (tmp_path / "data").mkdir()
+    items = [
+        {
+            "id": "news:aaaa",
+            "source_id": "vllm-blog",
+            "title": "vLLM v0.10 released",
+            "url": "https://blog.vllm.ai/v0-10",
+            "summary": "Release notes",
+            "published_at": "2026-08-10T08:00:00Z",
+            "observed_at": "2026-08-10T09:00:00Z",
+        },
+        {
+            "id": "news:bbbb",
+            "source_id": "hn-ollama",
+            "title": "Random consumer story",
+            "url": "https://example.com/noise",
+            "summary": None,
+            "published_at": "2026-08-11T08:00:00Z",
+            "observed_at": "2026-08-11T09:00:00Z",
+        },
+        {
+            "id": "news:cccc",
+            "source_id": "hn-ollama",
+            "title": "Not yet classified",
+            "url": "https://example.com/pending",
+            "summary": None,
+            "published_at": "2026-08-12T08:00:00Z",
+            "observed_at": "2026-08-12T09:00:00Z",
+        },
+    ]
+    (tmp_path / "data" / "news-observations.jsonl").write_text(
+        "\n".join(json.dumps(item) for item in items) + "\n"
+    )
+    classifications = [
+        {
+            "news_id": "news:aaaa",
+            "relevant": True,
+            "event_type": "release",
+            "components": ["vllm"],
+            "operational_impact": "breaking",
+            "summary": "V1 engine default changed; operators must repin.",
+            "citation": "https://blog.vllm.ai/v0-10",
+            "model": "claude-opus-5",
+            "classified_at": "2026-08-12T10:00:00Z",
+        },
+        {
+            "news_id": "news:bbbb",
+            "relevant": False,
+            "event_type": "other",
+            "components": [],
+            "operational_impact": "informational",
+            "summary": "Consumer noise.",
+            "citation": "https://example.com/noise",
+            "model": "claude-opus-5",
+            "classified_at": "2026-08-12T10:00:00Z",
+        },
+    ]
+    (tmp_path / "data" / "news-classified.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in classifications) + "\n"
+    )
+    repository = lifecycle_repository(tmp_path)
+
+    snapshot = build_public_snapshot(
+        build_services(repository),
+        datetime(2026, 8, 12, 12, tzinfo=UTC),
+        root=tmp_path,
+    ).model_dump(mode="json")
+
+    newsroom = snapshot["newsroom"]
+    # Newest first; irrelevant + pending items carry no classification.
+    assert [row["id"] for row in newsroom["items"]] == [
+        "news:cccc",
+        "news:bbbb",
+        "news:aaaa",
+    ]
+    assert newsroom["items"][0]["classification"] is None
+    assert newsroom["items"][1]["classification"] is None
+    classified = newsroom["items"][2]["classification"]
+    assert classified["operational_impact"] == "breaking"
+    assert classified["components"] == ["vllm"]
+    assert newsroom["counts"] == {
+        "total": 3,
+        "classified": 1,
+        "unclassified": 2,
+        "breaking": 1,
+        "improvement": 0,
+        "informational": 0,
+    }
+    assert "release" in newsroom["event_types"]
 
 
 def test_profiles_attach_triangulated_benchmark_aggregates(tmp_path) -> None:
