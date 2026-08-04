@@ -40,7 +40,10 @@ test("static mode removes private workspace and mutation navigation", () => {
   );
 
   expect(screen.queryByRole("link", { name: "Workspace profiles" })).toBeNull();
-  expect(screen.queryByRole("link", { name: "Deployment planner" })).toBeNull();
+  // The planner is read-only in static mode and stays in the nav.
+  expect(
+    screen.getByRole("link", { name: "Deployment planner" }),
+  ).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Review queue" })).toBeNull();
   expect(screen.queryByRole("combobox", { name: "Active workspace" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Review exceptions" })).toBeNull();

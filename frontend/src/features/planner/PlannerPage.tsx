@@ -1,27 +1,78 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import { useWorkspaces } from "../workspaces/WorkspaceSwitcher";
-import { setActiveWorkspaceId } from "../workspaces/workspaceStore";
+import { apiFetch } from "../../api/client";
+import { usePublicSnapshot } from "../catalog/catalogQueries";
 
 
-export function PlannerPage() {
-  const workspaces = useWorkspaces();
-  const [workspaceId, setWorkspaceId] = useState("");
+type PlanResult = {
+  feasible: boolean;
+  n_gpus?: number;
+  layout?: Record<string, unknown> | null;
+  recipe?: string | null;
+  tco?: Record<string, unknown> | null;
+  reasons?: string[];
+  assumptions?: string[];
+} & Record<string, unknown>;
+
+const VERDICT_LABELS: Record<string, string> = {
+  fits: "Fits",
+  fits_tight: "Fits (tight)",
+  fits_quantized: "Fits quantized",
+  wont_fit: "Won't fit",
+  unknown: "Unknown",
+};
+
+export function PlannerPage({ staticMode = false }: { staticMode?: boolean }) {
+  const snapshot = usePublicSnapshot(true);
+  const planner = snapshot.data?.planner ?? null;
+  const [modelId, setModelId] = useState("");
+  const [device, setDevice] = useState("");
   const [concurrency, setConcurrency] = useState(32);
   const [context, setContext] = useState(8192);
-  const selected = (workspaces.data ?? []).find(
-    (workspace) => workspace.id === workspaceId,
-  );
-  const h200Count = (selected?.devices ?? []).reduce(
-    (total, device) =>
-      total +
-      (device.device_id === "hgx-h200-8" ? device.count * 8 : 0),
-    0,
-  );
-  const feasible = h200Count > 0;
+  const [plan, setPlan] = useState<PlanResult | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
 
-  if (workspaces.isLoading) {
-    return <div className="loading-grid" aria-label="Loading workspaces"><span /></div>;
+  const models = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const fit of planner?.fits ?? []) {
+      if (!seen.has(fit.model_id)) seen.set(fit.model_id, fit.model_id);
+    }
+    return [...seen.keys()].sort();
+  }, [planner?.fits]);
+
+  const fit = useMemo(
+    () =>
+      (planner?.fits ?? []).find(
+        (row) => row.model_id === modelId && row.device === device,
+      ) ?? null,
+    [planner?.fits, modelId, device],
+  );
+
+  async function requestPlan() {
+    setPlanning(true);
+    setPlanError(null);
+    try {
+      const result = await apiFetch<PlanResult>("/api/v1/capacity/plan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model_id: modelId,
+          device,
+          concurrent_requests: concurrency,
+          avg_context_tokens: context,
+        }),
+      });
+      setPlan(result);
+    } catch {
+      setPlanError("Capacity planning is unavailable right now.");
+    } finally {
+      setPlanning(false);
+    }
+  }
+
+  if (snapshot.isLoading) {
+    return <div className="loading-grid" aria-label="Loading planner"><span /></div>;
   }
 
   return (
@@ -31,76 +82,139 @@ export function PlannerPage() {
           <p className="eyebrow">Decide · Deployment planner</p>
           <h1 id="planner-title">Turn evidence into an executable topology</h1>
           <p className="lede">
-            Capacity, policy, compatibility, and assumptions are evaluated
-            together.
+            Every verdict comes from the deterministic capacity engine — the
+            same solver behind the CLI and MCP. Unknowns stay unknown.
           </p>
         </div>
       </header>
-      <div className="planner-grid">
-        <section className="panel form-stack">
-          <label>
-            <span>Workspace</span>
-            <select
-              aria-label="Workspace"
-              value={workspaceId}
-              onChange={(event) => {
-                setWorkspaceId(event.target.value);
-                setActiveWorkspaceId(event.target.value);
-              }}
-            >
-              <option value="">Select estate</option>
-              {(workspaces.data ?? []).map((workspace) => (
-                <option value={workspace.id} key={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Concurrent requests</span>
-            <input
-              type="number"
-              min={1}
-              value={concurrency}
-              onChange={(event) => setConcurrency(Number(event.target.value))}
-            />
-          </label>
-          <label>
-            <span>Context tokens</span>
-            <input
-              type="number"
-              min={1}
-              value={context}
-              onChange={(event) => setContext(Number(event.target.value))}
-            />
-          </label>
-        </section>
-        <section className="panel plan-result" aria-live="polite">
-          <p className="eyebrow">Estate result</p>
-          {!selected ? (
-            <div className="empty-state compact">
-              <strong>Select a workspace</strong>
-              <span>The plan will inherit its devices and policies.</span>
-            </div>
-          ) : feasible ? (
-            <>
-              <strong className="plan-capacity">{h200Count} × H200</strong>
-              <p>Candidate topology for {concurrency} concurrent requests.</p>
-              <div className="assumption-sheet">
-                <strong>Assumption sheet</strong>
-                <span>{context.toLocaleString()} token working context</span>
-                <span>Tensor parallel topology requires verified platform support</span>
-                <span>Launch recipe unlocks after model and platform qualification</span>
+      {!planner ? (
+        <div className="empty-state">
+          <strong>Planner data unavailable</strong>
+          <span>The published snapshot carries no fit grid yet.</span>
+        </div>
+      ) : (
+        <div className="planner-grid">
+          <section className="panel form-stack">
+            <label>
+              <span>Model</span>
+              <select
+                value={modelId}
+                onChange={(event) => setModelId(event.target.value)}
+              >
+                <option value="">Select model</option>
+                {models.map((id) => (
+                  <option value={id} key={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Device</span>
+              <select
+                value={device}
+                onChange={(event) => setDevice(event.target.value)}
+              >
+                <option value="">Select device</option>
+                {(planner.devices ?? []).map((id) => (
+                  <option value={id} key={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {!staticMode && (
+              <>
+                <label>
+                  <span>Concurrent requests</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={concurrency}
+                    onChange={(event) =>
+                      setConcurrency(Number(event.target.value))
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Context tokens</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={context}
+                    onChange={(event) => setContext(Number(event.target.value))}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={!modelId || !device || planning}
+                  onClick={() => void requestPlan()}
+                >
+                  {planning ? "Solving…" : "Plan workload"}
+                </button>
+              </>
+            )}
+          </section>
+          <section className="panel plan-result" aria-live="polite">
+            <p className="eyebrow">Fit verdict</p>
+            {!fit ? (
+              <div className="empty-state compact">
+                <strong>Select a model and device</strong>
+                <span>
+                  Verdicts are precomputed at{" "}
+                  {planner.context_tokens.toLocaleString()} context tokens.
+                </span>
               </div>
-            </>
-          ) : (
-            <div className="infeasible">
-              <strong>Not feasible on current estate</strong>
-              <span>Add a compatible accelerator pool or reduce the workload target.</span>
-            </div>
-          )}
-        </section>
-      </div>
+            ) : (
+              <>
+                <strong className="plan-capacity">
+                  {VERDICT_LABELS[fit.verdict] ?? fit.verdict}
+                </strong>
+                <div className="assumption-sheet">
+                  <strong>Assumption sheet</strong>
+                  {fit.best_quant_format && (
+                    <span>Best fitting quant: {fit.best_quant_format}</span>
+                  )}
+                  {fit.best_quant_memory_gb != null && (
+                    <span>
+                      Estimated {fit.best_quant_memory_gb.toFixed(1)} GB of{" "}
+                      {fit.usable_gb.toFixed(1)} GB usable
+                    </span>
+                  )}
+                  <span>
+                    {fit.context_tokens.toLocaleString()} token working context
+                  </span>
+                  {fit.note && <span>{fit.note}</span>}
+                </div>
+              </>
+            )}
+            {planError && (
+              <div className="error-state" role="alert">
+                <strong>{planError}</strong>
+              </div>
+            )}
+            {plan && (
+              <div className="assumption-sheet">
+                <strong>
+                  {plan.feasible
+                    ? `Workload plan: ${plan.n_gpus} GPU${plan.n_gpus === 1 ? "" : "s"}`
+                    : "Workload not feasible"}
+                </strong>
+                {(plan.reasons ?? []).map((reason) => (
+                  <span key={reason}>{reason}</span>
+                ))}
+                {(plan.assumptions ?? []).map((assumption) => (
+                  <span key={assumption}>{assumption}</span>
+                ))}
+                {typeof plan.recipe === "string" && plan.recipe && (
+                  <pre className="recipe-block">{plan.recipe}</pre>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
     </section>
   );
 }
