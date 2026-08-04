@@ -120,8 +120,15 @@ async def _fetch_openllm(
     now: datetime,
     health: dict[str, int],
 ) -> list[BenchmarkObservation]:
+    from urllib.parse import parse_qsl, urlsplit
+
     tracked = [seed for seed in seeds if seed.hf_repo]
     semaphore = asyncio.Semaphore(OPENLLM_FILTER_CONCURRENCY)
+    # httpx `params=` REPLACES any query string already in the URL, so the
+    # dataset/config/split parameters must be re-merged explicitly.
+    split_url = urlsplit(source.url)
+    base_url = source.url.split("?", 1)[0]
+    base_params = dict(parse_qsl(split_url.query))
 
     async def fetch_one(seed: ModelSeed) -> list[BenchmarkObservation]:
         where = f"\"fullname\"='{seed.hf_repo}'"
@@ -129,8 +136,13 @@ async def _fetch_openllm(
             health["requests"] = health.get("requests", 0) + 1
             try:
                 response = await client.get(
-                    source.url,
-                    params={"where": where, "offset": 0, "length": 5},
+                    base_url,
+                    params={
+                        **base_params,
+                        "where": where,
+                        "offset": 0,
+                        "length": 5,
+                    },
                 )
                 response.raise_for_status()
                 payload = response.json()

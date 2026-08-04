@@ -38,6 +38,23 @@ export type ModelProfile = {
     score: number;
     source_url: string;
   }>;
+  benchmark_aggregates?: Array<{
+    benchmark: string;
+    label: string;
+    consensus: number | null;
+    spread: number | null;
+    self_reported_gap: number | null;
+    flagged: boolean;
+    percentile: number | null;
+    sample_size: number;
+    scores: Array<{
+      source_id: string;
+      score: number;
+      source_url: string;
+      observed_at?: string | null;
+      self_reported: boolean;
+    }>;
+  }>;
   warnings?: string[];
 };
 

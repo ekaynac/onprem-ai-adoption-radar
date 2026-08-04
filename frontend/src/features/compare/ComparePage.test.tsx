@@ -167,3 +167,99 @@ test("compares curated benchmarks side by side with cited scores", async () => {
   expect(screen.getByText("—")).toBeVisible();
   vi.unstubAllGlobals();
 });
+
+
+test("triangulated matrix shows consensus, source count, and gap flag", async () => {
+  const aggregate = {
+    benchmark: "mmlu-pro",
+    label: "MMLU-Pro",
+    consensus: 75,
+    spread: 9,
+    self_reported_gap: 9,
+    flagged: true,
+    percentile: 100,
+    sample_size: 2,
+    scores: [
+      {
+        source_id: "open-llm-leaderboard",
+        score: 75,
+        source_url: "https://ollb.example/kimi",
+        self_reported: false,
+      },
+      {
+        source_id: "model-card",
+        score: 84,
+        source_url: "https://card.example/kimi",
+        self_reported: true,
+      },
+    ],
+  };
+  const items = [
+    {
+      release_id: "release:legacy:deepseek-r1",
+      name: "DeepSeek R1",
+      category: "text_reasoning",
+      lane: "deployable_onprem",
+      lifecycle: "verified",
+      first_observed_at: "2026-08-01T08:00:00Z",
+      public_recommendation: { ring: "adopt" },
+      workspace_recommendation: null,
+      profile: { benchmark_aggregates: [aggregate] },
+    },
+    {
+      release_id: "release:legacy:mistral-small-3",
+      name: "Mistral Small 3",
+      category: "text_reasoning",
+      lane: "deployable_onprem",
+      lifecycle: "verified",
+      first_observed_at: "2026-08-01T08:00:00Z",
+      public_recommendation: { ring: "pilot" },
+      workspace_recommendation: null,
+      profile: {
+        benchmark_aggregates: [
+          {
+            ...aggregate,
+            consensus: 64,
+            flagged: false,
+            self_reported_gap: null,
+            percentile: 0,
+            scores: [aggregate.scores[0]],
+          },
+        ],
+      },
+    },
+  ];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ items, next_cursor: null }), {
+          status: 200,
+        }),
+      ),
+    ),
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <ComparePage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  await user.click(await screen.findByLabelText("DeepSeek R1"));
+  await user.click(screen.getByLabelText("Mistral Small 3"));
+
+  expect(screen.getByText("MMLU-Pro")).toBeVisible();
+  const consensus = screen.getByRole("link", { name: "75" });
+  // Consensus links to the independent source, not the self-reported card.
+  expect(consensus).toHaveAttribute("href", "https://ollb.example/kimi");
+  expect(consensus.closest("td")).toHaveClass("benchmark-best");
+  expect(screen.getByText("· 2 src")).toBeVisible();
+  expect(screen.getByTitle(/differs from independent by 9 points/)).toBeVisible();
+  vi.unstubAllGlobals();
+});
