@@ -123,11 +123,31 @@ export type PlannerGrid = {
   fits: PlannerFit[];
 };
 
+export type TrendingRow = {
+  repo: string;
+  lane: string;
+  stars: number;
+  velocity_per_day?: number | null;
+  is_new: boolean;
+  first_seen: string;
+  description?: string;
+  topics?: string[];
+  license?: string | null;
+  url: string;
+};
+
+export type TrendingSection = {
+  windows: Record<string, TrendingRow[]>;
+  series: Record<string, Array<{ observed_at: string; stars: number }>>;
+  sparkline_days: number;
+};
+
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
   briefing?: Briefing | null;
   planner?: PlannerGrid | null;
+  trending?: TrendingSection | null;
   models?: Array<Record<string, unknown>>;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";

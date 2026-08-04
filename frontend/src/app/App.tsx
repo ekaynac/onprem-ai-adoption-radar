@@ -17,6 +17,7 @@ import { SourceHealthPage } from "../features/operations/SourceHealthPage";
 import { WatchlistsPage } from "../features/operations/WatchlistsPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { PlannerPage } from "../features/planner/PlannerPage";
+import { TrendingPage } from "../features/trending/TrendingPage";
 import { ReleaseDetailPage } from "../features/releases/ReleaseDetailPage";
 import { ReleaseStreamPage } from "../features/releases/ReleaseStreamPage";
 import { WorkspacePage } from "../features/workspaces/WorkspacePage";
@@ -34,6 +35,7 @@ export function App({
         <Route path="/overview" element={<OverviewPage staticMode={staticMode} />} />
         <Route path="/releases" element={<ReleaseStreamPage />} />
         <Route path="/releases/:releaseId" element={<ReleaseDetailPage />} />
+        <Route path="/trending" element={<TrendingPage />} />
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/catalog/:releaseId" element={<ModelDetailPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
