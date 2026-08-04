@@ -273,3 +273,41 @@ def test_import_canonicalizes_publisher_aliases_before_upsert(
 
     assert report.models_imported == 2
     assert repository.count_releases() == 2
+
+
+def test_reimport_after_seed_edit_appends_content_addressed_evidence(
+    tmp_path: Path,
+) -> None:
+    """Production repro: adding benchmarks to a seed must not break re-import.
+
+    Evidence rows are immutable; a curated-seed edit therefore appends a
+    checksum-suffixed row (the platform-import pattern) instead of raising
+    RepositoryConflict, and value-identical claims are left untouched.
+    """
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+    import_legacy_state(tmp_path, repository)
+
+    (tmp_path / "config" / "model-seed.yaml").write_text(
+        MODEL_SEED
+        + "    benchmarks:\n"
+        + "      - {name: mmlu-pro, score: 61.0, "
+        + "source_url: 'https://example.com/card'}\n",
+        encoding="utf-8",
+    )
+    report = import_legacy_state(tmp_path, repository)
+
+    assert report.models_imported == 0  # same release, no duplicate
+    base = repository.get_evidence("evidence:legacy:model-seed:sample-8b")
+    assert base is not None  # the historical row is retained, immutable
+    evidence_ids = {
+        evidence_id
+        for claim in repository.list_claims_for_subject("release:legacy:sample-8b")
+        for evidence_id in claim.evidence_ids
+    }
+    # Claims stayed on their stored rows; nothing conflicted.
+    assert "evidence:legacy:model-seed:sample-8b" in evidence_ids
+    # A third import with the edited seed is also stable.
+    import_legacy_state(tmp_path, repository)

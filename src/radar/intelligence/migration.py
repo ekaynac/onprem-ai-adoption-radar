@@ -198,8 +198,19 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
         )
     )
     seed_payload = seed.model_dump(mode="json")
+    evidence_checksum = _checksum(seed_payload)
+    evidence_id = f"evidence:legacy:model-seed:{seed.id}"
+    existing_evidence = repository.get_evidence(evidence_id)
+    if (
+        existing_evidence is not None
+        and existing_evidence.checksum != evidence_checksum
+    ):
+        # The curated seed evolved (evidence is immutable, seeds are not):
+        # append a content-addressed row instead of conflicting with the
+        # historical one — same pattern as the platform import.
+        evidence_id = f"{evidence_id}:{evidence_checksum.removeprefix('sha256:')[:16]}"
     evidence = EvidenceObservation(
-        id=f"evidence:legacy:model-seed:{seed.id}",
+        id=evidence_id,
         source_url=(
             f"https://huggingface.co/{seed.hf_repo}"
             if seed.hf_repo
@@ -207,7 +218,7 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
         ),
         strength=EvidenceStrength.TRUSTED_REGISTRY,
         retrieved_at=LEGACY_OBSERVED_AT,
-        checksum=_checksum(seed_payload),
+        checksum=evidence_checksum,
         extractor_version="legacy-model-seed-v1",
     )
     repository.append_evidence(evidence)
@@ -223,13 +234,15 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
             evidence_ids=[evidence.id],
         )
         existing_claim = repository.get_claim(claim.id)
-        if (
-            existing_claim is not None
-            and existing_claim.model_copy(update={"state": claim.state}) == claim
+        if existing_claim is not None and (
+            existing_claim.subject_id == claim.subject_id
+            and existing_claim.predicate == claim.predicate
+            and existing_claim.value == claim.value
+            and existing_claim.unit == claim.unit
         ):
-            # Verification and freshness jobs may advance the operational
-            # state of deterministic seed claims. Re-import must preserve that
-            # state instead of trying to roll it back to the seed baseline.
+            # Verification and freshness jobs may advance state/time, and a
+            # seed edit re-addresses the evidence id. Re-import must preserve
+            # the stored claim rather than conflicting over those fields.
             continue
         repository.append_claim(claim)
     current = repository.get_release_required(release_id)
