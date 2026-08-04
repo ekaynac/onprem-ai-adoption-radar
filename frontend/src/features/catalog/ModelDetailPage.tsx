@@ -1,8 +1,63 @@
 import { Link, useParams } from "react-router-dom";
 
 import { StatusBadge, type IntelligenceStatus } from "../../design/StatusBadge";
-import { useActiveWorkspaceId } from "../releases/releaseQueries";
-import { useCatalogDetail } from "./catalogQueries";
+import {
+  releaseLineage,
+  useActiveWorkspaceId,
+} from "../releases/releaseQueries";
+import { useCatalogDetail, usePublicSnapshot } from "./catalogQueries";
+
+
+export function Sparkline({
+  points,
+  label,
+}: {
+  points: Array<{ observed_at: string; downloads: number }>;
+  label: string;
+}) {
+  if (points.length < 2) return null;
+  const values = points.map((point) => point.downloads);
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const spread = maximum - minimum || 1;
+  const width = 220;
+  const height = 40;
+  const coordinates = points
+    .map((point, index) => {
+      const x = (index / (points.length - 1)) * width;
+      const y = height - ((point.downloads - minimum) / spread) * (height - 4) - 2;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg
+      className="sparkline"
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      role="img"
+      aria-label={label}
+    >
+      <polyline
+        points={coordinates}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+
+function tenureLabel(firstTrackedAt?: string | null): string | null {
+  if (!firstTrackedAt) return null;
+  const started = Date.parse(firstTrackedAt);
+  if (Number.isNaN(started)) return null;
+  const days = Math.max(1, Math.round((Date.now() - started) / 86_400_000));
+  return `Tracked for ${days} day${days === 1 ? "" : "s"} (since ${new Date(
+    started,
+  ).toLocaleDateString()})`;
+}
 
 
 function ClaimStatus({ state }: { state: string }) {
@@ -30,6 +85,7 @@ export function ModelDetailPage() {
   const { releaseId = "" } = useParams();
   const workspaceId = useActiveWorkspaceId();
   const detail = useCatalogDetail(releaseId, workspaceId);
+  const snapshot = usePublicSnapshot(true);
 
   if (detail.isLoading) {
     return <div className="loading-grid" aria-label="Loading model"><span /></div>;
@@ -52,6 +108,17 @@ export function ModelDetailPage() {
     source_url: sourceUrl,
     source_strength: sourceStrength,
   } = detail.data;
+  const lineage = releaseLineage(release);
+  const variants = (snapshot.data?.models ?? []).filter((model) => {
+    const modelLineage = (
+      model.lineage as { root_release?: string | null } | null | undefined
+    );
+    return (
+      modelLineage?.root_release === releaseId &&
+      String(model.release_id) !== releaseId
+    );
+  });
+  const tenure = tenureLabel(profile?.first_tracked_at);
   return (
     <section className="page-stack" aria-labelledby="model-title">
       <Link className="text-link" to="/catalog">← Unified catalog</Link>
@@ -72,57 +139,7 @@ export function ModelDetailPage() {
       </header>
       <div className="detail-grid">
         <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Verified specification</p>
-              <h2>Claims and provenance</h2>
-            </div>
-          </div>
-          <div className="claim-grid">
-            {claims.map((claim) => (
-              <article className="claim-card" key={claim.predicate}>
-                <div className="claim-heading">
-                  <strong>{claim.predicate.replaceAll("_", " ")}</strong>
-                  <ClaimStatus state={claim.state} />
-                </div>
-                <p className="claim-value">
-                  {formatValue(claim.value, claim.unit)}
-                </p>
-                {claim.reason && <p className="claim-reason">{claim.reason}</p>}
-                {claim.effective_range && (
-                  <p className="claim-meta">Effective {claim.effective_range}</p>
-                )}
-                <div className="claim-citations">
-                  {(claim.citations ?? []).map((citation) => (
-                    <a
-                      href={citation.url}
-                      key={citation.evidence_id}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {citation.label}
-                    </a>
-                  ))}
-                </div>
-              </article>
-            ))}
-            {!claims.length && (
-              <div className="empty-state compact">
-                <strong>Specification ingestion pending</strong>
-                <span>The model remains visible at Detected without invented values.</span>
-              </div>
-            )}
-          </div>
-        </section>
-        <aside className="panel">
-          <p className="eyebrow">Qualification</p>
-          <h2>{qualification?.qualified ? "Qualified" : "Not yet qualified"}</h2>
-          <p className="claim-reason">
-            {qualification?.reasons?.[0] ??
-              "Awaiting sufficient verified deployment evidence."}
-          </p>
-          <hr />
-          <p className="eyebrow">Recommendation</p>
+          <p className="eyebrow">Decision brief</p>
           <strong className="large-posture">
             {release.workspace_recommendation?.ring ??
               release.public_recommendation.ring ??
@@ -135,6 +152,13 @@ export function ModelDetailPage() {
                   release.public_recommendation.reasons ??
                   [])[0] ?? "No recommendation rationale yet."}
           </p>
+          <hr />
+          <p className="eyebrow">Qualification</p>
+          <h2>{qualification?.qualified ? "Qualified" : "Not yet qualified"}</h2>
+          <p className="claim-reason">
+            {qualification?.reasons?.[0] ??
+              "Awaiting sufficient verified deployment evidence."}
+          </p>
           {sourceStrength && (
             <>
               <hr />
@@ -142,6 +166,53 @@ export function ModelDetailPage() {
               <strong className="source-strength">
                 {sourceStrength.replaceAll("_", " ")}
               </strong>
+            </>
+          )}
+          {tenure && <p className="claim-meta">{tenure}</p>}
+        </section>
+        <aside className="panel">
+          <p className="eyebrow">Lineage</p>
+          {lineage?.relation && lineage.base_release ? (
+            <p className="claim-reason">
+              {lineage.relation.replaceAll("_", " ")} of{" "}
+              <Link to={`/catalog/${encodeURIComponent(lineage.base_release)}`}>
+                {lineage.base_release.split(":").slice(-2).join(" ")}
+              </Link>
+            </p>
+          ) : (
+            <p className="claim-reason">
+              {lineage?.root_release === release.release_id
+                ? "Base release — no declared upstream model."
+                : "No declared lineage yet."}
+            </p>
+          )}
+          {variants.length > 0 && (
+            <>
+              <h2>{variants.length} tracked variant{variants.length === 1 ? "" : "s"}</h2>
+              <ul className="variant-list">
+                {variants.slice(0, 12).map((variant) => {
+                  const variantLineage = (
+                    variant.lineage as { relation?: string | null } | null
+                  );
+                  return (
+                    <li key={String(variant.release_id)}>
+                      <Link
+                        to={`/catalog/${encodeURIComponent(String(variant.release_id))}`}
+                      >
+                        {String(variant.name)}
+                      </Link>
+                      {variantLineage?.relation && (
+                        <span>{variantLineage.relation.replaceAll("_", " ")}</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {variants.length > 12 && (
+                <p className="claim-meta">
+                  +{variants.length - 12} more in the catalog's all-artifacts view
+                </p>
+              )}
             </>
           )}
         </aside>
@@ -172,6 +243,30 @@ export function ModelDetailPage() {
             <div><dt>Last modified</dt><dd>{profile.last_modified ? new Date(profile.last_modified).toLocaleString() : "Unknown"}</dd></div>
           </dl>
           {profile.use_case && <p className="body-copy">{profile.use_case}</p>}
+          {(profile.downloads_history?.length ?? 0) >= 2 && (
+            <div className="download-trend">
+              <p className="eyebrow">Download trend</p>
+              <Sparkline
+                points={profile.downloads_history ?? []}
+                label={`Downloads over the last ${profile.downloads_history?.length} scans`}
+              />
+            </div>
+          )}
+          {profile.architecture && (
+            <>
+              <h3>Architecture</h3>
+              <dl className="spec-grid">
+                {Object.entries(profile.architecture)
+                  .filter(([, value]) => value !== null && value !== undefined)
+                  .map(([key, value]) => (
+                    <div key={key}>
+                      <dt>{key.replaceAll("_", " ")}</dt>
+                      <dd>{String(value)}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </>
+          )}
           {(profile.quants?.length ?? 0) > 0 && (
             <>
               <h3>Available deployment variants</h3>
@@ -239,6 +334,49 @@ export function ModelDetailPage() {
             <span>Unknown is preserved until documentation or a test is attached.</span>
           </div>
         )}
+      </section>
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Verified specification</p>
+            <h2>Claims and provenance</h2>
+          </div>
+        </div>
+        <div className="claim-grid">
+          {claims.map((claim) => (
+            <article className="claim-card" key={claim.predicate}>
+              <div className="claim-heading">
+                <strong>{claim.predicate.replaceAll("_", " ")}</strong>
+                <ClaimStatus state={claim.state} />
+              </div>
+              <p className="claim-value">
+                {formatValue(claim.value, claim.unit)}
+              </p>
+              {claim.reason && <p className="claim-reason">{claim.reason}</p>}
+              {claim.effective_range && (
+                <p className="claim-meta">Effective {claim.effective_range}</p>
+              )}
+              <div className="claim-citations">
+                {(claim.citations ?? []).map((citation) => (
+                  <a
+                    href={citation.url}
+                    key={citation.evidence_id}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {citation.label}
+                  </a>
+                ))}
+              </div>
+            </article>
+          ))}
+          {!claims.length && (
+            <div className="empty-state compact">
+              <strong>Specification ingestion pending</strong>
+              <span>The model remains visible at Detected without invented values.</span>
+            </div>
+          )}
+        </div>
       </section>
     </section>
   );
