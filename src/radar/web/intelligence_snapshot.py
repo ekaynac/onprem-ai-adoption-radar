@@ -105,6 +105,7 @@ class PublicSnapshot(BaseModel):
     planner: dict[str, Any] | None = None
     trending: dict[str, Any] | None = None
     advisor: dict[str, Any] | None = None
+    desk: dict[str, Any] | None = None
 
 
 def _release_sort_key(
@@ -374,6 +375,35 @@ def _build_trending_section(
             "sparkline_days": _TRENDING_SPARKLINE_DAYS,
         }
     except Exception:  # trending is additive, never fatal to publish
+        return None
+
+
+def _build_desk(root: Path) -> dict[str, Any] | None:
+    """Latest brief + folded calls ledger + the public track record."""
+    try:
+        from radar.storage.calls_ledger import (
+            fold_calls,
+            load_call_records,
+            track_record,
+        )
+
+        briefs_dir = root / "data" / "briefs"
+        brief: dict[str, Any] | None = None
+        if briefs_dir.exists():
+            latest = sorted(briefs_dir.glob("brief-*.json"))
+            if latest:
+                brief = json.loads(latest[-1].read_text(encoding="utf-8"))
+        states = fold_calls(
+            load_call_records(root / "data" / "calls-ledger.jsonl")
+        )
+        if brief is None and not states:
+            return None
+        return {
+            "brief": brief,
+            "calls": [state.model_dump(mode="json") for state in states[:25]],
+            "track_record": track_record(states),
+        }
+    except Exception:  # the desk is additive, never fatal to publish
         return None
 
 
@@ -1086,6 +1116,7 @@ def build_public_snapshot(
             else None
         ),
         advisor=_build_advisor(profiles),
+        desk=_build_desk(root) if root is not None else None,
     )
 
 

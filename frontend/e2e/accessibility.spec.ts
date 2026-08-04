@@ -14,6 +14,7 @@ const routes = [
   "/#/planner",
   "/#/trending",
   "/#/advisor",
+  "/#/desk",
   "/#/workspaces",
   "/#/operations",
   "/#/operations/reviews",
