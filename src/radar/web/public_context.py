@@ -306,6 +306,7 @@ def load_public_model_profiles(root: Path) -> dict[str, dict[str, Any]]:
         if item.get("id")
     }
     _attach_model_history(root, profiles)
+    _attach_benchmarks(root, profiles)
     return profiles
 
 
@@ -342,6 +343,54 @@ def _attach_model_history(
             ]
             profile["first_tracked_at"] = rows[0].observed_at.isoformat()
     except Exception:  # history is additive, never fatal
+        return
+
+
+def _attach_benchmarks(
+    root: Path,
+    profiles: dict[str, dict[str, Any]],
+) -> None:
+    """Attach triangulated benchmark aggregates to each profile.
+
+    Scraped observations come from the append-only store; the seed's card
+    values join as the self-reported channel. Missing store, missing
+    config, or a corrupt line leaves profiles untouched — additive,
+    never fatal.
+    """
+    if not profiles:
+        return
+    try:
+        from radar.discovery.benchmark_sweep import load_benchmark_sources
+        from radar.models_radar.benchmarks import (
+            DEFAULT_TRIANGULATION_GAP_POINTS,
+            build_benchmark_aggregates,
+        )
+        from radar.models_radar.seed import load_model_seed
+        from radar.storage.benchmark_observations_log import (
+            load_benchmark_observations,
+        )
+
+        observations = load_benchmark_observations(
+            root / "data" / "benchmark-observations.jsonl"
+        )
+        seed_path = root / "config" / "model-seed.yaml"
+        seeds = load_model_seed(seed_path) if seed_path.exists() else []
+        sources_path = root / "config" / "benchmark-sources.yaml"
+        gap_points = (
+            load_benchmark_sources(sources_path).triangulation_gap_points
+            if sources_path.exists()
+            else DEFAULT_TRIANGULATION_GAP_POINTS
+        )
+        aggregates = build_benchmark_aggregates(
+            {seed.id: seed for seed in seeds},
+            observations,
+            gap_points=gap_points,
+        )
+        for model_id, profile in profiles.items():
+            rows = aggregates.get(model_id)
+            if rows:
+                profile["benchmark_aggregates"] = rows
+    except Exception:  # benchmarks are additive, never fatal
         return
 
 

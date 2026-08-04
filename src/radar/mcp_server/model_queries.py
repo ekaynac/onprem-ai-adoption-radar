@@ -125,7 +125,43 @@ class ModelQueryService:
         data["momentum"] = {"direction": mom.direction,
                             "downloads_growth_pct": mom.downloads_growth_pct}
         data["techniques"] = self._model_techniques(model_id)
+        data["benchmark_aggregates"] = self._benchmark_aggregates(model_id)
         return data
+
+    def _benchmark_aggregates(self, model_id: str) -> list[dict[str, Any]]:
+        """Triangulated benchmark view for one model; [] on any gap."""
+        try:
+            from radar.discovery.benchmark_sweep import load_benchmark_sources
+            from radar.models_radar.benchmarks import (
+                DEFAULT_TRIANGULATION_GAP_POINTS,
+                build_benchmark_aggregates,
+            )
+            from radar.models_radar.seed import load_model_seed
+            from radar.storage.benchmark_observations_log import (
+                load_benchmark_observations,
+            )
+
+            # Aggregate across ALL tracked models so this model's
+            # percentiles reflect the real tracked-set ranking.
+            observations = load_benchmark_observations(
+                self.root / "data" / "benchmark-observations.jsonl"
+            )
+            seed_path = self.root / "config" / "model-seed.yaml"
+            seeds = load_model_seed(seed_path) if seed_path.exists() else []
+            sources_path = self.root / "config" / "benchmark-sources.yaml"
+            gap_points = (
+                load_benchmark_sources(sources_path).triangulation_gap_points
+                if sources_path.exists()
+                else DEFAULT_TRIANGULATION_GAP_POINTS
+            )
+            aggregates = build_benchmark_aggregates(
+                {seed.id: seed for seed in seeds},
+                observations,
+                gap_points=gap_points,
+            )
+            return aggregates.get(model_id, [])
+        except Exception:
+            return []
 
     def _model_techniques(self, model_id: str) -> list[dict[str, Any]]:
         """Techniques this model implements (best-effort, [] on any gap)."""

@@ -585,6 +585,23 @@ def _quality_metrics(
             "with_ring": sum(
                 bool(item.get("public_ring")) for item in models
             ),
+            "with_benchmarks": sum(
+                bool(
+                    profile.get("benchmark_aggregates")
+                    or profile.get("benchmarks")
+                )
+                for profile in profiles
+            ),
+            "with_independent_benchmarks": sum(
+                any(
+                    any(
+                        not score.get("self_reported")
+                        for score in aggregate.get("scores", [])
+                    )
+                    for aggregate in profile.get("benchmark_aggregates") or []
+                )
+                for profile in profiles
+            ),
             "decision_complete": sum(
                 bool(item.get("public_ring"))
                 and profile.get("params_total") is not None
