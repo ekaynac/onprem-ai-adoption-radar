@@ -136,33 +136,6 @@ DEFAULT_ADAPTER_FACTORIES.update(
 )
 
 
-def build_evidence_adapters(
-    config: SourceRegistryConfig,
-    client: httpx.AsyncClient,
-    *,
-    subject_aliases: dict[str, str],
-):
-    from radar.intelligence.sources.evidence import (
-        EvidenceAdapter,
-        EvidenceSourceConfig,
-    )
-
-    adapters: list[EvidenceAdapter] = []
-    for source in sorted(config.sources, key=lambda item: item.id):
-        if not source.enabled or source.type != "evidence":
-            continue
-        sources = _validated_list(source, "sources", EvidenceSourceConfig)
-        adapters.append(
-            EvidenceAdapter(
-                client,
-                sources=sources,
-                subject_aliases=subject_aliases,
-                source_id=source.id,
-            )
-        )
-    return adapters
-
-
 def build_source_adapters(
     config: SourceRegistryConfig,
     client: httpx.AsyncClient,

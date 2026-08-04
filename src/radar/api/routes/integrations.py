@@ -27,7 +27,6 @@ def integrations() -> dict[str, list[str]]:
             "official_feeds",
             "announcement_pages",
             "json_registries",
-            "evidence",
         ],
         "transports": ["rest", "mcp", "rss", "atom", "webhooks"],
     }

@@ -1075,6 +1075,28 @@ class SqlAlchemyIntelligenceRepository:
             )
         return workspace
 
+    def update_workspace(self, workspace: Workspace) -> Workspace:
+        now = datetime.now(UTC)
+        payload = workspace.model_dump(mode="json")
+        workspace_id = str(payload.pop("id"))
+        schema_version = int(payload.pop("schema_version"))
+        with self.database.session() as session:
+            row = session.get(WorkspaceRow, workspace_id)
+            if row is None:
+                raise KeyError(f"Unknown workspace: {workspace_id}")
+            row.schema_version = schema_version
+            row.payload = payload
+            row.updated_at = now
+        return workspace
+
+    def delete_workspace(self, workspace_id: str) -> bool:
+        with self.database.session() as session:
+            row = session.get(WorkspaceRow, workspace_id)
+            if row is None:
+                return False
+            session.delete(row)
+            return True
+
     def get_workspace(self, workspace_id: str) -> Workspace | None:
         with self.database.session() as session:
             row = session.get(WorkspaceRow, workspace_id)

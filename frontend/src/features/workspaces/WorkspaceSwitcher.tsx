@@ -42,7 +42,6 @@ export function WorkspaceSwitcher() {
           "deployment-fit",
           "planner",
           "comparison",
-          "watchlists",
         ].includes(String(query.queryKey[0])),
     });
   }

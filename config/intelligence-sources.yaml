@@ -89,34 +89,3 @@ sources:
           updated_field: updated_at
           artifact_url_field: url
 
-  - id: external-evidence
-    type: evidence
-    enabled: false
-    options:
-      sources:
-        - id: benchmark-maintainer
-          kind: benchmark
-          url: https://huggingface.co/api/datasets?search=open-llm-leaderboard&limit=100
-          strength: trusted_registry
-          subject_id_field: id
-          observed_at_field: lastModified
-        - id: research-index
-          kind: paper
-          url: https://api.semanticscholar.org/graph/v1/paper/search?query=large%20language%20model&limit=100&fields=paperId,title,publicationDate,externalIds
-          strength: aggregator
-          items_path: [data]
-          subject_id_field: paperId
-          observed_at_field: publicationDate
-        - id: security-advisories
-          kind: security
-          url: https://api.github.com/advisories?ecosystem=pip&per_page=100
-          strength: official_documentation
-          subject_id_field: ghsa_id
-          observed_at_field: updated_at
-        - id: spdx-license-list
-          kind: license
-          url: https://raw.githubusercontent.com/spdx/license-list-data/main/json/licenses.json
-          strength: official_documentation
-          items_path: [licenses]
-          subject_id_field: licenseId
-          observed_at_field: releaseDate

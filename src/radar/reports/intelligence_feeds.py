@@ -13,35 +13,6 @@ def _validate_public(events: list[IntelligenceEvent]) -> None:
         raise ValueError("Public feeds cannot contain workspace-scoped events")
 
 
-def filter_intelligence_events(
-    events: list[IntelligenceEvent],
-    *,
-    event_types: set[str] | None = None,
-    categories: set[str] | None = None,
-    lifecycles: set[str] | None = None,
-    lanes: set[str] | None = None,
-    platforms: set[str] | None = None,
-    watchlist: set[str] | None = None,
-) -> list[IntelligenceEvent]:
-    """Apply transport-independent channel filters to event metadata."""
-
-    def includes(event: IntelligenceEvent) -> bool:
-        data = event.data
-        return all(
-            (
-                not event_types or event.type in event_types,
-                not categories or data.get("category") in categories,
-                not lifecycles or data.get("to") in lifecycles,
-                not lanes or data.get("lane") in lanes,
-                not platforms
-                or bool(platforms.intersection(data.get("platforms", []))),
-                not watchlist or event.subject_id in watchlist,
-            )
-        )
-
-    return [event for event in events if includes(event)]
-
-
 def render_intelligence_atom(
     events: list[IntelligenceEvent],
     base_url: str,

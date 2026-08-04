@@ -85,3 +85,49 @@ def test_workspace_alerts_diff_events_against_the_stack(
 
     missing = api_client.get("/api/v1/workspaces/workspace:nope/alerts")
     assert missing.status_code == 404
+
+
+def test_workspace_update_and_delete_endpoints(api_client) -> None:
+    created = api_client.post(
+        "/api/v1/workspaces", json={"name": "Before"}
+    ).json()
+
+    updated = api_client.put(
+        f"/api/v1/workspaces/{created['id']}",
+        json={
+            "name": "After",
+            "stack": {"engines": [{"name": "vllm", "version": "0.10"}]},
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "After"
+    assert updated.json()["stack"]["engines"][0]["name"] == "vllm"
+
+    missing = api_client.put(
+        "/api/v1/workspaces/workspace:nope", json={"name": "X"}
+    )
+    assert missing.status_code == 404
+
+    deleted = api_client.delete(f"/api/v1/workspaces/{created['id']}")
+    assert deleted.status_code == 204
+    assert (
+        api_client.get(f"/api/v1/workspaces/{created['id']}").status_code
+        == 404
+    )
+    assert (
+        api_client.delete(f"/api/v1/workspaces/{created['id']}").status_code
+        == 404
+    )
+
+
+def test_public_mode_rejects_update_and_delete(public_api_client) -> None:
+    assert (
+        public_api_client.put(
+            "/api/v1/workspaces/workspace:x", json={"name": "X"}
+        ).status_code
+        == 403
+    )
+    assert (
+        public_api_client.delete("/api/v1/workspaces/workspace:x").status_code
+        == 403
+    )
