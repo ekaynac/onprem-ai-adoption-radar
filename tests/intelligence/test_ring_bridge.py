@@ -157,6 +157,74 @@ def test_snapshot_carries_bridged_rings_and_index_matches(tmp_path) -> None:
     assert index_row["public_ring"] == "adopt"
 
 
+def test_briefing_summarizes_rings_picks_and_movers(tmp_path) -> None:
+    from radar.web.intelligence_snapshot import _build_briefing
+
+    projects = [
+        {
+            "project": "vllm",
+            "category": "inference_serving",
+            "ring": "adopt",
+            "backer": "community",
+            "trend": "rising",
+            "risk_level": "low",
+            "score": 4.5,
+            "try_this_week": "Serve a quantized model with speculative decoding",
+            "evidence_notes": ["note one", "note two", "note three"],
+            "history": [
+                {
+                    "change_type": "promoted",
+                    "ring": "adopt",
+                    "previous_ring": "pilot",
+                    "observed_at": "2026-08-01T10:00:00Z",
+                }
+            ],
+        },
+        {
+            "project": "old-tool",
+            "category": "agent_frameworks",
+            "ring": "avoid",
+            "score": 1.2,
+            "history": [
+                {
+                    # Outside the mover window: must not appear.
+                    "change_type": "demoted",
+                    "ring": "avoid",
+                    "previous_ring": "watch",
+                    "observed_at": "2026-06-01T10:00:00Z",
+                }
+            ],
+        },
+    ]
+    model_rows = [
+        {"release_id": "release:legacy:kimi-k3", "public_ring": "adopt"},
+        {"release_id": "release:legacy:pending-model", "public_ring": None},
+        {"release_id": "release:hf:acme/thing", "public_ring": None},
+    ]
+
+    briefing = _build_briefing(
+        projects,
+        model_rows,
+        datetime(2026, 8, 3, 12, 0, tzinfo=UTC),
+        None,
+    )
+
+    assert briefing["rings"]["projects"] == {
+        "tracked": 2,
+        "adopt": 1,
+        "avoid": 1,
+    }
+    assert briefing["rings"]["models"] == {"tracked": 2, "adopt": 1}
+    assert [pick["project"] for pick in briefing["try_this_week"]] == ["vllm"]
+    pick = briefing["try_this_week"][0]
+    assert pick["evidence_notes"] == ["note one", "note two"]
+    assert pick["note"] == "Serve a quantized model with speculative decoding"
+    # Mover line matches the CLI movers report format.
+    assert [mover["line"] for mover in briefing["movers"]] == [
+        "vllm: pilot → adopt (promoted)"
+    ]
+
+
 def test_snapshot_invariant_fails_when_curated_ring_is_dropped(tmp_path) -> None:
     repository = lifecycle_repository(tmp_path)
     seed_legacy_release(repository)

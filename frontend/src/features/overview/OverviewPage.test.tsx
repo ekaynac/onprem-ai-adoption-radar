@@ -185,3 +185,79 @@ test("static mode labels the generated snapshot without live or estate claims", 
   expect(screen.queryByText(/Live data/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Your estate and policies applied/)).not.toBeInTheDocument();
 });
+
+
+test("renders the briefing: ring tiles, try this week, and movers", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("public-snapshot")) {
+        return response({
+          schema_version: "1.0",
+          generated_at: "2026-08-03T10:00:00Z",
+          briefing: {
+            rings: {
+              projects: { tracked: 12, adopt: 3, pilot: 4, watch: 4, avoid: 1 },
+              models: { tracked: 20, adopt: 5, pilot: 6 },
+            },
+            try_this_week: [
+              {
+                project: "vllm",
+                category: "inference_serving",
+                ring: "adopt",
+                backer: "community",
+                trend: "rising",
+                risk_level: "low",
+                score: 4.5,
+                note: "Serve a quantized model with speculative decoding",
+                evidence_notes: ["Ships CUDA graphs by default"],
+              },
+            ],
+            movers: [
+              {
+                subject: "vllm",
+                kind: "project",
+                change_type: "promoted",
+                ring: "adopt",
+                previous_ring: "pilot",
+                observed_at: "2026-08-01T10:00:00Z",
+                line: "vllm: pilot → adopt (promoted)",
+              },
+            ],
+          },
+          projects: [],
+          model_candidates: [],
+          platforms: [],
+          hardware: [],
+          research: [],
+          releases: [],
+          models: [],
+          events: [],
+          source_health: {
+            open_review_count: 0,
+            stale_claim_count: 0,
+            source_health: [],
+          },
+        });
+      }
+      return response({ items: [], next_cursor: null, source_health: [] });
+    }),
+  );
+
+  renderOverview();
+
+  // Ring tiles: tracked = projects + curated models; adopt sums both.
+  expect(await screen.findByText("32")).toBeVisible();
+  expect(screen.getByText("8")).toBeVisible();
+  expect(
+    screen.getByRole("link", { name: "vllm" }),
+  ).toHaveAttribute("href", "/projects/vllm");
+  expect(
+    screen.getByText("Serve a quantized model with speculative decoding"),
+  ).toBeVisible();
+  expect(screen.getByText("Ships CUDA graphs by default")).toBeVisible();
+  expect(
+    screen.getByRole("link", { name: "vllm: pilot → adopt (promoted)" }),
+  ).toBeVisible();
+});

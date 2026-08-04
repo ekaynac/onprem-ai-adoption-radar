@@ -101,6 +101,7 @@ class PublicSnapshot(BaseModel):
     quality: dict[str, Any]
     source_coverage: list[dict[str, Any]]
     latest_digest: dict[str, str] | None = None
+    briefing: dict[str, Any] | None = None
 
 
 def _release_sort_key(
@@ -249,6 +250,120 @@ def _release_significance(
         has_license=metadata.get("license") is not None,
     )
     return lineage, significance
+
+
+_MOVER_WINDOW_DAYS = 14
+_MOVER_LIMIT = 8
+_TRY_THIS_WEEK_LIMIT = 6
+
+
+def _build_briefing(
+    projects: list[dict[str, Any]],
+    model_rows: list[dict[str, Any]],
+    generated_at: datetime,
+    root: Path | None,
+) -> dict[str, Any]:
+    """The architect's morning brief: rings, picks, and recent moves."""
+    project_rings: dict[str, int] = {}
+    for row in projects:
+        ring = row.get("ring")
+        if isinstance(ring, str):
+            project_rings[ring] = project_rings.get(ring, 0) + 1
+    model_rings: dict[str, int] = {}
+    curated_models = 0
+    for row in model_rows:
+        if not str(row.get("release_id", "")).startswith("release:legacy:"):
+            continue
+        curated_models += 1
+        ring = row.get("public_ring")
+        if isinstance(ring, str):
+            model_rings[ring] = model_rings.get(ring, 0) + 1
+
+    def _score(row: dict[str, Any]) -> float:
+        value = row.get("score")
+        return float(value) if isinstance(value, int | float) else 0.0
+
+    try_this_week = [
+        {
+            "project": row.get("project"),
+            "category": row.get("category"),
+            "ring": row.get("ring"),
+            "backer": row.get("backer"),
+            "trend": row.get("trend"),
+            "risk_level": row.get("risk_level"),
+            "score": row.get("score"),
+            "note": row.get("try_this_week"),
+            "evidence_notes": list(row.get("evidence_notes") or [])[:2],
+        }
+        for row in sorted(projects, key=_score, reverse=True)
+        if row.get("ring") in {"adopt", "pilot"}
+    ][:_TRY_THIS_WEEK_LIMIT]
+
+    cutoff = generated_at.timestamp() - _MOVER_WINDOW_DAYS * 86_400
+    movers: list[dict[str, Any]] = []
+
+    def _mover(
+        subject: Any,
+        kind: str,
+        event: dict[str, Any],
+    ) -> None:
+        change_type = event.get("change_type")
+        observed_at = _parse_released_at(event.get("observed_at"))
+        if (
+            change_type not in {"new", "promoted", "demoted"}
+            or observed_at is None
+            or observed_at.timestamp() < cutoff
+        ):
+            return
+        ring = event.get("ring")
+        previous = event.get("previous_ring")
+        arrow = f"{previous} → {ring}" if previous else f"new → {ring}"
+        movers.append(
+            {
+                "subject": subject,
+                "kind": kind,
+                "change_type": change_type,
+                "ring": ring,
+                "previous_ring": previous,
+                "observed_at": event.get("observed_at"),
+                "line": f"{subject}: {arrow} ({change_type})",
+            }
+        )
+
+    for row in projects:
+        for event in row.get("history") or []:
+            if isinstance(event, dict):
+                _mover(row.get("project"), "project", event)
+    if root is not None:
+        from radar.models_radar.history import load_model_events
+
+        for model_event in load_model_events(
+            root / "data" / "model-history.jsonl"
+        ):
+            _mover(
+                model_event.model_id,
+                "model",
+                model_event.model_dump(mode="json"),
+            )
+    movers.sort(
+        key=lambda item: (str(item.get("observed_at") or ""), str(item["subject"])),
+        reverse=True,
+    )
+
+    return {
+        "rings": {
+            "projects": {
+                "tracked": len(projects),
+                **{key: project_rings[key] for key in sorted(project_rings)},
+            },
+            "models": {
+                "tracked": curated_models,
+                **{key: model_rings[key] for key in sorted(model_rings)},
+            },
+        },
+        "try_this_week": try_this_week,
+        "movers": movers[:_MOVER_LIMIT],
+    }
 
 
 def _model_row_order(row: dict[str, Any]) -> tuple[int, float, str, str]:
@@ -764,6 +879,7 @@ def build_public_snapshot(
         quality=_quality_metrics(model_rows, hardware, projects, research),
         source_coverage=_source_coverage(root),
         latest_digest=latest_digest,
+        briefing=_build_briefing(projects, model_rows, generated_at, root),
     )
 
 

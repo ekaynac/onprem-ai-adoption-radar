@@ -64,9 +64,41 @@ type CatalogPage = {
   next_cursor?: string | null;
 };
 
+export type BriefingPick = {
+  project: string;
+  category?: string | null;
+  ring: string;
+  backer?: string | null;
+  trend?: string | null;
+  risk_level?: string | null;
+  score?: number | null;
+  note?: string | null;
+  evidence_notes: string[];
+};
+
+export type BriefingMover = {
+  subject: string;
+  kind: string;
+  change_type: string;
+  ring?: string | null;
+  previous_ring?: string | null;
+  observed_at?: string | null;
+  line: string;
+};
+
+export type Briefing = {
+  rings: {
+    projects: Record<string, number>;
+    models: Record<string, number>;
+  };
+  try_this_week: BriefingPick[];
+  movers: BriefingMover[];
+};
+
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
+  briefing?: Briefing | null;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";
     generated_at?: string | null;

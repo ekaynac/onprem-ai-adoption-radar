@@ -1,3 +1,4 @@
+import { BriefingPanels } from "./BriefingPanels";
 import { CatalogTrust } from "./CatalogTrust";
 import { PriorityIntelligence } from "./PriorityIntelligence";
 import { RecommendedActions } from "./RecommendedActions";
@@ -25,7 +26,9 @@ export function OverviewPage({ staticMode = false }: { staticMode?: boolean }) {
   const releases = usePriorityReleases(workspaceId, 50, true);
   const actions = useRecommendedActions(workspaceId);
   const health = useCatalogHealth();
-  const snapshot = usePublicSnapshot(staticMode);
+  // The briefing (rings, Try This Week, movers) ships in the snapshot in
+  // both static and live modes.
+  const snapshot = usePublicSnapshot(true);
   const failed = releases.isError || actions.isError || health.isError;
 
   return (
@@ -62,6 +65,7 @@ export function OverviewPage({ staticMode = false }: { staticMode?: boolean }) {
         </div>
       ) : (
         <>
+          <BriefingPanels briefing={snapshot.data?.briefing} />
           <PriorityIntelligence items={releases.data?.items ?? []} />
           <div className="overview-grid">
             <RecommendedActions items={actions.data?.items ?? []} />
