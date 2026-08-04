@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/v1/capacity/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Capacity Devices */
+        get: operations["capacity_devices_api_v1_capacity_devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/capacity/fit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Capacity Fit */
+        post: operations["capacity_fit_api_v1_capacity_fit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/capacity/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Capacity Plan */
+        post: operations["capacity_plan_api_v1_capacity_plan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog": {
         parameters: {
             query?: never;
@@ -281,6 +332,43 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CapacityFitRequest */
+        CapacityFitRequest: {
+            /**
+             * Context Tokens
+             * @default 4096
+             */
+            context_tokens: number;
+            /** Device */
+            device: string;
+            /** Model Id */
+            model_id: string;
+        };
+        /** CapacityPlanRequest */
+        CapacityPlanRequest: {
+            /** Avg Context Tokens */
+            avg_context_tokens: number;
+            /** Concurrent Requests */
+            concurrent_requests: number;
+            /** Device */
+            device: string;
+            /**
+             * Engine
+             * @default vllm
+             */
+            engine: string;
+            /**
+             * Kv Dtype
+             * @default fp16
+             */
+            kv_dtype: string;
+            /** Model Id */
+            model_id: string;
+            /** Quant */
+            quant?: string | null;
+            /** Target Tps Per User */
+            target_tps_per_user?: number | null;
+        };
         /** CatalogDetail */
         CatalogDetail: {
             /** Claims */
@@ -641,6 +729,98 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    capacity_devices_api_v1_capacity_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    capacity_fit_api_v1_capacity_fit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CapacityFitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capacity_plan_api_v1_capacity_plan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CapacityPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     search_catalog_api_v1_catalog_get: {
         parameters: {
             query?: {
