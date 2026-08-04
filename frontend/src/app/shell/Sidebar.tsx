@@ -18,6 +18,7 @@ const navigation = [
       { to: "/releases", label: "Release stream", mark: "RS" },
       { to: "/catalog", label: "Catalog", mark: "CA" },
       { to: "/projects", label: "GitHub projects", mark: "GH" },
+      { to: "/trending", label: "Trending repos", mark: "TR" },
       { to: "/platforms", label: "Platforms", mark: "PL" },
       { to: "/hardware", label: "Hardware", mark: "HW" },
       { to: "/research", label: "Research", mark: "RE" },
