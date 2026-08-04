@@ -143,6 +143,7 @@ function catalogItem(model: Record<string, unknown>) {
     lineage: model.lineage ?? null,
     is_official: model.is_official ?? null,
     significance: model.significance ?? null,
+    profile: model.profile ?? null,
     public_recommendation: {
       release_id: releaseId,
       workspace_id: null,

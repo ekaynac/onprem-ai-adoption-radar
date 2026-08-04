@@ -43,9 +43,23 @@ export function CatalogPage() {
   }, [debouncedQuery, params]);
   const catalog = useCatalogSearch(filters, workspaceId);
   const facets = useCatalogFacets();
-  const visible = (catalog.data?.items ?? []).filter(
-    (item) => filters.lane === "all" || item.lane === filters.lane,
-  );
+  const view = params.get("view") ?? "base";
+  const visible = (catalog.data?.items ?? [])
+    .filter((item) => filters.lane === "all" || item.lane === filters.lane)
+    .filter((item) => {
+      if (view === "all") return true;
+      const relation = (
+        item.lineage as { relation?: string | null } | null | undefined
+      )?.relation;
+      if (view === "curated") {
+        return (
+          item.release_id.startsWith("release:legacy:") ||
+          Boolean(item.public_recommendation?.ring)
+        );
+      }
+      // Base models: derivatives collapse out of the default view.
+      return relation == null;
+    });
 
   function update(name: keyof CatalogSearch, value: string) {
     if (name === "query") {
@@ -79,6 +93,24 @@ export function CatalogPage() {
         facets={facets.data}
         onChange={update}
       />
+      <div className="filter-bar" aria-label="Catalog view">
+        <label>
+          <span>View</span>
+          <select
+            value={view}
+            onChange={(event) => {
+              const next = new URLSearchParams(params);
+              if (event.target.value === "base") next.delete("view");
+              else next.set("view", event.target.value);
+              setParams(next, { replace: true });
+            }}
+          >
+            <option value="base">Base models</option>
+            <option value="curated">Curated</option>
+            <option value="all">All artifacts</option>
+          </select>
+        </label>
+      </div>
       {catalog.isLoading ? (
         <div className="loading-grid" aria-label="Loading catalog"><span /><span /></div>
       ) : catalog.isError ? (

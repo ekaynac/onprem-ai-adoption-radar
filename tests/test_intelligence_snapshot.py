@@ -730,6 +730,42 @@ def test_curated_model_fallback_is_explicitly_labeled(tmp_path) -> None:
     )
 
 
+def test_profiles_carry_tenure_and_download_series_from_metrics(tmp_path) -> None:
+    from radar.storage.model_metrics_store import ModelMetrics, ModelMetricsStore
+    from radar.web.public_context import load_public_model_profiles
+
+    (tmp_path / "data" / "runs" / "run-1").mkdir(parents=True)
+    (tmp_path / "data" / "runs" / "run-1" / "meta.json").write_text(
+        '{"run_id": "run-1", "kind": "models"}'
+    )
+    (tmp_path / "data" / "runs" / "run-1" / "model_cards.json").write_text(
+        '[{"id": "kimi-k3", "name": "Kimi K3", "family": "Kimi", "ring": "adopt"}]'
+    )
+    store = ModelMetricsStore(tmp_path / "data" / "radar.db")
+    store.initialize()
+    store.record(
+        [
+            ModelMetrics(
+                model_id="kimi-k3",
+                run_id=f"run-{day}",
+                observed_at=datetime(2026, 7, day, 8, tzinfo=UTC),
+                downloads=downloads,
+            )
+            for day, downloads in ((1, 1000), (2, 1500), (3, None), (4, 2400))
+        ]
+    )
+
+    profiles = load_public_model_profiles(tmp_path)
+
+    profile = profiles["kimi-k3"]
+    assert profile["first_tracked_at"].startswith("2026-07-01")
+    assert [point["downloads"] for point in profile["downloads_history"]] == [
+        1000,
+        1500,
+        2400,
+    ]
+
+
 def test_platform_reverification_is_repeatable_and_failure_marks_current_claim_stale(
     tmp_path,
 ) -> None:

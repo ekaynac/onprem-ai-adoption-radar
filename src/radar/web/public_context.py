@@ -300,11 +300,49 @@ def load_public_model_profiles(root: Path) -> dict[str, dict[str, Any]]:
         except ModelSeedError:
             cards = []
 
-    return {
+    profiles = {
         str(item["id"]): item
         for item in cards
         if item.get("id")
     }
+    _attach_model_history(root, profiles)
+    return profiles
+
+
+_DOWNLOAD_SERIES_POINTS = 30
+
+
+def _attach_model_history(
+    root: Path,
+    profiles: dict[str, dict[str, Any]],
+) -> None:
+    """Add tenure and a download series to each profile, when history exists.
+
+    Both come from append-only stores; a missing database or empty series
+    leaves the fields absent — the UI renders unknown as unknown.
+    """
+    if not profiles:
+        return
+    try:
+        from radar.storage.model_metrics_store import ModelMetricsStore
+
+        store = ModelMetricsStore(root / "data" / "radar.db")
+        store.initialize()
+        for model_id, profile in profiles.items():
+            rows = store.history_for(model_id, limit=500)
+            if not rows:
+                continue
+            profile["downloads_history"] = [
+                {
+                    "observed_at": row.observed_at.isoformat(),
+                    "downloads": row.downloads,
+                }
+                for row in rows[-_DOWNLOAD_SERIES_POINTS:]
+                if row.downloads is not None
+            ]
+            profile["first_tracked_at"] = rows[0].observed_at.isoformat()
+    except Exception:  # history is additive, never fatal
+        return
 
 
 def load_public_research_entries(root: Path) -> list[Any]:

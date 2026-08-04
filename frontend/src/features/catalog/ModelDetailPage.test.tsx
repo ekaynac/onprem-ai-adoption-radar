@@ -92,3 +92,127 @@ test("unknown claim is explicit and cited values link to evidence", async () => 
   ).toBeVisible();
   vi.unstubAllGlobals();
 });
+
+
+test("shows tenure, download sparkline, lineage, and tracked variants", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("public-snapshot")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              schema_version: "1.0",
+              generated_at: "2026-08-04T09:00:00Z",
+              models: [
+                {
+                  release_id: "release:legacy:kimi-k3",
+                  name: "Kimi K3",
+                  lineage: {
+                    root_release: "release:legacy:kimi-k3",
+                    relation: null,
+                  },
+                },
+                {
+                  release_id: "release:grearl:kimi-k3-gguf",
+                  name: "Kimi K3 GGUF",
+                  lineage: {
+                    root_release: "release:legacy:kimi-k3",
+                    relation: "quantized",
+                  },
+                },
+              ],
+              projects: [],
+              model_candidates: [],
+              platforms: [],
+              hardware: [],
+              research: [],
+              releases: [],
+              events: [],
+              source_health: {
+                open_review_count: 0,
+                stale_claim_count: 0,
+                source_health: [],
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            release: {
+              release_id: "release:legacy:kimi-k3",
+              name: "Kimi K3",
+              category: "multimodal",
+              lane: "deployable_onprem",
+              lifecycle: "verified",
+              first_observed_at: "2026-07-01T10:00:00Z",
+              public_recommendation: {
+                release_id: "release:legacy:kimi-k3",
+                workspace_id: null,
+                ring: "adopt",
+                public_ring: "adopt",
+                reasons: ["Deterministic curated score 4.2/5"],
+                assumptions: [],
+                evidence_ids: [],
+                changed_factors: [],
+                computation_version: "legacy-ring-bridge-v1",
+              },
+              matched_terms: [],
+              lineage: {
+                base_release: null,
+                relation: null,
+                root_release: "release:legacy:kimi-k3",
+                derivative_counts: { quantized: 1 },
+              },
+            },
+            claims: [],
+            compatibility: [],
+            qualification: null,
+            profile: {
+              id: "kimi-k3",
+              family: "Kimi",
+              first_tracked_at: "2026-07-01T08:00:00Z",
+              downloads_history: [
+                { observed_at: "2026-07-01T08:00:00Z", downloads: 1000 },
+                { observed_at: "2026-07-02T08:00:00Z", downloads: 1500 },
+                { observed_at: "2026-07-03T08:00:00Z", downloads: 2400 },
+              ],
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    }),
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={["/catalog/release:legacy:kimi-k3"]}>
+        <Routes>
+          <Route path="/catalog/:releaseId" element={<ModelDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  expect(await screen.findByText("adopt")).toBeVisible();
+  expect(screen.getByText("Deterministic curated score 4.2/5")).toBeVisible();
+  expect(screen.getByText(/Tracked for \d+ days \(since/)).toBeVisible();
+  expect(
+    screen.getByRole("img", { name: /Downloads over the last 3 scans/ }),
+  ).toBeVisible();
+  expect(
+    screen.getByText("Base release — no declared upstream model."),
+  ).toBeVisible();
+  expect(await screen.findByText("1 tracked variant")).toBeVisible();
+  expect(
+    screen.getByRole("link", { name: "Kimi K3 GGUF" }),
+  ).toHaveAttribute("href", "/catalog/release%3Agrearl%3Akimi-k3-gguf");
+});
