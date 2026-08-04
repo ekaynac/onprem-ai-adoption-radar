@@ -28,13 +28,18 @@ test("architect can move from release intelligence to hardware planning", async 
 
 
 test("static command center exposes no workspace mutation controls", async ({ page }) => {
+  // Static mode ships the read-only demo stack profile — the alert
+  // mechanism is demonstrable, but nothing is creatable or editable.
   await page.goto("/#/workspaces");
-  await expect(page).toHaveURL(/#\/overview$/);
+  await expect(
+    page.getByRole("heading", { name: "Alerts are diffed against a stack" }),
+  ).toBeVisible();
+  await expect(page.getByText("Mega reference stack (demo)")).toBeVisible();
   await expect(page.getByLabel(/email|password|username/i)).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Workspace profiles" })).toHaveCount(0);
   // The planner is read-only (precomputed fit grid) and ships in static mode.
   await expect(
     page.getByRole("link", { name: "Deployment planner" }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save profile" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save workspace" })).toHaveCount(0);
 });

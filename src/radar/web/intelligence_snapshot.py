@@ -107,6 +107,7 @@ class PublicSnapshot(BaseModel):
     advisor: dict[str, Any] | None = None
     desk: dict[str, Any] | None = None
     newsroom: dict[str, Any] | None = None
+    stack_demo: dict[str, Any] | None = None
 
 
 def _release_sort_key(
@@ -405,6 +406,45 @@ def _build_desk(root: Path) -> dict[str, Any] | None:
             "track_record": track_record(states),
         }
     except Exception:  # the desk is additive, never fatal to publish
+        return None
+
+
+def _build_stack_demo(
+    root: Path, generated_at: datetime
+) -> dict[str, Any] | None:
+    """The public demo profile + its computed alert feed.
+
+    Static mode has no workspaces; this reference profile demonstrates
+    the alert mechanism (events diffed against a stack) on real data.
+    """
+    try:
+        from radar.intelligence.alerts import build_alerts, load_demo_profile
+
+        config_path = root / "config" / "stack-profile-demo.yaml"
+        if not config_path.exists():
+            config_path = (
+                Path(__file__).resolve().parents[3]
+                / "config"
+                / "stack-profile-demo.yaml"
+            )
+        profile = load_demo_profile(config_path)
+        return {
+            "profile": {
+                "name": profile.name,
+                "devices": [
+                    device.model_dump(mode="json")
+                    for device in profile.devices
+                ],
+                "stack": profile.stack.model_dump(mode="json"),
+            },
+            "alerts": build_alerts(
+                root,
+                devices=profile.devices,
+                stack=profile.stack,
+                now=generated_at,
+            ),
+        }
+    except Exception:  # the demo profile is additive, never fatal
         return None
 
 
@@ -1195,6 +1235,11 @@ def build_public_snapshot(
         advisor=_build_advisor(profiles),
         desk=_build_desk(root) if root is not None else None,
         newsroom=_build_newsroom(root) if root is not None else None,
+        stack_demo=(
+            _build_stack_demo(root, generated_at)
+            if root is not None
+            else None
+        ),
     )
 
 

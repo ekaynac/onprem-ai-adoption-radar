@@ -188,6 +188,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "advisor",
         "desk",
         "newsroom",
+        "stack_demo",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -967,6 +968,76 @@ def test_newsroom_joins_classifications_and_counts_impacts(tmp_path) -> None:
         "informational": 0,
     }
     assert "release" in newsroom["event_types"]
+
+
+def test_stack_demo_diffs_events_against_the_demo_profile(tmp_path) -> None:
+    (tmp_path / "data").mkdir()
+    items = [
+        {
+            "id": "news:vllm-break",
+            "source_id": "vllm-blog",
+            "title": "vLLM drops V0 engine",
+            "url": "https://blog.vllm.ai/v0-removal",
+            "summary": "V0 removed",
+            "published_at": "2026-08-10T09:00:00Z",
+            "observed_at": "2026-08-10T10:00:00Z",
+        },
+        {
+            "id": "news:sglang-break",
+            "source_id": "hn-vllm",
+            "title": "SGLang breaking scheduler change",
+            "url": "https://example.com/sglang",
+            "summary": "Rewrite",
+            "published_at": "2026-08-10T09:00:00Z",
+            "observed_at": "2026-08-10T10:00:00Z",
+        },
+    ]
+    (tmp_path / "data" / "news-observations.jsonl").write_text(
+        "\n".join(json.dumps(item) for item in items) + "\n"
+    )
+    classifications = [
+        {
+            "news_id": "news:vllm-break",
+            "relevant": True,
+            "event_type": "breaking-change",
+            "components": ["vllm"],
+            "operational_impact": "breaking",
+            "summary": "V0 removed; migrate.",
+            "citation": "https://blog.vllm.ai/v0-removal",
+            "model": "claude-opus-5",
+            "classified_at": "2026-08-11T10:00:00Z",
+        },
+        {
+            "news_id": "news:sglang-break",
+            "relevant": True,
+            "event_type": "breaking-change",
+            "components": ["sglang"],
+            "operational_impact": "breaking",
+            "summary": "Scheduler rewrite.",
+            "citation": "https://example.com/sglang",
+            "model": "claude-opus-5",
+            "classified_at": "2026-08-11T10:00:00Z",
+        },
+    ]
+    (tmp_path / "data" / "news-classified.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in classifications) + "\n"
+    )
+    repository = lifecycle_repository(tmp_path)
+
+    snapshot = build_public_snapshot(
+        build_services(repository),
+        datetime(2026, 8, 12, 12, tzinfo=UTC),
+        root=tmp_path,
+    ).model_dump(mode="json")
+
+    demo = snapshot["stack_demo"]
+    assert demo["profile"]["name"].startswith("Mega")
+    assert demo["profile"]["stack"]["engines"]
+    ids = [alert["id"] for alert in demo["alerts"]["alerts"]]
+    # vLLM is in the demo stack → Act alert; SGLang is not → silence.
+    assert "alert:news:news:vllm-break" in ids
+    assert "alert:news:news:sglang-break" not in ids
+    assert demo["alerts"]["alerts"][0]["verdict"] == "act"
 
 
 def test_profiles_attach_triangulated_benchmark_aggregates(tmp_path) -> None:

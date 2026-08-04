@@ -301,6 +301,46 @@ export type NewsroomSection = {
   event_types: string[];
 };
 
+export type StackAlert = {
+  id: string;
+  source: string;
+  verdict: "act" | "evaluate";
+  subject: string;
+  what_happened: string;
+  matched_components: string[];
+  event_type: string;
+  receipts: string[];
+  observed_at: string;
+};
+
+export type AlertFeed = {
+  version: string;
+  generated_at: string;
+  window_days: number;
+  profile_terms: string[];
+  alerts: StackAlert[];
+  counts: { act: number; evaluate: number };
+};
+
+export type StackProfileInfo = {
+  name: string;
+  devices: Array<{
+    device_id?: string | null;
+    custom_device?: Record<string, unknown> | null;
+    count: number;
+  }>;
+  stack: {
+    engines: Array<{ name: string; version?: string | null }>;
+    models: string[];
+    quant_formats: string[];
+  };
+};
+
+export type StackDemoSection = {
+  profile: StackProfileInfo;
+  alerts: AlertFeed;
+};
+
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
@@ -310,6 +350,7 @@ export type PublicSnapshot = {
   advisor?: AdvisorSection | null;
   desk?: DeskSection | null;
   newsroom?: NewsroomSection | null;
+  stack_demo?: StackDemoSection | null;
   models?: Array<Record<string, unknown>>;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";

@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+
+import { useWorkspaces } from "../workspaces/WorkspaceSwitcher";
+import { useActiveWorkspaceId } from "../workspaces/workspaceStore";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { apiFetch } from "../../api/client";
@@ -38,8 +41,24 @@ export function AdvisorPage({ staticMode = false }: { staticMode?: boolean }) {
   const snapshot = usePublicSnapshot(true);
   const advisor = snapshot.data?.advisor ?? null;
   const [params, setParams] = useSearchParams();
+  const workspaces = useWorkspaces(!staticMode);
+  const activeWorkspaceId = useActiveWorkspaceId();
   const task = params.get("task") ?? "coding";
-  const device = params.get("device") ?? "";
+  // The Answer Machine defaults to the profile's hardware: the active
+  // workspace's first preset device, else the public demo profile's.
+  const workspaceList = Array.isArray(workspaces.data)
+    ? workspaces.data
+    : [];
+  const activeWorkspace = workspaceList.find(
+    (workspace) => workspace.id === activeWorkspaceId,
+  );
+  const profileDevice =
+    activeWorkspace?.devices?.find((entry) => entry.device_id)?.device_id ??
+    snapshot.data?.stack_demo?.profile.devices.find(
+      (entry) => entry.device_id,
+    )?.device_id ??
+    "";
+  const device = params.get("device") ?? profileDevice;
   const [license, setLicense] = useState("");
   const [minContext, setMinContext] = useState("");
   const [liveAnswer, setLiveAnswer] = useState<AdvisorAnswer | null>(null);

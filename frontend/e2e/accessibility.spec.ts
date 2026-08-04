@@ -17,6 +17,7 @@ const routes = [
   "/#/advisor",
   "/#/desk",
   "/#/workspaces",
+  // (workspaces now renders the demo stack profile in static mode)
   "/#/operations",
   "/#/operations/reviews",
   "/#/watchlists",
