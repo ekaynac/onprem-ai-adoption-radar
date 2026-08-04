@@ -642,10 +642,18 @@ class SqlAlchemyIntelligenceRepository:
             existing = session.get(ReviewExceptionRow, review.id)
             if existing is not None:
                 current = _review_from_row(existing)
-                if current != review:
+                if (
+                    current.subject_id != review.subject_id
+                    or current.code != review.code
+                ):
+                    # A true id collision — different subject or reason.
                     raise RepositoryConflict(
                         f"Review exception id changed: {review.id}"
                     )
+                # Same subject + code: the review already exists. Re-opening
+                # is idempotent — first-opened wins (per-run fields like
+                # opened_at and evidence ids legitimately differ between
+                # encounters) and a human resolution is never reopened.
                 return
             session.add(
                 ReviewExceptionRow(
