@@ -9,11 +9,12 @@ import {
 } from "./workspaceStore";
 
 
-export function useWorkspaces() {
+export function useWorkspaces(enabled = true) {
   return useQuery({
     queryKey: ["workspaces"],
     queryFn: ({ signal }) =>
       apiFetch<Workspace[]>("/api/v1/workspaces", { signal }),
+    enabled,
   });
 }
 

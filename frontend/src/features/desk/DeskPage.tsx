@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
 
 import { usePublicSnapshot } from "../catalog/catalogQueries";
+import { profileTerms, textTouchesProfile } from "../workspaces/stackMatch";
+import { useWorkspaces } from "../workspaces/WorkspaceSwitcher";
+import { useActiveWorkspaceId } from "../workspaces/workspaceStore";
 
 
 const SECTION_LABELS: Record<string, string> = {
@@ -17,20 +20,53 @@ const VERDICT_LABELS: Record<string, string> = {
 };
 
 
-export function DeskPage() {
+export function DeskPage({
+  staticMode = import.meta.env.MODE === "static",
+}: {
+  staticMode?: boolean;
+}) {
   const snapshot = usePublicSnapshot(true);
   const desk = snapshot.data?.desk ?? null;
   const brief = desk?.brief ?? null;
+  const workspaces = useWorkspaces(!staticMode);
+  const activeWorkspaceId = useActiveWorkspaceId();
 
   if (snapshot.isLoading) {
     return <div className="loading-grid" aria-label="Loading desk"><span /><span /></div>;
   }
+
+  // Personalization: the active workspace's stack wins; the public demo
+  // profile demonstrates the mechanism in static mode.
+  const workspaceList = Array.isArray(workspaces.data)
+    ? workspaces.data
+    : [];
+  const activeWorkspace = workspaceList.find(
+    (workspace) => workspace.id === activeWorkspaceId,
+  );
+  const profile = activeWorkspace
+    ? { devices: activeWorkspace.devices, stack: activeWorkspace.stack }
+    : (snapshot.data?.stack_demo?.profile ?? null);
+  const terms = profile ? profileTerms(profile) : [];
+  const touches = (item: {
+    subject: string;
+    what_happened: string;
+    rationale: string;
+  }) =>
+    terms.length > 0 &&
+    textTouchesProfile(
+      `${item.subject} ${item.what_happened} ${item.rationale}`,
+      terms,
+    );
 
   const sections = new Map<string, typeof brief extends null ? never : NonNullable<typeof brief>["items"]>();
   for (const item of brief?.items ?? []) {
     const bucket = sections.get(item.section) ?? [];
     bucket.push(item);
     sections.set(item.section, bucket);
+  }
+  // Profile-affecting items float to the top of each section.
+  for (const bucket of sections.values()) {
+    bucket.sort((a, b) => Number(touches(b)) - Number(touches(a)));
   }
 
   return (
@@ -96,7 +132,12 @@ export function DeskPage() {
                 {items.map((item) => (
                   <li key={item.id}>
                     <div className="brief-item-head">
-                      <strong>{item.subject}</strong>
+                      <strong>
+                        {item.subject}
+                        {touches(item) && (
+                          <span className="stack-badge">Your stack</span>
+                        )}
+                      </strong>
                       <span className={`verdict-pill verdict-${item.verdict}`}>
                         {VERDICT_LABELS[item.verdict]}
                       </span>

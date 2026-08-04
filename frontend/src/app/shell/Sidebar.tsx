@@ -9,7 +9,7 @@ const navigation = [
     label: "Workspace",
     items: [
       { to: "/overview", label: "Overview", mark: "OV" },
-      { to: "/workspaces", label: "Workspace profiles", mark: "WS", liveOnly: true },
+      { to: "/workspaces", label: "Stack profile", mark: "WS" },
     ],
   },
   {
