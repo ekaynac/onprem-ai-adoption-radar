@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-04T16:16:43.674826+00:00",
+ "generated_at": "2026-08-04T17:02:27.978694+00:00",
  "window_days": 7,
  "items": [
   {
@@ -200,6 +200,188 @@
    "observed_at": "2026-08-04T16:15:58.279687+00:00"
   },
   {
+   "id": "call:brief-2026-W32:ring-moves:deepseek-r1",
+   "section": "ring-moves",
+   "subject": "deepseek-r1",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:deepseek-r1-distill-qwen-7b",
+   "section": "ring-moves",
+   "subject": "deepseek-r1-distill-qwen-7b",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:gemma-3-12b",
+   "section": "ring-moves",
+   "subject": "gemma-3-12b",
+   "what_happened": "Model ring avoid → pilot (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:gpt-oss-20b",
+   "section": "ring-moves",
+   "subject": "gpt-oss-20b",
+   "what_happened": "Model ring watch → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-deepseek-v4-flash-dspark",
+   "section": "ring-moves",
+   "subject": "hf-deepseek-v4-flash-dspark",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-gemma-4-26b-a4b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-gemma-4-26b-a4b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-gpt-oss-120b",
+   "section": "ring-moves",
+   "subject": "hf-gpt-oss-120b",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-qwen3-6-27b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-qwen3-6-27b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:hf-qwen3-6-35b-a3b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-qwen3-6-35b-a3b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:llama-3-1-8b",
+   "section": "ring-moves",
+   "subject": "llama-3.1-8b",
+   "what_happened": "Model ring avoid → pilot (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:mistral-small-3",
+   "section": "ring-moves",
+   "subject": "mistral-small-3",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:phi-4",
+   "section": "ring-moves",
+   "subject": "phi-4",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:qwen3-30b-a3b",
+   "section": "ring-moves",
+   "subject": "qwen3-30b-a3b",
+   "what_happened": "Model ring pilot → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
+   "id": "call:brief-2026-W32:ring-moves:qwen3-8b",
+   "section": "ring-moves",
+   "subject": "qwen3-8b",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-04T17:01:43.914115+00:00"
+  },
+  {
    "id": "call:brief-2026-W32:ring-moves:turbo-fieldfare",
    "section": "ring-moves",
    "subject": "turbo-fieldfare",
@@ -229,7 +411,7 @@
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +1082 stars/day (1717 total)",
+   "what_happened": "New repo at +1103 stars/day (1738 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -242,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +518 stars/day (1706 total)",
+   "what_happened": "New repo at +532 stars/day (1720 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -255,7 +437,7 @@
    "id": "call:brief-2026-W32:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +152 stars/day (273 total)",
+   "what_happened": "New repo at +155 stars/day (276 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -331,8 +513,8 @@
   }
  ],
  "verdict_counts": {
-  "act": 12,
-  "evaluate": 7,
+  "act": 24,
+  "evaluate": 9,
   "ignore": 6
  },
  "spotlight": {
@@ -340,17 +522,18 @@
   "task_label": "Coding assistant",
   "device": "rtx-4090-24gb",
   "top_candidate": {
-   "model_id": "mistral-nemo-12b",
-   "name": "Mistral Nemo 12B",
+   "model_id": "mistral-small-3",
+   "name": "Mistral Small 3",
    "ring": "adopt",
    "fit_verdict": "fits",
    "reasons": [
     "Fit: fits on RTX 4090 (24GB)",
-    "Best quant Q8_0 (~14.3 GB of 20.4 GB usable)",
+    "Best quant Q5_K_M (~19.2 GB of 20.4 GB usable)",
+    "Task capability p100 across 1 tracked benchmark(s)",
     "Curated ring: adopt"
    ]
   },
-  "note": "This week's worked answer: Coding assistant on rtx-4090-24gb → Mistral Nemo 12B"
+  "note": "This week's worked answer: Coding assistant on rtx-4090-24gb → Mistral Small 3"
  },
  "verdict_rules": "Deterministic v1 rules: adopt-promotions and adopt-exits are act; pilot entries, ≥3-point independent benchmark moves, new on-prem repos at ≥200 stars/day, and news classified as breaking are evaluate; slower new repos are ignore (recorded, so misses score too)"
 }
