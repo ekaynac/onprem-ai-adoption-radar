@@ -29,10 +29,11 @@ def build_services(
     repository: Any,
     *,
     legacy_rings: Mapping[str, LegacyRingRecord] | None = None,
+    model_profiles: Mapping[str, Any] | None = None,
 ) -> IntelligenceServices:
     recommendations = RecommendationService(repository, legacy_rings)
     return IntelligenceServices(
-        catalog=CatalogService(repository, recommendations),
+        catalog=CatalogService(repository, recommendations, model_profiles),
         releases=ReleaseService(repository),
         deployments=DeploymentService(recommendations),
         operations=OperationsService(repository),
@@ -51,7 +52,9 @@ def build_services_for_root(
     from radar.intelligence.recommendations import legacy_ring_bridge
     from radar.web.public_context import load_public_model_profiles
 
+    profiles = load_public_model_profiles(root)
     return build_services(
         repository,
-        legacy_rings=legacy_ring_bridge(load_public_model_profiles(root)),
+        legacy_rings=legacy_ring_bridge(profiles),
+        model_profiles=profiles,
     )

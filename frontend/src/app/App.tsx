@@ -16,6 +16,7 @@ import { ReviewQueuePage } from "../features/operations/ReviewQueuePage";
 import { SourceHealthPage } from "../features/operations/SourceHealthPage";
 import { WatchlistsPage } from "../features/operations/WatchlistsPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
+import { AdvisorPage } from "../features/advisor/AdvisorPage";
 import { PlannerPage } from "../features/planner/PlannerPage";
 import { TrendingPage } from "../features/trending/TrendingPage";
 import { ReleaseDetailPage } from "../features/releases/ReleaseDetailPage";
@@ -47,6 +48,7 @@ export function App({
         <Route path="/research" element={<ResearchPage />} />
         <Route path="/research/:researchId" element={<ResearchDetailPage />} />
         <Route path="/compare" element={<ComparePage />} />
+        <Route path="/advisor" element={<AdvisorPage staticMode={staticMode} />} />
         <Route path="/planner" element={<PlannerPage staticMode={staticMode} />} />
         {!staticMode && <Route path="/workspaces" element={<WorkspacePage />} />}
         <Route path="/operations" element={<SourceHealthPage staticMode={staticMode} />} />

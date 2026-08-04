@@ -413,6 +413,10 @@ export interface components {
             matched_terms?: string[];
             /** Name */
             name: string;
+            /** Profile */
+            profile?: {
+                [key: string]: unknown;
+            } | null;
             public_recommendation: components["schemas"]["RecommendationView"];
             /** Release Id */
             release_id: string;

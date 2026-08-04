@@ -159,12 +159,68 @@ export type TrendingSection = {
   sparkline_days: number;
 };
 
+export type AdvisorCandidate = {
+  model_id: string;
+  name: string;
+  release_id: string;
+  ring?: string | null;
+  composite: number;
+  fit: {
+    verdict: string;
+    best_quant_format?: string | null;
+    best_quant_memory_gb?: number | null;
+    usable_gb: number;
+    context_tokens: number;
+  };
+  task_capability: {
+    percentile: number;
+    benchmarks: Array<{
+      benchmark: string;
+      label: string;
+      consensus: number | null;
+      percentile: number | null;
+      sample_size: number | null;
+      flagged: boolean;
+    }>;
+  } | null;
+  license: { value?: string | null; allowed: boolean };
+  params_total?: number | null;
+  params_active?: number | null;
+  context_length?: number | null;
+  maturity_score?: number | null;
+  reasons: string[];
+  assumptions: string[];
+};
+
+export type AdvisorAnswer = {
+  version: string;
+  task: string;
+  task_label: string;
+  device: string;
+  context_tokens: number;
+  cost: {
+    board_power_kw: number | null;
+    indicative_hardware_usd: number | null;
+    note: string;
+  };
+  candidates: AdvisorCandidate[];
+  excluded: Array<{ model_id: string; reason: string }>;
+  assumptions: string[];
+};
+
+export type AdvisorSection = {
+  tasks: Record<string, { label: string }>;
+  devices: string[];
+  answers: Record<string, AdvisorAnswer>;
+};
+
 export type PublicSnapshot = {
   schema_version: "1.0";
   generated_at: string;
   briefing?: Briefing | null;
   planner?: PlannerGrid | null;
   trending?: TrendingSection | null;
+  advisor?: AdvisorSection | null;
   models?: Array<Record<string, unknown>>;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";
