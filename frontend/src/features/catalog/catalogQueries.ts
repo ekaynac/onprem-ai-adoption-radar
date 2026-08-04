@@ -4,7 +4,9 @@ import { apiFetch } from "../../api/client";
 import type { components } from "../../api/generated/schema";
 
 
-export type CatalogItem = components["schemas"]["CatalogItem"];
+export type CatalogItem = components["schemas"]["CatalogItem"] & {
+  profile?: ModelProfile | null;
+};
 export type ModelProfile = {
   id?: string;
   family?: string;
@@ -22,6 +24,13 @@ export type ModelProfile = {
   last_modified?: string | null;
   use_case?: string | null;
   hardware_tier?: string | null;
+  ring?: string | null;
+  score?: number | null;
+  first_tracked_at?: string | null;
+  downloads_history?: Array<{
+    observed_at: string;
+    downloads: number;
+  }>;
   quants?: Array<Record<string, unknown>>;
   benchmarks?: Array<{
     name: string;
