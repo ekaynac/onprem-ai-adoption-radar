@@ -207,8 +207,13 @@ class IntelligenceJobRunner:
             if repo_id is not None:
                 eligible.append((release, repo_id))
         attempts = self._latest_processed_attempts(JobKind.ENRICHMENT)
+        lineage_priority = self._lineage_priority()
         eligible.sort(
-            key=lambda item: _attempt_priority(item[0], attempts)
+            key=lambda item: _attempt_priority(
+                item[0],
+                attempts,
+                lineage_priority.get(item[0].id),
+            )
         )
         selected = eligible[: self.enrichment_batch_size]
         semaphore = asyncio.Semaphore(self.enrichment_concurrency)
@@ -373,6 +378,32 @@ class IntelligenceJobRunner:
                 observed_at=observed_at,
             )
         service.sync_roots(now)
+
+    def _lineage_priority(self) -> dict[str, tuple[int, int]]:
+        """Enrichment order signal: roots and high-descendant parents first.
+
+        A root's enrichment unblocks every declared descendant's resolution,
+        so within an attempt-recency band derivatives wait behind their
+        parents, and parents with many descendants come first.
+        """
+        lister = getattr(self.repository, "list_all_lineage_edges", None)
+        if lister is None:
+            return {}
+        children: dict[str, int] = {}
+        has_parent: set[str] = set()
+        for edge in lister():
+            has_parent.add(edge.child_release_id)
+            if edge.parent_release_id is not None:
+                children[edge.parent_release_id] = (
+                    children.get(edge.parent_release_id, 0) + 1
+                )
+        return {
+            release_id: (
+                1 if release_id in has_parent else 0,
+                -children.get(release_id, 0),
+            )
+            for release_id in set(children) | has_parent
+        }
 
     def _repository_identity(self, release_id: str) -> str | None:
         for predicate in ("hf_repo", "repo_id"):
@@ -741,9 +772,13 @@ def _processing_priority(release: Release) -> tuple[int, float, int, str]:
 def _attempt_priority(
     release: Release,
     attempts: dict[str, datetime],
-) -> tuple[datetime, int, float, int, str]:
+    lineage: tuple[int, int] | None = None,
+) -> tuple[datetime, int, int, int, float, int, str]:
+    has_parent, negative_children = lineage or (0, 0)
     return (
         attempts.get(release.id, datetime.min.replace(tzinfo=UTC)),
+        has_parent,
+        negative_children,
         *_processing_priority(release),
     )
 

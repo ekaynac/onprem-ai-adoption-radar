@@ -504,6 +504,31 @@ def _quality_metrics(
             "with_hardware_tier": sum(
                 bool(profile.get("hardware_tier")) for profile in profiles
             ),
+            "with_ring": sum(
+                bool(item.get("public_ring")) for item in models
+            ),
+            "decision_complete": sum(
+                bool(item.get("public_ring"))
+                and profile.get("params_total") is not None
+                and profile.get("context_length") is not None
+                and bool(profile.get("license"))
+                for item, profile in zip(models, profiles, strict=True)
+            ),
+        },
+        "lineage": {
+            "with_resolved_root": sum(
+                bool((item.get("lineage") or {}).get("root_release"))
+                for item in models
+            ),
+            "derivatives": sum(
+                bool((item.get("lineage") or {}).get("relation"))
+                for item in models
+            ),
+            "roots_with_derivatives": sum(
+                bool((item.get("lineage") or {}).get("derivative_counts"))
+                and not (item.get("lineage") or {}).get("relation")
+                for item in models
+            ),
         },
         "hardware": {
             "total": len(hardware),
