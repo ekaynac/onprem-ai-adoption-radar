@@ -345,6 +345,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace_id}/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workspace Alerts
+         * @description The workspace's stack diffed against the last two weeks of events.
+         */
+        get: operations["workspace_alerts_api_v1_workspaces__workspace_id__alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -715,6 +735,7 @@ export interface components {
              * @default 1
              */
             schema_version: number;
+            stack?: components["schemas"]["WorkspaceStack"];
             /** Watchlists */
             watchlists?: {
                 [key: string]: unknown;
@@ -738,6 +759,16 @@ export interface components {
             /** Device Id */
             device_id?: string | null;
         };
+        /**
+         * WorkspaceEngine
+         * @description One running serving/tooling component, optionally version-pinned.
+         */
+        WorkspaceEngine: {
+            /** Name */
+            name: string;
+            /** Version */
+            version?: string | null;
+        };
         /** WorkspaceInput */
         WorkspaceInput: {
             /** Devices */
@@ -748,6 +779,7 @@ export interface components {
             policies?: {
                 [key: string]: unknown;
             };
+            stack?: components["schemas"]["WorkspaceStack"];
             /** Watchlists */
             watchlists?: {
                 [key: string]: unknown;
@@ -756,6 +788,21 @@ export interface components {
             workloads?: {
                 [key: string]: unknown;
             }[];
+        };
+        /**
+         * WorkspaceStack
+         * @description The running stack: engines + production models + quant formats.
+         *
+         *     This is what alerts diff events against — a change only matters if
+         *     it touches something listed here (or the estate's devices).
+         */
+        WorkspaceStack: {
+            /** Engines */
+            engines?: components["schemas"]["WorkspaceEngine"][];
+            /** Models */
+            models?: string[];
+            /** Quant Formats */
+            quant_formats?: string[];
         };
     };
     responses: never;
@@ -1347,6 +1394,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Workspace"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    workspace_alerts_api_v1_workspaces__workspace_id__alerts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

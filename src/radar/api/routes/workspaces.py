@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from radar.api.dependencies import get_repository, require_writable
+from radar.api.dependencies import get_repository, get_root, require_writable
+from radar.intelligence.alerts import build_alerts
 from radar.intelligence.workspaces import (
     Workspace,
     WorkspaceInput,
@@ -47,3 +50,24 @@ def get_workspace(
             detail=f"Unknown workspace: {workspace_id}",
         )
     return workspace
+
+
+@router.get("/workspaces/{workspace_id}/alerts")
+def workspace_alerts(
+    workspace_id: str,
+    repository: Any = Depends(get_repository),
+    root: Path = Depends(get_root),
+) -> dict[str, Any]:
+    """The workspace's stack diffed against the last two weeks of events."""
+    workspace = repository.get_workspace(workspace_id)
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unknown workspace: {workspace_id}",
+        )
+    return build_alerts(
+        root,
+        devices=workspace.devices,
+        stack=workspace.stack,
+        now=datetime.now(UTC),
+    )
