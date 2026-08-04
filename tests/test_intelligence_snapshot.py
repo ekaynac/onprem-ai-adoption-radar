@@ -184,6 +184,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "source_coverage",
         "briefing",
         "planner",
+        "trending",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}
@@ -829,6 +830,48 @@ def test_planner_grid_matches_the_fit_engine_verbatim(tmp_path) -> None:
         "wont_fit",
         "unknown",
     }
+
+
+def test_trending_section_builds_windows_and_star_series(tmp_path) -> None:
+    lines = []
+    for day, stars in ((1, 100), (5, 400), (9, 900), (12, 1600)):
+        lines.append(
+            json.dumps(
+                {
+                    "repo": "acme/fast-llm",
+                    "lane": "onprem",
+                    "stars": stars,
+                    "observed_at": f"2026-08-{day:02d}T08:00:00Z",
+                    "repo_created_at": "2026-08-01T00:00:00Z",
+                    "description": "Fast local inference",
+                    "topics": ["llm", "inference"],
+                    "license": "MIT",
+                }
+            )
+        )
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "trending-observations.jsonl").write_text(
+        "\n".join(lines) + "\n"
+    )
+    repository = lifecycle_repository(tmp_path)
+
+    snapshot = build_public_snapshot(
+        build_services(repository),
+        datetime(2026, 8, 12, 12, tzinfo=UTC),
+        root=tmp_path,
+    ).model_dump(mode="json")
+
+    trending = snapshot["trending"]
+    assert set(trending["windows"]) == {"7d", "30d", "90d"}
+    row = trending["windows"]["7d"][0]
+    assert row["repo"] == "acme/fast-llm"
+    assert row["url"] == "https://github.com/acme/fast-llm"
+    assert row["velocity_per_day"] is not None and row["velocity_per_day"] > 0
+    assert row["is_new"] is True
+    series = trending["series"]["acme/fast-llm"]
+    # 14-day sparkline window: the day-1 point (11 days before generated_at
+    # is inside; all four observations qualify).
+    assert [point["stars"] for point in series] == [100, 400, 900, 1600]
 
 
 def test_platform_reverification_is_repeatable_and_failure_marks_current_claim_stale(

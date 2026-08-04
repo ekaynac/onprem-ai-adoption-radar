@@ -103,6 +103,7 @@ class PublicSnapshot(BaseModel):
     latest_digest: dict[str, str] | None = None
     briefing: dict[str, Any] | None = None
     planner: dict[str, Any] | None = None
+    trending: dict[str, Any] | None = None
 
 
 def _release_sort_key(
@@ -296,6 +297,83 @@ def _build_planner(root: Path) -> dict[str, Any] | None:
         "context_tokens": _PLANNER_CONTEXT_TOKENS,
         "fits": fits,
     }
+
+
+_TRENDING_ROWS_PER_WINDOW = 60
+_TRENDING_SPARKLINE_DAYS = 14
+
+
+def _build_trending_section(
+    root: Path,
+    generated_at: datetime,
+) -> dict[str, Any] | None:
+    """Trending repos across 7/30/90-day windows with 14-day star series.
+
+    Derived from the append-only observation store via the same pure
+    builders the MCP tools use; absent or corrupt data degrades to None.
+    """
+    try:
+        from datetime import timedelta
+
+        from radar.discovery.trending_detect import (
+            TRENDING_WINDOWS,
+            build_trending,
+        )
+        from radar.storage.trending_observations_log import load_observations
+
+        observations = load_observations(
+            root / "data" / "trending-observations.jsonl"
+        )
+        if not observations:
+            return None
+        windows: dict[str, list[dict[str, Any]]] = {}
+        shown_repos: set[str] = set()
+        for label, days in TRENDING_WINDOWS.items():
+            entries = build_trending(
+                observations,
+                generated_at,
+                window_days=days,
+            )[:_TRENDING_ROWS_PER_WINDOW]
+            windows[label] = [
+                {
+                    "repo": entry.repo,
+                    "lane": entry.lane.value,
+                    "stars": entry.stars,
+                    "velocity_per_day": entry.velocity_per_day,
+                    "is_new": entry.is_new,
+                    "first_seen": entry.first_seen,
+                    "description": entry.description,
+                    "topics": entry.topics[:6],
+                    "license": entry.license,
+                    "url": f"https://github.com/{entry.repo}",
+                }
+                for entry in entries
+            ]
+            shown_repos.update(entry.repo for entry in entries)
+        cutoff = generated_at - timedelta(days=_TRENDING_SPARKLINE_DAYS)
+        series: dict[str, list[dict[str, Any]]] = {}
+        for observation in sorted(
+            observations,
+            key=lambda item: item.observed_at,
+        ):
+            if (
+                observation.repo not in shown_repos
+                or observation.observed_at < cutoff
+            ):
+                continue
+            series.setdefault(observation.repo, []).append(
+                {
+                    "observed_at": observation.observed_at.isoformat(),
+                    "stars": observation.stars,
+                }
+            )
+        return {
+            "windows": windows,
+            "series": series,
+            "sparkline_days": _TRENDING_SPARKLINE_DAYS,
+        }
+    except Exception:  # trending is additive, never fatal to publish
+        return None
 
 
 _MOVER_WINDOW_DAYS = 14
@@ -952,6 +1030,11 @@ def build_public_snapshot(
         latest_digest=latest_digest,
         briefing=_build_briefing(projects, model_rows, generated_at, root),
         planner=_build_planner(root) if root is not None else None,
+        trending=(
+            _build_trending_section(root, generated_at)
+            if root is not None
+            else None
+        ),
     )
 
 
