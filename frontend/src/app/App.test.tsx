@@ -19,10 +19,11 @@ test("renders the architect workspace navigation", () => {
   );
 
   expect(screen.getByRole("navigation", { name: "Primary" })).toBeVisible();
-  expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "Rings overview" })).toHaveAttribute(
     "aria-current",
     "page",
   );
+  expect(screen.getByRole("link", { name: "Answer Machine" })).toBeVisible();
   expect(screen.getByRole("link", { name: "GitHub projects" })).toBeVisible();
   expect(screen.getByText("What changed since your last visit")).toBeVisible();
   vi.unstubAllGlobals();

@@ -3,6 +3,7 @@ import axe from "axe-core";
 
 
 const routes = [
+  "/",
   "/#/overview",
   "/#/releases",
   "/#/catalog",

@@ -91,6 +91,53 @@ function DeliveryList({ items }: { items: DeliveryLink[] }) {
   );
 }
 
+type McpTool = {
+  name: string;
+  signature: string;
+  answer: string;
+};
+
+const flagshipTools: McpTool[] = [
+  {
+    name: "recommend",
+    signature: "recommend(task, device, allowed_licenses?, min_context?)",
+    answer:
+      "What should I run? Ranked candidates with capacity fit, task percentile, license gate, ring, and reasons — exclusions come back with reasons too.",
+  },
+  {
+    name: "whats_new",
+    signature:
+      "whats_new(engines?, models_in_production?, quant_formats?, devices?)",
+    answer:
+      "What changed that touches THIS stack? Act/Evaluate alerts with receipts, diffed from classified news and ring moves. Silence for everything else.",
+  },
+  {
+    name: "benchmarks",
+    signature: "benchmarks(model_id)",
+    answer:
+      "Triangulated benchmark table: every source's score with URL, independent consensus, self-reported gaps flagged, percentile among tracked models.",
+  },
+  {
+    name: "plan_capacity",
+    signature:
+      "plan_capacity(model_id, device, concurrent_requests, avg_context_tokens, ...)",
+    answer:
+      "GPU count, memory budget, and throughput estimate for a target workload on a device.",
+  },
+  {
+    name: "can_run",
+    signature: "can_run(model_id, device, context_tokens?)",
+    answer:
+      "Does it fit? Verdict + best quant for a device preset or custom spec.",
+  },
+  {
+    name: "search_intelligence",
+    signature: "search_intelligence(query)",
+    answer:
+      "Significance-ranked search across the whole tracked catalog — models, projects, techniques.",
+  },
+];
+
 export function IntegrationsPage({ staticMode = false }: { staticMode?: boolean }) {
   const mcpConfig = `{
   "mcpServers": {
@@ -104,14 +151,54 @@ export function IntegrationsPage({ staticMode = false }: { staticMode?: boolean 
     <section className="page-stack">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">Integrate · Durable delivery surfaces</p>
-          <h1>Take the radar with you</h1>
+          <p className="eyebrow">Integrate · MCP & API</p>
+          <h1>Plug Mega's radar into your assistant</h1>
           <p className="lede">
-            Download the append-only evidence trail, subscribe to public changes,
-            or connect an architecture agent to the same intelligence contract.
+            The Intelligence Desk is a product surface, not just a site:
+            every answer, alert, and benchmark table on these pages is an
+            MCP tool your agent can call — same engines, same citations,
+            inside your workflow.
           </p>
         </div>
       </header>
+
+      <section className="panel" aria-labelledby="mcp-title">
+        <p className="eyebrow">MCP server</p>
+        <h2 id="mcp-title">Two lines to connect</h2>
+        <p className="claim-reason">
+          Run <code>uv run radar mcp</code> from the repository, then add
+          this server to your MCP client (Claude Desktop, Claude Code, or
+          any MCP-capable agent).
+        </p>
+        <pre className="record-view" tabIndex={0}>{mcpConfig}</pre>
+        <div className="release-table-wrap">
+          <table className="release-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>The question it answers</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flagshipTools.map((tool) => (
+                <tr key={tool.name}>
+                  <td>
+                    <strong>{tool.name}</strong>
+                    <br />
+                    <code>{tool.signature}</code>
+                  </td>
+                  <td>{tool.answer}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="claim-meta">
+          Plus 30+ further tools: catalog queries, device fit reports,
+          platform support matrices, technique radar, trending, source
+          health, and workspace-aware search.
+        </p>
+      </section>
 
       <div className="integration-grid">
         <article className="panel">
@@ -157,15 +244,6 @@ export function IntegrationsPage({ staticMode = false }: { staticMode?: boolean 
         </article>
       </div>
 
-      <section className="panel">
-        <p className="eyebrow">MCP server</p>
-        <h2>Connect an architecture agent</h2>
-        <p className="claim-reason">
-          Run <code>uv run radar mcp</code> from the repository, then add this
-          local server configuration to your MCP client.
-        </p>
-        <pre className="record-view" tabIndex={0}>{mcpConfig}</pre>
-      </section>
     </section>
   );
 }

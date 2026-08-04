@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 
 test("architect can move from release intelligence to hardware planning", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/#/overview");
   await expect(page.getByText("Architect Workspace")).toBeVisible();
 
   await page.getByRole("link", { name: "Release stream", exact: true }).click();

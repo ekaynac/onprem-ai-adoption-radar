@@ -6,24 +6,12 @@ import { isSourceHealthy } from "../../features/operations/sourceHealth";
 
 const navigation = [
   {
-    label: "Workspace",
+    label: "The Desk",
     items: [
-      { to: "/overview", label: "Overview", mark: "OV" },
-      { to: "/workspaces", label: "Stack profile", mark: "WS" },
-    ],
-  },
-  {
-    label: "Intelligence",
-    items: [
+      { to: "/", label: "Answer Machine", mark: "AM" },
       { to: "/desk", label: "Weekly brief", mark: "WB" },
-      { to: "/releases", label: "Release stream", mark: "RS" },
-      { to: "/catalog", label: "Catalog", mark: "CA" },
-      { to: "/projects", label: "GitHub projects", mark: "GH" },
-      { to: "/trending", label: "Trending repos", mark: "TR" },
       { to: "/newsroom", label: "Newsroom", mark: "NW" },
-      { to: "/platforms", label: "Platforms", mark: "PL" },
-      { to: "/hardware", label: "Hardware", mark: "HW" },
-      { to: "/research", label: "Research", mark: "RE" },
+      { to: "/workspaces", label: "Stack profile", mark: "WS" },
     ],
   },
   {
@@ -32,6 +20,19 @@ const navigation = [
       { to: "/advisor", label: "Advisor", mark: "AD" },
       { to: "/compare", label: "Compare", mark: "CO" },
       { to: "/planner", label: "Deployment planner", mark: "DP" },
+    ],
+  },
+  {
+    label: "Evidence appendix",
+    items: [
+      { to: "/catalog", label: "Catalog", mark: "CA" },
+      { to: "/releases", label: "Release stream", mark: "RS" },
+      { to: "/projects", label: "GitHub projects", mark: "GH" },
+      { to: "/trending", label: "Trending repos", mark: "TR" },
+      { to: "/platforms", label: "Platforms", mark: "PL" },
+      { to: "/hardware", label: "Hardware", mark: "HW" },
+      { to: "/research", label: "Research", mark: "RE" },
+      { to: "/overview", label: "Rings overview", mark: "OV" },
     ],
   },
   {
@@ -44,7 +45,7 @@ const navigation = [
   },
   {
     label: "Integrate",
-    items: [{ to: "/integrations", label: "API & feeds", mark: "IF" }],
+    items: [{ to: "/integrations", label: "MCP & API", mark: "IF" }],
   },
 ] as const;
 
@@ -82,6 +83,7 @@ export function Sidebar({ staticMode }: { staticMode: boolean }) {
               <NavLink
                 to={item.to}
                 key={item.to}
+                end={item.to === "/"}
                 className={({ isActive }) =>
                   `nav-link${isActive ? " nav-link-active" : ""}`
                 }

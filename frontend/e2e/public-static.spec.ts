@@ -4,6 +4,14 @@ import { expect, test } from "@playwright/test";
 test("public static command center navigates without a backend", async ({ page }) => {
   await page.goto("/");
 
+  // Question-first homepage (D6 IA cutover); the overview lives on in
+  // the evidence appendix.
+  await expect(
+    page.getByRole("heading", { name: "What should you run?" }),
+  ).toBeVisible();
+  await page
+    .getByRole("link", { name: "Rings overview", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "What changed since your last visit" }),
   ).toBeVisible();
@@ -95,7 +103,7 @@ test("classic radar and integration downloads remain reachable", async ({ page }
   expect(digestHref).toBeTruthy();
   expect((await page.request.get(`/${digestHref}`)).ok(), digestHref ?? "digest").toBeTruthy();
 
-  await page.getByRole("link", { name: "API & feeds" }).click();
+  await page.getByRole("link", { name: "MCP & API" }).click();
   for (const [name, path] of [
     ["Project history", "/history.jsonl"],
     ["Model history", "/model-history.jsonl"],
