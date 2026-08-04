@@ -860,10 +860,10 @@ h1 {
   text-transform: capitalize;
 }
 
-.ring-tile.ring-adopt strong { color: #1a7f37; }
-.ring-tile.ring-pilot strong { color: #9a6700; }
-.ring-tile.ring-watch strong { color: #57606a; }
-.ring-tile.ring-avoid strong { color: #cf222e; }
+.ring-tile.tile-adopt strong { color: #116329; }
+.ring-tile.tile-pilot strong { color: #9a6700; }
+.ring-tile.tile-watch strong { color: #57606a; }
+.ring-tile.tile-avoid strong { color: #cf222e; }
 
 .ring-pill {
   padding: 2px 10px;
@@ -874,10 +874,10 @@ h1 {
   white-space: nowrap;
 }
 
-.ring-pill.ring-adopt { color: #1a7f37; border-color: #1a7f37; }
-.ring-pill.ring-pilot { color: #9a6700; border-color: #9a6700; }
-.ring-pill.ring-watch { color: #57606a; }
-.ring-pill.ring-avoid { color: #cf222e; border-color: #cf222e; }
+.ring-pill.pill-adopt { color: #116329; border-color: #116329; }
+.ring-pill.pill-pilot { color: #9a6700; border-color: #9a6700; }
+.ring-pill.pill-watch { color: #57606a; }
+.ring-pill.pill-avoid { color: #cf222e; border-color: #cf222e; }
 
 .try-grid {
   display: grid;

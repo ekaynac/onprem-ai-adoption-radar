@@ -29,7 +29,7 @@ export function BriefingPanels({ briefing }: { briefing?: Briefing | null }) {
             <span>Tracked</span>
           </article>
           {RING_ORDER.map((ring) => (
-            <article className={`ring-tile ring-${ring}`} key={ring}>
+            <article className={`ring-tile tile-${ring}`} key={ring}>
               <strong>{(projects[ring] ?? 0) + (models[ring] ?? 0)}</strong>
               <span>{ring}</span>
             </article>
@@ -55,7 +55,7 @@ export function BriefingPanels({ briefing }: { briefing?: Briefing | null }) {
                   >
                     {pick.project}
                   </Link>
-                  <span className={`ring-pill ring-${pick.ring}`}>
+                  <span className={`ring-pill pill-${pick.ring}`}>
                     {pick.ring}
                     {trendArrow(pick.trend) && (
                       <span aria-label={`trend ${pick.trend}`}>
