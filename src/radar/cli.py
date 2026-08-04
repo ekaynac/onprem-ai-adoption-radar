@@ -923,6 +923,88 @@ def candidates_scan(root: Path = typer.Option(Path("."), help="Project root.")) 
                   f"→ {out_path.relative_to(root)}")
 
 
+benchmarks_app = typer.Typer(help="Benchmark aggregation from public leaderboards.")
+models_app.add_typer(benchmarks_app, name="benchmarks")
+
+
+@benchmarks_app.command("scan")
+def benchmarks_scan(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
+    """Sweep configured leaderboards and append benchmark observations."""
+    import asyncio
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from radar.discovery.benchmark_sweep import (
+        load_benchmark_sources,
+        sweep_benchmarks,
+    )
+    from radar.models_radar.seed import load_model_seed
+    from radar.storage.benchmark_observations_log import (
+        append_benchmark_observations,
+    )
+
+    seed_path = root / "config" / "model-seed.yaml"
+    sources_path = root / "config" / "benchmark-sources.yaml"
+    if not seed_path.exists():
+        fallback = Path(__file__).resolve().parents[2] / "config"
+        seed_path = fallback / "model-seed.yaml"
+        sources_path = fallback / "benchmark-sources.yaml"
+    seeds = load_model_seed(seed_path)
+    config = load_benchmark_sources(sources_path)
+    now = datetime.now(UTC)
+
+    async def _run():
+        import os
+
+        headers = {}
+        if token := os.environ.get("HF_TOKEN"):
+            headers["Authorization"] = f"Bearer {token}"
+        async with httpx.AsyncClient(
+            timeout=30.0,
+            follow_redirects=True,
+            headers=headers,
+        ) as client:
+            return await sweep_benchmarks(seeds, config, client, now)
+
+    result = asyncio.run(_run())
+    out_path = root / "data" / "benchmark-observations.jsonl"
+    append_benchmark_observations(out_path, result.observations)
+    from radar.storage.source_health_log import (
+        SourceHealthRecord,
+        SourceOutcome,
+        append_source_health,
+    )
+
+    append_source_health(
+        root / "data" / "source-health.jsonl",
+        SourceHealthRecord(
+            run_id=f"benchmarks-{now.isoformat()}",
+            observed_at=now,
+            sources={
+                f"benchmarks:{source_id}": SourceOutcome(
+                    count=outcome["count"],
+                    status=outcome["status"],
+                )
+                for source_id, outcome in result.outcomes.items()
+            },
+        ),
+    )
+    console.print(
+        f"Observed {len(result.observations)} benchmark score(s) "
+        f"→ {out_path.relative_to(root)}"
+    )
+    for source_id, outcome in sorted(result.outcomes.items()):
+        console.print(
+            f"  {source_id}: {outcome['count']} score(s), {outcome['status']}"
+        )
+    for source_id, skipped in sorted(result.skipped.items()):
+        console.print(
+            f"  [yellow]{source_id}: expected but unmatched → "
+            f"{', '.join(skipped)}[/yellow]"
+        )
+
+
 @models_app.command("discover")
 def models_discover(
     min_downloads: int = typer.Option(10000, help="Minimum HF downloads for a candidate."),

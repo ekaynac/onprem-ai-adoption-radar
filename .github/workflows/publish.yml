@@ -151,6 +151,7 @@ jobs:
           uv run radar scan --root . --days 7 --publish-history
           uv run radar models scan --root .
           uv run radar models candidates scan --root .
+          uv run radar models benchmarks scan --root .
           uv run radar models platforms-verify --root .
           uv run radar research scan --root .
           uv run radar research candidates scan --root .
@@ -220,6 +221,7 @@ jobs:
             data/model-history.jsonl \
             data/model-metrics.jsonl \
             data/model-candidate-observations.jsonl \
+            data/benchmark-observations.jsonl \
             data/technique-candidate-observations.jsonl \
             data/technique-history.jsonl \
             data/technique-metrics.jsonl \

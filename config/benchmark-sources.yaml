@@ -1,0 +1,56 @@
+# Benchmark aggregation sources. Every score displayed on the site cites
+# one of these (or a model card via the seed's self-reported channel).
+#
+# LMArena: EXCLUDED — the leaderboard dataset is gated with no stable
+# anonymous public endpoint as of 2026-08. This is an exclusion with
+# reason, not a deferral: nothing in code references it. Revisit only if
+# a stable public CSV/dataset appears.
+#
+# Alias rule: a model id listed under `aliases` is EXPECTED at that
+# source — if its display name disappears from fetched rows, the model
+# lands on the skipped list and the source's health drops to `partial`.
+# Only exact-artifact rows are aliased (no "turbo" serving variants, no
+# different checkpoints/revisions).
+version: "1.0"
+triangulation_gap_points: 5.0
+sources:
+  - id: open-llm-leaderboard
+    kind: hf-datasets-filter
+    enabled: true
+    join: hf_repo
+    url: "https://datasets-server.huggingface.co/filter?dataset=open-llm-leaderboard%2Fcontents&config=default&split=train"
+    column_map:
+      "IFEval": ifeval
+      "BBH": bbh
+      "MATH Lvl 5": math-l5
+      "GPQA": gpqa
+      "MUSR": musr
+      "MMLU-PRO": mmlu-pro
+      "Average ⬆️": ollb-average
+  - id: aider-polyglot
+    kind: yaml-rows
+    enabled: true
+    join: alias
+    url: "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/website/_data/polyglot_leaderboard.yml"
+    row_key: model
+    column_map:
+      pass_rate_2: aider-polyglot
+    aliases:
+      deepseek-r1: ["DeepSeek R1"]
+      qwen3-32b: ["Qwen3 32B"]
+      qwq-32b: ["QwQ-32B"]
+      qwen2.5-coder-32b: ["Qwen2.5-Coder-32B-Instruct"]
+      hf-gpt-oss-120b: ["gpt-oss-120b (high)"]
+  - id: livebench
+    kind: csv
+    enabled: true
+    join: alias
+    url: "https://livebench.ai/table_2025_04_25.csv"
+    row_key: model
+    column_map:
+      code_generation: livebench-coding
+      code_completion: livebench-code-completion
+      AMPS_Hard: livebench-math-amps
+    aliases:
+      deepseek-r1: ["deepseek-r1"]
+      qwq-32b: ["qwq-32b"]
