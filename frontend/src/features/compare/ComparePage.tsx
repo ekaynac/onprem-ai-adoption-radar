@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { StatusBadge } from "../../design/StatusBadge";
 import { useActiveWorkspaceId } from "../workspaces/workspaceStore";
@@ -7,6 +7,7 @@ import {
   type CatalogItem,
   type CatalogSearch,
 } from "../catalog/catalogQueries";
+import { formatContext, formatParams } from "../catalog/format";
 
 
 const filters: CatalogSearch = {
@@ -30,6 +31,26 @@ export function ComparePage() {
   const catalogFilters = { ...filters, query };
   const catalog = useCatalogSearch(catalogFilters, workspaceId);
   const rows = Object.values(selected);
+
+  // Union of benchmark names across the selection, ordered by how many of
+  // the selected models report them (most comparable first).
+  const benchmarkNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of rows) {
+      for (const benchmark of item.profile?.benchmarks ?? []) {
+        counts.set(benchmark.name, (counts.get(benchmark.name) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()]
+      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .map(([name]) => name);
+  }, [rows]);
+
+  function benchmarkFor(item: CatalogItem, name: string) {
+    return (item.profile?.benchmarks ?? []).find(
+      (benchmark) => benchmark.name === name,
+    );
+  }
 
   function toggle(item: CatalogItem) {
     setSelected((current) => {
@@ -83,8 +104,25 @@ export function ComparePage() {
               <StatusBadge status={item.lifecycle} />
               <dl className="detail-facts">
                 <div><dt>Category</dt><dd>{item.category}</dd></div>
-                <div><dt>Lane</dt><dd>{item.lane}</dd></div>
-                <div><dt>Public</dt><dd>{item.public_recommendation.ring ?? "Unrated"}</dd></div>
+                <div><dt>Ring</dt><dd>{item.public_recommendation.ring ?? "Unrated"}</dd></div>
+                <div>
+                  <dt>Params</dt>
+                  <dd>
+                    {formatParams(
+                      item.profile?.params_total,
+                      item.profile?.params_active,
+                    ) ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Context</dt>
+                  <dd>{formatContext(item.profile?.context_length) ?? "—"}</dd>
+                </div>
+                <div><dt>License</dt><dd>{item.profile?.license ?? "—"}</dd></div>
+                <div>
+                  <dt>Tier</dt>
+                  <dd>{item.profile?.hardware_tier ?? "—"}</dd>
+                </div>
                 <div>
                   <dt>Workspace</dt>
                   <dd>{item.workspace_recommendation?.ring ?? "Same as public"}</dd>
@@ -98,6 +136,69 @@ export function ComparePage() {
           <strong>Select at least two candidates</strong>
           <span>Differing fields will be pinned side by side.</span>
         </div>
+      )}
+      {rows.length >= 2 && benchmarkNames.length > 0 && (
+        <section className="panel" aria-labelledby="benchmark-compare-title">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Curated benchmarks</p>
+              <h2 id="benchmark-compare-title">Score comparison</h2>
+            </div>
+          </div>
+          <div className="release-table-wrap">
+            <table className="release-table benchmark-table">
+              <thead>
+                <tr>
+                  <th>Benchmark</th>
+                  {rows.map((item) => (
+                    <th key={item.release_id}>{item.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {benchmarkNames.map((name) => {
+                  const scores = rows.map((item) => benchmarkFor(item, name));
+                  const best = Math.max(
+                    ...scores.map((score) => score?.score ?? -Infinity),
+                  );
+                  return (
+                    <tr key={name}>
+                      <td>{name}</td>
+                      {rows.map((item) => {
+                        const benchmark = benchmarkFor(item, name);
+                        if (!benchmark) {
+                          return <td key={item.release_id}>—</td>;
+                        }
+                        return (
+                          <td
+                            key={item.release_id}
+                            className={
+                              benchmark.score === best
+                                ? "benchmark-best"
+                                : undefined
+                            }
+                          >
+                            <a
+                              href={benchmark.source_url}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              {benchmark.score}
+                            </a>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="claim-meta">
+            Every score links to its source. Missing scores stay missing —
+            models report different suites.
+          </p>
+        </section>
       )}
     </section>
   );

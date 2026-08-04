@@ -1910,3 +1910,8 @@ h1 {
 .trending-table td:first-child {
   min-width: 260px;
 }
+
+.benchmark-table td.benchmark-best a {
+  font-weight: 700;
+  color: #116329;
+}
