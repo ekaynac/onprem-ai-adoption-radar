@@ -104,6 +104,7 @@ class PublicSnapshot(BaseModel):
     briefing: dict[str, Any] | None = None
     planner: dict[str, Any] | None = None
     trending: dict[str, Any] | None = None
+    advisor: dict[str, Any] | None = None
 
 
 def _release_sort_key(
@@ -373,6 +374,38 @@ def _build_trending_section(
             "sparkline_days": _TRENDING_SPARKLINE_DAYS,
         }
     except Exception:  # trending is additive, never fatal to publish
+        return None
+
+
+def _build_advisor(profiles: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    """Precompute Answer Machine shortlists for every task × device preset.
+
+    Policy filters (license allowlist, min context) apply client-side over
+    these unpoliced answers — candidates carry license and context so the
+    UI can gate them visibly. Live mode recomputes with arbitrary inputs
+    via the API; both paths run the same ``build_answers``.
+    """
+    if not profiles:
+        return None
+    try:
+        from radar.models_radar.advisor import TASKS, build_answers
+
+        answers: dict[str, dict[str, Any]] = {}
+        for task in TASKS:
+            for device in _PLANNER_DEVICES:
+                answers[f"{task}|{device}"] = build_answers(
+                    profiles,
+                    device,
+                    task,
+                )
+        return {
+            "tasks": {
+                task: {"label": spec["label"]} for task, spec in TASKS.items()
+            },
+            "devices": list(_PLANNER_DEVICES),
+            "answers": answers,
+        }
+    except Exception:  # advisor is additive, never fatal to publish
         return None
 
 
@@ -1052,6 +1085,7 @@ def build_public_snapshot(
             if root is not None
             else None
         ),
+        advisor=_build_advisor(profiles),
     )
 
 

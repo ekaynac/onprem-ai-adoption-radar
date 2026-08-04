@@ -27,6 +27,7 @@ const navigation = [
   {
     label: "Decide",
     items: [
+      { to: "/advisor", label: "Advisor", mark: "AD" },
       { to: "/compare", label: "Compare", mark: "CO" },
       { to: "/planner", label: "Deployment planner", mark: "DP" },
     ],

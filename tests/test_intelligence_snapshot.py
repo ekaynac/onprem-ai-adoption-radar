@@ -185,6 +185,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "briefing",
         "planner",
         "trending",
+        "advisor",
     }
     assert payload["platforms"][0]["name"] == "vLLM"
     assert payload["platforms"][0]["hardware"] == {}

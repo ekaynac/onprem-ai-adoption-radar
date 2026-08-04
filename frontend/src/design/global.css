@@ -1925,3 +1925,16 @@ h1 {
   color: #9a6700;
   cursor: help;
 }
+
+.excluded-block {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  background: #fff;
+  font-size: 13px;
+}
+
+.excluded-block summary {
+  cursor: pointer;
+  color: var(--ink-600);
+}

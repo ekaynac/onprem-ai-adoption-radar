@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
@@ -45,6 +46,7 @@ class CatalogItem(FrozenModel):
     matched_terms: list[str] = Field(default_factory=list)
     lineage: dict[str, Any] | None = None
     is_official: bool | None = None
+    profile: dict[str, Any] | None = None
 
 
 class ClaimCitation(FrozenModel):
@@ -103,9 +105,25 @@ class CatalogService:
         self,
         repository: CatalogRepository,
         recommendations: RecommendationService,
+        model_profiles: Mapping[str, dict[str, Any]] | None = None,
     ):
         self.repository = repository
         self.recommendations = recommendations
+        self.model_profiles = dict(model_profiles or {})
+
+    def _significance_rank(self, release: Release) -> tuple[int, int]:
+        """Coarse significance class for live search ordering.
+
+        Mirrors the published index's class ladder: official releases and
+        roots lead; declared derivatives trail. (The full scored ordering
+        lives in the snapshot; search relevance still sorts first.)
+        """
+        official = not release.publisher_id.startswith("publisher:provisional:")
+        has_parent = 0
+        lister = getattr(self.repository, "list_lineage_for_child", None)
+        if lister is not None and lister(release.id):
+            has_parent = 1
+        return (has_parent, 0 if official else 1)
 
     def search(
         self,
@@ -188,6 +206,7 @@ class CatalogService:
         matches.sort(
             key=lambda item: (
                 -item[0],
+                *self._significance_rank(item[1]),
                 -_LIFECYCLE_RANK[item[1].lifecycle],
                 -item[1].first_observed_at.timestamp(),
                 item[1].id,
@@ -355,6 +374,9 @@ class CatalogService:
             lineage=self._lineage(release.id),
             is_official=not release.publisher_id.startswith(
                 "publisher:provisional:"
+            ),
+            profile=self.model_profiles.get(
+                release.id.removeprefix("release:legacy:")
             ),
         )
 
