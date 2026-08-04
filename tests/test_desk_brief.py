@@ -209,3 +209,48 @@ def test_brief_applies_documented_verdict_rules(tmp_path) -> None:
     assert brief["verdict_counts"]["ignore"] == 1
     # Deterministic: same inputs, same brief (minus nothing — clock passed in).
     assert build_brief(tmp_path, NOW) == brief
+
+
+def test_cli_brief_is_idempotent_and_resolve_keeps_score(tmp_path) -> None:
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.storage.calls_ledger import (
+        fold_calls,
+        load_call_records,
+        track_record,
+    )
+
+    _seed_stores(tmp_path)
+    runner = CliRunner()
+
+    first = runner.invoke(app, ["desk", "brief", "--root", str(tmp_path)])
+    assert first.exit_code == 0, first.output
+    ledger = tmp_path / "data" / "calls-ledger.jsonl"
+    made = [r for r in load_call_records(ledger) if r.type == "made"]
+    assert made
+
+    # Second run the same week records zero new calls.
+    second = runner.invoke(app, ["desk", "brief", "--root", str(tmp_path)])
+    assert second.exit_code == 0
+    assert "0 new call(s)" in second.output
+    assert len([r for r in load_call_records(ledger) if r.type == "made"]) == len(made)
+
+    call_id = made[0].call_id
+    resolve = runner.invoke(
+        app,
+        ["desk", "resolve", call_id, "--outcome", "confirmed",
+         "--note", "verified in a pilot", "--root", str(tmp_path)],
+    )
+    assert resolve.exit_code == 0, resolve.output
+    # Double-resolution is refused: the ledger keeps score, not opinions.
+    again = runner.invoke(
+        app,
+        ["desk", "resolve", call_id, "--outcome", "wrong", "--root", str(tmp_path)],
+    )
+    assert again.exit_code == 1
+
+    states = fold_calls(load_call_records(ledger))
+    record = track_record(states)
+    assert record["confirmed"] == 1
+    assert record["hit_rate_pct"] == 100

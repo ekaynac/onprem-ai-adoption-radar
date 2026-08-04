@@ -226,3 +226,13 @@ def test_bounded_pipeline_results_are_written_to_the_job_summary():
     assert "remaining" in verify["run"]
     assert "GITHUB_STEP_SUMMARY" in scan["run"]
     assert "enrichment" in scan["run"]
+
+
+def test_publish_builds_the_desk_brief_and_persists_the_ledger():
+    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+    trending_idx = text.index("radar trending scan")
+    brief_idx = text.index("radar desk brief")
+    export_idx = text.index("radar export")
+    assert trending_idx < brief_idx < export_idx
+    assert "data/calls-ledger.jsonl" in text
+    assert "data/briefs/" in text
