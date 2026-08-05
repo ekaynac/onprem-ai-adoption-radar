@@ -256,3 +256,15 @@ def test_publish_builds_the_desk_brief_and_persists_the_ledger():
     assert trending_idx < brief_idx < resolve_idx < export_idx
     assert "data/calls-ledger.jsonl" in text
     assert "data/briefs/" in text
+
+
+def test_publish_delivers_stack_alerts_after_scoring():
+    text = _publish_workflow()
+    resolve_idx = text.index("radar desk auto-resolve")
+    alerts_idx = text.index("radar alerts notify")
+    export_idx = text.index("radar export")
+    assert resolve_idx < alerts_idx < export_idx
+    # Exactly-once delivery state must survive CI runs; the webhook URL
+    # rides an optional secret (delivery is off unless notify: enables it).
+    assert "data/alerts-delivered.jsonl" in text
+    assert "RADAR_WEBHOOK_URL" in text
