@@ -1,12 +1,33 @@
-# On-Prem Intelligence Command Center
+# On-Prem Intelligence Desk
 
-**A unified, self-hosted decision workspace for infrastructure architects tracking models, serving platforms, hardware, research, and operational readiness.**
+**Ask the question every architect starts with — *"What should I run?"* — and
+get a ranked, fully cited answer: capacity fit, triangulated benchmarks,
+license gate, adoption ring, and cost. Then keep it current with a weekly
+analyst brief whose calls are scored in public, and alerts that stay silent
+unless a change touches *your* stack.**
 
-The command center discovers, evaluates, and republishes on-prem signals every
-two hours, re-evaluates persisted trusted claims weekly, and explains what each
+The Desk discovers, evaluates, and republishes on-prem signals every two
+hours, re-evaluates persisted trusted claims weekly, and explains what each
 change means for an on-prem deployment. Releases move through
 `Detected → Verified → Qualified → Recommended`; unresolved identity,
 provenance, or compatibility conflicts are routed to the review queue.
+
+**The four surfaces:**
+
+- 🎯 **Answer Machine** — the homepage is the question: task + hardware
+  (from bare GPUs to vendor systems like the NVIDIA DGX Spark or a Dell
+  XE9680) in, a cited recommendation out in three interactions.
+- 📰 **The Desk** — a weekly brief with Act / Evaluate / Ignore verdicts
+  produced by documented deterministic rules, every verdict recorded in a
+  public calls ledger and **scored by the same rules** after its
+  observation window (being seen keeping score is the point).
+- 🔔 **Stack profiles & alerts** — describe your estate + running stack;
+  classified news and ring moves are diffed against it. Silence unless it
+  touches you.
+- 🛰️ **Newsroom** — vendor/engine feeds pass an LLM classification with a
+  strict schema (breaking / improvement / informational, affected
+  components); anything failing validation stays raw, never presented as
+  intelligence.
 
 There is no login or multi-role setup. One unrestricted local architect persona
 can keep multiple browser-local workspace profiles, while the exported public
@@ -20,7 +41,7 @@ edition remains strictly read-only and contains no workspace data.
 - 🤖 **Agent-queryable** — a built-in MCP server lets Claude/Codex/any MCP client ask the radar questions mid-task.
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests](https://img.shields.io/badge/tests-1004%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
 ![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -46,15 +67,21 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
   views are elevated into the new shell. Public history downloads and Atom,
   RSS, and JSON feeds are exported with the site.
 
-### Intelligence — restoration in progress
+### Intelligence — shipping
 
 - Canonical release identity, lifecycle transitions, cited claims, source
   health, freshness classes, public snapshots, and the REST contract ship.
-- The two-hour workflow now has one database writer and one Pages deployer.
-  Curated model and research baselines remain visible if a scan has not yet
-  produced a current enriched run.
-- Population, qualification depth, and full React parity are being restored in
-  measured phases; detected data is never presented as verified advice.
+- **Benchmark triangulation** — public leaderboards (Open LLM Leaderboard,
+  Aider polyglot, LiveBench) aggregated per model next to self-reported
+  model-card numbers; gaps beyond threshold are flagged, never averaged away.
+- **Model lineage** — registry/author-declared parents (Tier 1),
+  artifact-declared parents from `adapter_config.json`/`config.json`
+  (Tier 2), and name-fingerprint *suggestions* (Tier 3) that never set
+  ancestry until an operator confirms them with one click.
+- **Hardware platform catalog** — vendor systems (DGX Spark, DGX Station,
+  Dell XE9680, Framework Desktop…) classified by the chips inside them,
+  selectable in the Answer Machine; new platform launches surface through
+  the newsroom's `hardware-launch` lane for human curation.
 
 ### Planner — CLI and MCP
 
@@ -166,6 +193,13 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 | `radar research show <id>` | One technique: score breakdown, papers, implementations, ring history. |
 | `radar research track-record` | Paper→radar lag per technique (median + per-row; predictive hit-rate accrues with history). |
 | `radar trending scan` | Sweep GitHub for trending/new repos (two lanes) and append to the observation log. |
+| `radar news scan` | Sweep the newsroom feeds (engine/vendor blogs, HN Algolia) into the append-only news store. |
+| `radar news classify` | Classify news via Claude (API key or the local `claude` CLI); schema failures stay off product surfaces. |
+| `radar desk brief` | Build this week's analyst brief and record its new calls (idempotent per week). |
+| `radar desk auto-resolve` | Score open calls by the documented deterministic rules once their windows elapse. |
+| `radar desk resolve <id> --outcome …` | Manually resolve a call when human judgment applies. |
+| `radar models benchmarks scan` | Sweep public leaderboards into the triangulated benchmark store. |
+| `radar intelligence-lineage-backfill` | Backfill lineage edges (budgeted: `--fetch-limit/--parent-limit/--max-minutes`) and infer name-fingerprint suggestions. |
 | `radar trending list [--lane L] [--new]` | List trending repos with star velocity + NEW badges from the observation log. |
 | `radar trending promote [--limit N] [--dry-run]` | Auto-add sustained-momentum strict-lane repos (all gates passed) into `config/seed-sources.yaml`, tagged `auto-added`. |
 | `radar digest generate [--base-url URL]` | Build the weekly digest page + Mega-branded social cards + Atom/RSS newsletter feeds; append the digest log and fire the webhook. |
@@ -228,17 +262,24 @@ Expose the radar to AI clients so they can query it directly:
 }
 ```
 
-Tools include `list_recommendations`, `try_this_week`, `get_project` (with
-history), `list_tracked_projects`, `compare`, `sandbox_plan`, `plan_capacity`,
-`max_workload`, and `compare_devices`.
+Flagship tools: `recommend` (What should I run? — ranked, cited candidates),
+`whats_new` (What changed that touches THIS stack? — silence otherwise),
+`benchmarks` (triangulated per-source table with flagged self-reported gaps),
+`plan_capacity` / `max_workload` / `compare_devices`, plus 30+ more:
+`list_recommendations`, `get_project`, `list_tracked_projects`, `compare`,
+`sandbox_plan`, `search_intelligence`, `can_run`, `fit_report`, and the
+technique/trending/source-health query set.
 
 ## Dashboard
 
 `radar serve` exposes the local command center. The public static edition ships:
 
-- `/overview` — release priority, recommended actions, freshness, and trust
-- `/catalog`, `/projects`, `/platforms`, `/hardware`, `/research` — public catalogs and detail routes
-- `/compare` — side-by-side public decisions
+- `/` — the Answer Machine: task + hardware → a cited recommendation
+- `/desk` — the weekly brief with verdicts, the calls ledger, and the public track record
+- `/newsroom` — classified change intelligence with the raw firehose one filter away
+- `/workspaces` — the stack-profile demo: alerts diffed against a reference estate
+- `/advisor`, `/compare`, `/planner` — decision tools over the same engines
+- Evidence appendix: `/catalog`, `/releases`, `/projects`, `/trending`, `/platforms`, `/hardware`, `/research`, `/overview`
 - `/operations` and `/integrations` — source health, history downloads, feeds, API, and MCP guidance
 
 Private workspace, mutation, review, and planner routes are not exposed by the
@@ -344,7 +385,7 @@ docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-resea
 ## Development
 
 ```bash
-uv run pytest --cov    # 1003 tests, coverage floor 80% (currently ~94%)
+uv run pytest --cov    # coverage floor 80% enforced in CI
 uv run ruff check src tests
 uv run mypy
 ```
