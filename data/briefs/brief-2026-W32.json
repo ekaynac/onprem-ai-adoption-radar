@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-05T07:20:14.843002+00:00",
+ "generated_at": "2026-08-05T07:46:12.512629+00:00",
  "window_days": 7,
  "items": [
   {
@@ -411,7 +411,7 @@
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +773.5 stars/day (2182 total)",
+   "what_happened": "New repo at +777.5 stars/day (2190 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +333.5 stars/day (1855 total)",
+   "what_happened": "New repo at +336.5 stars/day (1861 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W32:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +90 stars/day (301 total)",
+   "what_happened": "New repo at +90.5 stars/day (302 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -476,7 +476,7 @@
    "id": "call:brief-2026-W32:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +33 stars/day (269 total)",
+   "what_happened": "New repo at +33.5 stars/day (270 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -510,11 +510,24 @@
     "https://github.com/finna/Finn-loop"
    ],
    "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:news:flowise-is-shutting-down",
+   "section": "news",
+   "subject": "Flowise Is Shutting Down",
+   "what_happened": "Flowise, the self-hostable low-code LLM app builder often deployed in front of local vLLM/Ollama endpoints, announced it is shutting down. Operators running Flowise on-prem should plan migration to an alternative orchestration layer and expect no further updates or security patches.",
+   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on flowise",
+   "verdict": "evaluate",
+   "rationale": "Assess exposure before the next upgrade window",
+   "receipts": [
+    "https://flowiseai.com/sunset"
+   ],
+   "observed_at": "2026-08-05T00:02:40+00:00"
   }
  ],
  "verdict_counts": {
   "act": 24,
-  "evaluate": 9,
+  "evaluate": 10,
   "ignore": 6
  },
  "spotlight": {
