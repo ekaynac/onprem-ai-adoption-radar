@@ -249,7 +249,10 @@ def test_publish_builds_the_desk_brief_and_persists_the_ledger():
     text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
     trending_idx = text.index("radar trending scan")
     brief_idx = text.index("radar desk brief")
+    resolve_idx = text.index("radar desk auto-resolve")
     export_idx = text.index("radar export")
-    assert trending_idx < brief_idx < export_idx
+    # Scoring runs right after the brief so the exported track record
+    # reflects every call whose window elapsed.
+    assert trending_idx < brief_idx < resolve_idx < export_idx
     assert "data/calls-ledger.jsonl" in text
     assert "data/briefs/" in text

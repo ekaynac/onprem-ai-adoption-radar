@@ -245,6 +245,40 @@ def desk_brief(root: Path = typer.Option(Path("."), help="Project root.")) -> No
     )
 
 
+@desk_app.command("auto-resolve")
+def desk_auto_resolve(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Score open calls by the documented deterministic rules (v1).
+
+    Ring-move calls confirm/fail after a 14-day hold window against
+    subsequent ring history; other calls expire at 28 days. Calls
+    younger than their window stay open — nothing is scored early.
+    """
+    from datetime import UTC, datetime
+
+    from radar.reports.call_resolution import auto_resolve_calls
+    from radar.storage.calls_ledger import (
+        append_call_records,
+        fold_calls,
+        load_call_records,
+    )
+
+    ledger_path = root / "data" / "calls-ledger.jsonl"
+    states = fold_calls(load_call_records(ledger_path))
+    now = datetime.now(UTC)
+    resolutions = auto_resolve_calls(root, states, now)
+    append_call_records(ledger_path, resolutions)
+    outcomes: dict[str, int] = {}
+    for record in resolutions:
+        outcomes[record.outcome or "?"] = outcomes.get(record.outcome or "?", 0) + 1
+    open_count = sum(1 for state in states if state.status == "open")
+    console.print(
+        f"Auto-resolved {len(resolutions)} call(s) {outcomes or ''} — "
+        f"{open_count - len(resolutions)} still open (inside their windows)"
+    )
+
+
 @desk_app.command("resolve")
 def desk_resolve(
     call_id: str = typer.Argument(..., help="Call id from the ledger."),
