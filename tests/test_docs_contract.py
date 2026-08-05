@@ -18,13 +18,18 @@ def test_readme_matches_shipping_cadence_and_current_source_count() -> None:
     assert "a daily github action scans" not in readme.casefold()
 
 
-def test_readme_separates_shipping_restoration_and_planner_surfaces() -> None:
+def test_readme_tells_the_shipped_desk_story() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
     assert "### Radar — shipping" in readme
-    assert "### Intelligence — restoration in progress" in readme
+    assert "### Intelligence — shipping" in readme
     assert "### Planner — CLI and MCP" in readme
-    assert "web planner arrives in Phase 3" in readme
+    # The restoration era is over; the README must not resurrect it.
+    assert "restoration in progress" not in readme.casefold()
+    assert "web planner arrives in phase 3" not in readme.casefold()
+    # The v3 surfaces are the story.
+    assert "Answer Machine" in readme
+    assert "calls ledger" in readme.casefold()
 
 
 def test_readme_describes_current_verification_behavior_without_refetch_claims() -> None:

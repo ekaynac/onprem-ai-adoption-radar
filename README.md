@@ -89,8 +89,9 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
   `radar capacity max`, and the MCP tools `plan_capacity`, `max_workload`, and
   `compare_devices`.
 - Every answer exposes assumptions, memory/throughput constraints, and
-  electricity-only cost boundaries. The web planner arrives in Phase 3; the
-  public static product does not claim it today.
+  electricity-only cost boundaries. The web planner ships at `/planner`
+  (a precomputed fit grid in the static edition, live recomputation
+  locally), and the Answer Machine reuses the same engines.
 
 ### Detailed radar capabilities
 
