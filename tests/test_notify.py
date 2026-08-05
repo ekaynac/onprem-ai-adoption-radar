@@ -219,3 +219,74 @@ def test_notify_format_validator_accepts_teams_only_known():
     assert NotifyConfig(format="teams").format == "teams"
     with pytest.raises(ValueError):
         NotifyConfig(format="msteams")
+
+
+def test_rich_teams_alert_card_links_and_button():
+    """Bare URLs aren't clickable in Teams cards — markdown + button are."""
+    import asyncio
+
+    from radar.models import NotifyConfig
+    from radar.notify.alert_delivery import (
+        build_alert_teams_message,
+        send_alert_notification,
+    )
+
+    base = "https://ekaynac.github.io/onprem-ai-adoption-radar"
+    ring = {
+        "id": "alert:ring:deepseek-r1:2026-08-04T17:00:00Z",
+        "verdict": "evaluate",
+        "subject": "deepseek-r1",
+        "what_happened": "Ring watch → pilot (promoted)",
+        "matched_components": ["deepseek-r1"],
+        "event_type": "ring-move",
+        "receipts": ["data/model-history.jsonl"],
+        "observed_at": "2026-08-04T17:00:00Z",
+    }
+    news = {
+        "id": "alert:news:1",
+        "verdict": "act",
+        "subject": "vLLM drops V0",
+        "what_happened": "migrate",
+        "matched_components": ["vllm"],
+        "event_type": "breaking-change",
+        "receipts": ["https://blog.vllm.ai/v0-removal"],
+        "observed_at": "2026-08-04T09:00:00Z",
+    }
+
+    message = build_alert_teams_message([ring, news], "Demo", base)
+    card = message["attachments"][0]["content"]
+    text = card["body"][0]["text"]
+    assert f"[details ↗]({base}/#/catalog/deepseek-r1)" in text
+    assert "[details ↗](https://blog.vllm.ai/v0-removal)" in text
+    assert card["actions"] == [
+        {
+            "type": "Action.OpenUrl",
+            "title": "Open radar feed",
+            "url": f"{base}/#/workspaces",
+        }
+    ]
+    # Without a base URL: no button, news keeps its receipt link.
+    bare = build_alert_teams_message([ring, news], "Demo")
+    assert "actions" not in bare["attachments"][0]["content"]
+    assert "data/model-history.jsonl" not in str(bare)
+
+    class _Resp:
+        def raise_for_status(self):
+            return None
+
+    class _Client:
+        def __init__(self):
+            self.bodies = []
+
+        async def post(self, url, json=None):
+            self.bodies.append(json)
+            return _Resp()
+
+    teams = NotifyConfig(
+        enabled=True, webhook_url="https://hooks.example/x", format="teams"
+    )
+    client = _Client()
+    assert asyncio.run(
+        send_alert_notification(teams, [ring], "Demo", client, base)
+    )
+    assert client.bodies[0]["attachments"][0]["content"]["actions"]
