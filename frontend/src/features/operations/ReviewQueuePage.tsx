@@ -23,6 +23,21 @@ type LineageSuggestion = {
 };
 
 
+// The API already orders by confidence desc; grouping by relation keeps
+// kindred suffix classes (quantized, converted, …) together for triage.
+function groupSuggestions(
+  suggestions: LineageSuggestion[],
+): Array<[string, LineageSuggestion[]]> {
+  const groups = new Map<string, LineageSuggestion[]>();
+  for (const suggestion of suggestions) {
+    const group = groups.get(suggestion.relation) ?? [];
+    group.push(suggestion);
+    groups.set(suggestion.relation, group);
+  }
+  return [...groups.entries()];
+}
+
+
 export function ReviewQueuePage() {
   const queryClient = useQueryClient();
   const reviews = useQuery({
@@ -135,53 +150,90 @@ export function ReviewQueuePage() {
             <p className="eyebrow">Lineage suggestions</p>
             <h2 id="suggestions-title">
               Inferred parents awaiting confirmation
+              {(suggestions.data ?? []).length > 0 &&
+                ` · ${(suggestions.data ?? []).length} open`}
             </h2>
           </div>
         </div>
         <p className="claim-reason">
           Name-fingerprint inferences never set ancestry on their own —
           accepting one promotes it to confirmed lineage (roots and
-          grouping follow); rejecting deletes the suggestion.
+          grouping follow); rejecting deletes the suggestion. Grouped by
+          relation, strongest confidence first.
         </p>
-        <div className="review-list">
-          {(suggestions.data ?? []).map((suggestion) => (
-            <article className="panel review-card" key={suggestion.id}>
-              <div>
-                <p className="eyebrow">
-                  {suggestion.relation} · confidence {suggestion.confidence}
-                </p>
-                <h2>
-                  {suggestion.child_release_id} →{" "}
-                  {suggestion.parent_external_ref.replace(/^hf:/, "")}
-                </h2>
+        {groupSuggestions(suggestions.data ?? []).map(
+          ([relation, group]) => (
+            <div key={relation}>
+              <p className="eyebrow">
+                {relation} · {group.length} suggestion
+                {group.length === 1 ? "" : "s"}
+              </p>
+              <div className="review-list">
+                {group.map((suggestion) => {
+                  const parentRepo = suggestion.parent_external_ref.replace(
+                    /^hf:/,
+                    "",
+                  );
+                  return (
+                    <article
+                      className="panel review-card"
+                      key={suggestion.id}
+                    >
+                      <div>
+                        <p className="eyebrow">
+                          {suggestion.relation} · confidence{" "}
+                          {suggestion.confidence}
+                        </p>
+                        <h2>
+                          {suggestion.child_release_id} → {parentRepo}
+                        </h2>
+                        {suggestion.parent_external_ref.startsWith("hf:") && (
+                          <p className="claim-meta">
+                            <a
+                              href={`https://huggingface.co/${parentRepo}`}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              Verify parent on Hugging Face ↗
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                      <div className="button-row">
+                        <button
+                          className="primary-button"
+                          disabled={decide.isPending}
+                          onClick={() =>
+                            decide.mutate({ suggestion, action: "accept" })
+                          }
+                          type="button"
+                        >
+                          Confirm parent
+                        </button>
+                        <button
+                          className="secondary-button"
+                          disabled={decide.isPending}
+                          onClick={() =>
+                            decide.mutate({ suggestion, action: "reject" })
+                          }
+                          type="button"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
-              <div className="button-row">
-                <button
-                  className="primary-button"
-                  disabled={decide.isPending}
-                  onClick={() => decide.mutate({ suggestion, action: "accept" })}
-                  type="button"
-                >
-                  Confirm parent
-                </button>
-                <button
-                  className="secondary-button"
-                  disabled={decide.isPending}
-                  onClick={() => decide.mutate({ suggestion, action: "reject" })}
-                  type="button"
-                >
-                  Reject
-                </button>
-              </div>
-            </article>
-          ))}
-          {!suggestions.isLoading && !(suggestions.data ?? []).length && (
-            <div className="empty-state compact">
-              <strong>No pending suggestions</strong>
-              <span>New inferences arrive with the lineage backfill.</span>
             </div>
-          )}
-        </div>
+          ),
+        )}
+        {!suggestions.isLoading && !(suggestions.data ?? []).length && (
+          <div className="empty-state compact">
+            <strong>No pending suggestions</strong>
+            <span>New inferences arrive with the lineage backfill.</span>
+          </div>
+        )}
       </section>
     </section>
   );

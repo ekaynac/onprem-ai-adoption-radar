@@ -593,9 +593,22 @@ def reject_suggestion(repository: Any, edge_id: str) -> None:
 
 
 def list_suggestions(repository: Any) -> list[LineageEdge]:
-    """All stored sub-threshold (inferred, unconfirmed) edges."""
-    return [
+    """All stored sub-threshold (inferred, unconfirmed) edges.
+
+    Triage order: strongest confidence first, then relation and child id,
+    so an operator working top-down always sees the likeliest-correct
+    suggestions (and kindred suffix classes) together.
+    """
+    suggestions = [
         edge
         for edge in repository.list_all_lineage_edges()
         if not edge.declared and edge.confidence < AUTO_ACCEPT_CONFIDENCE
     ]
+    return sorted(
+        suggestions,
+        key=lambda edge: (
+            -edge.confidence,
+            edge.relation.value,
+            edge.child_release_id,
+        ),
+    )

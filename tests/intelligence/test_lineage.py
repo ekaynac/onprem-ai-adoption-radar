@@ -406,3 +406,66 @@ def test_suggestion_accept_promotes_and_reroots(tmp_path):
     assert repository.get_lineage_edge(other.id) is None
     with pytest.raises(SuggestionError):
         reject_suggestion(repository, other.id)
+
+
+def test_list_suggestions_orders_for_triage(tmp_path):
+    """Strongest confidence first, then relation, then child id."""
+    from radar.intelligence.contracts import (
+        EvidenceStrength,
+        LifecycleState,
+        LineageRelation,
+        ModelCategory,
+        Release,
+        ReleaseLane,
+    )
+    from radar.intelligence.lineage import build_inferred_edge, list_suggestions
+
+    from .lifecycle_helpers import lifecycle_repository
+
+    repository = lifecycle_repository(tmp_path)
+    now = datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+    for release_id in ("release:a", "release:b", "release:c"):
+        repository.upsert_release(
+            Release(
+                id=release_id,
+                family_id="family:moonshot-ai:kimi",
+                publisher_id="publisher:moonshot-ai",
+                name=release_id,
+                category=ModelCategory.TEXT_REASONING,
+                lane=ReleaseLane.DEPLOYABLE,
+                lifecycle=LifecycleState.DETECTED,
+                first_observed_at=now,
+                discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+            )
+        )
+    quant_b = build_inferred_edge(
+        "release:b",
+        "quantco/Model-B-GGUF",
+        "acme/Model-B",
+        LineageRelation.QUANTIZED,
+        resolve_parent=lambda repo: None,
+        observed_at=now,
+    )
+    quant_a = build_inferred_edge(
+        "release:a",
+        "quantco/Model-A-AWQ",
+        "acme/Model-A",
+        LineageRelation.QUANTIZED,
+        resolve_parent=lambda repo: None,
+        observed_at=now,
+    )
+    converted_c = build_inferred_edge(
+        "release:c",
+        "mlxco/Model-C-MLX",
+        "acme/Model-C",
+        LineageRelation.CONVERTED,
+        resolve_parent=lambda repo: None,
+        observed_at=now,
+    )
+    for edge in (quant_b, converted_c, quant_a):
+        repository.upsert_lineage_edge(edge)
+
+    ordered = list_suggestions(repository)
+
+    # Same confidence (0.5): relation alphabetical, then child id.
+    assert [e.id for e in ordered] == [converted_c.id, quant_a.id, quant_b.id]
