@@ -42,6 +42,8 @@ def test_publish_checkpoints_discovery_and_verified_state_before_export():
     export_idx = text.index("radar export")
 
     assert discovery_idx < lineage_idx < discovery_checkpoint_idx
+    # Rate-limited HF days must not stall publish for hours (2026-08-04/05).
+    assert "--max-minutes 20" in text
     assert discovery_idx < discovery_checkpoint_idx < verify_new_idx
     assert verify_new_idx < verified_checkpoint_idx < export_idx
     assert text.count("gh release upload radar-state") >= 2

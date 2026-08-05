@@ -430,6 +430,15 @@ def intelligence_lineage_backfill(
             "(-1 = same as --fetch-limit; 0 = skip parent registration)."
         ),
     ),
+    max_minutes: float = typer.Option(
+        0.0,
+        "--max-minutes",
+        help=(
+            "Wall-clock budget for the network phases (0 = unlimited). On "
+            "rate-limited days the run stops fetching cleanly at the "
+            "deadline; later runs finish the tail."
+        ),
+    ),
 ) -> None:
     """Backfill model lineage edges and resolve root releases."""
     import asyncio
@@ -444,6 +453,7 @@ def intelligence_lineage_backfill(
             repository,
             fetch_limit=fetch_limit,
             parent_limit=None if parent_limit < 0 else parent_limit,
+            max_seconds=max_minutes * 60 if max_minutes > 0 else None,
         )
     )
     console.print_json(data=report)
