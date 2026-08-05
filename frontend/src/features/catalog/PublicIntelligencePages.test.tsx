@@ -74,6 +74,21 @@ const snapshot = {
       tdp_watts: 700,
       spec_url: "https://nvidia.com/h200",
       datacenter: true,
+      manufacturer: "NVIDIA",
+    },
+    {
+      id: "dgx-spark",
+      name: "NVIDIA DGX Spark",
+      kind: "unified",
+      gpu_count: 1,
+      total_memory_gb: 128,
+      memory_bandwidth_gbs: 273,
+      tdp_watts: 240,
+      spec_url: "https://nvidia.com/dgx-spark",
+      datacenter: false,
+      manufacturer: "NVIDIA",
+      vendor: "NVIDIA",
+      chip: "gb10-128gb",
     },
   ],
   research: [
@@ -180,6 +195,22 @@ test("renders hardware specifications instead of JSON records", async () => {
     "href",
     "/hardware/h200",
   );
+});
+
+
+test("groups vendor systems separately and shows the contained chip", async () => {
+  renderPage(<HardwarePage />);
+
+  expect(
+    await screen.findByRole("heading", { name: "Platforms you can buy and rack" }),
+  ).toBeVisible();
+  expect(screen.getByRole("heading", { name: "NVIDIA DGX Spark" })).toBeVisible();
+  expect(screen.getByText("1× gb10-128gb")).toBeVisible();
+  // The bare chip stays in the chips section.
+  expect(
+    screen.getByRole("heading", { name: "What the systems contain" }),
+  ).toBeVisible();
+  expect(screen.getByText("1 system(s) · 1 chip(s)/board(s)")).toBeVisible();
 });
 
 

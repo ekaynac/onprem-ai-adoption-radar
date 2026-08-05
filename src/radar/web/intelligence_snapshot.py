@@ -271,6 +271,12 @@ _PLANNER_DEVICES = (
     "8x-h100-80gb",
     "hgx-h200-8",
     "mi300x-192gb",
+    # Vendor systems (H1): selectable platforms, not just bare chips.
+    "dgx-spark",
+    "dgx-station-gb300",
+    "dell-xe9680-h200",
+    "framework-desktop-395-128gb",
+    "jetson-thor-t5000-128gb",
 )
 _PLANNER_CONTEXT_TOKENS = 4096
 
