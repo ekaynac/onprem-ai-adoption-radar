@@ -162,7 +162,8 @@ jobs:
           uv run radar news classify --root .
           uv run radar desk brief --root .
           uv run radar desk auto-resolve --root .
-          uv run radar alerts notify --root .
+          uv run radar alerts notify --root . \
+            --base-url "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
           enrichment_output="$(uv run radar intelligence-run enrichment --root .)"
           echo "$enrichment_output"
           {

@@ -58,6 +58,11 @@ def alerts_notify(
         "--profile-config",
         help="Stack-profile YAML (defaults to config/stack-profile-demo.yaml).",
     ),
+    base_url: str | None = typer.Option(
+        None,
+        "--base-url",
+        help="Published site URL; adds deep links to the delivered message.",
+    ),
 ) -> None:
     """Push NEW alerts for the configured profile to the notify webhook.
 
@@ -124,7 +129,7 @@ def alerts_notify(
             timeout=notify_config.timeout_seconds
         ) as client:
             return await send_alert_notification(
-                notify_config, new_alerts, profile.name, client
+                notify_config, new_alerts, profile.name, client, base_url
             )
 
     sent = asyncio.run(_run())

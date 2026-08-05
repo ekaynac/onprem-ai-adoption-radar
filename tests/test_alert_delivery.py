@@ -170,7 +170,7 @@ def test_cli_delivers_new_alerts_once(tmp_path, monkeypatch):
     _seed_alertable_root(tmp_path)
     sent_bodies: list[dict] = []
 
-    async def _fake_send(config, alerts, profile_name, client):
+    async def _fake_send(config, alerts, profile_name, client, base_url=None):
         sent_bodies.append({"alerts": alerts, "profile": profile_name})
         return True
 
@@ -232,3 +232,38 @@ def test_annotate_delivery_state_stamps_and_gates(tmp_path):
         {"alerts": [{"id": "alert:a"}]}, tmp_path, "Other"
     )
     assert other["delivery_active"] is False
+
+
+def test_deep_links_ride_alert_messages():
+    from radar.notify.alert_delivery import alert_link, build_alert_payload
+
+    base = "https://ekaynac.github.io/onprem-ai-adoption-radar"
+    ring_alert = {
+        "id": "alert:ring:deepseek-r1:2026-08-04T17:00:00Z",
+        "source": "ring-move",
+        "verdict": "evaluate",
+        "subject": "deepseek-r1",
+        "what_happened": "Ring watch → pilot (promoted) for a model in your stack",
+        "matched_components": ["deepseek-r1"],
+        "event_type": "ring-move",
+        "receipts": ["data/model-history.jsonl"],
+        "observed_at": "2026-08-04T17:00:00Z",
+    }
+    assert alert_link(ring_alert, base) == f"{base}/#/catalog/deepseek-r1"
+    # News alerts keep their article receipt; no synthetic site link.
+    assert alert_link(_ALERT, base) is None
+    assert alert_link(ring_alert, None) is None
+
+    text = build_alert_slack_text([ring_alert, _ALERT], "Demo", base)
+    assert f"{base}/#/catalog/deepseek-r1" in text
+    assert "https://blog.vllm.ai/v0-removal" in text
+    assert f"Full feed with delivery badges: {base}/#/workspaces" in text
+    # Without a base URL the footer and synthetic links stay out.
+    bare = build_alert_slack_text([ring_alert], "Demo")
+    assert "workspaces" not in bare
+    assert "data/model-history.jsonl" not in bare
+
+    payload = build_alert_payload([ring_alert, _ALERT], "Demo", base)
+    assert payload["site"] == f"{base}/#/workspaces"
+    assert payload["alerts"][0]["link"] == f"{base}/#/catalog/deepseek-r1"
+    assert payload["alerts"][1]["link"] is None

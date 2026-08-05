@@ -50,12 +50,27 @@ def annotate_delivery_state(
     return feed
 
 
+def alert_link(alert: dict[str, Any], base_url: str | None) -> str | None:
+    """The radar page that explains this alert, when one exists.
+
+    Ring moves point at the model's catalog page; news alerts already
+    carry the source article in ``receipts``. The static site routes
+    with a HashRouter, hence the ``/#/`` prefix.
+    """
+    if not base_url:
+        return None
+    if alert.get("event_type") == "ring-move":
+        return f"{base_url.rstrip('/')}/#/catalog/{alert['subject']}"
+    return None
+
+
 def build_alert_payload(
     alerts: list[dict[str, Any]],
     profile_name: str,
+    base_url: str | None = None,
 ) -> dict[str, Any]:
     """Structured generic JSON payload for new stack alerts."""
-    return {
+    payload: dict[str, Any] = {
         "kind": "stack-alerts",
         "profile": profile_name,
         "alert_count": len(alerts),
@@ -67,15 +82,20 @@ def build_alert_payload(
                 "matched_components": alert["matched_components"],
                 "receipts": alert["receipts"],
                 "observed_at": alert["observed_at"],
+                "link": alert_link(alert, base_url),
             }
             for alert in alerts
         ],
     }
+    if base_url:
+        payload["site"] = f"{base_url.rstrip('/')}/#/workspaces"
+    return payload
 
 
 def build_alert_slack_text(
     alerts: list[dict[str, Any]],
     profile_name: str,
+    base_url: str | None = None,
 ) -> str:
     """Compact Slack/Discord/Teams-compatible summary."""
     lines = [
@@ -84,10 +104,18 @@ def build_alert_slack_text(
     ]
     for alert in alerts:
         receipt = alert["receipts"][0] if alert["receipts"] else ""
+        link = receipt if receipt.startswith("http") else alert_link(
+            alert, base_url
+        )
         lines.append(
             f"• [{alert['verdict'].upper()}] {alert['subject']} — "
             f"{alert['what_happened']}"
-            + (f" ({receipt})" if receipt.startswith("http") else "")
+            + (f" ({link})" if link else "")
+        )
+    if base_url:
+        lines.append(
+            f"Full feed with delivery badges: "
+            f"{base_url.rstrip('/')}/#/workspaces"
         )
     return "\n".join(lines)
 
@@ -97,6 +125,7 @@ async def send_alert_notification(
     alerts: list[dict[str, Any]],
     profile_name: str,
     client: Any,
+    base_url: str | None = None,
 ) -> bool:
     """POST new alerts if enabled. Never raises (fire-and-forget).
 
@@ -106,10 +135,10 @@ async def send_alert_notification(
         return False
     if config.format in {"slack", "teams"}:
         body: dict[str, Any] = text_body(
-            config, build_alert_slack_text(alerts, profile_name)
+            config, build_alert_slack_text(alerts, profile_name, base_url)
         )
     else:
-        body = build_alert_payload(alerts, profile_name)
+        body = build_alert_payload(alerts, profile_name, base_url)
     try:
         response = await client.post(config.webhook_url, json=body)
         response.raise_for_status()
