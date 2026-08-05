@@ -357,3 +357,119 @@ def test_cli_brief_is_idempotent_and_resolve_keeps_score(tmp_path) -> None:
     record = track_record(states)
     assert record["confirmed"] == 1
     assert record["hit_rate_pct"] == 100
+
+
+def test_auto_resolution_scores_only_after_windows(tmp_path) -> None:
+    """Rules v1: ring calls confirm/fail after the 14-day hold; other
+    calls expire at 28 days; nothing is scored early."""
+    import json as json_module
+
+    from radar.reports.call_resolution import auto_resolve_calls
+    from radar.storage.calls_ledger import CallState
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    history = [
+        {"model_id": "held-model", "family": "F", "change_type": "promoted",
+         "ring": "adopt", "previous_ring": "pilot", "run_id": "r1",
+         "observed_at": "2026-07-20T08:00:00Z", "reasons": ["x"]},
+        {"model_id": "dropped-model", "family": "F", "change_type": "promoted",
+         "ring": "adopt", "previous_ring": "pilot", "run_id": "r1",
+         "observed_at": "2026-07-20T08:00:00Z", "reasons": ["x"]},
+        {"model_id": "dropped-model", "family": "F", "change_type": "demoted",
+         "ring": "watch", "previous_ring": "adopt", "run_id": "r2",
+         "observed_at": "2026-07-28T08:00:00Z", "reasons": ["x"]},
+        {"model_id": "risen-model", "family": "F", "change_type": "promoted",
+         "ring": "pilot", "previous_ring": "watch", "run_id": "r1",
+         "observed_at": "2026-07-20T08:00:00Z", "reasons": ["x"]},
+        {"model_id": "risen-model", "family": "F", "change_type": "promoted",
+         "ring": "adopt", "previous_ring": "pilot", "run_id": "r2",
+         "observed_at": "2026-07-30T08:00:00Z", "reasons": ["x"]},
+    ]
+    (tmp_path / "data" / "model-history.jsonl").write_text(
+        "\n".join(json_module.dumps(row) for row in history) + "\n"
+    )
+    made_old = datetime(2026, 7, 20, 9, 0, tzinfo=UTC)
+    made_fresh = datetime(2026, 8, 3, 9, 0, tzinfo=UTC)
+
+    def _call(call_id: str, subject: str, made_at: datetime) -> CallState:
+        return CallState(
+            call_id=call_id,
+            brief_id="brief-2026-W30",
+            subject=subject,
+            verdict="act",
+            rationale="r",
+            made_at=made_at,
+        )
+
+    calls = [
+        _call("call:brief-2026-W30:ring-moves:held-model", "held-model", made_old),
+        _call("call:brief-2026-W30:ring-moves:dropped-model", "dropped-model", made_old),
+        _call("call:brief-2026-W30:ring-moves:risen-model", "risen-model", made_old),
+        _call("call:brief-2026-W32:ring-moves:fresh-model", "held-model", made_fresh),
+        _call("call:brief-2026-W28:benchmark-moves:old-bench", "m · mmlu", datetime(2026, 7, 1, tzinfo=UTC)),
+        _call("call:brief-2026-W32:new-repos:fresh-repo", "acme/x", made_fresh),
+    ]
+
+    resolutions = auto_resolve_calls(tmp_path, calls, NOW)
+
+    by_id = {record.call_id: record for record in resolutions}
+    assert by_id["call:brief-2026-W30:ring-moves:held-model"].outcome == "confirmed"
+    assert by_id["call:brief-2026-W30:ring-moves:dropped-model"].outcome == "wrong"
+    # Moving HIGHER than the call-time ring confirms the call.
+    assert by_id["call:brief-2026-W30:ring-moves:risen-model"].outcome == "confirmed"
+    assert by_id["call:brief-2026-W28:benchmark-moves:old-bench"].outcome == "expired"
+    # Fresh calls stay open — nothing is scored early.
+    assert "call:brief-2026-W32:ring-moves:fresh-model" not in by_id
+    assert "call:brief-2026-W32:new-repos:fresh-repo" not in by_id
+    for record in resolutions:
+        assert record.note and "rules v1" in record.note
+
+
+def test_cli_auto_resolve_appends_and_is_idempotent(tmp_path) -> None:
+    import json as json_module
+
+    from typer.testing import CliRunner
+
+    from radar.cli import app
+    from radar.storage.calls_ledger import (
+        CallRecord,
+        append_call_records,
+        fold_calls,
+        load_call_records,
+    )
+
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data" / "model-history.jsonl").write_text(
+        json_module.dumps(
+            {"model_id": "held-model", "family": "F", "change_type": "promoted",
+             "ring": "adopt", "previous_ring": "pilot", "run_id": "r1",
+             "observed_at": "2026-07-01T08:00:00Z", "reasons": ["x"]}
+        )
+        + "\n"
+    )
+    append_call_records(
+        tmp_path / "data" / "calls-ledger.jsonl",
+        [
+            CallRecord(
+                type="made",
+                call_id="call:brief-2026-W27:ring-moves:held-model",
+                recorded_at=datetime(2026, 7, 1, 9, 0, tzinfo=UTC),
+                brief_id="brief-2026-W27",
+                subject="held-model",
+                verdict="act",
+                rationale="promotion",
+            )
+        ],
+    )
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["desk", "auto-resolve", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    states = fold_calls(load_call_records(tmp_path / "data" / "calls-ledger.jsonl"))
+    assert states[0].status == "confirmed"
+
+    # Re-run: already resolved, nothing appended.
+    before = len(load_call_records(tmp_path / "data" / "calls-ledger.jsonl"))
+    result = runner.invoke(app, ["desk", "auto-resolve", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert len(load_call_records(tmp_path / "data" / "calls-ledger.jsonl")) == before
