@@ -159,9 +159,16 @@ class _LineageContext:
         by_child: dict[str, list[Any]] = {}
         for edge in lister():
             by_child.setdefault(edge.child_release_id, []).append(edge)
+        from radar.intelligence.lineage import AUTO_ACCEPT_CONFIDENCE
+
         for child_id, edges in by_child.items():
+            accepted = [
+                edge
+                for edge in edges
+                if edge.confidence >= AUTO_ACCEPT_CONFIDENCE
+            ]
             primary = max(
-                edges,
+                accepted or edges,
                 key=lambda edge: (
                     edge.confidence,
                     edge.parent_release_id or "",
@@ -172,8 +179,11 @@ class _LineageContext:
                 "base_release": primary.parent_release_id,
                 "relation": primary.relation.value,
                 "root_release": primary.root_release_id,
+                # Tier-3 name fingerprints surface as suggestions, never
+                # as confirmed ancestry.
+                "inferred": primary.confidence < AUTO_ACCEPT_CONFIDENCE,
             }
-            for edge in edges:
+            for edge in accepted:
                 if edge.parent_release_id is not None:
                     context.children_count[edge.parent_release_id] = (
                         context.children_count.get(edge.parent_release_id, 0)
