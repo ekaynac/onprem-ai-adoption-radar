@@ -1031,6 +1031,15 @@ class SqlAlchemyIntelligenceRepository:
             row = session.get(LineageEdgeRow, edge_id)
             return _lineage_from_row(row) if row is not None else None
 
+    def delete_lineage_edge(self, edge_id: str) -> bool:
+        """Remove one edge — only meaningful for rejected suggestions."""
+        with self.database.session() as session:
+            row = session.get(LineageEdgeRow, edge_id)
+            if row is None:
+                return False
+            session.delete(row)
+            return True
+
     def list_lineage_for_child(
         self,
         child_release_id: str,

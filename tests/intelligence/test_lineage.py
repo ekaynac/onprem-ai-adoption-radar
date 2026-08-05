@@ -330,3 +330,79 @@ def test_undeclared_inferred_edges_never_set_roots():
     # The suggestion exists as data, but ancestry is not auto-accepted.
     assert result.roots["release:child"] == "release:child"
     assert result.findings == []
+
+
+def test_suggestion_accept_promotes_and_reroots(tmp_path):
+    from datetime import UTC, datetime
+
+    import pytest
+
+    from radar.intelligence.contracts import (
+        EvidenceStrength,
+        LifecycleState,
+        LineageRelation,
+        ModelCategory,
+        Release,
+        ReleaseLane,
+    )
+    from radar.intelligence.lineage import (
+        SuggestionError,
+        accept_suggestion,
+        build_inferred_edge,
+        list_suggestions,
+        reject_suggestion,
+    )
+
+    from .lifecycle_helpers import lifecycle_repository
+
+    repository = lifecycle_repository(tmp_path)
+    now = datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+    for release_id in ("release:child", "release:child2"):
+        repository.upsert_release(
+            Release(
+                id=release_id,
+                family_id="family:moonshot-ai:kimi",
+                publisher_id="publisher:moonshot-ai",
+                name=release_id,
+                category=ModelCategory.TEXT_REASONING,
+                lane=ReleaseLane.DEPLOYABLE,
+                lifecycle=LifecycleState.DETECTED,
+                first_observed_at=now,
+                discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+            )
+        )
+    edge = build_inferred_edge(
+        "release:child",
+        "quantco/Model-X-GGUF",
+        "acme/Model-X",
+        LineageRelation.QUANTIZED,
+        resolve_parent=lambda repo: None,
+        observed_at=now,
+    )
+    repository.upsert_lineage_edge(edge)
+    assert [e.id for e in list_suggestions(repository)] == [edge.id]
+
+    accepted = accept_suggestion(repository, edge.id, now)
+
+    assert accepted.declared is True
+    assert accepted.confidence == 0.9
+    assert accepted.evidence_ids  # the confirmation act is the evidence
+    assert list_suggestions(repository) == []
+    # Accepting again fails: it is no longer a suggestion.
+    with pytest.raises(SuggestionError):
+        accept_suggestion(repository, edge.id, now)
+
+    # Reject path: a second suggestion disappears entirely.
+    other = build_inferred_edge(
+        "release:child2",
+        "q/Model-Y-AWQ",
+        "acme/Model-Y",
+        LineageRelation.QUANTIZED,
+        resolve_parent=lambda repo: None,
+        observed_at=now,
+    )
+    repository.upsert_lineage_edge(other)
+    reject_suggestion(repository, other.id)
+    assert repository.get_lineage_edge(other.id) is None
+    with pytest.raises(SuggestionError):
+        reject_suggestion(repository, other.id)

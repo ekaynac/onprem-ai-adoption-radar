@@ -522,3 +522,80 @@ class LineageService:
                 now,
             )
         return result
+
+
+class SuggestionError(ValueError):
+    """An inferred-lineage suggestion cannot be accepted or rejected."""
+
+
+OPERATOR_CONFIRMED_CONFIDENCE = 0.9
+OPERATOR_EXTRACTOR_VERSION = "operator-confirmation-v1"
+
+
+def _require_suggestion(edge: LineageEdge | None, edge_id: str) -> LineageEdge:
+    if edge is None:
+        raise SuggestionError(f"Unknown lineage edge: {edge_id}")
+    if edge.declared or edge.confidence >= AUTO_ACCEPT_CONFIDENCE:
+        raise SuggestionError(
+            f"Edge is not an inferred suggestion: {edge_id}"
+        )
+    return edge
+
+
+def accept_suggestion(
+    repository: Any,
+    edge_id: str,
+    now: datetime,
+) -> LineageEdge:
+    """Promote a Tier-3 suggestion to operator-confirmed ancestry.
+
+    The confirmation itself is the evidence (the operator inspected the
+    repos): an evidence row records the act, the edge becomes declared
+    at operator confidence, and roots re-resolve so grouping follows.
+    """
+    from radar.intelligence.contracts import (
+        EvidenceObservation,
+        EvidenceStrength,
+    )
+
+    edge = _require_suggestion(repository.get_lineage_edge(edge_id), edge_id)
+    digest = hashlib.sha256(edge.id.encode()).hexdigest()[:16]
+    evidence = EvidenceObservation(
+        id=f"evidence:operator:lineage:{digest}",
+        source_url=(
+            "https://huggingface.co/"
+            + edge.parent_external_ref.removeprefix("hf:")
+        ),
+        strength=EvidenceStrength.TRUSTED_REGISTRY,
+        retrieved_at=now,
+        checksum=f"sha256:{digest}",
+        extractor_version=OPERATOR_EXTRACTOR_VERSION,
+    )
+    repository.append_evidence(evidence)
+    accepted = edge.model_copy(
+        update={
+            "declared": True,
+            "confidence": OPERATOR_CONFIRMED_CONFIDENCE,
+            "evidence_ids": [evidence.id],
+            "extractor_version": OPERATOR_EXTRACTOR_VERSION,
+        }
+    )
+    repository.upsert_lineage_edge(accepted)
+    LineageService(repository).sync_roots(now)
+    refreshed = repository.get_lineage_edge(edge_id)
+    return refreshed if refreshed is not None else accepted
+
+
+def reject_suggestion(repository: Any, edge_id: str) -> None:
+    """Delete a Tier-3 suggestion the operator judged wrong."""
+    _require_suggestion(repository.get_lineage_edge(edge_id), edge_id)
+    repository.delete_lineage_edge(edge_id)
+
+
+def list_suggestions(repository: Any) -> list[LineageEdge]:
+    """All stored sub-threshold (inferred, unconfirmed) edges."""
+    return [
+        edge
+        for edge in repository.list_all_lineage_edges()
+        if not edge.declared and edge.confidence < AUTO_ACCEPT_CONFIDENCE
+    ]
