@@ -71,6 +71,7 @@ class MigrationReport:
     history_events_imported: int
     already_present: int
     warnings: tuple[str, ...]
+    volatile_reviews_amnestied: int = 0
 
 
 def _slug(value: str) -> str:
@@ -380,10 +381,19 @@ def import_legacy_state(root: Path, repository) -> MigrationReport:
         root / "data" / "model-history.jsonl", repository
     )
     already_present += history_present
+    # Transitional repair, idempotent per the repository method: drain the
+    # volatile-metric conflict backlog on the unconditional rebuild step
+    # (the qualification hook turned out to lease only once per DAY, so
+    # the amnesty never fired in-window on 2026-08-05).
+    amnesty = getattr(repository, "resolve_volatile_conflict_reviews", None)
+    amnestied = (
+        amnesty(datetime.now(UTC)) if amnesty is not None else 0
+    )
     return MigrationReport(
         models_imported=models_imported,
         platforms_imported=platforms_imported,
         history_events_imported=history_imported,
         already_present=already_present,
         warnings=(),
+        volatile_reviews_amnestied=amnestied,
     )

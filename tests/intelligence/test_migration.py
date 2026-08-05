@@ -311,3 +311,35 @@ def test_reimport_after_seed_edit_appends_content_addressed_evidence(
     assert "evidence:legacy:model-seed:sample-8b" in evidence_ids
     # A third import with the edited seed is also stable.
     import_legacy_state(tmp_path, repository)
+
+
+def test_migrate_amnesties_volatile_conflict_backlog(tmp_path: Path) -> None:
+    """The amnesty rides the unconditional rebuild step: qualification
+    leases only once per day, so hooking it there left the backlog
+    untouched for a whole window (2026-08-05)."""
+    from datetime import UTC, datetime
+
+    from radar.intelligence.contracts import ReviewException
+
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+    repository.open_review_exception(
+        ReviewException(
+            id="review:flood:legacy",
+            subject_id="release:legacy:sample-8b",
+            code="conflicting_authoritative_claims",
+            message="Authoritative evidence conflicts for: downloads, sha",
+            evidence_ids=["evidence:x"],
+            opened_at=datetime(2026, 8, 4, tzinfo=UTC),
+        )
+    )
+
+    report = import_legacy_state(tmp_path, repository)
+
+    assert report.volatile_reviews_amnestied == 1
+    review = repository.get_review_exception("review:flood:legacy")
+    assert review is not None and review.resolved_at is not None
+    # Second rebuild: nothing left to drain.
+    assert import_legacy_state(tmp_path, repository).volatile_reviews_amnestied == 0
