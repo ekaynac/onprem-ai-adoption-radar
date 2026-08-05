@@ -40,26 +40,37 @@ def build_payload(deltas: list[CardDelta], run_id: str) -> dict[str, Any]:
     return {"run_id": run_id, "change_count": len(changes), "changes": changes}
 
 
-def teams_message(text: str) -> dict[str, Any]:
+def teams_message(
+    text: str,
+    actions: list[tuple[str, str]] | None = None,
+) -> dict[str, Any]:
     """The Adaptive Card envelope Teams Workflows webhooks require.
 
     Modern Teams webhooks (Power Automate "when a webhook request is
     received") only render ``attachments`` carrying an Adaptive Card —
-    plain ``{"text": ...}`` posts are dropped silently.
+    plain ``{"text": ...}`` posts are dropped silently. The TextBlock
+    renders a markdown subset (bold, ``[title](url)`` links, ``- ``
+    lists); bare URLs are NOT clickable, so callers should pass
+    markdown links and/or ``actions`` ((title, url) pairs rendered as
+    Action.OpenUrl buttons).
     """
+    content: dict[str, Any] = {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.4",
+        "body": [{"type": "TextBlock", "text": text, "wrap": True}],
+    }
+    if actions:
+        content["actions"] = [
+            {"type": "Action.OpenUrl", "title": title, "url": url}
+            for title, url in actions
+        ]
     return {
         "type": "message",
         "attachments": [
             {
                 "contentType": "application/vnd.microsoft.card.adaptive",
-                "content": {
-                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                    "type": "AdaptiveCard",
-                    "version": "1.4",
-                    "body": [
-                        {"type": "TextBlock", "text": text, "wrap": True}
-                    ],
-                },
+                "content": content,
             }
         ],
     }

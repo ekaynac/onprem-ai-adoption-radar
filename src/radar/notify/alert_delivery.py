@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from radar.models import NotifyConfig
-from radar.notify.webhook import text_body
+from radar.notify.webhook import teams_message, text_body
 from radar.storage.alert_delivery_log import load_delivered_alerts
 
 
@@ -120,6 +120,39 @@ def build_alert_slack_text(
     return "\n".join(lines)
 
 
+def build_alert_teams_message(
+    alerts: list[dict[str, Any]],
+    profile_name: str,
+    base_url: str | None = None,
+) -> dict[str, Any]:
+    """Adaptive Card with clickable per-alert links and a feed button.
+
+    Bare URLs are not clickable inside Teams card TextBlocks, so links
+    ride as markdown ``[details ↗](url)`` and the feed as an
+    Action.OpenUrl button.
+    """
+    lines = [
+        f"**Stack alerts** — {len(alerts)} new for profile "
+        f"“{profile_name}”:"
+    ]
+    for alert in alerts:
+        receipt = alert["receipts"][0] if alert["receipts"] else ""
+        link = receipt if receipt.startswith("http") else alert_link(
+            alert, base_url
+        )
+        lines.append(
+            f"- **[{alert['verdict'].upper()}]** {alert['subject']} — "
+            f"{alert['what_happened']}"
+            + (f" [details ↗]({link})" if link else "")
+        )
+    actions = (
+        [("Open radar feed", f"{base_url.rstrip('/')}/#/workspaces")]
+        if base_url
+        else None
+    )
+    return teams_message("\n\n".join(lines), actions=actions)
+
+
 async def send_alert_notification(
     config: NotifyConfig,
     alerts: list[dict[str, Any]],
@@ -133,8 +166,12 @@ async def send_alert_notification(
     """
     if not config.enabled or not config.webhook_url or not alerts:
         return False
-    if config.format in {"slack", "teams"}:
-        body: dict[str, Any] = text_body(
+    if config.format == "teams":
+        body: dict[str, Any] = build_alert_teams_message(
+            alerts, profile_name, base_url
+        )
+    elif config.format == "slack":
+        body = text_body(
             config, build_alert_slack_text(alerts, profile_name, base_url)
         )
     else:
