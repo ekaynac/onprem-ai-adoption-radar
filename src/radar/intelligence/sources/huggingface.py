@@ -218,6 +218,36 @@ class HuggingFaceAdapter:
                     source_record=self._record_from_response(config_response),
                 )
             )
+        # Tier-2 artifact declaration: adapters name their base in
+        # adapter_config.json. Fetched only when the sibling exists —
+        # one extra GET for adapter repos, none for everything else.
+        # (GGUF header base_model fields are NOT extracted: the HF
+        # ``expand[]=gguf`` payload omits them as of 2026-08-05 and
+        # range-parsing GGUF headers is out of budget; the Tier-3 name
+        # fingerprint covers -GGUF repos instead.)
+        adapter_config: dict[str, Any] = {}
+        if "adapter_config.json" in _sibling_names(metadata):
+            adapter_url = (
+                f"https://huggingface.co/{encoded_repo}"
+                "/resolve/main/adapter_config.json"
+            )
+            adapter_response = await self.client.get(adapter_url)
+            if adapter_response.status_code < 400:
+                try:
+                    adapter_payload = adapter_response.json()
+                except ValueError:
+                    adapter_payload = None
+                if isinstance(adapter_payload, dict):
+                    adapter_config = adapter_payload
+                records.append(
+                    HFEnrichmentRecord(
+                        kind="adapter_config",
+                        source_record=self._record_from_response(
+                            adapter_response
+                        ),
+                    )
+                )
+
         records.extend(
             self._metadata_slices(
                 repo_id,
@@ -263,7 +293,9 @@ class HuggingFaceAdapter:
         return HFEnrichment(
             repo_id=repo_id,
             records=records,
-            claims=_enrichment_claims(metadata, config, api_base_models),
+            claims=_enrichment_claims(
+                metadata, config, api_base_models, adapter_config
+            ),
             artifact_urls=artifact_urls,
         )
 
@@ -523,15 +555,32 @@ def _metadata_claims(metadata: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in values.items() if value is not None}
 
 
+def _artifact_lineage_entries(
+    config: dict[str, Any],
+    adapter_config: dict[str, Any],
+) -> list[tuple[Any, str | None, str]]:
+    """Tier-2: parents the repo's own artifacts declare (normalizer tuples)."""
+    entries: list[tuple[Any, str | None, str]] = []
+    adapter_base = adapter_config.get("base_model_name_or_path")
+    if isinstance(adapter_base, str) and "/" in adapter_base:
+        entries.append((adapter_base, "adapter", "adapter_config"))
+    config_base = config.get("_name_or_path")
+    if isinstance(config_base, str) and "/" in config_base:
+        entries.append((config_base, "base", "config"))
+    return entries
+
+
 def _enrichment_claims(
     metadata: dict[str, Any],
     config: dict[str, Any],
     api_base_models: Any = None,
+    adapter_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     claims = _metadata_claims(metadata)
     lineage = _normalize_lineage(
         _lineage_entries_from_api(api_base_models)
-        + _lineage_entries_from_metadata(metadata),
+        + _lineage_entries_from_metadata(metadata)
+        + _artifact_lineage_entries(config, adapter_config or {}),
         metadata.get("id"),
     )
     if lineage:

@@ -684,8 +684,61 @@ async def test_backfill_deadline_stops_fetching_but_replays_and_syncs(
     assert report["deadline_reached"] == 1
     assert report["fetched"] == 0
     assert report["parents_registered"] == 0
-    # Offline work still completed.
+    # Offline work still completed — including the network-free Tier-3
+    # name inference, which the deadline deliberately does not cap
+    # (the -GGUF release gains its suggestion edge).
     assert report["replayed_edges"] == 1
-    assert report["edges_total"] == 1
+    assert report["inferred_edges"] == 1
+    assert report["edges_total"] == 2
     edges = repo.list_lineage_for_child(derived.id)
     assert edges[0].parent_release_id == base.id
+
+
+@pytest.mark.asyncio
+async def test_backfill_infers_name_parents_without_setting_roots(
+    tmp_path,
+) -> None:
+    """Tier-3: a -GGUF repo with no declared lineage gets a suggestion
+    edge (declared=False, confidence 0.5) that never sets a root."""
+    repo = repository(tmp_path)
+    base = Release(
+        id="release:moonshot-ai:kimi:k3",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Kimi K3",
+        category=ModelCategory.MULTIMODAL,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    gguf = base.model_copy(
+        update={"id": "release:grearl:kimi:k3:gguf", "name": "Kimi K3 GGUF"}
+    )
+    for release in (base, gguf):
+        repo.upsert_release(release)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    evidence = runner._persist_source_record(
+        make_record("https://huggingface.co/api/models/moonshotai/Kimi-K3", b"{}")
+    )
+    runner._append_claim(base.id, "hf_repo", "moonshotai/Kimi-K3", evidence)
+    runner._append_claim(gguf.id, "hf_repo", "grearl/Kimi-K3-GGUF", evidence)
+
+    report = await run_lineage_backfill(
+        tmp_path, repo, fetch_limit=0, clock=lambda: NOW
+    )
+
+    assert report["inferred_edges"] == 1
+    edges = repo.list_lineage_for_child(gguf.id)
+    assert len(edges) == 1
+    assert edges[0].declared is False
+    assert edges[0].confidence == 0.5
+    assert edges[0].parent_release_id == base.id
+    # Suggestion only: the child roots at itself, no review finding.
+    assert edges[0].root_release_id == gguf.id
+    assert report["review_findings"] == 0
+    # Idempotent: a re-run infers nothing new.
+    rerun = await run_lineage_backfill(
+        tmp_path, repo, fetch_limit=0, clock=lambda: NOW
+    )
+    assert rerun["inferred_edges"] == 0

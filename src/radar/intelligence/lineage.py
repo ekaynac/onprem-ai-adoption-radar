@@ -37,11 +37,106 @@ def _lineage_review_id(subject_id: str, code: str) -> str:
     return f"review:lineage:{digest}"
 
 DECLARED_CONFIDENCE = {
+    # Tier-1: registry/author-declared.
     "api": 0.95,
     "tags": 0.9,
     "card": 0.85,
+    # Tier-2: artifact-declared (read from the repo's own files).
+    "adapter_config": 0.8,
+    "config": 0.7,
+    # Tier-3: inferred from naming fingerprints — never auto-accepted
+    # (see resolve_roots: undeclared edges don't participate in roots).
+    "name": 0.5,
 }
 DEFAULT_DECLARED_CONFIDENCE = 0.85
+
+INFERRED_EXTRACTOR_VERSION = "hf-lineage-name-v1"
+
+# Edges below this confidence are suggestions: stored and visible, but
+# they never set roots/grouping until a human confirms the ancestry.
+AUTO_ACCEPT_CONFIDENCE = 0.7
+
+# A card declaring this many or more distinct non-merge parents is an
+# aggregation/evaluation/collection card, not a lineage statement — no
+# edges, no conflict review (the 57-parent audio-model card class).
+LINEAGE_COLLECTION_PARENT_THRESHOLD = 5
+
+# Derivative-artifact suffixes that name the parent when stripped
+# (order matters: longest-ish, checked case-insensitively).
+_NAME_DERIVATIVE_SUFFIXES: tuple[tuple[str, LineageRelation], ...] = (
+    ("-gguf", LineageRelation.QUANTIZED),
+    ("-awq", LineageRelation.QUANTIZED),
+    ("-gptq", LineageRelation.QUANTIZED),
+    ("-exl2", LineageRelation.QUANTIZED),
+    ("-exl3", LineageRelation.QUANTIZED),
+    ("-4bit", LineageRelation.QUANTIZED),
+    ("-8bit", LineageRelation.QUANTIZED),
+    ("-bnb-4bit", LineageRelation.QUANTIZED),
+    ("-fp8", LineageRelation.QUANTIZED),
+    ("-nvfp4", LineageRelation.QUANTIZED),
+    ("-mlx", LineageRelation.CONVERTED),
+    ("-onnx", LineageRelation.CONVERTED),
+)
+
+
+def infer_name_parent(
+    child_repo: str,
+    index_repos: dict[str, str],
+) -> tuple[str, LineageRelation] | None:
+    """Tier-3: infer a parent repo from a derivative-name fingerprint.
+
+    Returns (parent_repo, relation) only when stripping a known artifact
+    suffix yields the *name part* of exactly one indexed repo — ambiguity
+    or zero matches return None. Callers must store the result as an
+    UNDECLARED edge; root resolution ignores those until reviewed.
+    """
+    if "/" not in child_repo:
+        return None
+    _, name = child_repo.split("/", 1)
+    lowered = name.casefold()
+    for suffix, relation in _NAME_DERIVATIVE_SUFFIXES:
+        if not lowered.endswith(suffix):
+            continue
+        stem = lowered[: -len(suffix)].rstrip("-_.")
+        if not stem:
+            return None
+        matches = sorted(
+            {
+                repo
+                for repo_key, repo in index_repos.items()
+                if repo_key.split("/", 1)[-1] == stem
+                and repo.casefold() != child_repo.casefold()
+            }
+        )
+        if len(matches) == 1:
+            return matches[0], relation
+        return None
+    return None
+
+
+def build_inferred_edge(
+    child_release_id: str,
+    child_repo: str,
+    parent_repo: str,
+    relation: LineageRelation,
+    *,
+    resolve_parent: Callable[[str], str | None],
+    observed_at: datetime,
+) -> LineageEdge:
+    """An undeclared (Tier-3) edge: stored as a suggestion, never a root."""
+    parent_ref = parent_external_ref(parent_repo)
+    return LineageEdge(
+        id=edge_id(child_release_id, relation, parent_ref),
+        child_release_id=child_release_id,
+        parent_external_ref=parent_ref,
+        parent_release_id=resolve_parent(parent_repo),
+        relation=relation,
+        declared=False,
+        confidence=DECLARED_CONFIDENCE["name"],
+        evidence_ids=[],
+        extractor_version=INFERRED_EXTRACTOR_VERSION,
+        observed_at=observed_at,
+    )
 
 _RELATIONS_BY_DECLARED = {relation.value: relation for relation in LineageRelation}
 
@@ -82,6 +177,21 @@ def build_edges(
 ) -> list[LineageEdge]:
     """Build declared edges from a ``lineage_declared`` claim value."""
     if not isinstance(declared, list):
+        return []
+    distinct_parents = {
+        entry.get("parent_repo")
+        for entry in declared
+        if isinstance(entry, dict)
+        and isinstance(entry.get("parent_repo"), str)
+    }
+    non_merge = any(
+        isinstance(entry, dict)
+        and relation_from_declared(entry.get("relation"))
+        is not LineageRelation.MERGE
+        for entry in declared
+    )
+    if len(distinct_parents) >= LINEAGE_COLLECTION_PARENT_THRESHOLD and non_merge:
+        # Collection/evaluation card: listing many models is not lineage.
         return []
     edges: dict[str, LineageEdge] = {}
     for entry in declared:
@@ -141,9 +251,17 @@ def resolve_roots(edges: Sequence[LineageEdge]) -> RootResolutionResult:
     - An unresolved parent breaks the chain: root unknown, review opened —
       an unknown stays unknown rather than becoming a wrong ancestor.
     - Cycles root at the child and open a review.
+    - Sub-threshold edges (confidence < AUTO_ACCEPT_CONFIDENCE, i.e. the
+      Tier-3 name fingerprints) never participate: a suggestion is not an
+      accepted ancestry — the child stays its own root until a human
+      confirms the declaration.
     """
     by_child: dict[str, list[LineageEdge]] = {}
+    all_children: set[str] = set()
     for edge in edges:
+        all_children.add(edge.child_release_id)
+        if edge.confidence < AUTO_ACCEPT_CONFIDENCE:
+            continue
         by_child.setdefault(edge.child_release_id, []).append(edge)
 
     roots: dict[str, str | None] = {}
@@ -182,6 +300,12 @@ def resolve_roots(edges: Sequence[LineageEdge]) -> RootResolutionResult:
             ):
                 roots[node] = node
                 return node
+            if len(distinct_parents) >= LINEAGE_COLLECTION_PARENT_THRESHOLD:
+                # Legacy edges from a collection/evaluation card (the guard
+                # in build_edges now stops creating these): not lineage,
+                # not a conflict worth a human — self-root, no finding.
+                roots[node] = node
+                return node
             add_finding(
                 node,
                 REVIEW_CODE_CONFLICT,
@@ -213,6 +337,9 @@ def resolve_roots(edges: Sequence[LineageEdge]) -> RootResolutionResult:
 
     for child in sorted(by_child):
         resolve(child, ())
+    for child in sorted(all_children - set(roots)):
+        # Only suggestion edges: ancestry unconfirmed, child is its own root.
+        roots[child] = child
 
     updated: list[LineageEdge] = []
     for edge in sorted(edges, key=lambda item: item.id):

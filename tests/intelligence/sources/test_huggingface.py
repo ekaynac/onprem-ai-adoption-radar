@@ -331,3 +331,25 @@ async def test_enrichment_survives_unavailable_base_models_expand() -> None:
         }
     ]
     assert "base_models" not in {record.kind for record in enrichment.records}
+
+
+def test_artifact_lineage_entries_extract_tier2_parents() -> None:
+    from radar.intelligence.sources.huggingface import _enrichment_claims
+
+    metadata = {"id": "acme/child-lora"}
+    config = {"_name_or_path": "acme/Base-Model"}
+    adapter_config = {"base_model_name_or_path": "acme/Base-Model"}
+
+    claims = _enrichment_claims(metadata, config, None, adapter_config)
+
+    lineage = claims["lineage_declared"]
+    vias = {entry["via"] for entry in lineage}
+    assert {"adapter_config", "config"} <= vias
+    adapter_entry = next(e for e in lineage if e["via"] == "adapter_config")
+    assert adapter_entry["parent_repo"] == "acme/Base-Model"
+    assert adapter_entry["relation"] == "adapter"
+    # Non-repo _name_or_path values (local paths) are ignored.
+    no_path = _enrichment_claims(
+        {"id": "acme/child"}, {"_name_or_path": "checkpoints"}, None, {}
+    )
+    assert "lineage_declared" not in no_path

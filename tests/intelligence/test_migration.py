@@ -343,3 +343,42 @@ def test_migrate_amnesties_volatile_conflict_backlog(tmp_path: Path) -> None:
     assert review is not None and review.resolved_at is not None
     # Second rebuild: nothing left to drain.
     assert import_legacy_state(tmp_path, repository).volatile_reviews_amnestied == 0
+
+
+def test_migrate_amnesties_collection_card_lineage_reviews(tmp_path: Path) -> None:
+    from datetime import UTC, datetime
+
+    from radar.intelligence.contracts import ReviewException
+
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+    many = ", ".join(f"hf:org/model-{i}" for i in range(6))
+    repository.open_review_exception(
+        ReviewException(
+            id="review:lineage:collection",
+            subject_id="release:provisional:x",
+            code="lineage-conflict",
+            message=f"Conflicting lineage parents declared: {many}",
+            evidence_ids=["evidence:x"],
+            opened_at=datetime(2026, 8, 4, tzinfo=UTC),
+        )
+    )
+    repository.open_review_exception(
+        ReviewException(
+            id="review:lineage:real",
+            subject_id="release:provisional:y",
+            code="lineage-conflict",
+            message="Conflicting lineage parents declared: hf:a/one, hf:b/two",
+            evidence_ids=["evidence:y"],
+            opened_at=datetime(2026, 8, 4, tzinfo=UTC),
+        )
+    )
+
+    import_legacy_state(tmp_path, repository)
+
+    collection = repository.get_review_exception("review:lineage:collection")
+    assert collection is not None and collection.resolved_at is not None
+    real = repository.get_review_exception("review:lineage:real")
+    assert real is not None and real.resolved_at is None

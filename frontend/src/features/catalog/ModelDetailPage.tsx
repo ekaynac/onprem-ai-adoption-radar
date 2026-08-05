@@ -177,10 +177,17 @@ export function ModelDetailPage() {
           <p className="eyebrow">Lineage</p>
           {lineage?.relation && lineage.base_release ? (
             <p className="claim-reason">
+              {lineage.inferred ? "likely " : ""}
               {lineage.relation.replaceAll("_", " ")} of{" "}
               <Link to={`/catalog/${encodeURIComponent(lineage.base_release)}`}>
                 {lineage.base_release.split(":").slice(-2).join(" ")}
               </Link>
+              {lineage.inferred && (
+                <span className="claim-meta">
+                  {" "}
+                  (inferred from the repo name — unconfirmed)
+                </span>
+              )}
             </p>
           ) : (
             <p className="claim-reason">
