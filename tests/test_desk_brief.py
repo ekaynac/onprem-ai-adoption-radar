@@ -206,6 +206,15 @@ def _seed_stores(tmp_path) -> None:
             "published_at": "2026-07-01T09:00:00Z",
             "observed_at": "2026-07-01T10:00:00Z",
         },
+        {
+            "id": "news:hw-launch",
+            "source_id": "hn-vllm",
+            "title": "Dell announces XE9780 with 8x B300",
+            "url": "https://example.com/xe9780",
+            "summary": "New AI server",
+            "published_at": "2026-08-02T09:00:00Z",
+            "observed_at": "2026-08-02T10:00:00Z",
+        },
     ]
     (data / "news-observations.jsonl").write_text(
         "\n".join(json.dumps(row) for row in news_items) + "\n"
@@ -243,6 +252,17 @@ def _seed_stores(tmp_path) -> None:
             "citation": "https://blog.vllm.ai/old",
             "model": "claude-opus-5",
             "classified_at": "2026-07-02T10:00:00Z",
+        },
+        {
+            "news_id": "news:hw-launch",
+            "relevant": True,
+            "event_type": "hardware-launch",
+            "components": ["b300"],
+            "operational_impact": "informational",
+            "summary": "Dell launched an 8x B300 AI server.",
+            "citation": "https://example.com/xe9780",
+            "model": "claude-opus-5",
+            "classified_at": "2026-08-03T10:00:00Z",
         },
     ]
     (data / "news-classified.jsonl").write_text(
@@ -282,6 +302,11 @@ def test_brief_applies_documented_verdict_rules(tmp_path) -> None:
     # Improvements stay newsroom-only; stale breaking news is windowed out.
     assert "vLLM speeds up prefill" not in by_subject
     assert "Ancient breaking change" not in by_subject
+
+    # A hardware launch is a catalog candidate even when informational.
+    launch = by_subject["Dell announces XE9780 with 8x B300"]
+    assert launch["section"] == "hardware"
+    assert launch["verdict"] == "evaluate"
 
     assert brief["verdict_counts"]["act"] == 1
     assert brief["verdict_counts"]["ignore"] == 1

@@ -34,7 +34,10 @@ _SYSTEM_PROMPT = (
     "- relevant: false when the article is noise for on-prem operators "
     "(consumer app news, funding gossip, cloud-only announcements with "
     "no self-hosted angle).\n"
-    "- event_type: the single best fit from the allowed values.\n"
+    "- event_type: the single best fit from the allowed values; use "
+    "'hardware-launch' for new AI systems/accelerators an operator could "
+    "buy and rack (e.g. a new DGX-class box, OEM GPU server, edge AI "
+    "system, or accelerator).\n"
     "- components: concrete affected components, lowercase slugs such "
     "as 'vllm', 'llama.cpp', 'ollama', 'cuda', 'qwen3', at most 6; "
     "empty when relevant is false.\n"
@@ -61,6 +64,7 @@ class NewsClassificationPayload(BaseModel):
         "integration",
         "research",
         "community",
+        "hardware-launch",
         "other",
     ]
     components: list[str]

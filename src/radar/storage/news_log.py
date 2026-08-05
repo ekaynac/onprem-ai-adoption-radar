@@ -34,6 +34,7 @@ NEWS_EVENT_TYPES = (
     "integration",
     "research",
     "community",
+    "hardware-launch",
     "other",
 )
 
@@ -86,6 +87,7 @@ class NewsClassification(BaseModel):
         "integration",
         "research",
         "community",
+        "hardware-launch",
         "other",
     ]
     components: list[str]
