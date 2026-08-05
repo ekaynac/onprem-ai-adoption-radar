@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-05T05:34:34.208475+00:00",
+ "generated_at": "2026-08-05T07:20:14.843002+00:00",
  "window_days": 7,
  "items": [
   {
@@ -411,7 +411,7 @@
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +748.5 stars/day (2132 total)",
+   "what_happened": "New repo at +773.5 stars/day (2182 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +325.5 stars/day (1839 total)",
+   "what_happened": "New repo at +333.5 stars/day (1855 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -434,23 +434,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W32:new-repos:perplexityai-numbat",
-   "section": "new-repos",
-   "subject": "perplexityai/numbat",
-   "what_happened": "New repo at +87.8 stars/day (690 total)",
-   "why_it_matters": "Visibility into AI agent activity on endpoints, with on-device detection, optional pre-action blocking, and forensic reconstruction.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/perplexityai/numbat"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W32:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +87.5 stars/day (296 total)",
+   "what_happened": "New repo at +90 stars/day (301 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -460,10 +447,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W32:new-repos:perplexityai-numbat",
+   "section": "new-repos",
+   "subject": "perplexityai/numbat",
+   "what_happened": "New repo at +88 stars/day (691 total)",
+   "why_it_matters": "Visibility into AI agent activity on endpoints, with on-device detection, optional pre-action blocking, and forensic reconstruction.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/perplexityai/numbat"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W32:new-repos:alikon-art-determinflow",
    "section": "new-repos",
    "subject": "alikon-art/DeterminFlow",
-   "what_happened": "New repo at +50 stars/day (192 total)",
+   "what_happened": "New repo at +51 stars/day (194 total)",
    "why_it_matters": "A production-oriented AI workflow runtime for building, validating, recovering, and shipping complex AI workflows as dependable services. 面向生产的 AI 工作流运行时：快速开发、验证和恢复复杂 AI 工作流，并将其稳定交付为服务。",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -476,7 +476,7 @@
    "id": "call:brief-2026-W32:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +30 stars/day (263 total)",
+   "what_happened": "New repo at +33 stars/day (269 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -489,7 +489,7 @@
    "id": "call:brief-2026-W32:new-repos:amazingang-old-coder",
    "section": "new-repos",
    "subject": "AmazingAng/old-coder",
-   "what_happened": "New repo at +23.3 stars/day (300 total)",
+   "what_happened": "New repo at +23.7 stars/day (302 total)",
    "why_it_matters": "An old coder's strategy for the agent era: don't read the code — make it run the gauntlet. Evidence-first development skill for coding agents, inspired by Uncle Bob.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -499,15 +499,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W32:new-repos:deerwork-ai-deer-workflow",
+   "id": "call:brief-2026-W32:new-repos:finna-finn-loop",
    "section": "new-repos",
-   "subject": "deerwork-ai/deer-workflow",
-   "what_happened": "New repo at +8.6 stars/day (391 total)",
-   "why_it_matters": "An open-source graph engineering runtime that keeps orchestration in TypeScript and delegates semantic work to replaceable Agent runtimes.",
+   "subject": "finna/Finn-loop",
+   "what_happened": "New repo at +7.7 stars/day (290 total)",
+   "why_it_matters": "The Finn-loop: a 3-skill AI software factory for Claude Code — spec, build, review. Humans merge.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/deerwork-ai/deer-workflow"
+    "https://github.com/finna/Finn-loop"
    ],
    "observed_at": null
   }
