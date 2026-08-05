@@ -15,6 +15,7 @@ from radar.intelligence.workspaces import (
     WorkspaceInput,
     WorkspaceService,
 )
+from radar.notify.alert_delivery import annotate_delivery_state
 
 
 router = APIRouter(tags=["workspaces"])
@@ -102,9 +103,13 @@ def workspace_alerts(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Unknown workspace: {workspace_id}",
         )
-    return build_alerts(
+    return annotate_delivery_state(
+        build_alerts(
+            root,
+            devices=workspace.devices,
+            stack=workspace.stack,
+            now=datetime.now(UTC),
+        ),
         root,
-        devices=workspace.devices,
-        stack=workspace.stack,
-        now=datetime.now(UTC),
+        workspace.name,
     )

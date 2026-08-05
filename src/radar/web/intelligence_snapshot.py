@@ -435,6 +435,7 @@ def _build_stack_demo(
     """
     try:
         from radar.intelligence.alerts import build_alerts, load_demo_profile
+        from radar.notify.alert_delivery import annotate_delivery_state
 
         config_path = root / "config" / "stack-profile-demo.yaml"
         if not config_path.exists():
@@ -453,11 +454,15 @@ def _build_stack_demo(
                 ],
                 "stack": profile.stack.model_dump(mode="json"),
             },
-            "alerts": build_alerts(
+            "alerts": annotate_delivery_state(
+                build_alerts(
+                    root,
+                    devices=profile.devices,
+                    stack=profile.stack,
+                    now=generated_at,
+                ),
                 root,
-                devices=profile.devices,
-                stack=profile.stack,
-                now=generated_at,
+                profile.name,
             ),
         }
     except Exception:  # the demo profile is additive, never fatal

@@ -207,3 +207,28 @@ def test_cli_skips_visibly_when_notify_disabled(tmp_path):
     assert result.exit_code == 0
     assert "skipped" in result.stdout
     assert not (tmp_path / "data" / "alerts-delivered.jsonl").exists()
+
+
+def test_annotate_delivery_state_stamps_and_gates(tmp_path):
+    from radar.notify.alert_delivery import annotate_delivery_state
+
+    feed = {"alerts": [{"id": "alert:a"}, {"id": "alert:b"}]}
+    # No log yet: badges stay hidden, timestamps null.
+    annotated = annotate_delivery_state(dict(feed), tmp_path, "Demo")
+    assert annotated["delivery_active"] is False
+    assert all(a["delivered_at"] is None for a in annotated["alerts"])
+
+    append_delivered_alerts(
+        tmp_path / "data" / "alerts-delivered.jsonl",
+        [DeliveredAlert(alert_id="alert:a", profile="Demo", delivered_at=NOW)],
+    )
+    feed = {"alerts": [{"id": "alert:a"}, {"id": "alert:b"}]}
+    annotated = annotate_delivery_state(feed, tmp_path, "Demo")
+    assert annotated["delivery_active"] is True
+    assert annotated["alerts"][0]["delivered_at"] == NOW.isoformat()
+    assert annotated["alerts"][1]["delivered_at"] is None
+    # A different profile sees none of these deliveries.
+    other = annotate_delivery_state(
+        {"alerts": [{"id": "alert:a"}]}, tmp_path, "Other"
+    )
+    assert other["delivery_active"] is False

@@ -11,12 +11,42 @@ fire-and-forget, a down webhook can never fail a publish.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from radar.models import NotifyConfig
+from radar.storage.alert_delivery_log import load_delivered_alerts
 
 
 logger = logging.getLogger(__name__)
+
+
+def annotate_delivery_state(
+    feed: dict[str, Any],
+    root: Path,
+    profile_name: str,
+) -> dict[str, Any]:
+    """Stamp each alert with its webhook delivery timestamp (or null).
+
+    ``delivery_active`` is true only once at least one alert has actually
+    been delivered for this profile — consumers should hide the
+    delivered/pending distinction entirely until then, so profiles with
+    no webhook wired never show a misleading eternal "pending".
+    """
+    delivered = {
+        row.alert_id: row.delivered_at
+        for row in load_delivered_alerts(
+            root / "data" / "alerts-delivered.jsonl"
+        )
+        if row.profile == profile_name
+    }
+    for alert in feed.get("alerts", []):
+        timestamp = delivered.get(alert.get("id"))
+        alert["delivered_at"] = (
+            timestamp.isoformat() if timestamp is not None else None
+        )
+    feed["delivery_active"] = bool(delivered)
+    return feed
 
 
 def build_alert_payload(

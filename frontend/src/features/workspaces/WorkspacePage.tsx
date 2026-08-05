@@ -7,6 +7,7 @@ import {
   type AlertFeed,
   type StackProfileInfo,
 } from "../catalog/catalogQueries";
+import { formatUtcDate } from "../catalog/format";
 import { useWorkspaces } from "./WorkspaceSwitcher";
 import {
   setActiveWorkspaceId,
@@ -88,8 +89,23 @@ export function AlertFeedPanel({
             <li key={alert.id}>
               <div className="brief-item-head">
                 <strong>{alert.subject}</strong>
-                <span className={`verdict-pill verdict-${alert.verdict}`}>
-                  {alert.verdict === "act" ? "Act" : "Evaluate"}
+                <span>
+                  {feed.delivery_active &&
+                    (alert.delivered_at ? (
+                      <span
+                        className="verdict-pill delivery-delivered"
+                        title={`Webhook delivery ${formatUtcDate(alert.delivered_at)}`}
+                      >
+                        Delivered
+                      </span>
+                    ) : (
+                      <span className="verdict-pill delivery-pending">
+                        Pending
+                      </span>
+                    ))}{" "}
+                  <span className={`verdict-pill verdict-${alert.verdict}`}>
+                    {alert.verdict === "act" ? "Act" : "Evaluate"}
+                  </span>
                 </span>
               </div>
               <p>{alert.what_happened}</p>
