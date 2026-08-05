@@ -676,6 +676,49 @@ class SqlAlchemyIntelligenceRepository:
             row = session.get(ReviewExceptionRow, exception_id)
             return _review_from_row(row) if row is not None else None
 
+    def resolve_volatile_conflict_reviews(self, now: datetime) -> int:
+        """Amnesty for conflict reviews opened under the pre-policy detector.
+
+        Resolves open ``conflicting_authoritative_claims`` reviews whose
+        disputed predicates are ALL volatile metrics — the detector no
+        longer opens those, so the backlog would otherwise sit forever.
+        Mixed reviews (any real predicate) are left for humans. Idempotent:
+        the second run resolves nothing.
+        """
+        from radar.intelligence.contracts import VOLATILE_PREDICATES
+
+        prefix = "Authoritative evidence conflicts for: "
+        resolved = 0
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(ReviewExceptionRow).where(
+                    ReviewExceptionRow.code
+                    == "conflicting_authoritative_claims",
+                    ReviewExceptionRow.resolved_at.is_(None),
+                )
+            ).all()
+            for row in rows:
+                if not row.message.startswith(prefix):
+                    continue
+                predicates = {
+                    part.strip()
+                    for part in row.message.removeprefix(prefix).split(",")
+                    if part.strip()
+                }
+                if predicates and predicates <= VOLATILE_PREDICATES:
+                    row.resolved_at = now
+                    row.resolution = {
+                        "resolution": "auto_amnesty_volatile_metrics",
+                        "evidence_ids": [],
+                        "note": (
+                            "Volatile metric predicates are latest-wins "
+                            "observations; the conflict detector no longer "
+                            "flags them (policy 2026-08-05)"
+                        ),
+                    }
+                    resolved += 1
+        return resolved
+
     def resolve_review_exception(
         self,
         exception_id: str,

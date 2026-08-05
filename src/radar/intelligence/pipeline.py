@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import time
 from collections.abc import Callable, Sequence
@@ -51,6 +52,8 @@ from radar.intelligence.verification import VerificationService
 
 
 DISCOVERY_OVERLAP = timedelta(minutes=15)
+logger = logging.getLogger(__name__)
+
 DEFAULT_VERIFICATION_BATCH_SIZE = 500
 DEFAULT_ENRICHMENT_BATCH_SIZE = 100
 DEFAULT_ADAPTER_TIMEOUT_SECONDS = 600.0
@@ -457,6 +460,20 @@ class IntelligenceJobRunner:
         return method(kind.value) if method is not None else {}
 
     def _qualify(self, job_id: str) -> JobResult:
+        # One-shot amnesty for the volatile-metric conflict flood: runs on
+        # the 2-hourly cadence so production heals without manual surgery,
+        # and is a no-op once the backlog is clear (the fixed detector
+        # opens no new volatile-only reviews).
+        amnesty = getattr(
+            self.repository, "resolve_volatile_conflict_reviews", None
+        )
+        if amnesty is not None:
+            amnestied = amnesty(self.clock())
+            if amnestied:
+                logger.info(
+                    "Amnestied %d volatile-metric conflict review(s)",
+                    amnestied,
+                )
         verification = VerificationService(self.repository)
         service = QualificationService(self.repository)
         updated = rejected = conflicted = 0

@@ -557,3 +557,36 @@ async def test_enrichment_is_bounded_and_prioritizes_recent_releases(
     assert adapter.enriched == ["moonshotai/Kimi-K3"]
     assert result.processed == 1
     assert result.remaining == 1
+
+
+@pytest.mark.asyncio
+async def test_qualification_amnesties_volatile_conflict_backlog(
+    tmp_path,
+) -> None:
+    from radar.intelligence.contracts import ReviewException
+
+    repo = repository(tmp_path)
+    repo.open_review_exception(
+        ReviewException(
+            id="review:flood:legacy",
+            subject_id="release:legacy:some-model",
+            code="conflicting_authoritative_claims",
+            message=(
+                "Authoritative evidence conflicts for: downloads, sha"
+            ),
+            evidence_ids=["evidence:x"],
+            opened_at=NOW,
+        )
+    )
+    runner = IntelligenceJobRunner(
+        root=tmp_path,
+        repository=repo,
+        adapters=[FixtureAdapter()],
+        clock=lambda: NOW,
+    )
+
+    await runner.run(JobKind.QUALIFICATION, "job:qualify:amnesty")
+
+    review = repo.get_review_exception("review:flood:legacy")
+    assert review is not None
+    assert review.resolved_at == NOW
