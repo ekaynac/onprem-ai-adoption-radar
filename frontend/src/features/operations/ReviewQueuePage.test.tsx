@@ -21,6 +21,14 @@ test("shows review exceptions as the only manual attention queue", async () => {
                 relation: "quantized",
                 confidence: 0.5,
               },
+              {
+                id: "lineage:release:other:converted:hf:acme/model-y",
+                child_release_id: "release:other",
+                parent_external_ref: "hf:acme/Model-Y",
+                parent_release_id: null,
+                relation: "converted",
+                confidence: 0.5,
+              },
             ]),
             { status: 200 },
           ),
@@ -60,7 +68,20 @@ test("shows review exceptions as the only manual attention queue", async () => {
   expect(
     await screen.findByText("release:child → acme/Model-X"),
   ).toBeVisible();
-  expect(screen.getByRole("button", { name: "Confirm parent" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Reject" })).toBeVisible();
+  expect(
+    screen.getAllByRole("button", { name: "Confirm parent" }),
+  ).toHaveLength(2);
+  expect(screen.getAllByRole("button", { name: "Reject" })).toHaveLength(2);
+  // Triage accelerators: total count, relation group headers, HF links.
+  expect(screen.getByText(/2 open/)).toBeVisible();
+  expect(screen.getByText("quantized · 1 suggestion")).toBeVisible();
+  expect(screen.getByText("converted · 1 suggestion")).toBeVisible();
+  const hfLinks = screen.getAllByRole("link", {
+    name: /Verify parent on Hugging Face/,
+  });
+  expect(hfLinks[0]).toHaveAttribute(
+    "href",
+    "https://huggingface.co/acme/Model-X",
+  );
   vi.unstubAllGlobals();
 });
