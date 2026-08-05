@@ -27,11 +27,15 @@ sources:
       "MUSR": musr
       "MMLU-PRO": mmlu-pro
       "Average ⬆️": ollb-average
+  # Served via jsDelivr: raw.githubusercontent.com intermittently 404s
+  # this path from CI runners (9+ consecutive runs on 2026-08-04/05 while
+  # the file — unchanged since 2025-10 — served 200 elsewhere). Same
+  # content, steadier CDN; ~12h propagation is irrelevant at this cadence.
   - id: aider-polyglot
     kind: yaml-rows
     enabled: true
     join: alias
-    url: "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/website/_data/polyglot_leaderboard.yml"
+    url: "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
     row_key: model
     column_map:
       pass_rate_2: aider-polyglot
