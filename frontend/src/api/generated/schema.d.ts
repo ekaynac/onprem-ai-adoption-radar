@@ -225,6 +225,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/operations/lineage-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lineage Suggestions
+         * @description Tier-3 inferred parent suggestions awaiting an operator decision.
+         */
+        get: operations["lineage_suggestions_api_v1_operations_lineage_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/operations/lineage-suggestions/{edge_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Lineage Suggestion */
+        post: operations["accept_lineage_suggestion_api_v1_operations_lineage_suggestions__edge_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/operations/lineage-suggestions/{edge_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Lineage Suggestion */
+        post: operations["reject_lineage_suggestion_api_v1_operations_lineage_suggestions__edge_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/operations/reviews": {
         parameters: {
             query?: never;
@@ -525,6 +579,53 @@ export interface components {
          * @enum {string}
          */
         LifecycleState: "detected" | "verified" | "qualified" | "recommended";
+        /**
+         * LineageEdge
+         * @description A parent relationship between a release and its upstream model.
+         *
+         *     ``parent_external_ref`` carries the declared identity as observed at the
+         *     source (e.g. ``hf:moonshotai/Kimi-K3``); ``parent_release_id`` and
+         *     ``root_release_id`` are filled once identity resolution maps the ref into
+         *     the canonical release namespace, which may happen later than discovery.
+         */
+        LineageEdge: {
+            /** Child Release Id */
+            child_release_id: string;
+            /** Confidence */
+            confidence: number;
+            /** Declared */
+            declared: boolean;
+            /** Evidence Ids */
+            evidence_ids?: string[];
+            /** Extractor Version */
+            extractor_version: string;
+            /** Id */
+            id: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Parent External Ref */
+            parent_external_ref: string;
+            /** Parent Release Id */
+            parent_release_id?: string | null;
+            relation: components["schemas"]["LineageRelation"];
+            /** @default clear */
+            review_status: components["schemas"]["LineageReviewStatus"];
+            /** Root Release Id */
+            root_release_id?: string | null;
+        };
+        /**
+         * LineageRelation
+         * @enum {string}
+         */
+        LineageRelation: "base" | "finetune" | "adapter" | "merge" | "quantized" | "converted" | "distilled" | "pruned" | "checkpoint";
+        /**
+         * LineageReviewStatus
+         * @enum {string}
+         */
+        LineageReviewStatus: "clear" | "open" | "resolved";
         /**
          * ModelCategory
          * @enum {string}
@@ -1155,6 +1256,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationsSnapshot"];
+                };
+            };
+        };
+    };
+    lineage_suggestions_api_v1_operations_lineage_suggestions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LineageEdge"][];
+                };
+            };
+        };
+    };
+    accept_lineage_suggestion_api_v1_operations_lineage_suggestions__edge_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LineageEdge"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_lineage_suggestion_api_v1_operations_lineage_suggestions__edge_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
