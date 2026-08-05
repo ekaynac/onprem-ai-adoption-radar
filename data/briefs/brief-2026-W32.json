@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-05T00:59:15.744887+00:00",
+ "generated_at": "2026-08-05T03:32:22.286510+00:00",
  "window_days": 7,
  "items": [
   {
@@ -411,7 +411,7 @@
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +694 stars/day (2023 total)",
+   "what_happened": "New repo at +727 stars/day (2089 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +291 stars/day (1770 total)",
+   "what_happened": "New repo at +311 stars/day (1810 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W32:new-repos:perplexityai-numbat",
    "section": "new-repos",
    "subject": "perplexityai/numbat",
-   "what_happened": "New repo at +87.2 stars/day (686 total)",
+   "what_happened": "New repo at +87.5 stars/day (688 total)",
    "why_it_matters": "Visibility into AI agent activity on endpoints, with on-device detection, optional pre-action blocking, and forensic reconstruction.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,7 +450,7 @@
    "id": "call:brief-2026-W32:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +84 stars/day (289 total)",
+   "what_happened": "New repo at +87 stars/day (295 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -463,12 +463,25 @@
    "id": "call:brief-2026-W32:new-repos:alikon-art-determinflow",
    "section": "new-repos",
    "subject": "alikon-art/DeterminFlow",
-   "what_happened": "New repo at +48 stars/day (188 total)",
+   "what_happened": "New repo at +49.5 stars/day (191 total)",
    "why_it_matters": "A production-oriented AI workflow runtime for building, validating, recovering, and shipping complex AI workflows as dependable services. 面向生产的 AI 工作流运行时：快速开发、验证和恢复复杂 AI 工作流，并将其稳定交付为服务。",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/alikon-art/DeterminFlow"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:uczltw6-trace-file-lineage",
+   "section": "new-repos",
+   "subject": "uczltw6/trace-file-lineage",
+   "what_happened": "New repo at +26 stars/day (255 total)",
+   "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/uczltw6/trace-file-lineage"
    ],
    "observed_at": null
   },
@@ -482,19 +495,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/AmazingAng/old-coder"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W32:new-repos:uczltw6-trace-file-lineage",
-   "section": "new-repos",
-   "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +23 stars/day (249 total)",
-   "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/uczltw6/trace-file-lineage"
    ],
    "observed_at": null
   },
