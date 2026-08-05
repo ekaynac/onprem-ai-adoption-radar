@@ -110,9 +110,23 @@ test("static mode renders the demo profile and its alert feed", async () => {
                     event_type: "breaking-change",
                     receipts: ["https://blog.vllm.ai/v0-removal"],
                     observed_at: "2026-08-02T09:00:00Z",
+                    delivered_at: "2026-08-03T10:00:00Z",
+                  },
+                  {
+                    id: "alert:news:news:qwen-improve",
+                    source: "news",
+                    verdict: "evaluate",
+                    subject: "Qwen3 quant refresh",
+                    what_happened: "New AWQ build.",
+                    matched_components: ["qwen3-32b"],
+                    event_type: "improvement",
+                    receipts: [],
+                    observed_at: "2026-08-03T09:00:00Z",
+                    delivered_at: null,
                   },
                 ],
-                counts: { act: 1, evaluate: 0 },
+                counts: { act: 1, evaluate: 1 },
+                delivery_active: true,
               },
             },
             projects: [],
@@ -150,6 +164,9 @@ test("static mode renders the demo profile and its alert feed", async () => {
   expect(screen.getByText("vLLM drops V0 engine")).toBeVisible();
   expect(screen.getByText("Act")).toBeVisible();
   expect(screen.getByText(/Matched: vllm/)).toBeVisible();
+  // Delivery badges: shown because the feed says delivery is active.
+  expect(screen.getByText("Delivered")).toBeVisible();
+  expect(screen.getByText("Pending")).toBeVisible();
   // No creation form in the public demo.
   expect(screen.queryByLabelText("Profile name")).not.toBeInTheDocument();
   vi.unstubAllGlobals();

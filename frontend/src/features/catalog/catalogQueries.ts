@@ -311,6 +311,8 @@ export type StackAlert = {
   event_type: string;
   receipts: string[];
   observed_at: string;
+  // Webhook delivery timestamp; null/absent when not (yet) delivered.
+  delivered_at?: string | null;
 };
 
 export type AlertFeed = {
@@ -320,6 +322,9 @@ export type AlertFeed = {
   profile_terms: string[];
   alerts: StackAlert[];
   counts: { act: number; evaluate: number };
+  // True once at least one alert was webhook-delivered for this profile;
+  // delivered/pending badges stay hidden until then.
+  delivery_active?: boolean;
 };
 
 export type StackProfileInfo = {
