@@ -101,7 +101,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           uv run radar intelligence-lineage-backfill --root . \
-            --fetch-limit 150 --parent-limit 100
+            --fetch-limit 150 --parent-limit 100 --max-minutes 20
 
       - name: Checkpoint discovered intelligence
         env:

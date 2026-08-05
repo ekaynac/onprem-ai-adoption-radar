@@ -806,6 +806,7 @@ async def run_lineage_backfill(
     *,
     fetch_limit: int = 0,
     parent_limit: int | None = None,
+    max_seconds: float | None = None,
     clock: Callable[[], datetime] | None = None,
     client: httpx.AsyncClient | None = None,
 ) -> dict[str, int]:
@@ -818,11 +819,20 @@ async def run_lineage_backfill(
     backfills replay it offline. ``parent_limit`` (default: ``fetch_limit``)
     independently budgets registering declared parents that are missing
     from the index, so parent resolution can run without new sweeps.
-    Idempotent; ends with a full root sync.
+    ``max_seconds`` is a wall-clock budget for the network phases: when
+    HF rate limiting turns per-request retries into a crawl, the run
+    stops fetching cleanly at the deadline (replay and the final root
+    sync still complete) and the 2-hourly cadence finishes the tail —
+    a slow quota day must never stall the publish pipeline for hours.
     """
     from radar.intelligence.sources.huggingface import fetch_base_models
 
     now = (clock or (lambda: datetime.now(UTC)))()
+    deadline = None if max_seconds is None else time.monotonic() + max_seconds
+
+    def over_deadline() -> bool:
+        return deadline is not None and time.monotonic() >= deadline
+
     service = LineageService(repository)
     runner = IntelligenceJobRunner(root=root, repository=repository)
     releases = repository.list_all_releases()
@@ -849,6 +859,7 @@ async def run_lineage_backfill(
 
     effective_parent_limit = fetch_limit if parent_limit is None else parent_limit
     fetched = fetched_edges = parents_registered = parent_fetch_failures = 0
+    deadline_reached = 0
     if fetch_limit > 0 or effective_parent_limit > 0:
         from radar.intelligence.sources.huggingface import HuggingFaceAdapter
 
@@ -885,6 +896,9 @@ async def run_lineage_backfill(
                     )
                 pending.sort()
                 for _, release_id, repo in pending[:fetch_limit]:
+                    if over_deadline():
+                        deadline_reached = 1
+                        break
                     record, entries = await fetch_base_models(
                         active_client,
                         repo,
@@ -922,6 +936,9 @@ async def run_lineage_backfill(
                 adapter = HuggingFaceAdapter(active_client, publishers)
                 attempted: set[str] = set()
                 for _round in range(3):
+                    if over_deadline():
+                        deadline_reached = 1
+                        break
                     round_service = LineageService(repository)
                     round_service.sync_roots(now)
                     unresolved_refs = sorted(
@@ -938,6 +955,9 @@ async def run_lineage_backfill(
                     parent_lineage: list[tuple[str, Any, str, datetime]] = []
                     progressed = False
                     for repo in unresolved_refs:
+                        if over_deadline():
+                            deadline_reached = 1
+                            break
                         attempted.add(repo)
                         candidate = await adapter.fetch_candidate(repo)
                         if candidate is None:
@@ -990,6 +1010,7 @@ async def run_lineage_backfill(
             1 for root_id in result.roots.values() if root_id is not None
         ),
         "review_findings": len(result.findings),
+        "deadline_reached": deadline_reached,
     }
 
 

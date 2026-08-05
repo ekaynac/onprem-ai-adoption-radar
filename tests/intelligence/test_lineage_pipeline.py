@@ -617,3 +617,75 @@ async def test_backfill_registers_out_of_index_parents(tmp_path) -> None:
         if claim.predicate == "lineage_declared"
     ]
     assert base_lineage_claims and base_lineage_claims[0].value == []
+
+
+@pytest.mark.asyncio
+async def test_backfill_deadline_stops_fetching_but_replays_and_syncs(
+    tmp_path,
+) -> None:
+    """A rate-limited crawl must never stall publish: with the wall-clock
+    budget already spent, network phases are skipped cleanly while stored
+    claims still replay and roots still sync."""
+    repo = repository(tmp_path)
+    base = Release(
+        id="release:moonshot-ai:kimi:k3",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Kimi K3",
+        category=ModelCategory.MULTIMODAL,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    derived = base.model_copy(
+        update={"id": "release:moonshot-ai:kimi:k3:awq", "name": "Kimi K3 AWQ"}
+    )
+    unchecked = base.model_copy(
+        update={"id": "release:moonshot-ai:kimi:k3:gguf", "name": "Kimi K3 GGUF"}
+    )
+    for release in (base, derived, unchecked):
+        repo.upsert_release(release)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    evidence = runner._persist_source_record(
+        make_record("https://huggingface.co/api/models/moonshotai/Kimi-K3", b"{}")
+    )
+    runner._append_claim(base.id, "hf_repo", "moonshotai/Kimi-K3", evidence)
+    runner._append_claim(
+        derived.id,
+        "lineage_declared",
+        [
+            {
+                "parent_repo": "moonshotai/Kimi-K3",
+                "relation": "quantized",
+                "via": "card",
+            }
+        ],
+        evidence,
+    )
+    runner._append_claim(unchecked.id, "hf_repo", "grearl/Kimi-K3-GGUF", evidence)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError(f"no network calls past the deadline: {request.url}")
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        report = await run_lineage_backfill(
+            tmp_path,
+            repo,
+            fetch_limit=5,
+            parent_limit=5,
+            max_seconds=0,
+            clock=lambda: NOW,
+            client=client,
+        )
+
+    assert report["deadline_reached"] == 1
+    assert report["fetched"] == 0
+    assert report["parents_registered"] == 0
+    # Offline work still completed.
+    assert report["replayed_edges"] == 1
+    assert report["edges_total"] == 1
+    edges = repo.list_lineage_for_child(derived.id)
+    assert edges[0].parent_release_id == base.id
