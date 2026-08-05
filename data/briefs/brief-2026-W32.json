@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-05T09:48:26.129992+00:00",
+ "generated_at": "2026-08-05T10:39:55.624000+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,13 +405,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-05T09:47:45.476695+00:00"
+   "observed_at": "2026-08-05T10:39:08.290682+00:00"
   },
   {
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +806 stars/day (2247 total)",
+   "what_happened": "New repo at +821 stars/day (2277 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +349 stars/day (1886 total)",
+   "what_happened": "New repo at +352.5 stars/day (1893 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W32:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +93.5 stars/day (308 total)",
+   "what_happened": "New repo at +95 stars/day (311 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -463,7 +463,7 @@
    "id": "call:brief-2026-W32:new-repos:alikon-art-determinflow",
    "section": "new-repos",
    "subject": "alikon-art/DeterminFlow",
-   "what_happened": "New repo at +51.5 stars/day (195 total)",
+   "what_happened": "New repo at +52.5 stars/day (197 total)",
    "why_it_matters": "A production-oriented AI workflow runtime for building, validating, recovering, and shipping complex AI workflows as dependable services. 面向生产的 AI 工作流运行时：快速开发、验证和恢复复杂 AI 工作流，并将其稳定交付为服务。",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -499,15 +499,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W32:new-repos:finna-finn-loop",
+   "id": "call:brief-2026-W32:new-repos:0xwilliamortiz-ratchet",
    "section": "new-repos",
-   "subject": "finna/Finn-loop",
-   "what_happened": "New repo at +7.7 stars/day (290 total)",
-   "why_it_matters": "The Finn-loop: a 3-skill AI software factory for Claude Code — spec, build, review. Humans merge.",
+   "subject": "0xwilliamortiz/ratchet",
+   "what_happened": "New repo at +8 stars/day (431 total)",
+   "why_it_matters": "Your agent reads the rules. This checks whether it followed them.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/finna/Finn-loop"
+    "https://github.com/0xwilliamortiz/ratchet"
    ],
    "observed_at": null
   },
