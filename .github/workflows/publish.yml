@@ -147,6 +147,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RADAR_WEBHOOK_URL: ${{ secrets.RADAR_WEBHOOK_URL }}
         run: |
           uv run radar init --root .
           uv run radar scan --root . --days 7 --publish-history
@@ -161,6 +162,7 @@ jobs:
           uv run radar news classify --root .
           uv run radar desk brief --root .
           uv run radar desk auto-resolve --root .
+          uv run radar alerts notify --root .
           enrichment_output="$(uv run radar intelligence-run enrichment --root .)"
           echo "$enrichment_output"
           {
@@ -233,6 +235,7 @@ jobs:
             data/trending-observations.jsonl \
             data/news-observations.jsonl \
             data/news-classified.jsonl \
+            data/alerts-delivered.jsonl \
             data/calls-ledger.jsonl \
             "data/briefs/" \
             data/intelligence/public-snapshot.v1.json
