@@ -735,10 +735,11 @@ enrichment:
 # ring changes. The URL is read from the environment (never stored here);
 # format 'slack' posts {"text": ...}, compatible with Slack/Discord/Teams.
 notify:
-  # Active since 2026-08-05 (owner decision): Slack-compatible text posts.
-  # Delivery still no-ops visibly until the RADAR_WEBHOOK_URL secret is
-  # set in the environment — the URL never lives in this file.
+  # Active since 2026-08-05 (owner decision): Teams Workflows webhook.
+  # 'teams' wraps messages in the Adaptive Card envelope Workflows
+  # require. Delivery still no-ops visibly until the RADAR_WEBHOOK_URL
+  # secret is set — the URL never lives in this file.
   enabled: true
   webhook_url: ${RADAR_WEBHOOK_URL}
-  format: slack
+  format: teams
   timeout_seconds: 10

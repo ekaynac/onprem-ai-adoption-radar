@@ -354,8 +354,12 @@ environment:
 notify:
   enabled: false
   webhook_url: ${RADAR_WEBHOOK_URL}
-  format: generic    # generic | slack  (slack works for Slack/Discord/Teams)
+  format: generic    # generic | slack | teams
 ```
+
+`slack` posts `{"text": ...}` (Slack/Discord classic webhooks); `teams`
+wraps the same text in the Adaptive Card envelope Microsoft Teams
+Workflows webhooks require.
 
 To activate in CI: set `enabled: true` in `data/config.yaml` and add a
 `RADAR_WEBHOOK_URL` repository secret — until then each publish prints a

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from radar.models import NotifyConfig
+from radar.notify.webhook import text_body
 from radar.storage.alert_delivery_log import load_delivered_alerts
 
 
@@ -103,10 +104,10 @@ async def send_alert_notification(
     """
     if not config.enabled or not config.webhook_url or not alerts:
         return False
-    if config.format == "slack":
-        body: dict[str, Any] = {
-            "text": build_alert_slack_text(alerts, profile_name)
-        }
+    if config.format in {"slack", "teams"}:
+        body: dict[str, Any] = text_body(
+            config, build_alert_slack_text(alerts, profile_name)
+        )
     else:
         body = build_alert_payload(alerts, profile_name)
     try:
