@@ -37,6 +37,7 @@ class DeviceSeed(BaseModel):
     spec_url: str | None = None
     verified: str | None = None
     datacenter: bool = False
+    manufacturer: str | None = None  # chip maker (NVIDIA, AMD, Apple...)
 
     def to_profile(self) -> DeviceProfile:
         from radar.models_radar.devices import DeviceProfile  # local: avoid cycle
@@ -56,6 +57,10 @@ class NodeSeed(BaseModel):
     interconnect: str | None = None
     spec_url: str | None = None
     verified: str | None = None
+    vendor: str | None = None  # system builder (NVIDIA, Dell, HPE, Advantech...)
+    tdp_watts: int | None = None
+    indicative_price_usd: int | None = None
+    datacenter: bool | None = None  # None = default (True for baseboards)
 
 
 class ClusterSeed(BaseModel):

@@ -124,3 +124,42 @@ def test_datacenter_tiers_all_resolvable():
     ]
     for key in DATACENTER_DEVICE_TIERS:
         assert resolve_device(key) is not None
+
+
+def test_vendor_systems_resolve_with_taxonomy_fields():
+    """H1: platforms are selectable devices carrying vendor + chip."""
+    from radar.models_radar.devices import (
+        NODE_PRESETS,
+        resolve_device,
+        usable_memory_gb,
+    )
+
+    spark = resolve_device("dgx-spark")
+    assert spark.kind == "unified"
+    assert spark.vendor == "NVIDIA"
+    assert spark.chip == "gb10-128gb"
+    assert spark.total_memory_gb == 128
+    assert spark.datacenter is False
+    # Unified pool uses the Apple-style fraction, not the dGPU one.
+    assert usable_memory_gb(spark) == round(128 * 0.72, 2)
+
+    dell = resolve_device("dell-xe9680-h200")
+    assert dell.vendor == "Dell"
+    assert dell.chip == "h200-141gb"
+    assert dell.gpu_count == 8
+    assert dell.datacenter is True  # rack system keeps the node default
+
+    # Every vendor system cites a spec URL (numbers policy).
+    for device_id, profile in NODE_PRESETS.items():
+        if profile.vendor:
+            assert profile.spec_url, device_id
+            assert profile.verified, device_id
+
+
+def test_chip_manufacturers_present_for_new_unified_chips():
+    from radar.models_radar.devices import DEVICE_PRESETS
+
+    assert DEVICE_PRESETS["gb10-128gb"].manufacturer == "NVIDIA"
+    assert DEVICE_PRESETS["ryzen-ai-max-395-128gb"].manufacturer == "AMD"
+    # Bare reference chips stay systems-free.
+    assert DEVICE_PRESETS["gb10-128gb"].vendor is None

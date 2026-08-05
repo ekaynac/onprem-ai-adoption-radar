@@ -476,6 +476,9 @@ export type HardwareRecord = {
   spec_url?: string | null;
   verified?: string | null;
   datacenter?: boolean;
+  manufacturer?: string | null;
+  vendor?: string | null;
+  chip?: string | null;
 };
 
 export type ResearchRecord = {

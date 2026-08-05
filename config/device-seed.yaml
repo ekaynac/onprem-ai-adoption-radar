@@ -357,6 +357,53 @@ devices:
   - {id: workstation-64gb-cpu, name: "Workstation (64GB RAM, no GPU)", kind: cpu, total_memory_gb: 64}
   - {id: server-256gb-cpu, name: "Server (256GB RAM, no GPU)", kind: cpu, total_memory_gb: 256}
 
+  # --- Unified-memory AI systems' chips (H1 platform catalog, 2026-08-05) ---
+  # kind: unified = one coherent pool shared with OS/CPU (Apple-style 0.72
+  # usable fraction). Numbers policy unchanged: every figure cites spec_url.
+  - id: gb10-128gb
+    name: "NVIDIA GB10 Grace Blackwell (128GB)"
+    kind: unified
+    manufacturer: NVIDIA
+    total_memory_gb: 128              # "128 GB LPDDR5x, coherent unified system memory" (DGX Spark spec table, verified 2026-08-05)
+    memory_bandwidth_gbs: 273         # "273 GB/s" (same table)
+    tflops_fp4: 500                   # dense; page headlines "Up to 1 PFLOP FP4" = sparse per NVIDIA's convention
+    tdp_watts: 140                    # GB10 chip TDP; the DGX Spark system PSU is 240W (node entry)
+    spec_url: https://www.nvidia.com/en-us/products/workstations/dgx-spark/
+    verified: "2026-08-05"
+  - id: gb300-desktop-748gb
+    name: "NVIDIA GB300 Grace Blackwell Ultra Desktop (748GB coherent)"
+    kind: unified
+    manufacturer: NVIDIA
+    total_memory_gb: 748              # 252GB HBM3e (GPU, 7.1 TB/s) + 496GB LPDDR5X (CPU, 396 GB/s) coherent over NVLink-C2C 900 GB/s (DGX Station spec table, verified 2026-08-05)
+    tdp_watts: 1600                   # "1,600 W" total system power (same table)
+    spec_url: https://www.nvidia.com/en-us/products/workstations/dgx-station/
+    verified: "2026-08-05"
+    # memory_bandwidth_gbs omitted: no single figure describes the split pool
+    # (7.1 TB/s HBM3e GPU-local vs 396 GB/s CPU pool); recorded here as a comment.
+    # tflops omitted: page shows "20 | 153 PFLOPS" FP4 without a dense/sparse
+    # breakdown attributable to one precision column (2026-08-05).
+  - id: jetson-thor-t5000-128gb
+    name: "NVIDIA Jetson AGX Thor T5000 (128GB)"
+    kind: unified
+    manufacturer: NVIDIA
+    total_memory_gb: 128              # "128 GB 256-bit LPDDR5X" (Jetson Thor page, verified 2026-08-05)
+    memory_bandwidth_gbs: 273         # "273 GB/s" (same page)
+    tflops_fp4: 1035                  # dense; page lists "2070 TFLOPS (FP4—Sparse)"
+    tdp_watts: 130                    # top of the stated "40 W–130 W" envelope
+    spec_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
+    verified: "2026-08-05"
+  - id: ryzen-ai-max-395-128gb
+    name: "AMD Ryzen AI Max+ 395 (128GB)"
+    kind: unified
+    manufacturer: AMD
+    total_memory_gb: 128              # "128GB non-upgradeable LPDDR5x" (Framework Desktop configurator, verified 2026-08-05)
+    spec_url: https://frame.work/products/desktop-diy-amd-aimax300/configuration/new
+    verified: "2026-08-05"
+    # bandwidth/TFLOPS omitted: not stated on the cited page (2026-08-05).
+  # mi325x omitted 2026-08-05: amd.com product page unreachable from the
+  # verification environment and secondary sources conflict (256 vs 288GB,
+  # 6 vs 8 TB/s) — add when the primary page is verifiable.
+
 # Nodes: multi-GPU baseboards (HGX/OAM) flattened over a base device (devices.py
 # model_copy: name/gpu_count/interconnect/datacenter overridden, memory/compute derived
 # from the base device — no invented numbers). Only interconnect + spec_url/verified are
@@ -425,6 +472,68 @@ nodes:
 # Clusters: multi-node groups (e.g. a DGX SuperPOD rack group) flattened over a base
 # node (devices.py model_copy: gpu_count = gpus_per_node * node_count, interconnect =
 # fabric). Only fabric + spec_url/verified are independently cited here.
+  # --- Vendor systems (H1 platform catalog, 2026-08-05) ---
+  # vendor = system builder; the contained chip is the referenced device.
+  # HPE ProLiant XD685, Supermicro SYS-821GE, Lenovo SR-series, and
+  # Advantech edge systems omitted 2026-08-05: vendor pages 403/timeout
+  # from the verification environment — the newsroom hardware-launch lane
+  # surfaces candidates until their specs can be cited first-hand.
+  - id: dgx-spark
+    name: "NVIDIA DGX Spark"
+    vendor: NVIDIA
+    device: gb10-128gb
+    gpus_per_node: 1
+    datacenter: false
+    tdp_watts: 240                    # "240 Watts" power supply (DGX Spark spec table, verified 2026-08-05)
+    spec_url: https://www.nvidia.com/en-us/products/workstations/dgx-spark/
+    verified: "2026-08-05"
+    # indicative_price_usd omitted: NVIDIA lists no price on the page (2026-08-05).
+  - id: dgx-station-gb300
+    name: "NVIDIA DGX Station (GB300)"
+    vendor: NVIDIA
+    device: gb300-desktop-748gb
+    gpus_per_node: 1
+    datacenter: false
+    spec_url: https://www.nvidia.com/en-us/products/workstations/dgx-station/
+    verified: "2026-08-05"
+  - id: dgx-b200
+    name: "NVIDIA DGX B200"
+    vendor: NVIDIA
+    device: b200-192gb
+    gpus_per_node: 8
+    interconnect: "NVLink 5"
+    tdp_watts: 14300                  # "~14.3 kW max" system power (DGX B200 page, verified 2026-08-05)
+    spec_url: https://www.nvidia.com/en-us/data-center/dgx-b200/
+    verified: "2026-08-05"
+    # Known discrepancy (2026-08-05): the DGX B200 page totals "1,440 GB"
+    # (180GB/GPU) while the Blackwell brief's B200 die figure is 192GB —
+    # this node flattens the b200-192gb device, so treat totals as upper-bound.
+  - id: dell-xe9680-h200
+    name: "Dell PowerEdge XE9680 (8x H200)"
+    vendor: Dell
+    device: h200-141gb
+    gpus_per_node: 8
+    interconnect: "NVLink (SXM5)"     # "8 NVIDIA HGX H200 141GB 700W SXM5 GPUs, fully interconnected with NVIDIA NVLink" (Dell XE9680 page, verified 2026-08-05)
+    spec_url: https://www.dell.com/en-us/shop/ipovw/poweredge-xe9680
+    verified: "2026-08-05"
+  - id: dell-xe9680-mi300x
+    name: "Dell PowerEdge XE9680 (8x MI300X)"
+    vendor: Dell
+    device: mi300x-192gb
+    gpus_per_node: 8
+    interconnect: "AMD Infinity Fabric"  # "8 AMD Instinct MI300X 192GB 750W OAM accelerator with AMD Infinity Fabric" (same page)
+    spec_url: https://www.dell.com/en-us/shop/ipovw/poweredge-xe9680
+    verified: "2026-08-05"
+  - id: framework-desktop-395-128gb
+    name: "Framework Desktop (Ryzen AI Max+ 395, 128GB)"
+    vendor: Framework
+    device: ryzen-ai-max-395-128gb
+    gpus_per_node: 1
+    datacenter: false
+    indicative_price_usd: 3449        # top configuration price on the cited configurator (verified 2026-08-05)
+    spec_url: https://frame.work/products/desktop-diy-amd-aimax300/configuration/new
+    verified: "2026-08-05"
+
 clusters:
   - id: 2x-hgx-h200-8
     name: "2x NVIDIA HGX H200 (SuperPOD)"

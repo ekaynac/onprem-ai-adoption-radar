@@ -22,7 +22,7 @@ test("architect can move from release intelligence to hardware planning", async 
     page.getByRole("heading", { name: "Infrastructure capacity catalog" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Accelerators, memory topology, and deployment-fit evidence."),
+    page.getByRole("heading", { name: "Platforms you can buy and rack" }),
   ).toBeVisible();
 });
 

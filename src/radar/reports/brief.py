@@ -18,6 +18,8 @@ Verdict rules (v1):
   scoreable too).
 - Newsroom item classified ``breaking`` → evaluate (an operator must
   assess exposure); ``improvement``/``informational`` stay newsroom-only.
+- Newsroom item classified ``hardware-launch`` → evaluate (a new
+  platform is a hardware-catalog candidate; curation stays human).
 """
 
 from __future__ import annotations
@@ -282,7 +284,9 @@ def _news_items(
     for classification in classifications:
         if not classification.relevant:
             continue
-        if classification.operational_impact != "breaking":
+        is_breaking = classification.operational_impact == "breaking"
+        is_hardware = classification.event_type == "hardware-launch"
+        if not (is_breaking or is_hardware):
             continue
         item = items_by_id.get(classification.news_id)
         if item is None:
@@ -290,23 +294,37 @@ def _news_items(
         observed = item.published_at or classification.classified_at
         if observed < cutoff:
             continue
+        if is_breaking:
+            section = "news"
+            why = (
+                "Classified as breaking for on-prem operators: action may "
+                "be required on "
+                + ", ".join(classification.components or ["the stack"])
+            )
+            rationale = "Assess exposure before the next upgrade window"
+        else:
+            section = "hardware"
+            why = (
+                "A newly launched platform is a hardware-catalog "
+                "candidate; specs enter the catalog only with a verifiable "
+                "source"
+            )
+            rationale = "Review for the device catalog (curation stays human)"
         rows.append(
             _item(
                 brief_id,
-                "news",
+                section,
                 item.title,
                 classification.summary,
-                "Classified as breaking for on-prem operators: action may "
-                "be required on "
-                + ", ".join(classification.components or ["the stack"]),
+                why,
                 "evaluate",
-                "Assess exposure before the next upgrade window",
+                rationale,
                 [classification.citation or item.url],
                 observed.isoformat(),
             )
         )
     rows.sort(key=lambda row: row["observed_at"] or "", reverse=True)
-    return rows[:8]
+    return rows[:12]
 
 
 def _spotlight(brief_id: str, root: Path, now: datetime) -> dict[str, Any] | None:
@@ -370,8 +388,9 @@ def build_brief(root: Path, now: datetime | None = None) -> dict[str, Any]:
         "verdict_rules": (
             "Deterministic v1 rules: adopt-promotions and adopt-exits are "
             "act; pilot entries, ≥3-point independent benchmark moves, "
-            "new on-prem repos at ≥200 stars/day, and news classified as "
-            "breaking are evaluate; slower new repos are ignore (recorded, "
-            "so misses score too)"
+            "new on-prem repos at ≥200 stars/day, news classified as "
+            "breaking, and hardware-launch news (catalog candidates) are "
+            "evaluate; slower new repos are ignore (recorded, so misses "
+            "score too)"
         ),
     }
