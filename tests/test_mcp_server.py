@@ -198,7 +198,11 @@ def test_server_registers_intelligence_tools(tmp_path: Path) -> None:
         "find_for_workspace",
         "get_source_health",
         "list_review_exceptions",
+        "list_lineage_suggestions",
     } <= names
+    result = asyncio.run(server.call_tool("list_lineage_suggestions", {}))
+    payload = result[1].get("result", result[1])
+    assert payload == []  # empty store → empty triage queue, not an error
 
 
 def test_list_trending_tool_returns_rows(tmp_path: Path):

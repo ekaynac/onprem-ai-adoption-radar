@@ -426,6 +426,16 @@ def build_mcp_server(root: Path) -> FastMCP:
         """List automated-review exceptions without mutating them."""
         return intelligence.review_exceptions(open_only)
 
+    @mcp.tool()
+    def list_lineage_suggestions() -> list[dict[str, Any]]:
+        """Tier-3 inferred parent suggestions awaiting operator triage.
+
+        Read-only, in triage order (confidence desc, relation, child);
+        confirming or rejecting happens on the review page — suggestions
+        never set roots or grouping until a human accepts them.
+        """
+        return intelligence.lineage_suggestions()
+
     return mcp
 
 
