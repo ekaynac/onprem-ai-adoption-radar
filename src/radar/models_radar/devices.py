@@ -20,7 +20,15 @@ class DeviceError(ValueError):
     """Raised when a device spec cannot be resolved."""
 
 
-USABLE_FRACTION: dict[str, float] = {"gpu": 0.85, "apple": 0.72, "cpu": 0.50}
+# "unified" = non-Apple unified-memory SoCs (Grace-Blackwell GB10/GB300
+# desktops, Jetson, Ryzen AI Max): the model shares one pool with the
+# OS and CPU, so the Apple fraction applies rather than the dGPU one.
+USABLE_FRACTION: dict[str, float] = {
+    "gpu": 0.85,
+    "apple": 0.72,
+    "unified": 0.72,
+    "cpu": 0.50,
+}
 
 
 class DeviceProfile(BaseModel):
@@ -29,7 +37,7 @@ class DeviceProfile(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     name: str
-    kind: Literal["gpu", "apple", "cpu"]
+    kind: Literal["gpu", "apple", "unified", "cpu"]
     total_memory_gb: float
     gpu_count: int = 1
     memory_bandwidth_gbs: float | None = None
@@ -42,6 +50,13 @@ class DeviceProfile(BaseModel):
     spec_url: str | None = None
     verified: str | None = None  # ISO date
     datacenter: bool = False
+    # Taxonomy (H1): `manufacturer` is the CHIP maker (NVIDIA, AMD,
+    # Apple, Intel); `vendor` is the SYSTEM builder (NVIDIA, Dell, HPE,
+    # Advantech, Framework...) — set when this profile is a flattened
+    # node/cluster; `chip` then names the contained device id.
+    manufacturer: str | None = None
+    vendor: str | None = None
+    chip: str | None = None
 
 
 def usable_memory_gb(device: DeviceProfile) -> float:
@@ -77,7 +92,20 @@ def _flatten_nodes(catalog: DeviceCatalog) -> dict[str, DeviceProfile]:
                 "name": node.name,
                 "gpu_count": node.gpus_per_node,
                 "interconnect": node.interconnect or base.interconnect,
-                "datacenter": True,
+                # Reference baseboards default to datacenter; a vendor
+                # system states its own class (a DGX Spark or an edge box
+                # is not a rack part).
+                "datacenter": (
+                    node.datacenter if node.datacenter is not None else True
+                ),
+                "vendor": node.vendor,
+                "chip": node.device,
+                "spec_url": node.spec_url or base.spec_url,
+                "verified": node.verified or base.verified,
+                "tdp_watts": node.tdp_watts or base.tdp_watts,
+                "indicative_price_usd": (
+                    node.indicative_price_usd or base.indicative_price_usd
+                ),
             }
         )
     return presets
