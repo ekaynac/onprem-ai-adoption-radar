@@ -142,3 +142,11 @@ class IntelligenceQueryService:
                 open_only=open_only
             )
         ]
+
+    def lineage_suggestions(self) -> list[dict[str, Any]]:
+        from radar.intelligence.lineage import list_suggestions
+
+        return [
+            edge.model_dump(mode="json")
+            for edge in list_suggestions(self.repository)
+        ]
