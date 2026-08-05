@@ -512,6 +512,7 @@ def test_significance_ranks_official_root_above_fresh_popular_derivative(
         "relation": "quantized",
         "root_release": root_release.id,
         "derivative_counts": None,
+        "inferred": False,
     }
     assert any(
         factor.startswith("class ")

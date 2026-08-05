@@ -39,6 +39,8 @@ export type ReleaseLineage = {
   relation?: string | null;
   root_release?: string | null;
   derivative_counts?: Record<string, number> | null;
+  // Tier-3 name-fingerprint suggestion — never confirmed ancestry.
+  inferred?: boolean;
 };
 
 export function releaseLineage(

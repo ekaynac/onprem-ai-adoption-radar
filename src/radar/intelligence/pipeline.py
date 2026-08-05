@@ -984,9 +984,54 @@ async def run_lineage_backfill(
             if owned_client:
                 await active_client.aclose()
 
+    # Tier-3 name inference (offline, no network): releases with no
+    # edges whose repo name carries a derivative suffix (-GGUF, -AWQ...)
+    # matching exactly one indexed repo get an UNDECLARED suggestion
+    # edge. Root resolution ignores undeclared edges — this surfaces
+    # candidates without auto-accepting ancestry.
+    from radar.intelligence.lineage import build_inferred_edge, infer_name_parent
+
+    inference_service = LineageService(repository)
+    children_with_edges = {
+        edge.child_release_id
+        for edge in repository.list_all_lineage_edges()
+    }
+    release_repos = repository.latest_claim_values(
+        release_ids, {"hf_repo", "repo_id"}
+    )
+    index_repos = {
+        repo.casefold(): repo
+        for values in release_repos.values()
+        for repo in [values.get("hf_repo") or values.get("repo_id")]
+        if isinstance(repo, str) and "/" in repo
+    }
+    inferred_edges = 0
+    for release_id in sorted(release_repos):
+        if release_id in children_with_edges:
+            continue
+        values = release_repos[release_id]
+        child_repo = values.get("hf_repo") or values.get("repo_id")
+        if not isinstance(child_repo, str) or "/" not in child_repo:
+            continue
+        inferred = infer_name_parent(child_repo, index_repos)
+        if inferred is None:
+            continue
+        parent_repo, relation = inferred
+        edge = build_inferred_edge(
+            release_id,
+            child_repo,
+            parent_repo,
+            relation,
+            resolve_parent=inference_service.resolve_parent,
+            observed_at=now,
+        )
+        if repository.upsert_lineage_edge(edge):
+            inferred_edges += 1
+
     result = LineageService(repository).sync_roots(now)
     return {
         "replayed_edges": replayed_edges,
+        "inferred_edges": inferred_edges,
         "fetched": fetched,
         "fetched_edges": fetched_edges,
         "parents_registered": parents_registered,

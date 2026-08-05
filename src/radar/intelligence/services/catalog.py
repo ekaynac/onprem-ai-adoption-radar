@@ -387,8 +387,13 @@ class CatalogService:
         edges = lister(release_id)
         if not edges:
             return None
+        from radar.intelligence.lineage import AUTO_ACCEPT_CONFIDENCE
+
+        accepted = [
+            edge for edge in edges if edge.confidence >= AUTO_ACCEPT_CONFIDENCE
+        ]
         primary = max(
-            edges,
+            accepted or edges,
             key=lambda edge: (
                 edge.confidence,
                 edge.parent_release_id or "",
@@ -399,6 +404,7 @@ class CatalogService:
             "base_release": primary.parent_release_id,
             "relation": primary.relation.value,
             "root_release": primary.root_release_id,
+            "inferred": primary.confidence < AUTO_ACCEPT_CONFIDENCE,
         }
 
 

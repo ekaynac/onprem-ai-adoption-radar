@@ -389,6 +389,11 @@ def import_legacy_state(root: Path, repository) -> MigrationReport:
     amnestied = (
         amnesty(datetime.now(UTC)) if amnesty is not None else 0
     )
+    collection_amnesty = getattr(
+        repository, "resolve_collection_lineage_reviews", None
+    )
+    if collection_amnesty is not None:
+        amnestied += collection_amnesty(datetime.now(UTC))
     return MigrationReport(
         models_imported=models_imported,
         platforms_imported=platforms_imported,

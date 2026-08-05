@@ -719,6 +719,49 @@ class SqlAlchemyIntelligenceRepository:
                     resolved += 1
         return resolved
 
+    def resolve_collection_lineage_reviews(self, now: datetime) -> int:
+        """Amnesty for lineage-conflict reviews from collection cards.
+
+        A card declaring >= LINEAGE_COLLECTION_PARENT_THRESHOLD distinct
+        parents is an aggregation/evaluation listing, not lineage — the
+        detector no longer opens these; drain the stored ones. Idempotent.
+        """
+        from radar.intelligence.lineage import (
+            LINEAGE_COLLECTION_PARENT_THRESHOLD,
+        )
+
+        prefix = "Conflicting lineage parents declared: "
+        resolved = 0
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(ReviewExceptionRow).where(
+                    ReviewExceptionRow.code == "lineage-conflict",
+                    ReviewExceptionRow.resolved_at.is_(None),
+                )
+            ).all()
+            for row in rows:
+                if not row.message.startswith(prefix):
+                    continue
+                parents = [
+                    part.strip()
+                    for part in row.message.removeprefix(prefix).split(",")
+                    if part.strip()
+                ]
+                if len(parents) >= LINEAGE_COLLECTION_PARENT_THRESHOLD:
+                    row.resolved_at = now
+                    row.resolution = {
+                        "resolution": "auto_amnesty_collection_card",
+                        "evidence_ids": [],
+                        "note": (
+                            "Cards declaring "
+                            f">={LINEAGE_COLLECTION_PARENT_THRESHOLD} "
+                            "distinct parents are aggregation/collection "
+                            "listings, not lineage (policy 2026-08-05)"
+                        ),
+                    }
+                    resolved += 1
+        return resolved
+
     def resolve_review_exception(
         self,
         exception_id: str,

@@ -237,3 +237,96 @@ def test_highest_confidence_edge_wins_tie_break() -> None:
 
     assert result.roots["release:child"] == "release:base"
     assert result.findings == []
+
+
+def test_name_inference_matches_exactly_one_indexed_parent():
+    from radar.intelligence.lineage import infer_name_parent
+
+    index = {
+        "acme/model-x": "acme/Model-X",
+        "other/model-y": "other/Model-Y",
+    }
+    inferred = infer_name_parent("quantco/Model-X-GGUF", index)
+    assert inferred is not None
+    parent, relation = inferred
+    assert parent == "acme/Model-X"
+    assert relation.value == "quantized"
+    # Ambiguity → None (two candidates carry the stem).
+    ambiguous = {
+        "a/model-x": "a/Model-X",
+        "b/model-x": "b/Model-X",
+    }
+    assert infer_name_parent("q/Model-X-AWQ", ambiguous) is None
+    # No known suffix → None; self-match → None.
+    assert infer_name_parent("acme/Model-X", index) is None
+    assert (
+        infer_name_parent("acme/Model-X-GGUF", {"acme/model-x-gguf": "acme/Model-X-GGUF"})
+        is None
+    )
+
+
+def test_collection_cards_produce_no_edges_and_no_conflict():
+    from datetime import UTC, datetime
+
+    from radar.intelligence.lineage import build_edges
+
+    declared = [
+        {"parent_repo": f"org/model-{index}", "relation": "base", "via": "card"}
+        for index in range(6)
+    ]
+    edges = build_edges(
+        "release:child",
+        declared,
+        resolve_parent=lambda repo: None,
+        evidence_ids=["evidence:x"],
+        observed_at=datetime(2026, 8, 5, tzinfo=UTC),
+    )
+    assert edges == []
+
+
+def test_legacy_collection_edges_self_root_without_finding():
+    from datetime import UTC, datetime
+
+    from radar.intelligence.contracts import LineageEdge, LineageRelation
+    from radar.intelligence.lineage import resolve_roots
+
+    edges = [
+        LineageEdge(
+            id=f"lineage:release:child:base:hf:org/m{index}",
+            child_release_id="release:child",
+            parent_external_ref=f"hf:org/m{index}",
+            relation=LineageRelation.BASE,
+            declared=True,
+            confidence=0.85,
+            evidence_ids=["evidence:card"],
+            extractor_version="hf-lineage-v1",
+            observed_at=datetime(2026, 8, 5, tzinfo=UTC),
+        )
+        for index in range(5)
+    ]
+    result = resolve_roots(edges)
+    assert result.roots["release:child"] == "release:child"
+    assert result.findings == []
+
+
+def test_undeclared_inferred_edges_never_set_roots():
+    from datetime import UTC, datetime
+
+    from radar.intelligence.contracts import LineageEdge, LineageRelation
+    from radar.intelligence.lineage import resolve_roots
+
+    inferred = LineageEdge(
+        id="lineage:release:child:quantized:hf:acme/model-x",
+        child_release_id="release:child",
+        parent_external_ref="hf:acme/model-x",
+        parent_release_id="release:parent",
+        relation=LineageRelation.QUANTIZED,
+        declared=False,
+        confidence=0.5,
+        extractor_version="hf-lineage-name-v1",
+        observed_at=datetime(2026, 8, 5, tzinfo=UTC),
+    )
+    result = resolve_roots([inferred])
+    # The suggestion exists as data, but ancestry is not auto-accepted.
+    assert result.roots["release:child"] == "release:child"
+    assert result.findings == []
