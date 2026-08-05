@@ -90,3 +90,56 @@ def test_reopening_a_review_is_idempotent_across_runs(tmp_path) -> None:
         repository.open_review_exception(
             first.model_copy(update={"subject_id": "candidate:hf:other/model"})
         )
+
+
+def test_volatile_conflict_amnesty_resolves_only_pure_volatile_rows(
+    tmp_path,
+) -> None:
+    from radar.intelligence.contracts import ReviewException
+
+    repository = lifecycle_repository(tmp_path)
+
+    def _review(review_id: str, code: str, message: str) -> None:
+        repository.open_review_exception(
+            ReviewException(
+                id=review_id,
+                subject_id=RELEASE_ID,
+                code=code,
+                message=message,
+                evidence_ids=["evidence:x"],
+                opened_at=NOW,
+            )
+        )
+
+    _review(
+        "review:flood:1",
+        "conflicting_authoritative_claims",
+        "Authoritative evidence conflicts for: downloads, last_modified, sha",
+    )
+    _review(
+        "review:flood:2",
+        "conflicting_authoritative_claims",
+        "Authoritative evidence conflicts for: likes",
+    )
+    _review(
+        "review:mixed",
+        "conflicting_authoritative_claims",
+        "Authoritative evidence conflicts for: downloads, license",
+    )
+    _review(
+        "review:other-code",
+        "ambiguous_identity",
+        "Identity review required for Something",
+    )
+
+    resolved = repository.resolve_volatile_conflict_reviews(NOW)
+
+    assert resolved == 2
+    flood = repository.get_review_exception("review:flood:1")
+    assert flood is not None and flood.resolved_at == NOW
+    mixed = repository.get_review_exception("review:mixed")
+    assert mixed is not None and mixed.resolved_at is None
+    other = repository.get_review_exception("review:other-code")
+    assert other is not None and other.resolved_at is None
+    # Idempotent — the backlog is drained exactly once.
+    assert repository.resolve_volatile_conflict_reviews(NOW) == 0

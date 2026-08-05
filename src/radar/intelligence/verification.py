@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Protocol
 
 from radar.intelligence.contracts import (
+    VOLATILE_PREDICATES,
     Claim,
     ClaimState,
     EvidenceObservation,
@@ -214,7 +215,10 @@ class VerificationService:
         by_predicate: dict[str, list[Claim]],
     ) -> list[Claim]:
         conflicts: list[Claim] = []
-        for claims in by_predicate.values():
+        for predicate, claims in by_predicate.items():
+            if predicate in VOLATILE_PREDICATES:
+                # Metric drift between scans is expected, not a dispute.
+                continue
             ranked = [
                 (self._claim_strength(claim), claim)
                 for claim in claims

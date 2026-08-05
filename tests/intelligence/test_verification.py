@@ -133,8 +133,14 @@ def test_nonrequired_conflict_does_not_block_release_verification(tmp_path) -> N
         "moonshotai/Kimi-K3",
         "artifact",
     )
-    seed_claim(repository, "claim:downloads:one", "downloads", 10, "one")
-    seed_claim(repository, "claim:downloads:two", "downloads", 20, "two")
+    # A non-required (but non-volatile) fact in dispute: reviewable,
+    # yet it must not block verification of the required set.
+    seed_claim(
+        repository, "claim:pipeline:one", "pipeline_tag", "text-generation", "one"
+    )
+    seed_claim(
+        repository, "claim:pipeline:two", "pipeline_tag", "text2text", "two"
+    )
 
     result = VerificationService(repository).verify_release(RELEASE_ID, NOW)
 
@@ -143,3 +149,49 @@ def test_nonrequired_conflict_does_not_block_release_verification(tmp_path) -> N
     assert repository.get_release_required(
         RELEASE_ID
     ).lifecycle is LifecycleState.VERIFIED
+
+
+def test_volatile_metric_drift_never_opens_a_conflict_review(tmp_path) -> None:
+    """Production repro (2026-08-03..05 flood): repeated scans see different
+    downloads/likes/last_modified/sha values from different source URLs —
+    that is metric drift, not a dispute, and must not open a review."""
+    repository = lifecycle_repository(tmp_path)
+    for predicate in ("downloads", "likes", "last_modified", "sha"):
+        seed_claim(
+            repository,
+            f"claim:{predicate}:one",
+            predicate,
+            f"{predicate}-value-1",
+            f"{predicate}-one",
+        )
+        seed_claim(
+            repository,
+            f"claim:{predicate}:two",
+            predicate,
+            f"{predicate}-value-2",
+            f"{predicate}-two",
+        )
+    # Required identity claims so verification can otherwise proceed.
+    seed_claim(repository, "claim:license", "license", "mit", "license")
+    seed_claim(
+        repository, "claim:artifact", "hf_repo", "moonshotai/Kimi-K3", "artifact"
+    )
+
+    result = VerificationService(repository).verify_release(RELEASE_ID, NOW)
+
+    assert result.review_exception is None
+
+
+def test_mixed_conflict_review_lists_only_real_predicates(tmp_path) -> None:
+    repository = lifecycle_repository(tmp_path)
+    seed_claim(repository, "claim:downloads:one", "downloads", 10, "d-one")
+    seed_claim(repository, "claim:downloads:two", "downloads", 999, "d-two")
+    seed_claim(repository, "claim:license:one", "license", "mit", "one")
+    seed_claim(repository, "claim:license:two", "license", "proprietary", "two")
+
+    result = VerificationService(repository).verify_release(RELEASE_ID, NOW)
+
+    assert result.review_exception is not None
+    assert result.review_exception.message == (
+        "Authoritative evidence conflicts for: license"
+    )

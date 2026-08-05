@@ -255,6 +255,14 @@ class LineageEdge(FrozenModel):
         return self
 
 
+# Observations, not facts: these predicates are time-series metrics whose
+# values legitimately drift between authoritative fetches (every HF scan
+# sees new download counts and a moving repo sha). They are latest-wins by
+# definition and must never open conflicting-authoritative-claims reviews —
+# doing so flooded the queue with ~750 false conflicts (2026-08-03..05).
+VOLATILE_PREDICATES = frozenset({"downloads", "likes", "last_modified", "sha"})
+
+
 class ReviewException(FrozenModel):
     id: str
     subject_id: str
