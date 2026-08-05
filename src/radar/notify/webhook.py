@@ -40,6 +40,38 @@ def build_payload(deltas: list[CardDelta], run_id: str) -> dict[str, Any]:
     return {"run_id": run_id, "change_count": len(changes), "changes": changes}
 
 
+def teams_message(text: str) -> dict[str, Any]:
+    """The Adaptive Card envelope Teams Workflows webhooks require.
+
+    Modern Teams webhooks (Power Automate "when a webhook request is
+    received") only render ``attachments`` carrying an Adaptive Card —
+    plain ``{"text": ...}`` posts are dropped silently.
+    """
+    return {
+        "type": "message",
+        "attachments": [
+            {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "type": "AdaptiveCard",
+                    "version": "1.4",
+                    "body": [
+                        {"type": "TextBlock", "text": text, "wrap": True}
+                    ],
+                },
+            }
+        ],
+    }
+
+
+def text_body(config: NotifyConfig, text: str) -> dict[str, Any]:
+    """The text payload matching the configured webhook dialect."""
+    if config.format == "teams":
+        return teams_message(text)
+    return {"text": text}
+
+
 def build_slack_text(deltas: list[CardDelta], run_id: str) -> str:
     """A compact Slack/Discord/Teams-compatible summary string."""
     lines = [f"*Adoption radar* — {len(_ring_changes(deltas))} ring change(s) in {run_id}:"]
@@ -69,8 +101,10 @@ async def send_notification(
     if not _ring_changes(deltas):
         return False
 
-    if config.format == "slack":
-        body: dict[str, Any] = {"text": build_slack_text(deltas, run_id)}
+    if config.format in {"slack", "teams"}:
+        body: dict[str, Any] = text_body(
+            config, build_slack_text(deltas, run_id)
+        )
     else:
         body = build_payload(deltas, run_id)
 
@@ -101,7 +135,8 @@ async def send_digest_notification(
     if not config.enabled or not config.webhook_url:
         return False
     body: dict[str, Any] = (
-        {"text": digest.summary_line} if config.format == "slack"
+        text_body(config, digest.summary_line)
+        if config.format in {"slack", "teams"}
         else build_digest_payload(digest)
     )
     try:

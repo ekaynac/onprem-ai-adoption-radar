@@ -154,3 +154,68 @@ async def test_send_notification_without_url_is_noop():
 
     assert sent is False
     assert client.calls == []
+
+
+def test_teams_format_wraps_text_in_adaptive_card():
+    """Teams Workflows webhooks silently drop plain {"text": ...} posts."""
+    import asyncio
+
+    from radar.models import NotifyConfig
+    from radar.notify.webhook import teams_message, text_body
+
+    body = teams_message("hello")
+    assert body["type"] == "message"
+    card = body["attachments"][0]
+    assert card["contentType"] == "application/vnd.microsoft.card.adaptive"
+    assert card["content"]["body"][0]["text"] == "hello"
+    assert card["content"]["body"][0]["wrap"] is True
+
+    teams = NotifyConfig(
+        enabled=True, webhook_url="https://hooks.example/x", format="teams"
+    )
+    slack = NotifyConfig(
+        enabled=True, webhook_url="https://hooks.example/x", format="slack"
+    )
+    assert text_body(teams, "hi") == teams_message("hi")
+    assert text_body(slack, "hi") == {"text": "hi"}
+
+    # The alert sender speaks the same dialect.
+    from radar.notify.alert_delivery import send_alert_notification
+
+    class _Resp:
+        def raise_for_status(self):
+            return None
+
+    class _Client:
+        def __init__(self):
+            self.bodies = []
+
+        async def post(self, url, json=None):
+            self.bodies.append(json)
+            return _Resp()
+
+    client = _Client()
+    alert = {
+        "id": "alert:1",
+        "verdict": "act",
+        "subject": "vLLM drops V0",
+        "what_happened": "migrate",
+        "matched_components": ["vllm"],
+        "receipts": [],
+        "observed_at": "2026-08-04T09:00:00Z",
+    }
+    assert asyncio.run(
+        send_alert_notification(teams, [alert], "Demo", client)
+    )
+    assert client.bodies[0]["type"] == "message"
+    assert "vLLM drops V0" in str(client.bodies[0]["attachments"])
+
+
+def test_notify_format_validator_accepts_teams_only_known():
+    import pytest
+
+    from radar.models import NotifyConfig
+
+    assert NotifyConfig(format="teams").format == "teams"
+    with pytest.raises(ValueError):
+        NotifyConfig(format="msteams")

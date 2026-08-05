@@ -174,22 +174,26 @@ class NotifyConfig(BaseModel):
 
     The URL is read via env expansion in config (``${RADAR_WEBHOOK_URL}``) so
     no secret is stored. ``generic`` posts a structured JSON payload; ``slack``
-    posts ``{"text": ...}`` compatible with Slack/Discord/Teams incoming
-    webhooks. A notification fires only when a scan produced ring changes.
+    posts ``{"text": ...}`` compatible with Slack/Discord classic incoming
+    webhooks; ``teams`` wraps the same text in the Adaptive Card envelope that
+    Microsoft Teams Workflows webhooks require (the retired O365 connectors
+    accepted plain text, their Workflows replacement does not).
     """
 
     model_config = ConfigDict(extra="forbid")
 
     enabled: bool = False
     webhook_url: str = ""
-    format: str = "generic"  # generic | slack
+    format: str = "generic"  # generic | slack | teams
     timeout_seconds: int = Field(default=10, ge=1)
 
     @field_validator("format")
     @classmethod
     def validate_format(cls, value: str) -> str:
-        if value not in {"generic", "slack"}:
-            raise ValueError("notify.format must be 'generic' or 'slack'")
+        if value not in {"generic", "slack", "teams"}:
+            raise ValueError(
+                "notify.format must be 'generic', 'slack', or 'teams'"
+            )
         return value
 
 
