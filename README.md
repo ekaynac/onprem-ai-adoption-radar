@@ -345,7 +345,10 @@ profiles:
   security-first: {security_posture: 3.0, on_prem_relevance: 2.0, demo_value: 0.5}
 ```
 
-**Notifications** post to a webhook on ring changes (off by default; URL read from the environment):
+**Notifications** post to a webhook on ring changes *and* on new stack-profile
+alerts (`radar alerts notify`, exactly-once per alert via
+`data/alerts-delivered.jsonl`). Off by default; the URL is read from the
+environment:
 
 ```yaml
 notify:
@@ -353,6 +356,10 @@ notify:
   webhook_url: ${RADAR_WEBHOOK_URL}
   format: generic    # generic | slack  (slack works for Slack/Discord/Teams)
 ```
+
+To activate in CI: set `enabled: true` in `data/config.yaml` and add a
+`RADAR_WEBHOOK_URL` repository secret — until then each publish prints a
+visible skip line.
 
 ## Publishing (GitHub Pages)
 
