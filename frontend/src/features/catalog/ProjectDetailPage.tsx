@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 
 import { usePublicSnapshot } from "./catalogQueries";
+import { formatUtcDate } from "./format";
 
 
 function readable(value: unknown) {
@@ -30,12 +31,9 @@ export function ProjectDetailPage() {
 
   const isBaseline =
     snapshot.data?.project_data?.mode === "last_published_baseline";
-  const baselineDate = snapshot.data?.project_data?.generated_at
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeZone: "UTC",
-      }).format(new Date(snapshot.data.project_data.generated_at))
-    : "an unknown date";
+  const baselineDate = formatUtcDate(
+    snapshot.data?.project_data?.generated_at,
+  );
   const metrics = project.latest_metrics ?? {};
   return (
     <section className="page-stack" aria-labelledby="project-title">

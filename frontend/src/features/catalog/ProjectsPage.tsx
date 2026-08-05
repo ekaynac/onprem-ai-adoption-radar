@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { usePublicSnapshot } from "./catalogQueries";
+import { formatUtcDate } from "./format";
 
 
 export function ProjectsPage() {
@@ -22,12 +23,9 @@ export function ProjectsPage() {
   );
   const isBaseline =
     snapshot.data?.project_data?.mode === "last_published_baseline";
-  const baselineDate = snapshot.data?.project_data?.generated_at
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeZone: "UTC",
-      }).format(new Date(snapshot.data.project_data.generated_at))
-    : "an unknown date";
+  const baselineDate = formatUtcDate(
+    snapshot.data?.project_data?.generated_at,
+  );
 
   return (
     <section className="page-stack" aria-labelledby="projects-title">

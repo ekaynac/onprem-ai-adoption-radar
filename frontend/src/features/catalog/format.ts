@@ -29,3 +29,15 @@ export function formatContext(value?: number | null): string | null {
   if (value == null || value <= 0) return null;
   return value >= 1024 ? `${Math.round(value / 1024)}K` : String(value);
 }
+
+
+// The product's copy is English; dates render in a fixed en-US medium
+// format regardless of the viewer's OS locale, so the same build shows
+// (and tests assert) identical strings on every machine.
+export function formatUtcDate(value?: string | null): string {
+  if (!value) return "an unknown date";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
