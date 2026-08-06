@@ -898,3 +898,94 @@ async def test_lineage_triage_resolves_parents_and_reconciles_suggestions(
         if edge.child_release_id == "release:c:confirmed" and edge.declared
     ]
     assert len(declared) == 1
+
+
+@pytest.mark.asyncio
+async def test_alias_canonicalization_melts_org_rename_conflicts(
+    tmp_path,
+) -> None:
+    """Two names for one repo (org rename) must not read as a dispute."""
+    from radar.intelligence.lineage import LineageService
+    from radar.intelligence.pipeline import run_lineage_triage
+
+    repo = repository(tmp_path)
+    parent = Release(
+        id="release:dphn:dolphin",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Dolphin 3.0",
+        category=ModelCategory.TEXT_REASONING,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    child = parent.model_copy(
+        update={"id": "release:child:tune", "name": "Dolphin Tune"}
+    )
+    for release in (parent, child):
+        repo.upsert_release(release)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    evidence = runner._persist_source_record(
+        make_record("https://huggingface.co/api/models/x", b"{}")
+    )
+    runner._append_claim(
+        parent.id, "hf_repo", "dphn/Dolphin3.0-Llama3.2-1B", evidence
+    )
+    # The child's card declares BOTH the old-org and new-org names.
+    declared = [
+        {
+            "parent_repo": "cognitivecomputations/Dolphin3.0-Llama3.2-1B",
+            "relation": "finetune",
+            "via": "card",
+        },
+        {
+            "parent_repo": "dphn/Dolphin3.0-Llama3.2-1B",
+            "relation": "finetune",
+            "via": "card",
+        },
+    ]
+    runner._append_claim(child.id, "lineage_declared", declared, evidence)
+    service = LineageService(repo)
+    service.ingest_declared(
+        child.id, declared, evidence_ids=[evidence.id], observed_at=NOW
+    )
+    result = service.sync_roots(NOW)
+    assert [f.code for f in result.findings] == ["lineage-conflict"]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        # The registry redirects the old org name to the canonical repo.
+        return httpx.Response(
+            200,
+            json={"id": "dphn/Dolphin3.0-Llama3.2-1B"},
+            request=request,
+        )
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        report = await run_lineage_triage(
+            tmp_path, repo, fetch_limit=10, clock=lambda: NOW, client=client
+        )
+
+    assert report["aliases_recorded"] >= 1
+    assert report["alias_edges_repaired"] >= 1
+    # The conflict melted: one canonical parent, root resolves, review
+    # auto-closed by the service's finding-no-longer-present path.
+    final = LineageService(repo).sync_roots(NOW)
+    assert final.findings == []
+    assert final.roots["release:child:tune"] == parent.id
+    open_conflicts = [
+        review
+        for review in repo.list_review_exceptions(open_only=True)
+        if review.code == "lineage-conflict"
+    ]
+    assert open_conflicts == []
+    # Replays of the OLD-name claim now converge on the canonical edge.
+    edges = [
+        e
+        for e in repo.list_all_lineage_edges()
+        if e.child_release_id == child.id
+    ]
+    assert len(edges) == 1
+    assert edges[0].parent_external_ref == "hf:dphn/Dolphin3.0-Llama3.2-1B"

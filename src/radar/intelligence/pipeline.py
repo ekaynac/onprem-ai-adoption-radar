@@ -1091,7 +1091,9 @@ async def run_lineage_triage(
     )
     parents_resolved = parents_gone = suggestions_confirmed = 0
     suggestions_refuted = fetches = failures = deadline_reached = 0
+    aliases_recorded = alias_edges_repaired = 0
     prefix = "Declared lineage parent is not resolvable: hf:"
+    conflict_prefix = "Conflicting lineage parents declared: "
     try:
         open_reviews = [
             review
@@ -1148,6 +1150,114 @@ async def run_lineage_triage(
             release_ids, {"lineage_declared", "hf_repo", "repo_id"}
         )
         runner = IntelligenceJobRunner(root=root, repository=repository)
+
+        # Conflict pass: most "conflicting parents" are the SAME repo
+        # under an org rename or name variant — the registry redirects
+        # and reports one canonical id. Record proven aliases as claims,
+        # delete edges keyed to stale names, and re-ingest the affected
+        # children so conflicts melt in this very run.
+        from radar.intelligence.contracts import Claim, ClaimState
+        from radar.intelligence.lineage import (
+            ALIAS_PREDICATE,
+            ALIAS_SUBJECT_PREFIX,
+        )
+
+        known_aliases = service.repo_alias_map()
+        conflict_refs: set[str] = set()
+        for review in repository.list_review_exceptions(open_only=True):
+            if review.code != "lineage-conflict":
+                continue
+            if not review.message.startswith(conflict_prefix):
+                continue
+            for part in review.message.removeprefix(conflict_prefix).split(
+                ","
+            ):
+                ref = part.strip()
+                if ref.startswith("hf:"):
+                    conflict_refs.add(ref.removeprefix("hf:"))
+        alias_checked = 0
+        for repo in sorted(conflict_refs):
+            if over_deadline():
+                deadline_reached = 1
+                break
+            if repo.casefold() in known_aliases or alias_checked >= fetch_limit:
+                continue
+            alias_checked += 1
+            try:
+                response = await active_client.get(
+                    f"https://huggingface.co/api/models/{repo}"
+                )
+            except httpx.HTTPError:
+                failures += 1
+                continue
+            fetches += 1
+            if response.status_code != 200:
+                continue
+            try:
+                canonical = response.json().get("id")
+            except ValueError:
+                failures += 1
+                continue
+            if not isinstance(canonical, str) or "/" not in canonical:
+                continue
+            evidence = runner._persist_source_record(
+                SourceRecord.from_bytes(
+                    source_id="huggingface",
+                    url=str(response.request.url),
+                    body=response.content,
+                    retrieved_at=now,
+                    strength=EvidenceStrength.TRUSTED_REGISTRY,
+                )
+            )
+            repository.append_claim(
+                Claim(
+                    id=(
+                        "claim:repo-alias:"
+                        + hashlib.sha256(
+                            f"{repo.casefold()}|{canonical}".encode()
+                        ).hexdigest()[:32]
+                    ),
+                    subject_id=f"{ALIAS_SUBJECT_PREFIX}{repo.casefold()}",
+                    predicate=ALIAS_PREDICATE,
+                    value=canonical,
+                    state=ClaimState.CANDIDATE,
+                    observed_at=now,
+                    evidence_ids=[evidence.id],
+                )
+            )
+            if canonical.casefold() != repo.casefold():
+                aliases_recorded += 1
+
+        # Repair: drop edges keyed to a stale name and re-ingest the
+        # affected children through the (now alias-aware) declared path.
+        alias_service = LineageService(repository)
+        aliases = alias_service.repo_alias_map()
+        affected_children: set[str] = set()
+        for edge in repository.list_all_lineage_edges():
+            ref = edge.parent_external_ref.removeprefix("hf:")
+            canonical = aliases.get(ref.casefold())
+            if canonical is not None and canonical.casefold() != ref.casefold():
+                repository.delete_lineage_edge(edge.id)
+                alias_edges_repaired += 1
+                affected_children.add(edge.child_release_id)
+        for child in sorted(affected_children):
+            declared = stored.get(child, {}).get("lineage_declared")
+            if not declared:
+                continue
+            claims = [
+                claim
+                for claim in repository.list_claims_for_subject(child)
+                if claim.predicate == "lineage_declared"
+            ]
+            if not claims:
+                continue
+            latest = max(claims, key=lambda c: (c.observed_at, c.id))
+            alias_service.ingest_declared(
+                child,
+                declared,
+                evidence_ids=latest.evidence_ids,
+                observed_at=latest.observed_at,
+            )
         checked = 0
         for suggestion in list_suggestions(repository):
             if over_deadline():
@@ -1219,6 +1329,8 @@ async def run_lineage_triage(
         "parents_gone": parents_gone,
         "suggestions_confirmed": suggestions_confirmed,
         "suggestions_refuted": suggestions_refuted,
+        "aliases_recorded": aliases_recorded,
+        "alias_edges_repaired": alias_edges_repaired,
         "fetches": fetches,
         "failures": failures,
         "deadline_reached": deadline_reached,

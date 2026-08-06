@@ -381,6 +381,32 @@ class SqlAlchemyIntelligenceRepository:
             )
             return [_claim_from_session(session, row) for row in rows]
 
+    def latest_values_for_predicate(self, predicate: str) -> dict[str, Any]:
+        """Latest value per subject for ONE predicate (unbounded subjects).
+
+        Exists for registry-wide lookup predicates (e.g. repo aliases)
+        whose subjects are not releases and cannot be enumerated upfront.
+        """
+        with self.database.session() as session:
+            rows = session.execute(
+                select(
+                    ClaimRow.subject_id,
+                    ClaimRow.value,
+                    ClaimRow.observed_at,
+                    ClaimRow.id,
+                )
+                .where(ClaimRow.predicate == predicate)
+                .order_by(
+                    ClaimRow.subject_id,
+                    ClaimRow.observed_at,
+                    ClaimRow.id,
+                )
+            ).all()
+        values: dict[str, Any] = {}
+        for subject_id, value, _observed_at, _claim_id in rows:
+            values[subject_id] = value  # ordered ascending: last wins
+        return values
+
     def latest_claim_values(
         self,
         subject_ids: list[str],
