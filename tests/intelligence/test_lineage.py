@@ -503,3 +503,81 @@ def test_build_edges_rejects_filesystem_path_parents():
     )
 
     assert [edge.parent_external_ref for edge in edges] == ["hf:acme/Model-X"]
+
+
+def test_same_parent_in_two_forms_is_not_a_conflict() -> None:
+    """One edge resolved, one still on the external ref — same repo."""
+    from radar.intelligence.lineage import resolve_roots
+
+    edges = [
+        make_edge("release:child", "hf:acme/Model-X", parent="release:parent"),
+        make_edge(
+            "release:child",
+            "hf:ACME/model-x",
+            relation=LineageRelation.FINETUNE,
+        ),
+    ]
+
+    result = resolve_roots(edges)
+
+    assert result.findings == []
+    assert result.roots["release:child"] == "release:parent"
+
+
+def test_declaring_base_and_its_base_is_a_chain_not_a_conflict() -> None:
+    """Child lists both its distill source and that source's own base."""
+    from radar.intelligence.lineage import resolve_roots
+
+    edges = [
+        # child declares BOTH the distill and the distill's base.
+        make_edge(
+            "release:child",
+            "hf:deepseek/Distill-14B",
+            parent="release:distill",
+            relation=LineageRelation.FINETUNE,
+        ),
+        make_edge(
+            "release:child",
+            "hf:qwen/Qwen2.5-14B",
+            parent="release:qwen",
+            relation=LineageRelation.BASE,
+        ),
+        # the distill's own declaration closes the chain.
+        make_edge(
+            "release:distill",
+            "hf:qwen/Qwen2.5-14B",
+            parent="release:qwen",
+            relation=LineageRelation.DISTILLED,
+        ),
+    ]
+
+    result = resolve_roots(edges)
+
+    assert result.findings == []
+    # Proximate parent wins; root flows through the chain.
+    assert result.roots["release:child"] == "release:qwen"
+    assert result.roots["release:distill"] == "release:qwen"
+
+
+def test_genuinely_disjoint_parents_still_conflict() -> None:
+    from radar.intelligence.lineage import resolve_roots
+
+    edges = [
+        make_edge(
+            "release:pipeline",
+            "hf:nvidia/tts_en_fastpitch",
+            parent="release:fastpitch",
+            relation=LineageRelation.BASE,
+        ),
+        make_edge(
+            "release:pipeline",
+            "hf:nvidia/tts_hifigan",
+            parent="release:hifigan",
+            relation=LineageRelation.BASE,
+        ),
+    ]
+
+    result = resolve_roots(edges)
+
+    assert [f.code for f in result.findings] == ["lineage-conflict"]
+    assert result.roots["release:pipeline"] is None

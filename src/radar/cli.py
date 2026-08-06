@@ -601,6 +601,43 @@ def intelligence_lineage_backfill(
     console.print_json(data=report)
 
 
+@app.command("intelligence-lineage-triage")
+def intelligence_lineage_triage(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    fetch_limit: int = typer.Option(
+        50,
+        "--fetch-limit",
+        help="Registry checks per run (reviews and suggestion children).",
+    ),
+    max_minutes: float = typer.Option(
+        0.0,
+        "--max-minutes",
+        help="Wall-clock budget for the network phase (0 = unlimited).",
+    ),
+) -> None:
+    """Evidence-driven triage of unresolved-parent reviews + suggestions.
+
+    Checks each declared-but-untracked parent against the registry and
+    corroborates Tier-3 suggestions against the child's own baseModels
+    declaration; silent cards keep their suggestions for a human.
+    """
+    import asyncio
+
+    from radar.intelligence.bootstrap import build_intelligence_repository
+    from radar.intelligence.pipeline import run_lineage_triage
+
+    _database, repository = build_intelligence_repository(root)
+    report = asyncio.run(
+        run_lineage_triage(
+            root,
+            repository,
+            fetch_limit=fetch_limit,
+            max_seconds=max_minutes * 60 if max_minutes > 0 else None,
+        )
+    )
+    console.print_json(data=report)
+
+
 @app.command("intelligence-shadow")
 def intelligence_shadow(
     root: Path = typer.Option(Path("."), help="Project root."),

@@ -1045,6 +1045,186 @@ async def run_lineage_backfill(
     }
 
 
+async def run_lineage_triage(
+    root: Path,
+    repository: Any,
+    *,
+    fetch_limit: int = 50,
+    max_seconds: float | None = None,
+    clock: Callable[[], datetime] | None = None,
+    client: httpx.AsyncClient | None = None,
+) -> dict[str, int]:
+    """Evidence-driven triage of the lineage review/suggestion queue.
+
+    Two passes against the HF registry (bounded by ``fetch_limit`` and a
+    wall-clock budget), each recording its check as evidence:
+
+    1. Open ``lineage-unresolved-parent`` reviews: if the declared parent
+       exists upstream, the declaration is valid — the parent is simply
+       outside the tracked catalog; resolve the review. If upstream
+       returns 404/410, the declaration is unverifiable forever; resolve
+       with that note. Anything else (rate limit, 5xx) stays open.
+    2. Tier-3 suggestions: fetch the child's own ``baseModels``
+       declaration when it was never checked. A declaration naming the
+       suggested parent replaces the suggestion with a declared edge (the
+       normal ingest path); a declaration naming OTHER parents refutes
+       the suggestion (deleted); a silent card keeps the suggestion
+       pending for a human.
+    """
+    from radar.intelligence.lineage import list_suggestions
+    from radar.intelligence.sources.huggingface import fetch_base_models
+
+    now = (clock or (lambda: datetime.now(UTC)))()
+    deadline = None if max_seconds is None else time.monotonic() + max_seconds
+
+    def over_deadline() -> bool:
+        return deadline is not None and time.monotonic() >= deadline
+
+    headers = {}
+    if token := os.environ.get("HF_TOKEN"):
+        headers["Authorization"] = f"Bearer {token}"
+    owned_client = client is None
+    active_client = client or httpx.AsyncClient(
+        headers=headers,
+        timeout=httpx.Timeout(30.0),
+        follow_redirects=True,
+    )
+    parents_resolved = parents_gone = suggestions_confirmed = 0
+    suggestions_refuted = fetches = failures = deadline_reached = 0
+    prefix = "Declared lineage parent is not resolvable: hf:"
+    try:
+        open_reviews = [
+            review
+            for review in repository.list_review_exceptions(open_only=True)
+            if review.code == "lineage-unresolved-parent"
+            and review.message.startswith(prefix)
+        ]
+        for review in sorted(open_reviews, key=lambda r: r.id)[:fetch_limit]:
+            if over_deadline():
+                deadline_reached = 1
+                break
+            repo = review.message.removeprefix(prefix).strip()
+            try:
+                response = await active_client.get(
+                    f"https://huggingface.co/api/models/{repo}"
+                )
+            except httpx.HTTPError:
+                failures += 1
+                continue
+            fetches += 1
+            if response.status_code in {200, 401, 403}:
+                # Exists (401/403 = gated/private: it exists, we cannot
+                # ingest it) — a valid external parent, not an anomaly.
+                repository.resolve_review_exception(
+                    review.id,
+                    (
+                        f"Parent hf:{repo} exists upstream "
+                        f"(HTTP {response.status_code}) but is outside the "
+                        "tracked catalog; the chain intentionally stays "
+                        "unresolved (triage 2026-08-06)"
+                    ),
+                    [],
+                    now,
+                )
+                parents_resolved += 1
+            elif response.status_code in {404, 410}:
+                repository.resolve_review_exception(
+                    review.id,
+                    (
+                        f"Parent hf:{repo} is gone upstream "
+                        f"(HTTP {response.status_code}); the declaration "
+                        "is permanently unverifiable (triage 2026-08-06)"
+                    ),
+                    [],
+                    now,
+                )
+                parents_gone += 1
+            else:
+                failures += 1
+
+        service = LineageService(repository)
+        release_ids = [r.id for r in repository.list_all_releases()]
+        stored = repository.latest_claim_values(
+            release_ids, {"lineage_declared", "hf_repo", "repo_id"}
+        )
+        runner = IntelligenceJobRunner(root=root, repository=repository)
+        checked = 0
+        for suggestion in list_suggestions(repository):
+            if over_deadline():
+                deadline_reached = 1
+                break
+            child_values = stored.get(suggestion.child_release_id, {})
+            declared = child_values.get("lineage_declared")
+            if declared is None and checked < fetch_limit:
+                repo = child_values.get("hf_repo") or child_values.get(
+                    "repo_id"
+                )
+                if not isinstance(repo, str) or "/" not in repo:
+                    continue
+                checked += 1
+                record, entries = await fetch_base_models(
+                    active_client, repo, clock=lambda: now
+                )
+                if record is None:
+                    failures += 1
+                    continue
+                fetches += 1
+                evidence = runner._persist_source_record(record)
+                runner._append_claim(
+                    suggestion.child_release_id,
+                    "lineage_declared",
+                    entries,
+                    evidence,
+                )
+                if entries:
+                    service.ingest_declared(
+                        suggestion.child_release_id,
+                        entries,
+                        evidence_ids=[evidence.id],
+                        observed_at=evidence.retrieved_at,
+                    )
+                declared = entries
+            if not isinstance(declared, list) or not declared:
+                continue  # card is silent — the human call stands
+            declared_repos = {
+                str(entry.get("parent_repo", "")).casefold()
+                for entry in declared
+                if isinstance(entry, dict)
+            }
+            suggested = suggestion.parent_external_ref.removeprefix(
+                "hf:"
+            ).casefold()
+            if suggested in declared_repos:
+                # Superseded: the registry declaration carries this
+                # ancestry now. Same relation ⇒ ingest upserted the very
+                # same edge id to declared (keep it); a different relation
+                # ⇒ the declared edge lives under its own id, so the
+                # leftover suggestion row goes.
+                promoted = any(
+                    edge.id == suggestion.id and edge.declared
+                    for edge in repository.list_all_lineage_edges()
+                )
+                if not promoted:
+                    repository.delete_lineage_edge(suggestion.id)
+                suggestions_confirmed += 1
+            else:
+                repository.delete_lineage_edge(suggestion.id)
+                suggestions_refuted += 1
+        LineageService(repository).sync_roots(now)
+    finally:
+        if owned_client:
+            await active_client.aclose()
+    return {
+        "parents_resolved": parents_resolved,
+        "parents_gone": parents_gone,
+        "suggestions_confirmed": suggestions_confirmed,
+        "suggestions_refuted": suggestions_refuted,
+        "fetches": fetches,
+        "failures": failures,
+        "deadline_reached": deadline_reached,
+    }
+
+
 async def run_configured_job(
     root: Path,
     repository: Any,
