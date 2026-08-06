@@ -103,7 +103,7 @@ jobs:
           uv run radar intelligence-lineage-backfill --root . \
             --fetch-limit 150 --parent-limit 100 --max-minutes 20
           uv run radar intelligence-lineage-triage --root . \
-            --fetch-limit 60 --max-minutes 10
+            --fetch-limit 200 --max-minutes 12
 
       - name: Checkpoint discovered intelligence
         env:

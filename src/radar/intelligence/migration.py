@@ -74,6 +74,55 @@ class MigrationReport:
     volatile_reviews_amnestied: int = 0
 
 
+def _apply_operator_decisions(root: Path, repository: Any) -> int:
+    """Replay config-recorded operator judgments onto the rebuilt state.
+
+    CI rebuilds canonical state from scratch, so one-off operator
+    decisions must live in git (config/operator-decisions.yaml) and be
+    re-applied idempotently: entries whose review is already resolved
+    (or unknown) are skipped. Returns the number applied this run.
+    """
+    import yaml
+
+    from radar.intelligence.review import InvalidReviewResolution, ReviewService
+
+    config_path = root / "config" / "operator-decisions.yaml"
+    if not config_path.exists():
+        packaged = Path(__file__).resolve().parents[3] / "config"
+        config_path = packaged / "operator-decisions.yaml"
+        if not config_path.exists():
+            return 0
+    try:
+        payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return 0
+    entries = (payload or {}).get("review_resolutions") or []
+    service = ReviewService(repository)
+    applied = 0
+    now = datetime.now(UTC)
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        review_id = entry.get("review_id")
+        resolution = entry.get("resolution")
+        if not isinstance(review_id, str) or not isinstance(resolution, str):
+            continue
+        review = repository.get_review_exception(review_id)
+        if review is None or review.resolved_at is not None:
+            continue
+        try:
+            service.resolve(
+                review_id,
+                resolution,
+                evidence_ids=list(review.evidence_ids),
+                now=now,
+            )
+            applied += 1
+        except InvalidReviewResolution:
+            continue  # entry no longer matches state; leave for humans
+    return applied
+
+
 def _slug(value: str) -> str:
     return _SLUG_RE.sub("-", value.casefold()).strip("-")
 
@@ -402,6 +451,7 @@ def import_legacy_state(root: Path, repository) -> MigrationReport:
     purge = getattr(repository, "purge_invalid_lineage_parent_refs", None)
     if purge is not None:
         amnestied += purge(datetime.now(UTC))
+    amnestied += _apply_operator_decisions(root, repository)
     return MigrationReport(
         models_imported=models_imported,
         platforms_imported=platforms_imported,
