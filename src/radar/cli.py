@@ -2282,7 +2282,12 @@ def digest_generate(
         async with httpx.AsyncClient(
             timeout=float(notify_config.timeout_seconds)
         ) as client:
-            return await webhook.send_digest_notification(notify_config, digest, client)
+            return await webhook.send_digest_notification(
+                notify_config,
+                digest,
+                client,
+                page_url=page_url if base else None,
+            )
 
     # Fire the webhook only for a newly-logged week — a manual re-run of the same
     # ISO week rewrites artifacts but must not re-ping subscribers.

@@ -140,16 +140,28 @@ def build_digest_payload(digest: WeeklyDigest) -> dict[str, Any]:
 
 
 async def send_digest_notification(
-    config: NotifyConfig, digest: WeeklyDigest, client: Any
+    config: NotifyConfig,
+    digest: WeeklyDigest,
+    client: Any,
+    page_url: str | None = None,
 ) -> bool:
     """POST the digest summary if enabled. Never raises (fire-and-forget)."""
     if not config.enabled or not config.webhook_url:
         return False
-    body: dict[str, Any] = (
-        text_body(config, digest.summary_line)
-        if config.format in {"slack", "teams"}
-        else build_digest_payload(digest)
-    )
+    if config.format == "teams":
+        body: dict[str, Any] = teams_message(
+            digest.summary_line,
+            actions=[("Open digest", page_url)] if page_url else None,
+        )
+    elif config.format == "slack":
+        body = {
+            "text": digest.summary_line
+            + (f" {page_url}" if page_url else "")
+        }
+    else:
+        body = build_digest_payload(digest)
+        if page_url:
+            body["url"] = page_url
     try:
         response = await client.post(config.webhook_url, json=body)
         response.raise_for_status()
