@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-06T00:56:29.374943+00:00",
+ "generated_at": "2026-08-06T03:35:53.808318+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,13 +405,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-06T00:55:38.601446+00:00"
+   "observed_at": "2026-08-06T03:35:16.916443+00:00"
   },
   {
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +646 stars/day (2573 total)",
+   "what_happened": "New repo at +657.3 stars/day (2607 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +258.7 stars/day (1964 total)",
+   "what_happened": "New repo at +268.7 stars/day (1994 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -437,12 +437,25 @@
    "id": "call:brief-2026-W32:new-repos:perplexityai-numbat",
    "section": "new-repos",
    "subject": "perplexityai/numbat",
-   "what_happened": "New repo at +78.4 stars/day (712 total)",
+   "what_happened": "New repo at +78.7 stars/day (714 total)",
    "why_it_matters": "Visibility into AI agent activity on endpoints, with on-device detection, optional pre-action blocking, and forensic reconstruction.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/perplexityai/numbat"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W32:new-repos:petergyang-human-review",
+   "section": "new-repos",
+   "subject": "petergyang/human-review",
+   "what_happened": "New repo at +78 stars/day (222 total)",
+   "why_it_matters": "A visual tool to edit HTML and Markdown files, leave comments like a Google Doc, and send feedback to your AI agent. Works inside your favorite AI harness.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/petergyang/human-review"
    ],
    "observed_at": null
   },
@@ -456,19 +469,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/patchy631/time-to-first-token"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W32:new-repos:petergyang-human-review",
-   "section": "new-repos",
-   "subject": "petergyang/human-review",
-   "what_happened": "New repo at +40 stars/day (184 total)",
-   "why_it_matters": "A visual tool to edit HTML and Markdown files, leave comments like a Google Doc, and send feedback to your AI agent. Works inside your favorite AI harness.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/petergyang/human-review"
    ],
    "observed_at": null
   },
@@ -489,7 +489,7 @@
    "id": "call:brief-2026-W32:new-repos:hezaohezao-poirot",
    "section": "new-repos",
    "subject": "HezaoHezao/poirot",
-   "what_happened": "New repo at +26 stars/day (172 total)",
+   "what_happened": "New repo at +29 stars/day (175 total)",
    "why_it_matters": "Poirot is a deep research agent kernel built for those who care about how agents are architected. ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -502,7 +502,7 @@
    "id": "call:brief-2026-W32:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +23.3 stars/day (273 total)",
+   "what_happened": "New repo at +25.3 stars/day (279 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
