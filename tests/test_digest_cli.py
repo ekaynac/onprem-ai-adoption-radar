@@ -80,7 +80,7 @@ def test_digest_webhook_fires_once_per_week(tmp_path, monkeypatch):
     )
     calls = []
 
-    async def _fake_send(config, digest, client):
+    async def _fake_send(config, digest, client, page_url=None):
         calls.append(digest.label)
         return True
 
