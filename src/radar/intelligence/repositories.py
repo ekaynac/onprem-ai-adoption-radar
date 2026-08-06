@@ -1125,14 +1125,19 @@ class SqlAlchemyIntelligenceRepository:
                 return True
             if _lineage_from_row(row) == edge:
                 return False
+            # The edge id embeds the CASEFOLDED ref, so a ref differing
+            # only by case (registry alias corrected the casing) is the
+            # same edge — adopt the new spelling instead of conflicting.
             if (
                 row.child_release_id != edge.child_release_id
-                or row.parent_external_ref != edge.parent_external_ref
+                or row.parent_external_ref.casefold()
+                != edge.parent_external_ref.casefold()
                 or row.relation != edge.relation.value
             ):
                 raise RepositoryConflict(
                     f"Lineage edge id reused for different edge: {edge.id}"
                 )
+            row.parent_external_ref = edge.parent_external_ref
             row.parent_release_id = edge.parent_release_id
             row.root_release_id = edge.root_release_id
             row.declared = edge.declared
