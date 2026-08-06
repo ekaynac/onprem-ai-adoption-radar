@@ -467,12 +467,43 @@ class LineageRepository(Protocol):
     ) -> None: ...
 
 
+# Registry alias layer: org renames and name variants of the SAME repo
+# (cognitivecomputations↔dphn Dolphin, Llama-3.1-70B↔Meta-Llama-3.1-70B)
+# are recorded as claims — subject "repo-alias:{old,casefolded}",
+# predicate "canonical_repo", value the registry's canonical repo id,
+# evidence the fetch that proved it. Durable across rebuilds because
+# claims replay; edge deletion alone is not (declared claims re-create
+# edges every backfill).
+ALIAS_SUBJECT_PREFIX = "repo-alias:"
+ALIAS_PREDICATE = "canonical_repo"
+
+
 class LineageService:
     """Persist declared lineage and keep parent/root resolution current."""
 
     def __init__(self, repository: LineageRepository):
         self.repository = repository
         self._repo_map: dict[str, str] | None = None
+        self._alias_map: dict[str, str] | None = None
+
+    def repo_alias_map(self) -> dict[str, str]:
+        """Casefolded old repo id → canonical repo id (one query)."""
+        if self._alias_map is None:
+            getter = getattr(
+                self.repository, "latest_values_for_predicate", None
+            )
+            rows = getter(ALIAS_PREDICATE) if getter is not None else {}
+            self._alias_map = {
+                subject.removeprefix(ALIAS_SUBJECT_PREFIX): value
+                for subject, value in rows.items()
+                if subject.startswith(ALIAS_SUBJECT_PREFIX)
+                and isinstance(value, str)
+                and "/" in value
+            }
+        return self._alias_map
+
+    def canonical_repo(self, repo: str) -> str:
+        return self.repo_alias_map().get(repo.casefold(), repo)
 
     def hf_repo_release_map(self) -> dict[str, str]:
         """Map casefolded HF repo ids to canonical release ids (one query)."""
@@ -494,7 +525,9 @@ class LineageService:
         return self._repo_map
 
     def resolve_parent(self, parent_repo: str) -> str | None:
-        return self.hf_repo_release_map().get(parent_repo.casefold())
+        return self.hf_repo_release_map().get(
+            self.canonical_repo(parent_repo).casefold()
+        )
 
     def ingest_declared(
         self,
@@ -505,6 +538,23 @@ class LineageService:
         observed_at: datetime,
     ) -> int:
         """Upsert edges for one release's ``lineage_declared`` claim value."""
+        if isinstance(declared, list):
+            # Canonicalize BEFORE edge identity so replays of old-name
+            # claims and new-name claims converge on the same edge ids.
+            declared = [
+                (
+                    {
+                        **entry,
+                        "parent_repo": self.canonical_repo(
+                            entry["parent_repo"]
+                        ),
+                    }
+                    if isinstance(entry, dict)
+                    and isinstance(entry.get("parent_repo"), str)
+                    else entry
+                )
+                for entry in declared
+            ]
         edges = build_edges(
             child_release_id,
             declared,
