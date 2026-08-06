@@ -290,3 +290,60 @@ def test_rich_teams_alert_card_links_and_button():
         send_alert_notification(teams, [ring], "Demo", client, base)
     )
     assert client.bodies[0]["attachments"][0]["content"]["actions"]
+
+
+def test_digest_notification_carries_page_link_per_format():
+    import asyncio
+    from datetime import UTC, datetime
+
+    from radar.models import NotifyConfig
+    from radar.notify.webhook import send_digest_notification
+    from radar.reports.digest import WeeklyDigest
+
+    digest = WeeklyDigest(
+        label="2026-W32",
+        week_start=datetime(2026, 8, 3, tzinfo=UTC),
+        week_end=datetime(2026, 8, 9, tzinfo=UTC),
+        generated_at=datetime(2026, 8, 6, 8, 0, tzinfo=UTC),
+    )
+    url = "https://ekaynac.github.io/onprem-ai-adoption-radar/digests/digest_2026-W32.html"
+
+    class _Resp:
+        def raise_for_status(self):
+            return None
+
+    class _Client:
+        def __init__(self):
+            self.bodies = []
+
+        async def post(self, target, json=None):
+            self.bodies.append(json)
+            return _Resp()
+
+    def config(fmt):
+        return NotifyConfig(
+            enabled=True, webhook_url="https://hooks.example/x", format=fmt
+        )
+
+    teams = _Client()
+    assert asyncio.run(
+        send_digest_notification(config("teams"), digest, teams, url)
+    )
+    card = teams.bodies[0]["attachments"][0]["content"]
+    assert card["actions"] == [
+        {"type": "Action.OpenUrl", "title": "Open digest", "url": url}
+    ]
+
+    slack = _Client()
+    asyncio.run(send_digest_notification(config("slack"), digest, slack, url))
+    assert url in slack.bodies[0]["text"]
+
+    generic = _Client()
+    asyncio.run(
+        send_digest_notification(config("generic"), digest, generic, url)
+    )
+    assert generic.bodies[0]["url"] == url
+    # Without a URL nothing synthetic appears (backwards compatible).
+    bare = _Client()
+    asyncio.run(send_digest_notification(config("teams"), digest, bare))
+    assert "actions" not in bare.bodies[0]["attachments"][0]["content"]
