@@ -382,3 +382,45 @@ def test_migrate_amnesties_collection_card_lineage_reviews(tmp_path: Path) -> No
     assert collection is not None and collection.resolved_at is not None
     real = repository.get_review_exception("review:lineage:real")
     assert real is not None and real.resolved_at is None
+
+
+def test_operator_decisions_config_applies_idempotently(tmp_path) -> None:
+    """Git-recorded operator judgments replay onto rebuilt state."""
+    from datetime import UTC, datetime
+
+    from radar.intelligence.contracts import ReviewException
+    from radar.intelligence.migration import _apply_operator_decisions
+
+    from .lifecycle_helpers import lifecycle_repository
+
+    repository = lifecycle_repository(tmp_path)
+    now = datetime(2026, 8, 6, 10, 0, tzinfo=UTC)
+    repository.open_review_exception(
+        ReviewException(
+            id="review:identity:abc",
+            subject_id="candidate:some/library",
+            code="ambiguous_identity",
+            message="Identity review required for some-library",
+            evidence_ids=["evidence:x"],
+            opened_at=now,
+        )
+    )
+    config_dir = tmp_path / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "operator-decisions.yaml").write_text(
+        "version: 1\n"
+        "review_resolutions:\n"
+        "  - review_id: review:identity:abc\n"
+        "    resolution: dismiss_candidate\n"
+        "    note: a library, not a model\n"
+        "  - review_id: review:identity:unknown\n"
+        "    resolution: dismiss_candidate\n"
+        "    note: no longer exists\n",
+        encoding="utf-8",
+    )
+
+    assert _apply_operator_decisions(tmp_path, repository) == 1
+    review = repository.get_review_exception("review:identity:abc")
+    assert review is not None and review.resolved_at is not None
+    # Second run: already resolved, unknown id — nothing to do.
+    assert _apply_operator_decisions(tmp_path, repository) == 0

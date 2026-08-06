@@ -1071,7 +1071,8 @@ async def run_lineage_triage(
        the suggestion (deleted); a silent card keeps the suggestion
        pending for a human.
     """
-    from radar.intelligence.lineage import list_suggestions
+    from radar.intelligence.contracts import LineageRelation
+    from radar.intelligence.lineage import accept_suggestion, list_suggestions
     from radar.intelligence.sources.huggingface import fetch_base_models
 
     now = (clock or (lambda: datetime.now(UTC)))()
@@ -1294,8 +1295,22 @@ async def run_lineage_triage(
                         observed_at=evidence.retrieved_at,
                     )
                 declared = entries
+            if isinstance(declared, list) and not declared:
+                # Card CHECKED and silent: the name fingerprint is the
+                # only signal. Owner-delegated policy (2026-08-06):
+                # quantized/converted stem matches whose parent resolved
+                # to a tracked release are operator-accepted; anything
+                # weaker stays pending.
+                if (
+                    suggestion.parent_release_id is not None
+                    and suggestion.relation
+                    in {LineageRelation.QUANTIZED, LineageRelation.CONVERTED}
+                ):
+                    accept_suggestion(repository, suggestion.id, now)
+                    suggestions_confirmed += 1
+                continue
             if not isinstance(declared, list) or not declared:
-                continue  # card is silent — the human call stands
+                continue  # never checked within budget — next cycle
             declared_repos = {
                 str(entry.get("parent_repo", "")).casefold()
                 for entry in declared

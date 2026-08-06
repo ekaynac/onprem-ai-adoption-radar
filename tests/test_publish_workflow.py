@@ -277,4 +277,4 @@ def test_publish_runs_lineage_triage_after_backfill():
     scan_idx = text.index("radar scan ")
     assert backfill_idx < triage_idx < scan_idx
     # Budgeted like the backfill: a rate-limited day must not stall publish.
-    assert "intelligence-lineage-triage --root . \\\n            --fetch-limit 60 --max-minutes 10" in text
+    assert "intelligence-lineage-triage --root . \\\n            --fetch-limit 200 --max-minutes 12" in text

@@ -1,0 +1,35 @@
+# Operator decisions applied idempotently on every canonical rebuild.
+# Each entry resolves ONE review exception with the operator's judgment;
+# already-resolved reviews are skipped, so re-runs are no-ops. The
+# review's own evidence rows back the resolution. Owner delegated triage
+# to the agent on 2026-08-06 ("reviewi de sen yap" / "kalan işleri de
+# erit"); every decision cites what was inspected.
+version: 1
+review_resolutions:
+  - review_id: review:identity:3c88bdcc5dd44870079894f2c8cabf51d705a2b28ac6908e3d439d6bd4fcbe68
+    resolution: dismiss_candidate
+    note: >-
+      huggingface/sentence-transformers is the sentence-transformers
+      LIBRARY repository, not a model release (triage 2026-08-06).
+  - review_id: review:identity:d56badac4810e6ee7901d0adccc30fe4cc7908fc7892398273949d5aca2e892a
+    resolution: dismiss_candidate
+    note: >-
+      huggingface/optimum-intel is the Optimum-Intel LIBRARY repository,
+      not a model release (triage 2026-08-06).
+  - review_id: review:identity:7be4874d00da77f1e53b45917551c6e31de2986bfd1848006eddbf693fae800d
+    resolution: dismiss_candidate
+    note: >-
+      hf blog post about the Reachy Mini robot — an announcement page,
+      not a model release (triage 2026-08-06).
+  - review_id: review:identity:fcd74788ffacfd55b629f13c398563067af5343826e9bf02466367c24410b632
+    resolution: dismiss_candidate
+    note: >-
+      Muapi/ltx2.3 is a LoRA adapter for Lightricks/LTX-Video
+      (base_model:adapter tag on the repo, checked 2026-08-06), not a
+      standalone deployable release.
+  - review_id: review:identity:e52da4aa92a11039c43bf834079c89a7d78d6c5f60f4a17be7e3ebb2edbefc3f
+    resolution: dismiss_candidate
+    note: >-
+      Verdugie/Therapy-9B is a hobbyist GGUF companion-chat variant
+      sibling of the already-tracked Therapy-27B; ambiguous alias match,
+      marginal for the on-prem enterprise radar (checked 2026-08-06).

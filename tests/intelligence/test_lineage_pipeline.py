@@ -880,17 +880,15 @@ async def test_lineage_triage_resolves_parents_and_reconciles_suggestions(
 
     assert report["parents_resolved"] == 1
     assert report["parents_gone"] == 1
-    assert report["suggestions_confirmed"] == 1
+    # 2 confirmed: registry-corroborated child + the silent card whose
+    # resolved stem match is operator-accepted by the 2026-08-06 policy.
+    assert report["suggestions_confirmed"] == 2
     assert report["suggestions_refuted"] == 1
     external = repo.get_review_exception("review:lineage:external")
     assert external is not None and external.resolved_at is not None
     gone = repo.get_review_exception("review:lineage:gone")
     assert gone is not None and gone.resolved_at is not None
-    # The silent card's suggestion is untouched; the other two are gone.
-    remaining = list_suggestions(repo)
-    assert [edge.child_release_id for edge in remaining] == [
-        "release:c:silent"
-    ]
+    assert list_suggestions(repo) == []
     # Confirmed ancestry now rides a DECLARED edge from the registry.
     declared = [
         edge
@@ -989,3 +987,92 @@ async def test_alias_canonicalization_melts_org_rename_conflicts(
     ]
     assert len(edges) == 1
     assert edges[0].parent_external_ref == "hf:dphn/Dolphin3.0-Llama3.2-1B"
+
+
+@pytest.mark.asyncio
+async def test_silent_card_policy_accepts_resolved_stem_matches(
+    tmp_path,
+) -> None:
+    """Owner-delegated policy: checked-and-silent cards with a resolved
+    quantized/converted stem match are operator-accepted; unresolved
+    parents stay pending."""
+    from radar.intelligence.lineage import build_inferred_edge, list_suggestions
+    from radar.intelligence.pipeline import run_lineage_triage
+
+    repo = repository(tmp_path)
+    base = Release(
+        id="release:moonshot-ai:kimi:k3",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Kimi K3",
+        category=ModelCategory.MULTIMODAL,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    resolved_child = base.model_copy(
+        update={"id": "release:c:resolved", "name": "Resolved GGUF"}
+    )
+    orphan_child = base.model_copy(
+        update={"id": "release:c:orphan", "name": "Orphan GGUF"}
+    )
+    for release in (base, resolved_child, orphan_child):
+        repo.upsert_release(release)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    evidence = runner._persist_source_record(
+        make_record("https://huggingface.co/api/models/x", b"{}")
+    )
+    runner._append_claim(base.id, "hf_repo", "moonshotai/Kimi-K3", evidence)
+    # Both children were CHECKED and their cards are silent.
+    runner._append_claim(
+        resolved_child.id, "hf_repo", "grearl/Kimi-K3-GGUF", evidence
+    )
+    runner._append_claim(resolved_child.id, "lineage_declared", [], evidence)
+    runner._append_claim(
+        orphan_child.id, "hf_repo", "other/Untracked-GGUF", evidence
+    )
+    runner._append_claim(orphan_child.id, "lineage_declared", [], evidence)
+    repo.upsert_lineage_edge(
+        build_inferred_edge(
+            resolved_child.id,
+            "grearl/Kimi-K3-GGUF",
+            "moonshotai/Kimi-K3",
+            LineageRelation.QUANTIZED,
+            resolve_parent=lambda _: base.id,
+            observed_at=NOW,
+        )
+    )
+    repo.upsert_lineage_edge(
+        build_inferred_edge(
+            orphan_child.id,
+            "other/Untracked-GGUF",
+            "somebody/Untracked",
+            LineageRelation.QUANTIZED,
+            resolve_parent=lambda _: None,  # parent NOT in the catalog
+            observed_at=NOW,
+        )
+    )
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(500, request=request)
+        )
+    ) as client:
+        report = await run_lineage_triage(
+            tmp_path, repo, fetch_limit=10, clock=lambda: NOW, client=client
+        )
+
+    assert report["suggestions_confirmed"] == 1
+    remaining = list_suggestions(repo)
+    assert [edge.child_release_id for edge in remaining] == [
+        "release:c:orphan"
+    ]
+    accepted = [
+        edge
+        for edge in repo.list_all_lineage_edges()
+        if edge.child_release_id == resolved_child.id
+    ]
+    assert len(accepted) == 1
+    assert accepted[0].declared is True
+    assert accepted[0].confidence == 0.9
