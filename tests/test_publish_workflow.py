@@ -268,3 +268,13 @@ def test_publish_delivers_stack_alerts_after_scoring():
     # rides an optional secret (delivery is off unless notify: enables it).
     assert "data/alerts-delivered.jsonl" in text
     assert "RADAR_WEBHOOK_URL" in text
+
+
+def test_publish_runs_lineage_triage_after_backfill():
+    text = _publish_workflow()
+    backfill_idx = text.index("radar intelligence-lineage-backfill")
+    triage_idx = text.index("radar intelligence-lineage-triage")
+    scan_idx = text.index("radar scan ")
+    assert backfill_idx < triage_idx < scan_idx
+    # Budgeted like the backfill: a rate-limited day must not stall publish.
+    assert "intelligence-lineage-triage --root . \\\n            --fetch-limit 60 --max-minutes 10" in text

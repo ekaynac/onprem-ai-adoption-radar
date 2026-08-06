@@ -742,3 +742,159 @@ async def test_backfill_infers_name_parents_without_setting_roots(
         tmp_path, repo, fetch_limit=0, clock=lambda: NOW
     )
     assert rerun["inferred_edges"] == 0
+
+
+@pytest.mark.asyncio
+async def test_lineage_triage_resolves_parents_and_reconciles_suggestions(
+    tmp_path,
+) -> None:
+    from radar.intelligence.contracts import ReviewException
+    from radar.intelligence.lineage import build_inferred_edge, list_suggestions
+    from radar.intelligence.pipeline import run_lineage_triage
+
+    repo = repository(tmp_path)
+    base = Release(
+        id="release:moonshot-ai:kimi:k3",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Kimi K3",
+        category=ModelCategory.MULTIMODAL,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.VERIFIED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    confirmed_child = base.model_copy(
+        update={"id": "release:c:confirmed", "name": "Confirmed GGUF"}
+    )
+    refuted_child = base.model_copy(
+        update={"id": "release:c:refuted", "name": "Refuted GGUF"}
+    )
+    silent_child = base.model_copy(
+        update={"id": "release:c:silent", "name": "Silent GGUF"}
+    )
+    for release in (base, confirmed_child, refuted_child, silent_child):
+        repo.upsert_release(release)
+    runner = IntelligenceJobRunner(root=tmp_path, repository=repo)
+    evidence = runner._persist_source_record(
+        make_record("https://huggingface.co/api/models/x", b"{}")
+    )
+    runner._append_claim(base.id, "hf_repo", "moonshotai/Kimi-K3", evidence)
+    runner._append_claim(
+        confirmed_child.id, "hf_repo", "grearl/Kimi-K3-GGUF", evidence
+    )
+    runner._append_claim(
+        refuted_child.id, "hf_repo", "other/Kimi-K3-Refuted-GGUF", evidence
+    )
+    runner._append_claim(
+        silent_child.id, "hf_repo", "quiet/Kimi-K3-Silent-GGUF", evidence
+    )
+    for child, repo_name in (
+        (confirmed_child, "grearl/Kimi-K3-GGUF"),
+        (refuted_child, "other/Kimi-K3-Refuted-GGUF"),
+        (silent_child, "quiet/Kimi-K3-Silent-GGUF"),
+    ):
+        repo.upsert_lineage_edge(
+            build_inferred_edge(
+                child.id,
+                repo_name,
+                "moonshotai/Kimi-K3",
+                LineageRelation.QUANTIZED,
+                resolve_parent=lambda _: base.id,
+                observed_at=NOW,
+            )
+        )
+    repo.open_review_exception(
+        ReviewException(
+            id="review:lineage:external",
+            subject_id="release:external",
+            code="lineage-unresolved-parent",
+            message=(
+                "Declared lineage parent is not resolvable: "
+                "hf:runwayml/stable-diffusion-v1-5"
+            ),
+            evidence_ids=[],
+            opened_at=NOW,
+        )
+    )
+    repo.open_review_exception(
+        ReviewException(
+            id="review:lineage:gone",
+            subject_id="release:gone",
+            code="lineage-unresolved-parent",
+            message=(
+                "Declared lineage parent is not resolvable: hf:acme/Deleted"
+            ),
+            evidence_ids=[],
+            opened_at=NOW,
+        )
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path.endswith("runwayml/stable-diffusion-v1-5"):
+            return httpx.Response(
+                200, json={"id": "runwayml/stable-diffusion-v1-5"},
+                request=request,
+            )
+        if path.endswith("acme/Deleted"):
+            return httpx.Response(404, request=request)
+        if path.endswith("grearl/Kimi-K3-GGUF"):
+            return httpx.Response(
+                200,
+                json={
+                    "id": "grearl/Kimi-K3-GGUF",
+                    "baseModels": {
+                        "relation": "quantized",
+                        "models": [{"id": "moonshotai/Kimi-K3"}],
+                    },
+                },
+                request=request,
+            )
+        if path.endswith("other/Kimi-K3-Refuted-GGUF"):
+            return httpx.Response(
+                200,
+                json={
+                    "id": "other/Kimi-K3-Refuted-GGUF",
+                    "baseModels": {
+                        "relation": "quantized",
+                        "models": [{"id": "somebody/Else-Entirely"}],
+                    },
+                },
+                request=request,
+            )
+        if path.endswith("quiet/Kimi-K3-Silent-GGUF"):
+            return httpx.Response(
+                200,
+                json={"id": "quiet/Kimi-K3-Silent-GGUF"},
+                request=request,
+            )
+        return httpx.Response(500, request=request)
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler)
+    ) as client:
+        report = await run_lineage_triage(
+            tmp_path, repo, fetch_limit=10, clock=lambda: NOW, client=client
+        )
+
+    assert report["parents_resolved"] == 1
+    assert report["parents_gone"] == 1
+    assert report["suggestions_confirmed"] == 1
+    assert report["suggestions_refuted"] == 1
+    external = repo.get_review_exception("review:lineage:external")
+    assert external is not None and external.resolved_at is not None
+    gone = repo.get_review_exception("review:lineage:gone")
+    assert gone is not None and gone.resolved_at is not None
+    # The silent card's suggestion is untouched; the other two are gone.
+    remaining = list_suggestions(repo)
+    assert [edge.child_release_id for edge in remaining] == [
+        "release:c:silent"
+    ]
+    # Confirmed ancestry now rides a DECLARED edge from the registry.
+    declared = [
+        edge
+        for edge in repo.list_all_lineage_edges()
+        if edge.child_release_id == "release:c:confirmed" and edge.declared
+    ]
+    assert len(declared) == 1

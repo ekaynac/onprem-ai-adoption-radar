@@ -273,11 +273,43 @@ def resolve_roots(edges: Sequence[LineageEdge]) -> RootResolutionResult:
     """
     by_child: dict[str, list[LineageEdge]] = {}
     all_children: set[str] = set()
+    # One repo, one identity: an edge resolved to a release id and an edge
+    # still carrying the external ref for the SAME repo must not count as
+    # two "distinct parents" (that false conflict flooded the queue).
+    ref_to_release: dict[str, str] = {}
+    for edge in sorted(edges, key=lambda e: e.id):
+        if edge.parent_release_id is not None:
+            ref_to_release.setdefault(
+                edge.parent_external_ref.casefold(), edge.parent_release_id
+            )
     for edge in edges:
         all_children.add(edge.child_release_id)
         if edge.confidence < AUTO_ACCEPT_CONFIDENCE:
             continue
         by_child.setdefault(edge.child_release_id, []).append(edge)
+
+    def canonical_parent(edge: LineageEdge) -> str:
+        return (
+            edge.parent_release_id
+            or ref_to_release.get(edge.parent_external_ref.casefold())
+            or edge.parent_external_ref.casefold()
+        )
+
+    def is_ancestor_of(
+        ancestor: str, node: str, *, _depth: int = 0
+    ) -> bool:
+        """True when ``ancestor`` is reachable walking ``node``'s parents."""
+        if _depth > 16:
+            return False
+        for edge in by_child.get(node, []):
+            parent = canonical_parent(edge)
+            if parent == ancestor:
+                return True
+            if edge.parent_release_id is not None and is_ancestor_of(
+                ancestor, edge.parent_release_id, _depth=_depth + 1
+            ):
+                return True
+        return False
 
     roots: dict[str, str | None] = {}
     findings: dict[tuple[str, str], LineageReviewFinding] = {}
@@ -304,11 +336,9 @@ def resolve_roots(edges: Sequence[LineageEdge]) -> RootResolutionResult:
             roots[node] = node
             return node
         distinct_parents = sorted(
-            {
-                edge.parent_release_id or edge.parent_external_ref
-                for edge in node_edges
-            }
+            {canonical_parent(edge) for edge in node_edges}
         )
+        candidate_edges = node_edges
         if len(distinct_parents) > 1:
             if all(
                 edge.relation is LineageRelation.MERGE for edge in node_edges
@@ -321,16 +351,34 @@ def resolve_roots(edges: Sequence[LineageEdge]) -> RootResolutionResult:
                 # not a conflict worth a human — self-root, no finding.
                 roots[node] = node
                 return node
-            add_finding(
-                node,
-                REVIEW_CODE_CONFLICT,
-                "Conflicting lineage parents declared: "
-                + ", ".join(distinct_parents),
-            )
-            roots[node] = None
-            return None
+            # Declaring the base AND the base's own base is a consistent
+            # CHAIN, not a dispute: the proximate parent (the one whose
+            # ancestors cover every other declared parent) wins.
+            proximate = [
+                parent
+                for parent in distinct_parents
+                if all(
+                    other == parent or is_ancestor_of(other, parent)
+                    for other in distinct_parents
+                )
+            ]
+            if len(proximate) == 1:
+                candidate_edges = [
+                    edge
+                    for edge in node_edges
+                    if canonical_parent(edge) == proximate[0]
+                ]
+            else:
+                add_finding(
+                    node,
+                    REVIEW_CODE_CONFLICT,
+                    "Conflicting lineage parents declared: "
+                    + ", ".join(distinct_parents),
+                )
+                roots[node] = None
+                return None
         primary = max(
-            node_edges,
+            candidate_edges,
             key=lambda edge: (
                 edge.confidence,
                 edge.parent_release_id or "",
