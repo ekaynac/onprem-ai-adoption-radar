@@ -861,7 +861,7 @@ h1 {
 }
 
 .ring-tile.tile-adopt strong { color: #116329; }
-.ring-tile.tile-pilot strong { color: #9a6700; }
+.ring-tile.tile-pilot strong { color: #8f5f00; }
 .ring-tile.tile-watch strong { color: #57606a; }
 .ring-tile.tile-avoid strong { color: #cf222e; }
 
@@ -875,7 +875,7 @@ h1 {
 }
 
 .ring-pill.pill-adopt { color: #116329; border-color: #116329; }
-.ring-pill.pill-pilot { color: #9a6700; border-color: #9a6700; }
+.ring-pill.pill-pilot { color: #8f5f00; border-color: #8f5f00; }
 .ring-pill.pill-watch { color: #57606a; }
 .ring-pill.pill-avoid { color: #cf222e; border-color: #cf222e; }
 
@@ -1922,7 +1922,7 @@ h1 {
 }
 
 .benchmark-flag {
-  color: #9a6700;
+  color: #8f5f00;
   cursor: help;
 }
 
@@ -1965,7 +1965,7 @@ h1 {
 }
 
 .verdict-pill.verdict-act { color: #cf222e; border-color: #cf222e; }
-.verdict-pill.verdict-evaluate { color: #9a6700; border-color: #9a6700; }
+.verdict-pill.verdict-evaluate { color: #8f5f00; border-color: #8f5f00; }
 .verdict-pill.verdict-ignore { color: #57606a; }
 
 /* Webhook delivery state (shown only once delivery is active). */
