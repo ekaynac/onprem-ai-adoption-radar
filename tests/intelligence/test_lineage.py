@@ -469,3 +469,37 @@ def test_list_suggestions_orders_for_triage(tmp_path):
 
     # Same confidence (0.5): relation alphabetical, then child id.
     assert [e.id for e in ordered] == [converted_c.id, quant_a.id, quant_b.id]
+
+
+def test_build_edges_rejects_filesystem_path_parents():
+    """base_model paths like ./x, /root/…, tmp/ are training artifacts."""
+    from radar.intelligence.lineage import build_edges, is_valid_parent_repo
+
+    assert is_valid_parent_repo("acme/Model-X")
+    assert is_valid_parent_repo("acme/model.x-1.5B")
+    for junk in (
+        "./distil-large-v3",
+        "/root/.cache/torch/sentence_transformers",
+        "../up/one",
+        "tmp/",
+        "a/b/c",
+        " acme/model",
+        "acme/",
+        "/acme",
+    ):
+        assert not is_valid_parent_repo(junk), junk
+
+    now = datetime(2026, 8, 6, 8, 0, tzinfo=UTC)
+    edges = build_edges(
+        "release:child",
+        [
+            {"parent_repo": "./distil-large-v3", "relation": "finetuned"},
+            {"parent_repo": "/root/.cache/x", "relation": "finetuned"},
+            {"parent_repo": "acme/Model-X", "relation": "finetuned"},
+        ],
+        resolve_parent=lambda repo: None,
+        evidence_ids=["evidence:x"],
+        observed_at=now,
+    )
+
+    assert [edge.parent_external_ref for edge in edges] == ["hf:acme/Model-X"]
