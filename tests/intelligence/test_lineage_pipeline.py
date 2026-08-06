@@ -1076,3 +1076,42 @@ async def test_silent_card_policy_accepts_resolved_stem_matches(
     assert len(accepted) == 1
     assert accepted[0].declared is True
     assert accepted[0].confidence == 0.9
+
+
+def test_upsert_accepts_case_corrected_parent_ref(tmp_path) -> None:
+    """Alias casing fixes must update the edge, not raise a conflict."""
+    from radar.intelligence.contracts import LineageEdge
+
+    repo = repository(tmp_path)
+    release = Release(
+        id="release:child",
+        family_id="family:moonshot-ai:kimi",
+        publisher_id="publisher:moonshot-ai",
+        name="Child",
+        category=ModelCategory.TEXT_REASONING,
+        lane=ReleaseLane.DEPLOYABLE,
+        lifecycle=LifecycleState.DETECTED,
+        first_observed_at=NOW,
+        discovery_evidence_strength=EvidenceStrength.TRUSTED_REGISTRY,
+    )
+    repo.upsert_release(release)
+    lowercase = LineageEdge(
+        id="lineage:release:child:quantized:hf:inclusionai/ling-3.0-flash",
+        child_release_id="release:child",
+        parent_external_ref="hf:inclusionai/ling-3.0-flash",
+        relation=LineageRelation.QUANTIZED,
+        declared=False,
+        confidence=0.5,
+        extractor_version="hf-lineage-name-v1",
+        observed_at=NOW,
+    )
+    assert repo.upsert_lineage_edge(lowercase) is True
+    corrected = lowercase.model_copy(
+        update={"parent_external_ref": "hf:inclusionAI/Ling-3.0-flash"}
+    )
+
+    assert repo.upsert_lineage_edge(corrected) is True
+
+    stored = repo.get_lineage_edge(lowercase.id)
+    assert stored is not None
+    assert stored.parent_external_ref == "hf:inclusionAI/Ling-3.0-flash"
