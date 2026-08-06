@@ -195,3 +195,62 @@ def test_mixed_conflict_review_lists_only_real_predicates(tmp_path) -> None:
     assert result.review_exception.message == (
         "Authoritative evidence conflicts for: license"
     )
+
+
+def test_registry_refetch_drift_resolves_latest_wins(tmp_path) -> None:
+    """Two HF endpoints disagreeing is refetch drift, not a dispute."""
+    from datetime import timedelta
+
+    repository = lifecycle_repository(tmp_path)
+    seed_claim(
+        repository, "claim:license", "license", "mit", "license"
+    )
+    seed_claim(
+        repository,
+        "claim:artifact",
+        "hf_repo",
+        "moonshotai/Kimi-K3",
+        "artifact",
+    )
+
+    def _hub_claim(claim_id, value, suffix, url, observed_at):
+        evidence = EvidenceObservation(
+            id=f"evidence:{suffix}",
+            source_url=url,
+            strength=EvidenceStrength.TRUSTED_REGISTRY,
+            retrieved_at=observed_at,
+            checksum=f"sha256:{suffix}",
+            extractor_version="test-v1",
+        )
+        repository.append_evidence(evidence)
+        repository.append_claim(
+            Claim(
+                id=claim_id,
+                subject_id=RELEASE_ID,
+                predicate="library_name",
+                value=value,
+                state=ClaimState.CANDIDATE,
+                observed_at=observed_at,
+                evidence_ids=[evidence.id],
+            )
+        )
+
+    _hub_claim(
+        "claim:lib:list",
+        "transformers",
+        "hub-list",
+        "https://huggingface.co/api/models?pipeline_tag=x",
+        NOW - timedelta(days=1),
+    )
+    _hub_claim(
+        "claim:lib:detail",
+        "vllm",
+        "hub-detail",
+        "https://huggingface.co/api/models/moonshotai/Kimi-K3",
+        NOW,
+    )
+
+    result = VerificationService(repository).verify_release(RELEASE_ID, NOW)
+
+    # No conflict review: same registry record, latest fetch wins.
+    assert result.review_exception is None

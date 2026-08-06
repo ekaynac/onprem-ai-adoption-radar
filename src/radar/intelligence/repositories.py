@@ -719,6 +719,97 @@ class SqlAlchemyIntelligenceRepository:
                     resolved += 1
         return resolved
 
+    def resolve_same_origin_conflict_reviews(self, now: datetime) -> int:
+        """Amnesty for conflicts whose evidence is one registry record.
+
+        The detector now collapses registry-host evidence (REGISTRY_HOSTS)
+        to its host: list-sweep vs detail-endpoint disagreement is refetch
+        drift of ONE mutable record, resolved latest-wins. Reviews whose
+        entire evidence set lives on a single registry host can no longer
+        be produced — drain them. Anything with a non-registry source
+        stays for humans. Idempotent.
+        """
+        from urllib.parse import urlsplit
+
+        from radar.intelligence.contracts import REGISTRY_HOSTS
+
+        resolved = 0
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(ReviewExceptionRow).where(
+                    ReviewExceptionRow.code
+                    == "conflicting_authoritative_claims",
+                    ReviewExceptionRow.resolved_at.is_(None),
+                )
+            ).all()
+            for row in rows:
+                hosts: set[str] = set()
+                for evidence_id in row.evidence_ids or []:
+                    evidence_row = session.get(EvidenceRow, evidence_id)
+                    if evidence_row is not None:
+                        hosts.add(
+                            urlsplit(evidence_row.source_url)
+                            .netloc.casefold()
+                        )
+                if len(hosts) == 1 and hosts <= REGISTRY_HOSTS:
+                    row.resolved_at = now
+                    row.resolution = {
+                        "resolution": "auto_amnesty_same_origin_drift",
+                        "evidence_ids": [],
+                        "note": (
+                            "All conflicting evidence is one registry "
+                            f"record ({next(iter(hosts))}); refetch drift "
+                            "is latest-wins, not a dispute "
+                            "(policy 2026-08-06)"
+                        ),
+                    }
+                    resolved += 1
+        return resolved
+
+    def purge_invalid_lineage_parent_refs(self, now: datetime) -> int:
+        """Remove edges whose declared parent is a filesystem path.
+
+        Model cards carry training-time paths in base_model
+        ("./distil-large-v3", "/root/.cache/…", "tmp/"); build_edges now
+        rejects them, and this drains the stored backlog: junk edges are
+        deleted and their unresolved-parent reviews resolved. Idempotent.
+        Returns edges deleted + reviews resolved.
+        """
+        from radar.intelligence.lineage import is_valid_parent_repo
+
+        prefix = "Declared lineage parent is not resolvable: "
+        touched = 0
+        with self.database.session() as session:
+            edge_rows = session.scalars(select(LineageEdgeRow)).all()
+            for edge_row in edge_rows:
+                ref = edge_row.parent_external_ref.removeprefix("hf:")
+                if not is_valid_parent_repo(ref):
+                    session.delete(edge_row)
+                    touched += 1
+            review_rows = session.scalars(
+                select(ReviewExceptionRow).where(
+                    ReviewExceptionRow.code == "lineage-unresolved-parent",
+                    ReviewExceptionRow.resolved_at.is_(None),
+                )
+            ).all()
+            for row in review_rows:
+                if not row.message.startswith(prefix):
+                    continue
+                ref = row.message.removeprefix(prefix).strip()
+                if not is_valid_parent_repo(ref.removeprefix("hf:")):
+                    row.resolved_at = now
+                    row.resolution = {
+                        "resolution": "auto_amnesty_invalid_parent_ref",
+                        "evidence_ids": [],
+                        "note": (
+                            "Filesystem paths in base_model are training "
+                            "artifacts, not lineage statements; build_edges "
+                            "rejects them (policy 2026-08-06)"
+                        ),
+                    }
+                    touched += 1
+        return touched
+
     def resolve_collection_lineage_reviews(self, now: datetime) -> int:
         """Amnesty for lineage-conflict reviews from collection cards.
 

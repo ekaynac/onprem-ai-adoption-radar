@@ -262,6 +262,13 @@ class LineageEdge(FrozenModel):
 # doing so flooded the queue with ~750 false conflicts (2026-08-03..05).
 VOLATILE_PREDICATES = frozenset({"downloads", "likes", "last_modified", "sha"})
 
+# Registry hosts serve ONE mutable record per subject: a list sweep and a
+# detail endpoint (or two fetches a day apart) are versions of the same
+# record, so disagreement between them is temporal drift — latest wins,
+# never a dispute. Evidence from any other host keeps exact-URL identity
+# (two different official pages CAN genuinely conflict).
+REGISTRY_HOSTS = frozenset({"huggingface.co"})
+
 
 class ReviewException(FrozenModel):
     id: str

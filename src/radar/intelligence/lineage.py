@@ -8,6 +8,7 @@ release namespace, and opens scoped review exceptions for findings.
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -141,6 +142,18 @@ def build_inferred_edge(
 _RELATIONS_BY_DECLARED = {relation.value: relation for relation in LineageRelation}
 
 
+# A plausible hub repo id: org/name, both segments starting alphanumeric.
+# Model cards frequently carry local filesystem paths in base_model
+# ("./distil-large-v3", "/root/.cache/…", "tmp/") — training-time
+# artifacts, not lineage statements; they must never become edges or
+# unresolved-parent reviews.
+_PARENT_REPO_PATTERN = re.compile(r"[A-Za-z0-9][\w.-]*/[A-Za-z0-9][\w.-]*")
+
+
+def is_valid_parent_repo(repo: str) -> bool:
+    return bool(_PARENT_REPO_PATTERN.fullmatch(repo))
+
+
 def relation_from_declared(value: Any) -> LineageRelation:
     """Map a declared relation string to the canonical enum.
 
@@ -198,7 +211,9 @@ def build_edges(
         if not isinstance(entry, dict):
             continue
         parent_repo = entry.get("parent_repo")
-        if not isinstance(parent_repo, str) or "/" not in parent_repo:
+        if not isinstance(parent_repo, str) or not is_valid_parent_repo(
+            parent_repo
+        ):
             continue
         relation = relation_from_declared(entry.get("relation"))
         via = entry.get("via")

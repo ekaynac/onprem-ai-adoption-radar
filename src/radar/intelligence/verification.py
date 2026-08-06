@@ -7,8 +7,10 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
+from urllib.parse import urlsplit
 
 from radar.intelligence.contracts import (
+    REGISTRY_HOSTS,
     VOLATILE_PREDICATES,
     Claim,
     ClaimState,
@@ -20,6 +22,12 @@ from radar.intelligence.contracts import (
     ReviewException,
 )
 from radar.intelligence.lifecycle import LifecycleService
+
+
+def _evidence_source_key(source_url: str) -> str:
+    """Evidence identity for conflict detection (see REGISTRY_HOSTS)."""
+    host = urlsplit(source_url).netloc.casefold()
+    return host if host in REGISTRY_HOSTS else source_url
 
 
 _STRENGTH_RANK = {
@@ -231,12 +239,16 @@ class VerificationService:
             strongest_at_rank = [
                 claim for rank, claim in ranked if rank == top_rank
             ]
+            # Registry evidence collapses to its host (one mutable record:
+            # list-sweep vs detail-endpoint disagreement is refetch drift,
+            # latest wins); all other evidence keeps exact-URL identity so
+            # two different official pages can still genuinely dispute.
             latest_by_source: dict[tuple[str, ...], Claim] = {}
             for claim in strongest_at_rank:
                 source_key = tuple(
                     sorted(
                         {
-                            evidence.source_url
+                            _evidence_source_key(evidence.source_url)
                             for evidence_id in claim.evidence_ids
                             if (
                                 evidence := self.repository.get_evidence(
