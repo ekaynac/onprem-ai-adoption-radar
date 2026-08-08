@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-08T08:36:47.041285+00:00",
+ "generated_at": "2026-08-08T10:38:21.689977+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,13 +405,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-08T08:36:28.599636+00:00"
+   "observed_at": "2026-08-08T10:37:21.582048+00:00"
   },
   {
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +562.6 stars/day (3448 total)",
+   "what_happened": "New repo at +570.8 stars/day (3489 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +248.2 stars/day (2429 total)",
+   "what_happened": "New repo at +252.4 stars/day (2450 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W32:new-repos:petergyang-human-review",
    "section": "new-repos",
    "subject": "petergyang/human-review",
-   "what_happened": "New repo at +148.7 stars/day (590 total)",
+   "what_happened": "New repo at +150.3 stars/day (595 total)",
    "why_it_matters": "A visual tool to edit HTML and Markdown files, leave comments like a Google Doc, and send feedback to your AI agent. Works inside your favorite AI harness.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -460,23 +460,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W32:new-repos:alikon-art-determinflow",
-   "section": "new-repos",
-   "subject": "alikon-art/DeterminFlow",
-   "what_happened": "New repo at +33.2 stars/day (258 total)",
-   "why_it_matters": "A production-oriented AI workflow runtime for building, validating, recovering, and shipping complex AI workflows as dependable services. 面向生产的 AI 工作流运行时：快速开发、验证和恢复复杂 AI 工作流，并将其稳定交付为服务。",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/alikon-art/DeterminFlow"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W32:new-repos:waiterve-wai-play",
    "section": "new-repos",
    "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +32 stars/day (174 total)",
+   "what_happened": "New repo at +34 stars/day (176 total)",
    "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -486,10 +473,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W32:new-repos:alikon-art-determinflow",
+   "section": "new-repos",
+   "subject": "alikon-art/DeterminFlow",
+   "what_happened": "New repo at +33.6 stars/day (260 total)",
+   "why_it_matters": "A production-oriented AI workflow runtime for building, validating, recovering, and shipping complex AI workflows as dependable services. 面向生产的 AI 工作流运行时：快速开发、验证和恢复复杂 AI 工作流，并将其稳定交付为服务。",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/alikon-art/DeterminFlow"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W32:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +29.8 stars/day (352 total)",
+   "what_happened": "New repo at +30.6 stars/day (356 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -502,7 +502,7 @@
    "id": "call:brief-2026-W32:new-repos:cofy-x-axern",
    "section": "new-repos",
    "subject": "cofy-x/axern",
-   "what_happened": "New repo at +20 stars/day (157 total)",
+   "what_happened": "New repo at +21 stars/day (159 total)",
    "why_it_matters": "Open-source sandboxes for AI agents, untrusted code execution, and durable services.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
