@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W32",
- "generated_at": "2026-08-08T22:36:04.724733+00:00",
+ "generated_at": "2026-08-09T00:41:48.874251+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,13 +405,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-08T22:35:45.497150+00:00"
+   "observed_at": "2026-08-09T00:41:20.713757+00:00"
   },
   {
    "id": "call:brief-2026-W32:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +625.8 stars/day (3764 total)",
+   "what_happened": "New repo at +526.7 stars/day (3795 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W32:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +264.4 stars/day (2510 total)",
+   "what_happened": "New repo at +221.2 stars/day (2515 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W32:new-repos:petergyang-human-review",
    "section": "new-repos",
    "subject": "petergyang/human-review",
-   "what_happened": "New repo at +158.3 stars/day (619 total)",
+   "what_happened": "New repo at +119.2 stars/day (621 total)",
    "why_it_matters": "A visual tool to edit HTML and Markdown files, leave comments like a Google Doc, and send feedback to your AI agent. Works inside your favorite AI harness.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -447,10 +447,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W32:new-repos:i3t4an-kadath",
+   "section": "new-repos",
+   "subject": "i3T4AN/KADATH",
+   "what_happened": "New repo at +66 stars/day (154 total)",
+   "why_it_matters": "Evolutionary multi-agent runtime that breeds, evaluates, and improves autonomous agents across reproducible epochs to converge on optimization of a goal.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/i3T4AN/KADATH"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W32:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +45.4 stars/day (348 total)",
+   "what_happened": "New repo at +38 stars/day (349 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -460,23 +473,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W32:new-repos:waiterve-wai-play",
-   "section": "new-repos",
-   "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +40 stars/day (182 total)",
-   "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/waiterve/wai-play"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W32:new-repos:alikon-art-determinflow",
    "section": "new-repos",
    "subject": "alikon-art/DeterminFlow",
-   "what_happened": "New repo at +35.8 stars/day (271 total)",
+   "what_happened": "New repo at +29.8 stars/day (271 total)",
    "why_it_matters": "A production-oriented AI workflow runtime for building, validating, recovering, and shipping complex AI workflows as dependable services. 面向生产的 AI 工作流运行时：快速开发、验证和恢复复杂 AI 工作流，并将其稳定交付为服务。",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -489,7 +489,7 @@
    "id": "call:brief-2026-W32:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +31.6 stars/day (361 total)",
+   "what_happened": "New repo at +26.5 stars/day (362 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -499,15 +499,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W32:new-repos:cofy-x-axern",
+   "id": "call:brief-2026-W32:new-repos:waiterve-wai-play",
    "section": "new-repos",
-   "subject": "cofy-x/axern",
-   "what_happened": "New repo at +21 stars/day (159 total)",
-   "why_it_matters": "Open-source sandboxes for AI agents, untrusted code execution, and durable services.",
+   "subject": "waiterve/wai-play",
+   "what_happened": "New repo at +21 stars/day (184 total)",
+   "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/cofy-x/axern"
+    "https://github.com/waiterve/wai-play"
    ],
    "observed_at": null
   },
