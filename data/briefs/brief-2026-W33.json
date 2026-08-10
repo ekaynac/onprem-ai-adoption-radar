@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-10T08:16:59.056317+00:00",
+ "generated_at": "2026-08-10T08:45:15.432915+00:00",
  "window_days": 7,
  "items": [
   {
@@ -444,7 +444,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-10T08:15:13.717592+00:00"
+   "observed_at": "2026-08-10T08:44:32.472142+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
@@ -476,10 +476,10 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +194 stars/day (392 total)",
+   "what_happened": "New repo at +207 stars/day (405 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in any country, read the SMS verification code, hand it back.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "verdict": "evaluate",
+   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
    "receipts": [
     "https://github.com/sv-number/mcp-server"
    ],
@@ -528,7 +528,7 @@
    "id": "call:brief-2026-W33:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +38.9 stars/day (393 total)",
+   "what_happened": "New repo at +39.1 stars/day (395 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -541,7 +541,7 @@
    "id": "call:brief-2026-W33:new-repos:waiterve-wai-play",
    "section": "new-repos",
    "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +37.7 stars/day (255 total)",
+   "what_happened": "New repo at +38 stars/day (256 total)",
    "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -579,8 +579,8 @@
  ],
  "verdict_counts": {
   "act": 24,
-  "evaluate": 14,
-  "ignore": 6
+  "evaluate": 15,
+  "ignore": 5
  },
  "spotlight": {
   "task": "general-chat",
