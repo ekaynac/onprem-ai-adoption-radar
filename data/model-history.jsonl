@@ -88,3 +88,4 @@
 {"model_id": "phi-4", "family": "Phi", "change_type": "promoted", "ring": "adopt", "previous_ring": "avoid", "run_id": "run-20260804T170143Z-2ec84412", "observed_at": "2026-08-04T17:01:43.914115Z", "reasons": ["promoted to adopt"]}
 {"model_id": "qwen3-30b-a3b", "family": "Qwen3", "change_type": "promoted", "ring": "adopt", "previous_ring": "pilot", "run_id": "run-20260804T170143Z-2ec84412", "observed_at": "2026-08-04T17:01:43.914115Z", "reasons": ["promoted to adopt"]}
 {"model_id": "qwen3-8b", "family": "Qwen3", "change_type": "promoted", "ring": "adopt", "previous_ring": "avoid", "run_id": "run-20260804T170143Z-2ec84412", "observed_at": "2026-08-04T17:01:43.914115Z", "reasons": ["promoted to adopt"]}
+{"model_id": "hf-deepseek-v4-flash-0731", "family": "deepseek-ai", "change_type": "new", "ring": "pilot", "previous_ring": null, "run_id": "run-20260810T073817Z-8afe7cb5", "observed_at": "2026-08-10T07:38:17.896379Z", "reasons": ["new to pilot"]}
