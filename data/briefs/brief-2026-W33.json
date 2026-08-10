@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-10T05:03:14.983846+00:00",
+ "generated_at": "2026-08-10T06:58:54.480021+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,13 +405,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-10T05:02:15.989780+00:00"
+   "observed_at": "2026-08-10T06:55:24.681440+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +524.1 stars/day (4304 total)",
+   "what_happened": "New repo at +531.1 stars/day (4353 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W33:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +211.4 stars/day (2668 total)",
+   "what_happened": "New repo at +214.3 stars/day (2688 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -434,10 +434,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
+   "section": "new-repos",
+   "subject": "sv-number/mcp-server",
+   "what_happened": "New repo at +164 stars/day (362 total)",
+   "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in any country, read the SMS verification code, hand it back.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/sv-number/mcp-server"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W33:new-repos:sateezg-codex-bridge",
    "section": "new-repos",
    "subject": "Sateezg/codex-bridge",
-   "what_happened": "New repo at +134 stars/day (350 total)",
+   "what_happened": "New repo at +135 stars/day (351 total)",
    "why_it_matters": "Image generation (gpt-image-2) and GPT-5 subagents for Claude Code — through the Codex CLI login you already have. No OpenAI API key.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,25 +463,12 @@
    "id": "call:brief-2026-W33:new-repos:petergyang-human-review",
    "section": "new-repos",
    "subject": "petergyang/human-review",
-   "what_happened": "New repo at +103.8 stars/day (663 total)",
+   "what_happened": "New repo at +104.6 stars/day (667 total)",
    "why_it_matters": "A visual tool to edit HTML and Markdown files, leave comments like a Google Doc, and send feedback to your AI agent. Works inside your favorite AI harness.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/petergyang/human-review"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
-   "section": "new-repos",
-   "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +101 stars/day (299 total)",
-   "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in any country, read the SMS verification code, hand it back.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/sv-number/mcp-server"
    ],
    "observed_at": null
   },
@@ -489,7 +489,7 @@
    "id": "call:brief-2026-W33:new-repos:patchy631-time-to-first-token",
    "section": "new-repos",
    "subject": "patchy631/time-to-first-token",
-   "what_happened": "New repo at +37.9 stars/day (386 total)",
+   "what_happened": "New repo at +38.7 stars/day (392 total)",
    "why_it_matters": "A 10-week, 30-minutes-a-day roadmap for LLM inference serving and optimization. vLLM, SGLang, quantization, speculative decoding, benchmarking.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -502,7 +502,7 @@
    "id": "call:brief-2026-W33:new-repos:waiterve-wai-play",
    "section": "new-repos",
    "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +36 stars/day (250 total)",
+   "what_happened": "New repo at +36.3 stars/day (251 total)",
    "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
