@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-10T08:45:15.432915+00:00",
+ "generated_at": "2026-08-10T08:58:19.081683+00:00",
  "window_days": 7,
  "items": [
   {
@@ -444,7 +444,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-10T08:44:32.472142+00:00"
+   "observed_at": "2026-08-10T08:57:32.092209+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
@@ -476,7 +476,7 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +207 stars/day (405 total)",
+   "what_happened": "New repo at +213 stars/day (411 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in any country, read the SMS verification code, hand it back.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
