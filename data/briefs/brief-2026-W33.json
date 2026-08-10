@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-10T14:53:03.322475+00:00",
+ "generated_at": "2026-08-10T16:47:37.358266+00:00",
  "window_days": 7,
  "items": [
   {
@@ -418,7 +418,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-10T14:50:19.528619+00:00"
+   "observed_at": "2026-08-10T16:44:38.827444+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +290 stars/day (488 total)",
+   "what_happened": "New repo at +307 stars/day (505 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in any country, read the SMS verification code, hand it back.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -463,25 +463,12 @@
    "id": "call:brief-2026-W33:new-repos:sateezg-codex-bridge",
    "section": "new-repos",
    "subject": "Sateezg/codex-bridge",
-   "what_happened": "New repo at +139 stars/day (355 total)",
+   "what_happened": "New repo at +140 stars/day (356 total)",
    "why_it_matters": "Image generation (gpt-image-2) and GPT-5 subagents for Claude Code — through the Codex CLI login you already have. No OpenAI API key.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/Sateezg/codex-bridge"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W33:new-repos:petergyang-human-review",
-   "section": "new-repos",
-   "subject": "petergyang/human-review",
-   "what_happened": "New repo at +108.8 stars/day (688 total)",
-   "why_it_matters": "A visual tool to edit HTML and Markdown files, leave comments like a Google Doc, and send feedback to your AI agent. Works inside your favorite AI harness.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/petergyang/human-review"
    ],
    "observed_at": null
   },
@@ -502,7 +489,7 @@
    "id": "call:brief-2026-W33:new-repos:i3t4an-kadath",
    "section": "new-repos",
    "subject": "i3T4AN/KADATH",
-   "what_happened": "New repo at +41.5 stars/day (171 total)",
+   "what_happened": "New repo at +41 stars/day (170 total)",
    "why_it_matters": "Evolutionary multi-agent runtime that breeds, evaluates, and improves autonomous agents across reproducible epochs to converge on optimization of a goal.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -521,6 +508,19 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/lss100200/omnibase"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:uczltw6-trace-file-lineage",
+   "section": "new-repos",
+   "subject": "uczltw6/trace-file-lineage",
+   "what_happened": "New repo at +30.3 stars/day (420 total)",
+   "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/uczltw6/trace-file-lineage"
    ],
    "observed_at": null
   },
