@@ -670,6 +670,22 @@ sources:
     url: https://github.com/drumih/turbo-fieldfare
     tags: [apple-silicon, gemma, gemma4, gemma4-26b-a4b, auto-added]
     backer: {name: drumih, type: community}
+  - id: github-kimi-k3-in-c
+    type: github_repo
+    enabled: true
+    project: kimi-k3-in-c
+    category: model_serving
+    url: https://github.com/FareedKhan-dev/kimi-k3-in-c
+    tags: [avx2, c99, cpu-inference, deep-learning, auto-added]
+    backer: {name: FareedKhan-dev, type: community}
+  - id: github-skill-recorder
+    type: github_repo
+    enabled: true
+    project: skill-recorder
+    category: general_agents
+    url: https://github.com/microsoft/skill-recorder
+    tags: [agent-skills, ai-agents, automation, copilot, auto-added]
+    backer: {name: microsoft, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
