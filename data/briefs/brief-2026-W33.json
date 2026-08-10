@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-10T20:43:41.253790+00:00",
+ "generated_at": "2026-08-10T22:39:00.775940+00:00",
  "window_days": 7,
  "items": [
   {
@@ -418,7 +418,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-10T20:42:40.763009+00:00"
+   "observed_at": "2026-08-10T22:38:21.305332+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +342 stars/day (540 total)",
+   "what_happened": "New repo at +344 stars/day (542 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -476,7 +476,7 @@
    "id": "call:brief-2026-W33:new-repos:lss100200-omnibase",
    "section": "new-repos",
    "subject": "lss100200/omnibase",
-   "what_happened": "New repo at +54 stars/day (151 total)",
+   "what_happened": "New repo at +58 stars/day (155 total)",
    "why_it_matters": "Self-hosted AI workbench for knowledge, RAG, model providers, and safely governed user-built agents. Public Preview; production Agent Runtime remains gated. 自托管 AI 知识工作台与安全 Agent 平台。",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -489,7 +489,7 @@
    "id": "call:brief-2026-W33:new-repos:waiterve-wai-play",
    "section": "new-repos",
    "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +48.7 stars/day (288 total)",
+   "what_happened": "New repo at +50.3 stars/day (293 total)",
    "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -515,7 +515,7 @@
    "id": "call:brief-2026-W33:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +31.2 stars/day (425 total)",
+   "what_happened": "New repo at +32 stars/day (430 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
