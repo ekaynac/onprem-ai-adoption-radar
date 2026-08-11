@@ -1,191 +1,9 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-11T14:55:25.834731+00:00",
+ "generated_at": "2026-08-11T16:49:38.397005+00:00",
  "window_days": 7,
  "items": [
-  {
-   "id": "call:brief-2026-W33:ring-moves:deepseek-r1",
-   "section": "ring-moves",
-   "subject": "deepseek-r1",
-   "what_happened": "Model ring pilot → adopt (promoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Promotion into adopt: start a production pilot path",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:deepseek-r1-distill-qwen-7b",
-   "section": "ring-moves",
-   "subject": "deepseek-r1-distill-qwen-7b",
-   "what_happened": "Model ring adopt → avoid (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Left adopt: review current usage before upgrading",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:gemma-3-12b",
-   "section": "ring-moves",
-   "subject": "gemma-3-12b",
-   "what_happened": "Model ring pilot → avoid (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "evaluate",
-   "rationale": "Ring changed to avoid: reassess posture",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:gpt-oss-20b",
-   "section": "ring-moves",
-   "subject": "gpt-oss-20b",
-   "what_happened": "Model ring adopt → watch (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Left adopt: review current usage before upgrading",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:hf-deepseek-v4-flash-dspark",
-   "section": "ring-moves",
-   "subject": "hf-deepseek-v4-flash-dspark",
-   "what_happened": "Model ring pilot → adopt (promoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Promotion into adopt: start a production pilot path",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:hf-gemma-4-26b-a4b-nvfp4",
-   "section": "ring-moves",
-   "subject": "hf-gemma-4-26b-a4b-nvfp4",
-   "what_happened": "Model ring pilot → adopt (promoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Promotion into adopt: start a production pilot path",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:hf-gpt-oss-120b",
-   "section": "ring-moves",
-   "subject": "hf-gpt-oss-120b",
-   "what_happened": "Model ring pilot → adopt (promoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Promotion into adopt: start a production pilot path",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:hf-qwen3-6-27b-nvfp4",
-   "section": "ring-moves",
-   "subject": "hf-qwen3-6-27b-nvfp4",
-   "what_happened": "Model ring pilot → adopt (promoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Promotion into adopt: start a production pilot path",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:hf-qwen3-6-35b-a3b-nvfp4",
-   "section": "ring-moves",
-   "subject": "hf-qwen3-6-35b-a3b-nvfp4",
-   "what_happened": "Model ring pilot → adopt (promoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Promotion into adopt: start a production pilot path",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:llama-3-1-8b",
-   "section": "ring-moves",
-   "subject": "llama-3.1-8b",
-   "what_happened": "Model ring pilot → avoid (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "evaluate",
-   "rationale": "Ring changed to avoid: reassess posture",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:mistral-small-3",
-   "section": "ring-moves",
-   "subject": "mistral-small-3",
-   "what_happened": "Model ring adopt → avoid (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Left adopt: review current usage before upgrading",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:phi-4",
-   "section": "ring-moves",
-   "subject": "phi-4",
-   "what_happened": "Model ring adopt → avoid (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Left adopt: review current usage before upgrading",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:qwen3-30b-a3b",
-   "section": "ring-moves",
-   "subject": "qwen3-30b-a3b",
-   "what_happened": "Model ring adopt → pilot (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Left adopt: review current usage before upgrading",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
-  {
-   "id": "call:brief-2026-W33:ring-moves:qwen3-8b",
-   "section": "ring-moves",
-   "subject": "qwen3-8b",
-   "what_happened": "Model ring adopt → avoid (demoted)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "act",
-   "rationale": "Left adopt: review current usage before upgrading",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-08-04T16:15:58.279687+00:00"
-  },
   {
    "id": "call:brief-2026-W33:ring-moves:deepseek-r1",
    "section": "ring-moves",
@@ -418,13 +236,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-11T14:53:20.361927+00:00"
+   "observed_at": "2026-08-11T16:48:16.294785+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +443.5 stars/day (4378 total)",
+   "what_happened": "New repo at +440 stars/day (4378 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -437,7 +255,7 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +194.5 stars/day (587 total)",
+   "what_happened": "New repo at +199 stars/day (596 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,7 +268,7 @@
    "id": "call:brief-2026-W33:new-repos:microsoft-skill-recorder",
    "section": "new-repos",
    "subject": "microsoft/skill-recorder",
-   "what_happened": "New repo at +164.2 stars/day (2691 total)",
+   "what_happened": "New repo at +161.8 stars/day (2691 total)",
    "why_it_matters": "Desktop app that records your on-screen work session and uses the GitHub Copilot CLI to reconstruct it as an intent + ordered steps, then builds a reusable Skill or Automation for Microsoft Scout, Mic",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -463,7 +281,7 @@
    "id": "call:brief-2026-W33:new-repos:memorax-ai-memorax-code",
    "section": "new-repos",
    "subject": "memorax-ai/memorax-code",
-   "what_happened": "New repo at +146 stars/day (289 total)",
+   "what_happened": "New repo at +145 stars/day (288 total)",
    "why_it_matters": "A memory plugin for AI coding that turns engineering experience, repository knowledge, and your way of working into memory that remains useful in future tasks.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -476,7 +294,7 @@
    "id": "call:brief-2026-W33:new-repos:sateezg-codex-bridge",
    "section": "new-repos",
    "subject": "Sateezg/codex-bridge",
-   "what_happened": "New repo at +70 stars/day (356 total)",
+   "what_happened": "New repo at +70.5 stars/day (357 total)",
    "why_it_matters": "Image generation (gpt-image-2) and GPT-5 subagents for Claude Code — through the Codex CLI login you already have. No OpenAI API key.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -489,7 +307,7 @@
    "id": "call:brief-2026-W33:new-repos:waiterve-wai-play",
    "section": "new-repos",
    "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +46.8 stars/day (329 total)",
+   "what_happened": "New repo at +45.8 stars/day (325 total)",
    "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -502,7 +320,7 @@
    "id": "call:brief-2026-W33:new-repos:lss100200-omnibase",
    "section": "new-repos",
    "subject": "lss100200/omnibase",
-   "what_happened": "New repo at +35 stars/day (167 total)",
+   "what_happened": "New repo at +34.5 stars/day (166 total)",
    "why_it_matters": "Self-hosted AI workbench for knowledge, RAG, model providers, and safely governed user-built agents. Public Preview; production Agent Runtime remains gated. 自托管 AI 知识工作台与安全 Agent 平台。",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -515,7 +333,7 @@
    "id": "call:brief-2026-W33:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +30.4 stars/day (451 total)",
+   "what_happened": "New repo at +30.3 stars/day (450 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -552,8 +370,8 @@
   }
  ],
  "verdict_counts": {
-  "act": 24,
-  "evaluate": 11,
+  "act": 12,
+  "evaluate": 9,
   "ignore": 7
  },
  "spotlight": {
