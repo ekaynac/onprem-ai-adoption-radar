@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-10T22:39:00.775940+00:00",
+ "generated_at": "2026-08-11T00:45:22.762135+00:00",
  "window_days": 7,
  "items": [
   {
@@ -418,7 +418,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-10T22:38:21.305332+00:00"
+   "observed_at": "2026-08-11T00:44:43.393951+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
@@ -437,10 +437,10 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +344 stars/day (542 total)",
+   "what_happened": "New repo at +174.5 stars/day (547 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
-   "verdict": "evaluate",
-   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/sv-number/mcp-server"
    ],
@@ -460,10 +460,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W33:new-repos:memorax-ai-memorax-code",
+   "section": "new-repos",
+   "subject": "memorax-ai/memorax-code",
+   "what_happened": "New repo at +89 stars/day (232 total)",
+   "why_it_matters": "A memory plugin for AI coding that turns engineering experience, repository knowledge, and your way of working into memory that remains useful in future tasks.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/memorax-ai/memorax-code"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W33:new-repos:sateezg-codex-bridge",
    "section": "new-repos",
    "subject": "Sateezg/codex-bridge",
-   "what_happened": "New repo at +141 stars/day (357 total)",
+   "what_happened": "New repo at +70.5 stars/day (357 total)",
    "why_it_matters": "Image generation (gpt-image-2) and GPT-5 subagents for Claude Code — through the Codex CLI login you already have. No OpenAI API key.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -473,23 +486,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W33:new-repos:lss100200-omnibase",
-   "section": "new-repos",
-   "subject": "lss100200/omnibase",
-   "what_happened": "New repo at +58 stars/day (155 total)",
-   "why_it_matters": "Self-hosted AI workbench for knowledge, RAG, model providers, and safely governed user-built agents. Public Preview; production Agent Runtime remains gated. 自托管 AI 知识工作台与安全 Agent 平台。",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/lss100200/omnibase"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W33:new-repos:waiterve-wai-play",
    "section": "new-repos",
    "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +50.3 stars/day (293 total)",
+   "what_happened": "New repo at +38.2 stars/day (295 total)",
    "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -499,15 +499,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W33:new-repos:i3t4an-kadath",
+   "id": "call:brief-2026-W33:new-repos:lss100200-omnibase",
    "section": "new-repos",
-   "subject": "i3T4AN/KADATH",
-   "what_happened": "New repo at +42 stars/day (172 total)",
-   "why_it_matters": "Evolutionary multi-agent runtime that breeds, evaluates, and improves autonomous agents across reproducible epochs to converge on optimization of a goal.",
+   "subject": "lss100200/omnibase",
+   "what_happened": "New repo at +30.5 stars/day (158 total)",
+   "why_it_matters": "Self-hosted AI workbench for knowledge, RAG, model providers, and safely governed user-built agents. Public Preview; production Agent Runtime remains gated. 自托管 AI 知识工作台与安全 Agent 平台。",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/i3T4AN/KADATH"
+    "https://github.com/lss100200/omnibase"
    ],
    "observed_at": null
   },
@@ -515,7 +515,7 @@
    "id": "call:brief-2026-W33:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +32 stars/day (430 total)",
+   "what_happened": "New repo at +28.1 stars/day (435 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -553,8 +553,8 @@
  ],
  "verdict_counts": {
   "act": 24,
-  "evaluate": 12,
-  "ignore": 6
+  "evaluate": 11,
+  "ignore": 7
  },
  "spotlight": {
   "task": "general-chat",
