@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-12T18:48:27.362606+00:00",
+ "generated_at": "2026-08-12T20:42:08.928137+00:00",
  "window_days": 7,
  "items": [
   {
@@ -54,13 +54,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-12T18:47:34.540042+00:00"
+   "observed_at": "2026-08-12T20:41:19.712449+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +375.2 stars/day (4378 total)",
+   "what_happened": "New repo at +370 stars/day (4378 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +130.3 stars/day (589 total)",
+   "what_happened": "New repo at +131.3 stars/day (592 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W33:new-repos:memorax-ai-memorax-code",
    "section": "new-repos",
    "subject": "memorax-ai/memorax-code",
-   "what_happened": "New repo at +117.5 stars/day (378 total)",
+   "what_happened": "New repo at +122 stars/day (387 total)",
    "why_it_matters": "A memory plugin for AI coding that turns engineering experience, repository knowledge, and your way of working into memory that remains useful in future tasks.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W33:new-repos:waiterve-wai-play",
    "section": "new-repos",
    "subject": "waiterve/wai-play",
-   "what_happened": "New repo at +48.6 stars/day (385 total)",
+   "what_happened": "New repo at +49.4 stars/day (389 total)",
    "why_it_matters": "WAI Play - AI web game testing and quality evaluation platform",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W33:new-repos:uczltw6-trace-file-lineage",
    "section": "new-repos",
    "subject": "uczltw6/trace-file-lineage",
-   "what_happened": "New repo at +30.6 stars/day (484 total)",
+   "what_happened": "New repo at +30.7 stars/day (485 total)",
    "why_it_matters": "Find which script, notebook, data, command, or AI agent produced a file — locally, with evidence and honest uncertainty.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
