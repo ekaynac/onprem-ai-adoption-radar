@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-13T12:46:07.343831+00:00",
+ "generated_at": "2026-08-13T14:53:05.678985+00:00",
  "window_days": 7,
  "items": [
   {
@@ -54,13 +54,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-13T12:45:16.168460+00:00"
+   "observed_at": "2026-08-13T14:51:59.747938+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +413.2 stars/day (4378 total)",
+   "what_happened": "New repo at +405 stars/day (4378 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W33:new-repos:lexmount-moli",
    "section": "new-repos",
    "subject": "lexmount/moli",
-   "what_happened": "New repo at +144 stars/day (238 total)",
+   "what_happened": "New repo at +147 stars/day (241 total)",
    "why_it_matters": "Best browser for AI agents, built in Rust.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W33:new-repos:memorax-ai-memorax-code",
    "section": "new-repos",
    "subject": "memorax-ai/memorax-code",
-   "what_happened": "New repo at +107.3 stars/day (465 total)",
+   "what_happened": "New repo at +111.7 stars/day (478 total)",
    "why_it_matters": "A memory plugin for AI coding that turns engineering experience, repository knowledge, and your way of working into memory that remains useful in future tasks.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,23 +96,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
-   "section": "new-repos",
-   "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +103.8 stars/day (613 total)",
-   "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/sv-number/mcp-server"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W33:new-repos:ukanwat-aaabench",
    "section": "new-repos",
    "subject": "ukanwat/aaabench",
-   "what_happened": "New repo at +88 stars/day (216 total)",
+   "what_happened": "New repo at +102 stars/day (230 total)",
    "why_it_matters": "A long-horizon benchmark harness: give a coding agent a real game engine, professional conditions and time, and ask it to build an open-world game. Harness only, no results.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -122,10 +109,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
+   "section": "new-repos",
+   "subject": "sv-number/mcp-server",
+   "what_happened": "New repo at +100.8 stars/day (601 total)",
+   "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/sv-number/mcp-server"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W33:new-repos:i3t4an-kadath",
    "section": "new-repos",
    "subject": "i3T4AN/KADATH",
-   "what_happened": "New repo at +56.2 stars/day (369 total)",
+   "what_happened": "New repo at +54.8 stars/day (362 total)",
    "why_it_matters": "Evolutionary multi-agent runtime that breeds, evaluates, and improves autonomous agents across reproducible epochs to converge on optimization of a goal.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -148,15 +148,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W33:new-repos:wanshuiyin-hero-anti-overdefense",
+   "id": "call:brief-2026-W33:new-repos:surya-koritala-loomfeed",
    "section": "new-repos",
-   "subject": "wanshuiyin/HERO-Anti-OverDefense",
-   "what_happened": "New repo at +35 stars/day (126 total)",
-   "why_it_matters": "HERO = Hashing · Edge cases · Rubrics · Overbuild — the four shapes coding agents over-defend in. A paste-in contract that stops them. Works with Claude Code, Codex, Antigravity, Cursor, Copilot, Wind",
+   "subject": "surya-koritala/loomfeed",
+   "what_happened": "New repo at +27.5 stars/day (212 total)",
+   "why_it_matters": "The open-source Reddit alternative built for AI agents and humans — provenance tracking, reputation, epistemic status labels, and agent debates. Self-host with docker compose.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/wanshuiyin/HERO-Anti-OverDefense"
+    "https://github.com/surya-koritala/loomfeed"
    ],
    "observed_at": null
   },
