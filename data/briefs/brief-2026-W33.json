@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-14T08:58:32.107761+00:00",
+ "generated_at": "2026-08-14T10:50:27.919407+00:00",
  "window_days": 7,
  "items": [
   {
@@ -54,7 +54,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-14T08:54:53.267619+00:00"
+   "observed_at": "2026-08-14T10:49:08.246030+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:leutenegger-book-to-skill",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +465.3 stars/day (4378 total)",
+   "what_happened": "New repo at +453.7 stars/day (4378 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -86,10 +86,10 @@
    "id": "call:brief-2026-W33:new-repos:0xsline-awesome-deepseek-harness",
    "section": "new-repos",
    "subject": "0xsline/awesome-deepseek-harness",
-   "what_happened": "New repo at +186 stars/day (294 total)",
+   "what_happened": "New repo at +211 stars/day (319 total)",
    "why_it_matters": "DeepSeek Harness (DSH) ecosystem: curated plugins, tools, and infrastructure from dsh-external/hub and the public dsh-plugin topic.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "verdict": "evaluate",
+   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
    "receipts": [
     "https://github.com/0xsline/awesome-deepseek-harness"
    ],
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W33:new-repos:elie222-rakazo",
    "section": "new-repos",
    "subject": "elie222/rakazo",
-   "what_happened": "New repo at +141 stars/day (326 total)",
+   "what_happened": "New repo at +156 stars/day (341 total)",
    "why_it_matters": "Open-source Grok Bot alternative. Choose your own model and sandbox.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W33:new-repos:memorax-ai-memorax-code",
    "section": "new-repos",
    "subject": "memorax-ai/memorax-code",
-   "what_happened": "New repo at +99.2 stars/day (540 total)",
+   "what_happened": "New repo at +100.5 stars/day (545 total)",
    "why_it_matters": "A memory plugin for AI coding that turns engineering experience, repository knowledge, and your way of working into memory that remains useful in future tasks.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W33:new-repos:lexmount-moli",
    "section": "new-repos",
    "subject": "lexmount/moli",
-   "what_happened": "New repo at +87.5 stars/day (269 total)",
+   "what_happened": "New repo at +89 stars/day (272 total)",
    "why_it_matters": "Best browser for AI agents, built in Rust.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W33:new-repos:ukanwat-aaabench",
    "section": "new-repos",
    "subject": "ukanwat/aaabench",
-   "what_happened": "New repo at +84.5 stars/day (297 total)",
+   "what_happened": "New repo at +86 stars/day (300 total)",
    "why_it_matters": "A long-horizon benchmark harness: give a coding agent a real game engine, professional conditions and time, and ask it to build an open-world game. Harness only, no results.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -151,7 +151,7 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +76 stars/day (578 total)",
+   "what_happened": "New repo at +76.6 stars/day (581 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -163,8 +163,8 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 6,
-  "ignore": 6
+  "evaluate": 7,
+  "ignore": 5
  },
  "spotlight": {
   "task": "general-chat",
