@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-14T18:48:07.790507+00:00",
+ "generated_at": "2026-08-14T20:42:43.543156+00:00",
  "window_days": 7,
  "items": [
   {
@@ -54,13 +54,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-14T18:47:28.260488+00:00"
+   "observed_at": "2026-08-14T20:41:44.214038+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:leutenegger-book-to-skill",
    "section": "new-repos",
    "subject": "Leutenegger/book-to-skill",
-   "what_happened": "New repo at +919 stars/day (1058 total)",
+   "what_happened": "New repo at +921 stars/day (1060 total)",
    "why_it_matters": "Turn any technical book PDF into a Claude Code skill — ready to study, reference, and use while you work.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
    "section": "new-repos",
    "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +386.3 stars/day (4378 total)",
+   "what_happened": "New repo at +374.3 stars/day (4378 total)",
    "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W33:new-repos:0xsline-awesome-deepseek-harness",
    "section": "new-repos",
    "subject": "0xsline/awesome-deepseek-harness",
-   "what_happened": "New repo at +288 stars/day (396 total)",
+   "what_happened": "New repo at +289 stars/day (397 total)",
    "why_it_matters": "DeepSeek Harness (DSH) ecosystem: curated plugins, tools, and infrastructure from dsh-external/hub and the public dsh-plugin topic.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W33:new-repos:elie222-rakazo",
    "section": "new-repos",
    "subject": "elie222/rakazo",
-   "what_happened": "New repo at +207 stars/day (392 total)",
+   "what_happened": "New repo at +214 stars/day (399 total)",
    "why_it_matters": "Open-source Grok Bot alternative. Choose your own model and sandbox.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W33:new-repos:lexmount-moli",
    "section": "new-repos",
    "subject": "lexmount/moli",
-   "what_happened": "New repo at +87.5 stars/day (269 total)",
+   "what_happened": "New repo at +90 stars/day (274 total)",
    "why_it_matters": "Best browser for AI agents, built in Rust.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -151,7 +151,7 @@
    "id": "call:brief-2026-W33:new-repos:memorax-ai-memorax-code",
    "section": "new-repos",
    "subject": "memorax-ai/memorax-code",
-   "what_happened": "New repo at +49.8 stars/day (342 total)",
+   "what_happened": "New repo at +50 stars/day (343 total)",
    "why_it_matters": "A memory plugin for AI coding that turns engineering experience, repository knowledge, and your way of working into memory that remains useful in future tasks.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
