@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-15T10:39:11.742307+00:00",
+ "generated_at": "2026-08-15T12:40:09.602906+00:00",
  "window_days": 7,
  "items": [
   {
@@ -54,13 +54,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-15T10:38:26.588370+00:00"
+   "observed_at": "2026-08-15T12:39:10.535937+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:deepseek-ai-deepseek-harness",
    "section": "new-repos",
    "subject": "deepseek-ai/deepseek-harness",
-   "what_happened": "New repo at +18447 stars/day (106119 total)",
+   "what_happened": "New repo at +20340 stars/day (108012 total)",
    "why_it_matters": "DeepSeek Harness: Everything is a Plugin.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W33:new-repos:leutenegger-book-to-skill",
    "section": "new-repos",
    "subject": "Leutenegger/book-to-skill",
-   "what_happened": "New repo at +477 stars/day (1093 total)",
+   "what_happened": "New repo at +478.5 stars/day (1096 total)",
    "why_it_matters": "Turn any technical book PDF into a Claude Code skill — ready to study, reference, and use while you work.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W33:new-repos:decionis-agent-safe-pipeline",
    "section": "new-repos",
    "subject": "decionis/agent-safe-pipeline",
-   "what_happened": "New repo at +172 stars/day (410 total)",
+   "what_happened": "New repo at +177 stars/day (415 total)",
    "why_it_matters": "Reference architecture for AI agents that propose actions but cannot authorize them — immutable intent capture, an independent Decionis policy verdict (ALLOW/ESCALATE/BLOCK), verified human approval, ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W33:new-repos:0xsline-awesome-deepseek-harness",
    "section": "new-repos",
    "subject": "0xsline/awesome-deepseek-harness",
-   "what_happened": "New repo at +171.5 stars/day (451 total)",
+   "what_happened": "New repo at +173 stars/day (454 total)",
    "why_it_matters": "DeepSeek Harness (DSH) ecosystem: curated plugins, tools, and infrastructure from dsh-external/hub and the public dsh-plugin topic.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W33:new-repos:electricitysheep-dsh-handbook",
    "section": "new-repos",
    "subject": "Electricitysheep/dsh-handbook",
-   "what_happened": "New repo at +154 stars/day (260 total)",
+   "what_happened": "New repo at +162 stars/day (268 total)",
    "why_it_matters": "DeepSeek Harness (dsh) 从 0 到 1 深度手册：安装/插件开发/性能调优/实测案例/同模型多 Agent 实测对比（中文 + 英文 PDF）",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W33:new-repos:elie222-rakazo",
    "section": "new-repos",
    "subject": "elie222/rakazo",
-   "what_happened": "New repo at +134.5 stars/day (454 total)",
+   "what_happened": "New repo at +135.5 stars/day (456 total)",
    "why_it_matters": "Open-source Grok Bot alternative. Choose your own model and sandbox.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W33:new-repos:lexmount-moli",
    "section": "new-repos",
    "subject": "lexmount/moli",
-   "what_happened": "New repo at +70 stars/day (304 total)",
+   "what_happened": "New repo at +72 stars/day (310 total)",
    "why_it_matters": "Best browser for AI agents, built in Rust.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -151,7 +151,7 @@
    "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
    "section": "new-repos",
    "subject": "sv-number/mcp-server",
-   "what_happened": "New repo at +66.2 stars/day (595 total)",
+   "what_happened": "New repo at +66.3 stars/day (596 total)",
    "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
