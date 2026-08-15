@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W33",
- "generated_at": "2026-08-15T04:40:59.820674+00:00",
+ "generated_at": "2026-08-15T06:40:27.981966+00:00",
  "window_days": 7,
  "items": [
   {
@@ -54,13 +54,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-15T04:39:41.765357+00:00"
+   "observed_at": "2026-08-15T06:39:48.470058+00:00"
   },
   {
    "id": "call:brief-2026-W33:new-repos:deepseek-ai-deepseek-harness",
    "section": "new-repos",
    "subject": "deepseek-ai/deepseek-harness",
-   "what_happened": "New repo at +12313 stars/day (99985 total)",
+   "what_happened": "New repo at +14393 stars/day (102065 total)",
    "why_it_matters": "DeepSeek Harness: Everything is a Plugin.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -70,23 +70,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
-   "section": "new-repos",
-   "subject": "FareedKhan-dev/kimi-k3-in-c",
-   "what_happened": "New repo at +509 stars/day (4378 total)",
-   "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
-   "verdict": "evaluate",
-   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
-   "receipts": [
-    "https://github.com/FareedKhan-dev/kimi-k3-in-c"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W33:new-repos:leutenegger-book-to-skill",
    "section": "new-repos",
    "subject": "Leutenegger/book-to-skill",
-   "what_happened": "New repo at +468.5 stars/day (1076 total)",
+   "what_happened": "New repo at +470.5 stars/day (1080 total)",
    "why_it_matters": "Turn any technical book PDF into a Claude Code skill — ready to study, reference, and use while you work.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -96,10 +83,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W33:new-repos:fareedkhan-dev-kimi-k3-in-c",
+   "section": "new-repos",
+   "subject": "FareedKhan-dev/kimi-k3-in-c",
+   "what_happened": "New repo at +465 stars/day (4378 total)",
+   "why_it_matters": "A 2.78-trillion-parameter Kimi K3 running inference on a single CPU in 8.24 GB of RAM. Portable C99: no BLAS, no framework, no GPU.",
+   "verdict": "evaluate",
+   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
+   "receipts": [
+    "https://github.com/FareedKhan-dev/kimi-k3-in-c"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W33:new-repos:0xsline-awesome-deepseek-harness",
    "section": "new-repos",
    "subject": "0xsline/awesome-deepseek-harness",
-   "what_happened": "New repo at +152.5 stars/day (413 total)",
+   "what_happened": "New repo at +161 stars/day (430 total)",
    "why_it_matters": "DeepSeek Harness (DSH) ecosystem: curated plugins, tools, and infrastructure from dsh-external/hub and the public dsh-plugin topic.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W33:new-repos:decionis-agent-safe-pipeline",
    "section": "new-repos",
    "subject": "decionis/agent-safe-pipeline",
-   "what_happened": "New repo at +149 stars/day (387 total)",
+   "what_happened": "New repo at +156 stars/day (394 total)",
    "why_it_matters": "Reference architecture for AI agents that propose actions but cannot authorize them — immutable intent capture, an independent Decionis policy verdict (ALLOW/ESCALATE/BLOCK), verified human approval, ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W33:new-repos:electricitysheep-dsh-handbook",
    "section": "new-repos",
    "subject": "Electricitysheep/dsh-handbook",
-   "what_happened": "New repo at +124 stars/day (230 total)",
+   "what_happened": "New repo at +133 stars/day (239 total)",
    "why_it_matters": "DeepSeek Harness (dsh) 从 0 到 1 深度手册：安装/插件开发/性能调优/实测案例/同模型多 Agent 实测对比（中文 + 英文 PDF）",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W33:new-repos:elie222-rakazo",
    "section": "new-repos",
    "subject": "elie222/rakazo",
-   "what_happened": "New repo at +123 stars/day (431 total)",
+   "what_happened": "New repo at +127 stars/day (439 total)",
    "why_it_matters": "Open-source Grok Bot alternative. Choose your own model and sandbox.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -151,7 +151,7 @@
    "id": "call:brief-2026-W33:new-repos:lexmount-moli",
    "section": "new-repos",
    "subject": "lexmount/moli",
-   "what_happened": "New repo at +66 stars/day (292 total)",
+   "what_happened": "New repo at +67.3 stars/day (296 total)",
    "why_it_matters": "Best browser for AI agents, built in Rust.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
