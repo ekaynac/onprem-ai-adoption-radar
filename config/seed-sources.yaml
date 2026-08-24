@@ -686,6 +686,14 @@ sources:
     url: https://github.com/microsoft/skill-recorder
     tags: [agent-skills, ai-agents, automation, copilot, auto-added]
     backer: {name: microsoft, type: community}
+  - id: github-openevolve
+    type: github_repo
+    enabled: true
+    project: openevolve
+    category: coding_agents
+    url: https://github.com/algorithmicsuperintelligence/openevolve
+    tags: [alpha-evolve, alphacode, alphaevolve, coding-agent, auto-added]
+    backer: {name: algorithmicsuperintelligence, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
