@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query
 
 from radar.api.dependencies import get_root, get_services
+from radar.constants import CATALOG_FRESHNESS_WINDOW_DAYS
 from radar.intelligence.contracts import LifecycleState, ModelCategory, ReleaseLane
 from radar.intelligence.recommendations import RecommendationView
 from radar.intelligence.services import Page
@@ -21,6 +22,8 @@ from radar.web.intelligence_snapshot import build_public_snapshot
 
 
 router = APIRouter(tags=["catalog"])
+
+CATALOG_FRESHNESS_WINDOW_SECONDS = CATALOG_FRESHNESS_WINDOW_DAYS * 24 * 60 * 60
 
 
 @router.get("/catalog", response_model=Page[CatalogItem])
@@ -231,7 +234,7 @@ def _candidate_matches_metadata(
             released_at = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
         except (TypeError, ValueError):
             return freshness == "stale"
-        is_fresh = (now - released_at).total_seconds() <= 7 * 24 * 60 * 60
+        is_fresh = (now - released_at).total_seconds() <= CATALOG_FRESHNESS_WINDOW_SECONDS
         if (freshness == "fresh") != is_fresh:
             return False
     return True

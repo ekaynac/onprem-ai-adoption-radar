@@ -58,7 +58,7 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 
 ### Radar — shipping
 
-- **74 curated sources** currently ship in `config/seed-sources.yaml`, spanning
+- **77 curated sources** currently ship in `config/seed-sources.yaml`, spanning
   GitHub repositories, RSS feeds, registries, and manual authoritative sources.
 - Deterministic `adopt` / `pilot` / `watch` / `avoid` rings, project evidence,
   comparisons, history, model and research catalogs, the platform matrix,
@@ -133,7 +133,7 @@ Everything new degrades gracefully and stays off the critical path: enrichment (
 
 `coding_agents` · `general_agents` · `mcp_tooling` · `sandbox_governance` · `agent_frameworks` · `model_serving` · `ai_infrastructure` · `physical_ai_infrastructure` · `fun_experimental`
 
-74 curated sources ship by default; add your own from the CLI.
+77 curated sources ship by default; add your own from the CLI.
 
 ---
 
@@ -285,6 +285,23 @@ technique/trending/source-health query set.
 
 Private workspace, mutation, review, and planner routes are not exposed by the
 static public edition.
+
+### Authentication
+
+Both the API and the dashboard are **open by default** — this is intended for
+local development. To protect every mutating endpoint (API writes and the
+dashboard's `POST /sources` seed form), set a token:
+
+```bash
+export RADAR_API_TOKEN="your-secret"
+```
+
+Clients must then send `Authorization: Bearer your-secret` on non-GET API
+calls; the dashboard form asks for the same header. Token comparison is
+constant-time, and cross-origin form posts are rejected (CSRF guard). GET
+endpoints always remain public — that is the product. If you expose either app
+beyond localhost, front it with TLS and see [SECURITY.md](SECURITY.md) for the
+full threat model.
 
 ## Freshness automation
 

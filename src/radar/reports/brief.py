@@ -24,10 +24,13 @@ Verdict rules (v1):
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+
+logger = logging.getLogger(__name__)
 
 BRIEF_VERSION = "brief-v1"
 BENCHMARK_MOVE_POINTS = 3.0
@@ -115,8 +118,8 @@ def _ring_move_items(
                     event.observed_at.isoformat(),
                 )
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Brief: model ring-move scan failed: %s", exc)
     try:
         from radar.storage.history_log import load_events
 
@@ -147,8 +150,8 @@ def _ring_move_items(
                     project_event.observed_at.isoformat(),
                 )
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Brief: project ring-move scan failed: %s", exc)
     return items
 
 
@@ -165,7 +168,8 @@ def _benchmark_move_items(
         observations = load_benchmark_observations(
             root / "data" / "benchmark-observations.jsonl"
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("Brief: benchmark observations unreadable: %s", exc)
         return []
     by_key: dict[tuple[str, str, str], list[Any]] = {}
     for observation in observations:
@@ -223,7 +227,8 @@ def _trending_items(
             load_observations(root / "data" / "trending-observations.jsonl"),
             now,
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("Brief: trending derivation failed: %s", exc)
         return []
     items: list[dict[str, Any]] = []
     for entry in entries:
@@ -278,7 +283,8 @@ def _news_items(
         classifications = load_news_classifications(
             root / "data" / "news-classified.jsonl"
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("Brief: news classifications unreadable: %s", exc)
         return []
     rows: list[dict[str, Any]] = []
     for classification in classifications:
@@ -360,7 +366,8 @@ def _spotlight(brief_id: str, root: Path, now: datetime) -> dict[str, Any] | Non
                 f"{device} → {top['name']}"
             ),
         }
-    except Exception:
+    except Exception as exc:
+        logger.warning("Brief: advisor pick for task=%s failed: %s", task, exc)
         return None
 
 

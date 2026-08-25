@@ -19,3 +19,9 @@ RSS_ACCEPT = (
 # it is recorded (raw signals + meta) but never scored — scoring near-empty
 # input produces artificial ring churn (see 2026-07-27 hardening spec).
 DEGRADED_SOURCE_ERROR_THRESHOLD = 0.5
+
+# Single source of truth for the catalog's "fresh" freshness window. The API
+# computes freshness from it, and the published public snapshot carries it as
+# `freshness_window_days` so the static-edition SPA never hardcodes its own
+# copy (see frontend/src/api/client.ts).
+CATALOG_FRESHNESS_WINDOW_DAYS = 7

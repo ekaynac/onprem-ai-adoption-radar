@@ -351,7 +351,7 @@ def _write_model_seed(tmp_path: Path, models_yaml_body: str) -> None:
 
 
 def test_models_verify_reports_drift_and_check_exits_1(tmp_path: Path, monkeypatch):
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
     from radar.models_radar.entities import ArchitectureSpec
 
@@ -375,17 +375,17 @@ def test_models_verify_reports_drift_and_check_exits_1(tmp_path: Path, monkeypat
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path)])
     assert result.exit_code == 0, result.stdout           # report-only without --check
     assert "DRIFT drift-model.params_total" in result.stdout
     assert "DRIFT drift-model.architecture.num_key_value_heads" in result.stdout
 
-    checked = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    checked = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert checked.exit_code == 1                         # verified seed drifted
 
 
 def test_models_verify_no_drift_reports_ok(tmp_path: Path, monkeypatch):
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
 
     _write_model_seed(tmp_path, """\
@@ -403,13 +403,13 @@ def test_models_verify_no_drift_reports_ok(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout
     assert "OK: 1 seed verified, no drift" in result.stdout
 
 
 def test_models_verify_unreachable_repo_is_skip_not_failure(tmp_path: Path, monkeypatch):
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
 
     _write_model_seed(tmp_path, """\
   - id: unreachable-model
@@ -426,7 +426,7 @@ def test_models_verify_unreachable_repo_is_skip_not_failure(tmp_path: Path, monk
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout            # unreachable never fails the command
     assert "skip unreachable-model" in result.stdout
     # A fully-skipped run must never claim seeds were verified.
@@ -438,7 +438,7 @@ def test_models_verify_fetch_exception_is_skip_not_crash(tmp_path: Path, monkeyp
     """One seed's fetcher raising (e.g. a malformed API body) must not crash the
     whole command and lose every other seed's report — it's caught in the CLI
     layer and reported as a skip, same as an ordinary unreachable repo."""
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
 
     _write_model_seed(tmp_path, """\
@@ -465,7 +465,7 @@ def test_models_verify_fetch_exception_is_skip_not_crash(tmp_path: Path, monkeyp
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout        # a raising fetcher never fails the command
     assert "skip crash-model: AttributeError" in result.stdout
     # ok-model was still fetched and reported (no drift, and not lumped in as unreachable).
@@ -473,7 +473,7 @@ def test_models_verify_fetch_exception_is_skip_not_crash(tmp_path: Path, monkeyp
 
 
 def test_models_verify_never_modifies_seed_file(tmp_path: Path, monkeypatch):
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
 
     _write_model_seed(tmp_path, """\
@@ -492,7 +492,7 @@ def test_models_verify_never_modifies_seed_file(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
 
     after_text = (tmp_path / "config" / "model-seed.yaml").read_text(encoding="utf-8")
     assert after_text == original_text, "verify must never modify the seed file"
@@ -511,7 +511,7 @@ def test_models_verify_packed_quant_params_total_is_note_not_drift(
     and below the observed range) are reported as a note, never DRIFT, and
     never trip --check.
     """
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
 
     _write_model_seed(tmp_path, """\
@@ -529,7 +529,7 @@ def test_models_verify_packed_quant_params_total_is_note_not_drift(
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout
     assert "DRIFT" not in result.stdout
     assert "note packed-model: params_total differs by" in result.stdout
@@ -543,7 +543,7 @@ def test_models_verify_small_params_total_diff_is_note_not_drift(
     safetensors element count is exact ("684.53B") — a ~2% gap that is not real
     drift (see deepseek-r1/deepseek-v3, corrected 2026-07-28). Differences
     within 3% are reported as a note and never trip --check."""
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
 
     _write_model_seed(tmp_path, """\
@@ -561,7 +561,7 @@ def test_models_verify_small_params_total_diff_is_note_not_drift(
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout
     assert "DRIFT" not in result.stdout
     assert "note rounded-model: params_total differs by 2.0% (published-rounded total)" in (
@@ -577,7 +577,7 @@ def test_models_verify_context_length_mismatch_is_note_never_drift(
     deepseek-v3: card says 131072, config.json's max_position_embeddings is
     163840). A mismatch is always a note, never DRIFT, even on a spec_verified
     seed — so it can never trip --check."""
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
 
     _write_model_seed(tmp_path, """\
@@ -596,7 +596,7 @@ def test_models_verify_context_length_mismatch_is_note_never_drift(
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout
     assert "DRIFT" not in result.stdout
     # Rich may wrap the line at the console width, so check the pieces rather
@@ -612,7 +612,7 @@ def test_models_verify_out_of_band_ratio_is_neutral_investigate_note(
     or a fetch pointed at the wrong model) must not be mislabeled as a
     "packed-quant artifact" — that asserts a false cause. It's reported as a
     neutral note instead, and still never DRIFT."""
-    import radar.cli as cli_mod
+    import radar.cli.models_cli as cli_mod
     from radar.models_radar.collectors.huggingface import HFModelData
 
     _write_model_seed(tmp_path, """\
@@ -630,7 +630,7 @@ def test_models_verify_out_of_band_ratio_is_neutral_investigate_note(
     monkeypatch.setattr(cli_mod, "_verify_fetch_hf_model", fake_fetch, raising=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli_mod.app, ["models", "verify", "--root", str(tmp_path), "--check"])
+    result = runner.invoke(app, ["models", "verify", "--root", str(tmp_path), "--check"])
     assert result.exit_code == 0, result.stdout
     assert "DRIFT" not in result.stdout
     assert "packed-quant" not in result.stdout

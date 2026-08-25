@@ -288,3 +288,35 @@ def test_benchmarks_tool_returns_none_for_unknown_model(tmp_path: Path) -> None:
     payload = result[1].get("result", result[1]) if result[1] else None
 
     assert payload in (None, {})
+
+
+def test_run_invokes_stdio_entrypoint(tmp_path: Path, monkeypatch) -> None:
+    """The blocking stdio entrypoint delegates to FastMCP.run (smoke-level)."""
+
+    from radar.mcp_server import server as server_module
+
+    calls: list[str] = []
+    built = build_mcp_server(tmp_path)
+
+    class _FakeServer:
+        def run(self) -> None:
+            calls.append("stdio")
+            assert built is not None
+
+    monkeypatch.setattr(
+        server_module, "build_mcp_server", lambda root: _FakeServer()
+    )
+    if hasattr(server_module, "run"):
+        server_module.run(tmp_path)
+    assert calls == ["stdio"]
+
+
+def test_build_mcp_server_is_deterministic_in_tool_names(tmp_path: Path) -> None:
+    first = build_mcp_server(tmp_path)
+    second = build_mcp_server(tmp_path)
+    async def _names(mcp_server):
+        return {tool.name for tool in (await mcp_server.list_tools())}
+    names_first = asyncio.run(_names(first))
+    names_second = asyncio.run(_names(second))
+    assert names_first == names_second
+    assert {"list_recommendations", "get_project"} <= names_first

@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
       - name: Install package
-        run: uv venv && uv pip install -e .
+        run: uv sync --locked --no-dev
       # A red run IS the drift flag — a human updates the seed (or the model
       # card changed and the seed is right; either way, eyes on it).
       - name: Verify specs

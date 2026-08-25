@@ -1,0 +1,52 @@
+name: Ring backtest
+
+# Weekly measurement of ring-prediction quality: re-score historical runs
+# and surface how rings would differ. Read-only — this reports, it does not
+# gate (the calibrate-report gate inside publish.yml remains the hard check).
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC, after catalog autopilot
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ring-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install package (locked)
+        run: uv sync --locked
+
+      - name: Config-drift backtest (current weights vs persisted cards)
+        run: uv run radar backtest --root . >> "$GITHUB_STEP_SUMMARY"
+
+      # Profile comparison adds signal only when profiles exist; failures are
+      # non-fatal so one unknown profile never blanks the summary.
+      - name: Profile comparison backtest
+        if: always()
+        run: |
+          profiles=$(uv run python -c "
+          from pathlib import Path
+          from radar.storage.config import load_config
+          cfg = load_config(Path('data/config.yaml'))
+          print(' '.join(sorted(cfg.profiles)))
+          " 2>/dev/null || true)
+          for profile in $profiles; do
+            echo "### profile: $profile" >> "$GITHUB_STEP_SUMMARY"
+            uv run radar backtest --root . --profile "$profile" >> "$GITHUB_STEP_SUMMARY" || true
+          done

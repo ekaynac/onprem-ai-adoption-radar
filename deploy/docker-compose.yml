@@ -1,0 +1,18 @@
+services:
+  radar:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: onprem-ai-adoption-radar
+    ports:
+      - "8765:8765"
+    environment:
+      # Protect writes (API mutations + POST /sources). Leave empty for a
+      # fully open local instance.
+      RADAR_API_TOKEN: ${RADAR_API_TOKEN:-}
+    volumes:
+      - radar-data:/data
+    restart: unless-stopped
+
+volumes:
+  radar-data:

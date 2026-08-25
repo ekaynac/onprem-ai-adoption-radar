@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -12,6 +11,7 @@ from urllib.parse import quote
 import httpx
 from pydantic import Field
 
+from radar.enrichment.retry import get_with_retry_soft
 from radar.intelligence.contracts import (
     EvidenceStrength,
     FrozenModel,
@@ -24,8 +24,6 @@ from radar.models_radar.hf_config import parse_architecture, parse_quant_format
 HF_API_URL = "https://huggingface.co/api/models"
 LINEAGE_TAG_PREFIX = "base_model:"
 LINEAGE_TAG_RELATIONS = frozenset({"finetune", "quantized", "merge", "adapter"})
-RATE_LIMIT_RETRIES = 3
-RATE_LIMIT_MAX_WAIT_SECONDS = 65.0
 
 
 async def _get_with_rate_limit_retry(
@@ -36,25 +34,15 @@ async def _get_with_rate_limit_retry(
 ) -> httpx.Response | None:
     """GET with bounded 429 backoff; None on transport failure.
 
-    Backfill sweeps make hundreds of anonymous API calls; without honoring
-    Retry-After every request after the limit silently degrades to a skip,
-    which reads as \"no declared parent\" when the truth is \"never asked\".
+    Thin wrapper over the shared soft-retry profile in
+    ``radar.enrichment.retry`` — kept so backfill sweeps honor Retry-After
+    without silently degrading to a skip.
     """
-    response: httpx.Response | None = None
-    for attempt in range(RATE_LIMIT_RETRIES + 1):
-        try:
-            response = await client.get(url, params=params)
-        except httpx.HTTPError:
-            return None
-        if response.status_code != 429 or attempt == RATE_LIMIT_RETRIES:
-            return response
-        retry_after = response.headers.get("retry-after")
-        try:
-            wait = min(float(retry_after or 5.0), RATE_LIMIT_MAX_WAIT_SECONDS)
-        except ValueError:
-            wait = 5.0
-        await asyncio.sleep(wait * (attempt + 1))
-    return response
+
+    async def send() -> httpx.Response:
+        return await client.get(url, params=params)
+
+    return await get_with_retry_soft(send)
 HF_PIPELINE_CATEGORIES = {
     "text-generation": ModelCategory.TEXT_REASONING,
     "image-text-to-text": ModelCategory.MULTIMODAL,
