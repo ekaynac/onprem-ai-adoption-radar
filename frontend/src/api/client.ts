@@ -3,6 +3,52 @@ import type { paths } from "./generated/schema";
 
 export type ApiPaths = paths;
 
+/**
+ * A model/release row from the published public snapshot or compact model
+ * index shards. The backend serializes pydantic contracts; only the fields
+ * the static projection relies on are declared here — everything else flows
+ * through the index signature untouched.
+ */
+export type StaticModelRow = {
+  release_id: string;
+  /** Compact-index rows omit detail fields; detailed snapshot rows carry them. */
+  released_at?: string;
+  first_observed_at?: string;
+  name?: string;
+  category?: string;
+  lane?: string;
+  lifecycle?: string;
+  public_ring?: string | null;
+  lineage?: { relation?: string; [key: string]: unknown } | null;
+  is_official?: boolean | null;
+  significance?: {
+    rank?: number;
+    score?: number;
+    [key: string]: unknown;
+  } | null;
+  profile?: {
+    publisher?: string;
+    license?: string;
+    modality?: string;
+    hardware_tier?: string;
+    library_name?: string;
+    [key: string]: unknown;
+  } | null;
+  reasons?: unknown[];
+  evidence_ids?: unknown[];
+  claims?: unknown[];
+  [key: string]: unknown;
+};
+
+/** A release row from the public snapshot (briefing stream). */
+export type StaticReleaseRow = {
+  release_id: string;
+  confidence?: number;
+  review_status?: string;
+  lineage?: { relation?: string | null; [key: string]: unknown } | null;
+  [key: string]: unknown;
+};
+
 type StaticSnapshot = {
   schema_version: string;
   generated_at: string;
@@ -14,8 +60,8 @@ type StaticSnapshot = {
     mode: "live_projection" | "last_published_baseline" | "unavailable";
     generated_at?: string | null;
   };
-  releases: Array<Record<string, unknown>>;
-  models: Array<Record<string, unknown>>;
+  releases: Array<StaticReleaseRow>;
+  models: Array<StaticModelRow>;
   projects: Array<Record<string, unknown>>;
   model_candidates: Array<Record<string, unknown>>;
   platforms: Array<Record<string, unknown>>;
@@ -39,10 +85,16 @@ type StaticModelIndexManifest = {
 };
 
 let snapshotPromise: Promise<StaticSnapshot> | undefined;
-let catalogModelsPromise: Promise<Array<Record<string, unknown>>> | undefined;
+let catalogModelsPromise: Promise<Array<StaticModelRow>> | undefined;
 
 
-function modelTimestamp(model: Record<string, unknown>): number {
+function modelTimestamp(
+  model: {
+    released_at?: string;
+    first_observed_at?: string;
+    [key: string]: unknown;
+  },
+): number {
   const value = Date.parse(String(model.released_at ?? model.first_observed_at ?? ""));
   return Number.isNaN(value) ? 0 : value;
 }
@@ -50,24 +102,22 @@ function modelTimestamp(model: Record<string, unknown>): number {
 
 const UNRANKED_SIGNIFICANCE = 99;
 
-function significanceRank(model: Record<string, unknown>): number {
-  const significance = model.significance as Record<string, unknown> | null | undefined;
-  const rank = significance?.rank;
+function significanceRank(model: StaticModelRow): number {
+  const rank = model.significance?.rank;
   return typeof rank === "number" ? rank : UNRANKED_SIGNIFICANCE;
 }
 
-function significanceScore(model: Record<string, unknown>): number {
-  const significance = model.significance as Record<string, unknown> | null | undefined;
-  const score = significance?.score;
+function significanceScore(model: StaticModelRow): number {
+  const score = model.significance?.score;
   return typeof score === "number" ? score : 0;
 }
 
 
 export function mergeCatalogModels(
-  compact: Array<Record<string, unknown>>,
-  detailed: Array<Record<string, unknown>>,
-): Array<Record<string, unknown>> {
-  const byRelease = new Map<string, Record<string, unknown>>();
+  compact: Array<StaticModelRow>,
+  detailed: Array<StaticModelRow>,
+): Array<StaticModelRow> {
+  const byRelease = new Map<string, StaticModelRow>();
   for (const model of compact) {
     byRelease.set(String(model.release_id), model);
   }
@@ -94,7 +144,7 @@ export function mergeCatalogModels(
 export async function loadStaticCatalogModels(
   snapshot: StaticSnapshot,
   fetcher: typeof fetch = fetch,
-): Promise<Array<Record<string, unknown>>> {
+): Promise<Array<StaticModelRow>> {
   const reference = snapshot.model_index;
   if (!reference) return snapshot.models;
   try {
@@ -110,7 +160,7 @@ export async function loadStaticCatalogModels(
         );
         if (!response.ok) throw new Error(`Model index shard unavailable: ${shard.path}`);
         const payload = (await response.json()) as {
-          items?: Array<Record<string, unknown>>;
+          items?: Array<StaticModelRow>;
         };
         if (!Array.isArray(payload.items) || payload.items.length !== shard.count) {
           throw new Error(`Invalid model index shard: ${shard.path}`);
@@ -130,7 +180,7 @@ export async function loadStaticCatalogModels(
 }
 
 
-function catalogItem(model: Record<string, unknown>) {
+function catalogItem(model: StaticModelRow) {
   const releaseId = String(model.release_id);
   const ring = model.public_ring ?? null;
   return {
@@ -164,7 +214,7 @@ function catalogItem(model: Record<string, unknown>) {
 export function projectStaticRequest(
   path: string,
   snapshot: StaticSnapshot,
-  catalogModels: Array<Record<string, unknown>> = snapshot.models,
+  catalogModels: Array<StaticModelRow> = snapshot.models,
 ): unknown {
   const url = new URL(path, "https://static.radar.invalid");
   if (url.pathname === "/api/v1/releases") {
@@ -202,7 +252,7 @@ export function projectStaticRequest(
     const facet = (name: string) => [...new Set(
       catalogModels
         .map((model) => {
-          const profile = (model.profile ?? {}) as Record<string, unknown>;
+          const profile = model.profile ?? {};
           return profile[name];
         })
         .filter((value): value is string => typeof value === "string" && value.length > 0),
@@ -234,7 +284,7 @@ export function projectStaticRequest(
     const generatedAt = Date.parse(snapshot.generated_at);
     const filtered = catalogModels
       .filter((model) => {
-        const profile = (model.profile ?? {}) as Record<string, unknown>;
+        const profile = model.profile ?? {};
         const releasedAt = Date.parse(String(model.released_at ?? model.first_observed_at ?? ""));
         const isFresh = !Number.isNaN(releasedAt)
           && !Number.isNaN(generatedAt)
