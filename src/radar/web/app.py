@@ -189,6 +189,11 @@ def _configure_react_routes(
 def create_app(root: Path) -> FastAPI:
     """Create a local dashboard app with read views and seed management."""
     app = create_api_app(root)
+
+    @app.get("/healthz")
+    def healthz() -> dict[str, str]:
+        return {"status": "ok"}
+
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     frontend_dir = root / "build" / "frontend"
     if (frontend_dir / "index.html").exists():
