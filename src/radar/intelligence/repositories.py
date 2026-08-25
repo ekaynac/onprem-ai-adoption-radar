@@ -62,6 +62,15 @@ class RepositoryConflict(ValueError):
     """An append-only ID was reused for different content."""
 
 
+# SQLite's compiled bind-parameter limit is 999 (older builds) or 32766
+# (newer); a conservative chunk keeps IN-clause queries under both.
+CLAIM_QUERY_CHUNK_SIZE = 500
+
+
+def _in_chunks(items: list[str], size: int) -> list[list[str]]:
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
 class IntelligenceRepository(Protocol):
     def append_evidence(self, evidence: EvidenceObservation) -> None: ...
 
@@ -412,32 +421,41 @@ class SqlAlchemyIntelligenceRepository:
         subject_ids: list[str],
         predicates: set[str],
     ) -> dict[str, dict[str, Any]]:
-        """Return latest values for selected claims in one bounded query."""
+        """Return latest values for selected claims in bounded chunked queries.
+
+        ``subject_ids`` is unbounded (every known release, on lineage
+        backfills), and SQLite rejects statements whose bind-parameter count
+        exceeds its compiled limit ("too many SQL variables") — so the IN
+        clause is issued in fixed-size chunks. Each subject falls entirely
+        within one chunk, so per-subject "last row wins" ordering semantics
+        are unchanged.
+        """
         if not subject_ids or not predicates:
             return {}
+        values: dict[str, dict[str, Any]] = {}
         with self.database.session() as session:
-            rows = list(
-                session.execute(
-                    select(
-                        ClaimRow.subject_id,
-                        ClaimRow.predicate,
-                        ClaimRow.value,
-                        ClaimRow.observed_at,
-                        ClaimRow.id,
-                    )
-                    .where(ClaimRow.subject_id.in_(subject_ids))
-                    .where(ClaimRow.predicate.in_(predicates))
-                    .order_by(
-                        ClaimRow.subject_id,
-                        ClaimRow.predicate,
-                        ClaimRow.observed_at,
-                        ClaimRow.id,
+            for chunk in _in_chunks(subject_ids, CLAIM_QUERY_CHUNK_SIZE):
+                rows = list(
+                    session.execute(
+                        select(
+                            ClaimRow.subject_id,
+                            ClaimRow.predicate,
+                            ClaimRow.value,
+                            ClaimRow.observed_at,
+                            ClaimRow.id,
+                        )
+                        .where(ClaimRow.subject_id.in_(chunk))
+                        .where(ClaimRow.predicate.in_(predicates))
+                        .order_by(
+                            ClaimRow.subject_id,
+                            ClaimRow.predicate,
+                            ClaimRow.observed_at,
+                            ClaimRow.id,
+                        )
                     )
                 )
-            )
-        values: dict[str, dict[str, Any]] = {}
-        for subject_id, predicate, value, _observed_at, _claim_id in rows:
-            values.setdefault(subject_id, {})[predicate] = value
+                for subject_id, predicate, value, _observed_at, _claim_id in rows:
+                    values.setdefault(subject_id, {})[predicate] = value
         return values
 
     def upsert_publisher(self, publisher: Publisher) -> bool:

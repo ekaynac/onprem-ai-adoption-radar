@@ -97,3 +97,57 @@ def test_postgres_implements_same_evidence_contract() -> None:
     repo.append_evidence(evidence)
 
     assert repo.get_evidence(evidence.id) == evidence
+
+
+def test_in_chunks_splits_lists_of_any_size() -> None:
+    from radar.intelligence.repositories import _in_chunks
+
+    assert _in_chunks([], 3) == []
+    assert _in_chunks(["a"], 3) == [["a"]]
+    assert _in_chunks(["a", "b", "c", "d", "e"], 2) == [
+        ["a", "b"],
+        ["c", "d"],
+        ["e"],
+    ]
+
+
+def test_latest_claim_values_survives_more_subjects_than_sqlite_bind_limit(
+    tmp_path, monkeypatch
+) -> None:
+    """Regression: lineage backfill crashed with 'too many SQL variables'
+    once the release count exceeded SQLite's IN-clause bind limit."""
+    from radar.intelligence import repositories as repositories_module
+
+    monkeypatch.setattr(
+        repositories_module, "CLAIM_QUERY_CHUNK_SIZE", 3
+    )
+    repo = make_repository(f"sqlite:///{tmp_path / 'intelligence.db'}")
+    subjects = [f"release:bulk-{i:03d}" for i in range(10)]
+    for index, subject_id in enumerate(subjects):
+        repo.append_claim(
+            Claim(
+                id=f"claim:bulk-{index}",
+                subject_id=subject_id,
+                predicate="hf_repo",
+                value=f"org/model-{index}",
+                state=ClaimState.CANDIDATE,
+                observed_at=NOW,
+            )
+        )
+    # A superseded older claim that must NOT win the "latest" race.
+    repo.append_claim(
+        Claim(
+            id="claim:bulk-000-old",
+            subject_id=subjects[0],
+            predicate="hf_repo",
+            value="org/stale",
+            state=ClaimState.CANDIDATE,
+            observed_at=NOW.replace(day=1),
+        )
+    )
+
+    values = repo.latest_claim_values(subjects, {"hf_repo", "repo_id"})
+
+    assert len(values) == len(subjects)
+    assert values[subjects[0]]["hf_repo"] == "org/model-0"
+    assert all(values[s]["hf_repo"] == f"org/model-{i}" for i, s in enumerate(subjects))
