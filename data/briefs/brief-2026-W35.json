@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-25T18:15:30.877199+00:00",
+ "generated_at": "2026-08-25T20:49:09.441051+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-25T18:15:00.891781+00:00"
+   "observed_at": "2026-08-25T20:48:33.376874+00:00"
   }
  ],
  "verdict_counts": {
