@@ -1,0 +1,64 @@
+name: Publish watchdog
+
+# Runs in GitHub's cloud after every publish attempt — no local machine
+# involved. If "Publish radar to Pages" fails, this opens/updates a tracking
+# issue with the failed step and dispatches exactly ONE retry per head SHA,
+# so a transient failure self-heals while a deterministic one stays visible.
+
+on:
+  workflow_run:
+    workflows: ["Publish radar to Pages"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+
+concurrency:
+  group: publish-watchdog-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install gh-compatible context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          {
+            echo "## Publish failed on \`${HEAD_SHA::12}\`"
+            echo ""
+            echo "- Run: ${RUN_URL}"
+            echo "- Date: $(date -u +%F' 'T%H:%MZ)"
+            echo ""
+            echo "A single automatic retry has been dispatched."
+            echo "If this issue is reopened repeatedly for the same commit, the failure is deterministic — check the run log's first failing step."
+          } > body.md
+          marker="publish-fail-${HEAD_SHA}"
+          existing=$(gh issue list --search "$marker in:title" --state all --json number -q '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file body.md
+            gh issue reopen "$existing" || true
+            echo "ISSUE_NUMBER=$existing" >> "$GITHUB_ENV"
+          else
+            gh issue create \
+              --title "Publish radar to Pages failed ($marker)" \
+              --body-file body.md > /dev/null
+            echo "created"
+          fi
+
+      - name: Retry once per head SHA
+        if: ${{ env.ISSUE_NUMBER == '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # ISSUE_NUMBER empty means this SHA had no prior failure issue → safe retry.
+          gh workflow run publish.yml --ref main
