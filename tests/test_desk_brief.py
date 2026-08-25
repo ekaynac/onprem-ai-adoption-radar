@@ -314,7 +314,18 @@ def test_brief_applies_documented_verdict_rules(tmp_path) -> None:
     assert build_brief(tmp_path, NOW) == brief
 
 
-def test_cli_brief_is_idempotent_and_resolve_keeps_score(tmp_path) -> None:
+def test_cli_brief_is_idempotent_and_resolve_keeps_score(
+    tmp_path, monkeypatch
+) -> None:
+    # Freeze the CLI clock: seeds are dated relative to NOW, so the real
+    # clock eventually windows them out and this test stops finding calls.
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW if tz is None else NOW.astimezone(tz)
+
+    monkeypatch.setattr("radar.cli.desk_cli.datetime", _FrozenDatetime)
+
     from typer.testing import CliRunner
 
     from radar.cli import app

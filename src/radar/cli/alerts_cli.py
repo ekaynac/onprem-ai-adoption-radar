@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -35,7 +36,6 @@ def alerts_notify(
     when notify is disabled in config or no webhook URL is present.
     """
     import asyncio
-    from datetime import UTC, datetime
 
     import httpx
 

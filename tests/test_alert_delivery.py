@@ -167,6 +167,15 @@ def _seed_alertable_root(tmp_path):
 
 
 def test_cli_delivers_new_alerts_once(tmp_path, monkeypatch):
+    # Freeze the CLI clock: the seeded news is dated relative to NOW, so a
+    # real `datetime.now()` eventually pushes it outside the alert window
+    # (this test silently started failing ~3 weeks after it was written).
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW if tz is None else NOW.astimezone(tz)
+
+    monkeypatch.setattr("radar.cli.alerts_cli.datetime", _FrozenDatetime)
     _seed_alertable_root(tmp_path)
     sent_bodies: list[dict] = []
 

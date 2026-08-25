@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -19,7 +20,6 @@ desk_app = typer.Typer(
 def desk_brief(root: Path = typer.Option(Path("."), help="Project root.")) -> None:
     """Build this week's brief and record its new calls (idempotent per week)."""
     import json as json_module
-    from datetime import UTC, datetime
 
     from radar.reports.brief import build_brief
     from radar.storage.calls_ledger import (
