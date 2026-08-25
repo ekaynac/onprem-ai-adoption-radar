@@ -11,6 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from radar.constants import CATALOG_FRESHNESS_WINDOW_DAYS
 from radar.intelligence.contracts import Release
 from radar.intelligence.significance import (
     SIGNIFICANCE_RANK,
@@ -101,6 +102,7 @@ class PublicSnapshot(BaseModel):
     source_health: dict[str, Any]
     project_data: PublicProjectDataState
     model_index: ModelIndexReference
+    freshness_window_days: int = CATALOG_FRESHNESS_WINDOW_DAYS
     quality: dict[str, Any]
     source_coverage: list[dict[str, Any]]
     latest_digest: dict[str, str] | None = None

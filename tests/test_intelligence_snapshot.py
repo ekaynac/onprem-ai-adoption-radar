@@ -180,6 +180,7 @@ def test_public_snapshot_is_deterministic_and_has_no_workspace_data(
         "latest_digest",
         "project_data",
         "model_index",
+        "freshness_window_days",
         "quality",
         "source_coverage",
         "briefing",

@@ -70,21 +70,22 @@ async def post_with_retry(
 
 
 async def get_with_retry_soft(
-    client: _AsyncGetClient,
-    url: str,
+    send: Callable[[], Awaitable[Any]],
     *,
-    params: dict[str, Any] | None = None,
+    label: str = "request",
 ) -> Any:
     """GET with bounded 429 backoff; None on transport failure; never raises.
 
-    Honors ``Retry-After`` with linear escalation, capped at
-    ``SOFT_MAX_SLEEP_SECONDS``. The response is returned as-is on the final
-    attempt — the caller decides whether a non-200 means "skip".
+    ``send`` is a zero-arg callable returning an awaitable response (e.g.
+    ``lambda: client.get(url, params=params)``). Honors ``Retry-After`` with
+    linear escalation, capped at ``SOFT_MAX_SLEEP_SECONDS``. The response is
+    returned as-is on the final attempt — the caller decides whether a non-200
+    means "skip".
     """
     response: Any = None
     for attempt in range(SOFT_MAX_RETRIES + 1):
         try:
-            response = await client.get(url, params=params)
+            response = await send()
         except httpx.HTTPError:
             return None
         status = getattr(response, "status_code", 200)
@@ -93,7 +94,7 @@ async def get_with_retry_soft(
         delay = _soft_delay(response, attempt)
         logger.warning(
             "%s returned HTTP %s; soft retry %d/%d in %.1fs",
-            label_for(url),
+            label,
             status,
             attempt + 1,
             SOFT_MAX_RETRIES,
@@ -101,11 +102,6 @@ async def get_with_retry_soft(
         )
         await asyncio.sleep(delay)
     return response
-
-
-def label_for(url: str) -> str:
-    """Compact log label for a URL: scheme-less host + path."""
-    return url.split("//", 1)[-1]
 
 
 def _soft_delay(response: Any, attempt: int) -> float:

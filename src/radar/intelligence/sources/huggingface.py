@@ -38,7 +38,11 @@ async def _get_with_rate_limit_retry(
     ``radar.enrichment.retry`` — kept so backfill sweeps honor Retry-After
     without silently degrading to a skip.
     """
-    return await get_with_retry_soft(client, url, params=params)
+
+    async def send() -> httpx.Response:
+        return await client.get(url, params=params)
+
+    return await get_with_retry_soft(send)
 HF_PIPELINE_CATEGORIES = {
     "text-generation": ModelCategory.TEXT_REASONING,
     "image-text-to-text": ModelCategory.MULTIMODAL,

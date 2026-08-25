@@ -56,6 +56,8 @@ type StaticSnapshot = {
     manifest_path: string;
     total: number;
   };
+  /** Mirrored from radar.constants.CATALOG_FRESHNESS_WINDOW_DAYS. */
+  freshness_window_days?: number;
   project_data?: {
     mode: "live_projection" | "last_published_baseline" | "unavailable";
     generated_at?: string | null;
@@ -282,13 +284,14 @@ export function projectStaticRequest(
     const platform = url.searchParams.get("platform");
     const freshness = url.searchParams.get("freshness");
     const generatedAt = Date.parse(snapshot.generated_at);
+    const freshnessWindowDays = snapshot.freshness_window_days ?? 7;
     const filtered = catalogModels
       .filter((model) => {
         const profile = model.profile ?? {};
         const releasedAt = Date.parse(String(model.released_at ?? model.first_observed_at ?? ""));
         const isFresh = !Number.isNaN(releasedAt)
           && !Number.isNaN(generatedAt)
-          && generatedAt - releasedAt <= 7 * 24 * 60 * 60 * 1000;
+          && generatedAt - releasedAt <= freshnessWindowDays * 24 * 60 * 60 * 1000;
         const haystack = [
           model.name,
           model.release_id,
