@@ -123,7 +123,8 @@ export async function loadStaticCatalogModels(
       throw new Error("Model index count mismatch");
     }
     return mergeCatalogModels(compact, snapshot.models);
-  } catch {
+  } catch (error) {
+    console.warn("Model index unavailable, falling back to snapshot models:", error);
     return snapshot.models;
   }
 }

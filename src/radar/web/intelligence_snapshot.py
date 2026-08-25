@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,8 @@ from radar.intelligence.significance import (
     compute_significance,
 )
 
+
+logger = logging.getLogger(__name__)
 
 PUBLIC_RECENT_RELEASE_LIMIT = 250
 MODEL_INDEX_SHARD_SIZE = 2_000
@@ -308,7 +311,8 @@ def _build_planner(root: Path) -> dict[str, Any] | None:
                 _PLANNER_CONTEXT_TOKENS,
             ):
                 fits.append({"device": device, **fit})
-    except Exception:  # planner data is additive, never fatal to publish
+    except Exception as exc:  # planner data is additive, never fatal to publish
+        logger.warning("Snapshot: planner section skipped: %s", exc)
         return None
     if not fits:
         return None
@@ -392,7 +396,8 @@ def _build_trending_section(
             "series": series,
             "sparkline_days": _TRENDING_SPARKLINE_DAYS,
         }
-    except Exception:  # trending is additive, never fatal to publish
+    except Exception as exc:  # trending is additive, never fatal to publish
+        logger.warning("Snapshot: trending section skipped: %s", exc)
         return None
 
 
@@ -421,7 +426,8 @@ def _build_desk(root: Path) -> dict[str, Any] | None:
             "calls": [state.model_dump(mode="json") for state in states[:25]],
             "track_record": track_record(states),
         }
-    except Exception:  # the desk is additive, never fatal to publish
+    except Exception as exc:  # the desk is additive, never fatal to publish
+        logger.warning("Snapshot: desk section skipped: %s", exc)
         return None
 
 
@@ -465,7 +471,8 @@ def _build_stack_demo(
                 profile.name,
             ),
         }
-    except Exception:  # the demo profile is additive, never fatal
+    except Exception as exc:  # the demo profile is additive, never fatal
+        logger.warning("Snapshot: stack-demo section skipped: %s", exc)
         return None
 
 
@@ -541,7 +548,8 @@ def _build_newsroom(root: Path) -> dict[str, Any] | None:
             },
             "event_types": list(NEWS_EVENT_TYPES),
         }
-    except Exception:  # the newsroom is additive, never fatal to publish
+    except Exception as exc:  # the newsroom is additive, never fatal to publish
+        logger.warning("Snapshot: newsroom section skipped: %s", exc)
         return None
 
 
@@ -573,7 +581,8 @@ def _build_advisor(profiles: dict[str, dict[str, Any]]) -> dict[str, Any] | None
             "devices": list(_PLANNER_DEVICES),
             "answers": answers,
         }
-    except Exception:  # advisor is additive, never fatal to publish
+    except Exception as exc:  # advisor is additive, never fatal to publish
+        logger.warning("Snapshot: advisor section skipped: %s", exc)
         return None
 
 

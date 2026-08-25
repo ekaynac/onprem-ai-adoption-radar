@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,6 +28,8 @@ from radar.scoring.profiles import UnknownProfileError
 from radar.storage.seed_store import SeedError, add_seed
 from radar.web.app import create_app
 
+
+logger = logging.getLogger(__name__)
 
 app = typer.Typer(
     help="Agent/tooling adoption radar for on-prem AI workflows.",
@@ -2813,7 +2816,8 @@ def _research_snapshot_status(
             latest_run_id = latest
             meta = run_store.read_meta(latest)
             stamp = meta.get("updated_at") or meta.get("created_at")
-    except Exception:
+    except Exception as exc:
+        logger.warning("Could not read latest research run metadata: %s", exc)
         return True, latest_run_id
 
     if not technique_entries or not stamp:
@@ -3035,7 +3039,8 @@ def export(
         try:
             export_config = load_config(root / "data" / "config.yaml")
             sources = export_config.sources
-        except Exception:
+        except Exception as exc:
+            logger.warning("Config unreadable for technique export: %s", exc)
             sources = []
         ids_by_project: dict[str, list[str]] = {}
         for source in sources:
