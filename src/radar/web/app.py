@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hmac
 import logging
+import os
 from pathlib import Path
 from urllib.parse import quote
 
@@ -644,6 +646,34 @@ def create_app(root: Path) -> FastAPI:
             },
         )
 
+    def _guard_source_mutation(request: Request) -> Response | None:
+        """Opt-in protection for the seed-mutating form.
+
+        When RADAR_API_TOKEN is set, the form must present a matching Bearer
+        header (constant-time compare). Cross-origin form posts are rejected
+        regardless of token state: browsers always attach Origin on cross-site
+        POSTs, so a mismatched/absent-host Origin is treated as CSRF.
+        """
+        token = os.getenv("RADAR_API_TOKEN")
+        if token:
+            auth = request.headers.get("authorization") or ""
+            if not hmac.compare_digest(auth, f"Bearer {token}"):
+                return HTMLResponse(
+                    "Seed changes require a valid API token "
+                    "(set RADAR_API_TOKEN and send Authorization: Bearer …)",
+                    status_code=401,
+                )
+        origin = request.headers.get("origin")
+        if origin:
+            host = request.headers.get("host", "")
+            allowed = {f"http://{host}", f"https://{host}"}
+            if origin not in allowed:
+                return HTMLResponse(
+                    "Cross-origin source submissions are not allowed",
+                    status_code=403,
+                )
+        return None
+
     @app.post("/sources")
     def add_source_route(
         request: Request,
@@ -655,6 +685,9 @@ def create_app(root: Path) -> FastAPI:
         tags: str = Form(""),
         enabled: bool = Form(True),
     ):
+        guard = _guard_source_mutation(request)
+        if guard is not None:
+            return guard
         tag_list = [t.strip() for t in tags.split(",") if t.strip()]
         try:
             add_seed(

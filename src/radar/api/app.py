@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import os
 from pathlib import Path
 from typing import Any
@@ -62,13 +63,20 @@ def create_api_app(
             token
             and not request.app.state.read_only
             and request.method not in {"GET", "HEAD", "OPTIONS"}
-            and request.headers.get("authorization") != f"Bearer {token}"
+            and not hmac.compare_digest(
+                request.headers.get("authorization") or "",
+                f"Bearer {token}",
+            )
         ):
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid or missing API token"},
             )
         return await call_next(request)
+
+    @app.get("/api/v1/healthz")
+    def healthz() -> dict[str, str]:
+        return {"status": "ok"}
 
     for router in ROUTERS:
         app.include_router(router, prefix="/api/v1")
