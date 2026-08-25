@@ -785,3 +785,17 @@ models:
     license: openmdw-1.1
     openness: open-restricted
     release_date: 2026-08
+
+  - id: hf-deepseek-v4-flash-0731
+    name: DeepSeek-V4-Flash-0731
+    family: deepseek-ai
+    hf_repo: deepseek-ai/DeepSeek-V4-Flash-0731
+    backer: {name: "DeepSeek", type: startup}
+    params_total: 304180418494
+    num_layers: 43
+    hidden_size: 4096
+    context_length: 1048576
+    modality: text
+    license: mit
+    openness: open-permissive
+    release_date: 2026-08

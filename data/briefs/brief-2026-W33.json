@@ -1,0 +1,188 @@
+{
+ "version": "brief-v1",
+ "id": "brief-2026-W33",
+ "generated_at": "2026-08-15T14:41:00.892951+00:00",
+ "window_days": 7,
+ "items": [
+  {
+   "id": "call:brief-2026-W33:ring-moves:hf-deepseek-v4-flash-0731",
+   "section": "ring-moves",
+   "subject": "hf-deepseek-v4-flash-0731",
+   "what_happened": "Model ring new → pilot (new)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-10T07:38:17.896379+00:00"
+  },
+  {
+   "id": "call:brief-2026-W33:ring-moves:kimi-k3-in-c",
+   "section": "ring-moves",
+   "subject": "kimi-k3-in-c",
+   "what_happened": "Project ring new → adopt (new)",
+   "why_it_matters": "Project rings track the serving/tooling stack around the models",
+   "verdict": "evaluate",
+   "rationale": "Entered adopt: worth a scoped evaluation",
+   "receipts": [
+    "data/history.jsonl"
+   ],
+   "observed_at": "2026-08-10T08:15:03.004438+00:00"
+  },
+  {
+   "id": "call:brief-2026-W33:ring-moves:skill-recorder",
+   "section": "ring-moves",
+   "subject": "skill-recorder",
+   "what_happened": "Project ring new → pilot (new)",
+   "why_it_matters": "Project rings track the serving/tooling stack around the models",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/history.jsonl"
+   ],
+   "observed_at": "2026-08-10T08:15:03.004438+00:00"
+  },
+  {
+   "id": "call:brief-2026-W33:benchmark-moves:qwen2-5-coder-32b---aider-polyglot",
+   "section": "benchmark-moves",
+   "subject": "qwen2.5-coder-32b · aider-polyglot",
+   "what_happened": "aider-polyglot moved +8.4 points on aider-polyglot (8 → 16.4)",
+   "why_it_matters": "Independent benchmark movement changes the capability ranking the Answer Machine uses",
+   "verdict": "evaluate",
+   "rationale": "Re-rank candidates for affected tasks",
+   "receipts": [
+    "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
+   ],
+   "observed_at": "2026-08-15T14:40:00.507798+00:00"
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:deepseek-ai-deepseek-harness",
+   "section": "new-repos",
+   "subject": "deepseek-ai/deepseek-harness",
+   "what_happened": "New repo at +22737 stars/day (110409 total)",
+   "why_it_matters": "DeepSeek Harness: Everything is a Plugin.",
+   "verdict": "evaluate",
+   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
+   "receipts": [
+    "https://github.com/deepseek-ai/deepseek-harness"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:leutenegger-book-to-skill",
+   "section": "new-repos",
+   "subject": "Leutenegger/book-to-skill",
+   "what_happened": "New repo at +482 stars/day (1103 total)",
+   "why_it_matters": "Turn any technical book PDF into a Claude Code skill — ready to study, reference, and use while you work.",
+   "verdict": "evaluate",
+   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
+   "receipts": [
+    "https://github.com/Leutenegger/book-to-skill"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:decionis-agent-safe-pipeline",
+   "section": "new-repos",
+   "subject": "decionis/agent-safe-pipeline",
+   "what_happened": "New repo at +181 stars/day (419 total)",
+   "why_it_matters": "Reference architecture for AI agents that propose actions but cannot authorize them — immutable intent capture, an independent Decionis policy verdict (ALLOW/ESCALATE/BLOCK), verified human approval, ",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/decionis/agent-safe-pipeline"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:0xsline-awesome-deepseek-harness",
+   "section": "new-repos",
+   "subject": "0xsline/awesome-deepseek-harness",
+   "what_happened": "New repo at +179 stars/day (466 total)",
+   "why_it_matters": "DeepSeek Harness (DSH) ecosystem: curated plugins, tools, and infrastructure from dsh-external/hub and the public dsh-plugin topic.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/0xsline/awesome-deepseek-harness"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:electricitysheep-dsh-handbook",
+   "section": "new-repos",
+   "subject": "Electricitysheep/dsh-handbook",
+   "what_happened": "New repo at +171 stars/day (277 total)",
+   "why_it_matters": "DeepSeek Harness (dsh) 从 0 到 1 深度手册：安装/插件开发/性能调优/实测案例/同模型多 Agent 实测对比（中文 + 英文 PDF）",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/Electricitysheep/dsh-handbook"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:elie222-rakazo",
+   "section": "new-repos",
+   "subject": "elie222/rakazo",
+   "what_happened": "New repo at +138.5 stars/day (462 total)",
+   "why_it_matters": "Open-source Grok Bot alternative. Choose your own model and sandbox.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/elie222/rakazo"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:lexmount-moli",
+   "section": "new-repos",
+   "subject": "lexmount/moli",
+   "what_happened": "New repo at +74 stars/day (316 total)",
+   "why_it_matters": "Best browser for AI agents, built in Rust.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/lexmount/moli"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W33:new-repos:sv-number-mcp-server",
+   "section": "new-repos",
+   "subject": "sv-number/mcp-server",
+   "what_happened": "New repo at +66.3 stars/day (596 total)",
+   "why_it_matters": "MCP server for AI agents that need a phone number: order a private number in 200+ countries, read the SMS verification code, hand it back. The widest country coverage in the category, and you can chec",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/sv-number/mcp-server"
+   ],
+   "observed_at": null
+  }
+ ],
+ "verdict_counts": {
+  "act": 0,
+  "evaluate": 6,
+  "ignore": 6
+ },
+ "spotlight": {
+  "task": "general-chat",
+  "task_label": "General chat / assistant",
+  "device": "a100-80gb",
+  "top_candidate": {
+   "model_id": "qwen2.5-32b",
+   "name": "Qwen2.5 32B Instruct",
+   "ring": "adopt",
+   "fit_verdict": "fits",
+   "reasons": [
+    "Fit: fits on A100 (80GB)",
+    "Best quant Q8_0 (~36.7 GB of 68.0 GB usable)",
+    "Task capability p90 across 3 tracked benchmark(s)",
+    "Curated ring: adopt"
+   ]
+  },
+  "note": "This week's worked answer: General chat / assistant on a100-80gb → Qwen2.5 32B Instruct"
+ },
+ "verdict_rules": "Deterministic v1 rules: adopt-promotions and adopt-exits are act; pilot entries, ≥3-point independent benchmark moves, new on-prem repos at ≥200 stars/day, news classified as breaking, and hardware-launch news (catalog candidates) are evaluate; slower new repos are ignore (recorded, so misses score too)"
+}
