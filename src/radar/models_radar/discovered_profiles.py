@@ -86,7 +86,17 @@ def build_discovered_profiles(root: Path) -> dict[str, dict[str, Any]]:
         },
     )
 
+    def _string_claim(value: Any) -> str | None:
+        # HF license metadata arrives as str or list-of-tags depending on
+        # the repo; the advisor contract needs one string or nothing.
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list) and value:
+            return ", ".join(str(item) for item in value)
+        return None
+
     profiles: dict[str, dict[str, Any]] = {}
+    skipped = 0
     for release in releases:
         claims = claim_map.get(release.id) or {}
         params_total = claims.get("params_total")
@@ -105,7 +115,7 @@ def build_discovered_profiles(root: Path) -> dict[str, dict[str, Any]]:
             # Discovered entries carry no curated composite score; a neutral
             # maturity keeps their composite honest relative to seeded models.
             "score": 3.2,
-            "license": claims.get("license"),
+            "license": _string_claim(claims.get("license")),
             "params_total": int(params_total),
             "params_active": (
                 int(claims["params_active"])
@@ -139,7 +149,28 @@ def build_discovered_profiles(root: Path) -> dict[str, dict[str, Any]]:
                 else None
             ),
         }
-    return profiles
+
+    # Self-healing boundary: a profile that fails ModelEntry validation
+    # (claim shape drift) is dropped with a warning, never allowed to kill
+    # the export pipeline.
+    from radar.models_radar.entities import ModelEntry
+
+    validated: dict[str, dict[str, Any]] = {}
+    for key, profile in profiles.items():
+        try:
+            ModelEntry.model_validate(profile)
+        except Exception as exc:
+            skipped += 1
+            logger.warning(
+                "Discovered profile %s failed validation and was skipped: %s",
+                key,
+                str(exc).splitlines()[0] if exc else exc,
+            )
+            continue
+        validated[key] = profile
+    if skipped:
+        logger.warning("Skipped %d invalid discovered profile(s)", skipped)
+    return validated
 
 
 def merge_profile_pools(
