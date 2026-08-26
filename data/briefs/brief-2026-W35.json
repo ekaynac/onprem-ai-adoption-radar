@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-26T03:01:18.905435+00:00",
+ "generated_at": "2026-08-26T04:47:31.950623+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-26T03:00:53.821838+00:00"
+   "observed_at": "2026-08-26T04:46:43.709639+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:deepseek-ai-deepseek-harness",
    "section": "new-repos",
    "subject": "deepseek-ai/deepseek-harness",
-   "what_happened": "New repo at +683 stars/day (195649 total)",
+   "what_happened": "New repo at +906 stars/day (195872 total)",
    "why_it_matters": "DeepSeek Harness: Everything is a Plugin.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -47,7 +47,7 @@
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
    "section": "new-repos",
    "subject": "ApodexAI/FrontierAgent",
-   "what_happened": "New repo at +108 stars/day (632 total)",
+   "what_happened": "New repo at +155 stars/day (679 total)",
    "why_it_matters": "🧩 FrontierAgent, our agent framework, open-sourced alongside it — native command-line TUI, ReAct and Agent Team modes, one command on macOS and Linux, no preinstall, no hard Docker dependency.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -57,23 +57,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
-   "section": "new-repos",
-   "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +81 stars/day (677 total)",
-   "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/syv-ai/qwen38-27b-rtx3090"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W35:new-repos:copilotkit-openbot",
    "section": "new-repos",
    "subject": "CopilotKit/OpenBot",
-   "what_happened": "New repo at +77 stars/day (2923 total)",
+   "what_happened": "New repo at +83 stars/day (2929 total)",
    "why_it_matters": "Open-source AI coworkers that each get a computer of their own: a browser, files and tools, with every action decided before it happens and recorded after. Bring any AG-UI agent.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -83,15 +70,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:wang2122-sprix-sage-router",
+   "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
-   "subject": "wang2122/sprix-sage-router",
-   "what_happened": "New repo at +41 stars/day (2131 total)",
-   "why_it_matters": "Sprix AI at 屿智同行 — state-aware SELF/COLLABORATE/HANDOFF routing for A2A agent networks.",
+   "subject": "syv-ai/qwen38-27b-rtx3090",
+   "what_happened": "New repo at +83 stars/day (679 total)",
+   "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/wang2122/sprix-sage-router"
+    "https://github.com/syv-ai/qwen38-27b-rtx3090"
    ],
    "observed_at": null
   },
@@ -99,7 +86,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +36 stars/day (1392 total)",
+   "what_happened": "New repo at +48 stars/day (1404 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,10 +96,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W35:new-repos:wang2122-sprix-sage-router",
+   "section": "new-repos",
+   "subject": "wang2122/sprix-sage-router",
+   "what_happened": "New repo at +42 stars/day (2132 total)",
+   "why_it_matters": "Sprix AI at 屿智同行 — state-aware SELF/COLLABORATE/HANDOFF routing for A2A agent networks.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/wang2122/sprix-sage-router"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W35:new-repos:elie222-rakazo",
    "section": "new-repos",
    "subject": "elie222/rakazo",
-   "what_happened": "New repo at +16 stars/day (1291 total)",
+   "what_happened": "New repo at +20 stars/day (1295 total)",
    "why_it_matters": "Open-source Grok Bot alternative. Choose your own model and sandbox.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W35:new-repos:yjh051108-dsh-routing-suite",
    "section": "new-repos",
    "subject": "yjh051108/dsh-routing-suite",
-   "what_happened": "New repo at +11 stars/day (6818 total)",
+   "what_happened": "New repo at +17 stars/day (6824 total)",
    "why_it_matters": "dsh-routing-suite — injector + router-standard kit: install the runtime injector first, then the task-aware reasoning-mode router preset (measured P1-P23).",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
