@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-26T08:52:04.156178+00:00",
+ "generated_at": "2026-08-26T09:21:21.069571+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,20 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-26T08:48:57.235483+00:00"
-  },
-  {
-   "id": "call:brief-2026-W35:new-repos:deepseek-ai-deepseek-harness",
-   "section": "new-repos",
-   "subject": "deepseek-ai/deepseek-harness",
-   "what_happened": "New repo at +1557 stars/day (196523 total)",
-   "why_it_matters": "DeepSeek Harness: Everything is a Plugin.",
-   "verdict": "evaluate",
-   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
-   "receipts": [
-    "https://github.com/deepseek-ai/deepseek-harness"
-   ],
-   "observed_at": null
+   "observed_at": "2026-08-26T09:20:25.451367+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -53,6 +40,19 @@
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
    "receipts": [
     "https://github.com/ApodexAI/FrontierAgent"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:new-repos:deepseek-ai-deepseek-harness",
+   "section": "new-repos",
+   "subject": "deepseek-ai/deepseek-harness",
+   "what_happened": "New repo at +1557 stars/day (196523 total)",
+   "why_it_matters": "DeepSeek Harness: Everything is a Plugin.",
+   "verdict": "ignore",
+   "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
+   "receipts": [
+    "https://github.com/deepseek-ai/deepseek-harness"
    ],
    "observed_at": null
   },
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +97 stars/day (693 total)",
+   "what_happened": "New repo at +99 stars/day (695 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,25 +99,12 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +71 stars/day (1427 total)",
+   "what_happened": "New repo at +74 stars/day (1430 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/duty1g/x64dbg-mcp-server"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W35:new-repos:elie222-rakazo",
-   "section": "new-repos",
-   "subject": "elie222/rakazo",
-   "what_happened": "New repo at +38 stars/day (1313 total)",
-   "why_it_matters": "Open-source Grok Bot alternative. Choose your own model and sandbox.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/elie222/rakazo"
    ],
    "observed_at": null
   },
@@ -133,29 +120,43 @@
     "https://github.com/yjh051108/dsh-routing-suite"
    ],
    "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:new-repos:spielewoy-autoprompt-skill",
+   "section": "new-repos",
+   "subject": "Spielewoy/autoprompt-skill",
+   "what_happened": "New repo at +16 stars/day (878 total)",
+   "why_it_matters": "Autoprompt is a coding-agent skill that cuts failures by 45% on agentic coding tasks.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/Spielewoy/autoprompt-skill"
+   ],
+   "observed_at": null
   }
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 4,
-  "ignore": 6
+  "evaluate": 3,
+  "ignore": 7
  },
  "spotlight": {
   "task": "rag",
   "task_label": "RAG over internal documents",
   "device": "mac-128gb",
   "top_candidate": {
-   "model_id": "qwen3-14b",
-   "name": "Qwen3 14B",
+   "model_id": "qwen2.5-32b",
+   "name": "Qwen2.5 32B Instruct",
    "ring": "adopt",
    "fit_verdict": "fits",
    "reasons": [
     "Fit: fits on Mac (128GB unified)",
-    "Best quant FP16 (~33.2 GB of 92.2 GB usable)",
+    "Best quant FP16 (~70.8 GB of 92.2 GB usable)",
+    "Task capability p88 across 3 benchmark suites",
     "Curated ring: adopt"
    ]
   },
-  "note": "This week's worked answer: RAG over internal documents on mac-128gb → Qwen3 14B"
+  "note": "This week's worked answer: RAG over internal documents on mac-128gb → Qwen2.5 32B Instruct"
  },
  "verdict_rules": "Deterministic v1 rules: adopt-promotions and adopt-exits are act; pilot entries, ≥3-point independent benchmark moves, new on-prem repos at ≥200 stars/day, news classified as breaking, and hardware-launch news (catalog candidates) are evaluate; slower new repos are ignore (recorded, so misses score too)"
 }
