@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-26T10:47:41.776042+00:00",
+ "generated_at": "2026-08-26T12:08:38.416906+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-26T10:47:03.658702+00:00"
+   "observed_at": "2026-08-26T12:07:27.259529+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -70,6 +70,19 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
+   "section": "new-repos",
+   "subject": "syv-ai/qwen38-27b-rtx3090",
+   "what_happened": "New repo at +107 stars/day (703 total)",
+   "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/syv-ai/qwen38-27b-rtx3090"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W35:new-repos:copilotkit-openbot",
    "section": "new-repos",
    "subject": "CopilotKit/OpenBot",
@@ -83,23 +96,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
-   "section": "new-repos",
-   "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +103 stars/day (699 total)",
-   "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/syv-ai/qwen38-27b-rtx3090"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +76 stars/day (1432 total)",
+   "what_happened": "New repo at +79 stars/day (1435 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
