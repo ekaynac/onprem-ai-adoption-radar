@@ -35,6 +35,17 @@ _LIFECYCLE_RING = {
     "recommended": "adopt",
 }
 
+# ModelCategory values → the advisor's Modality enum. Categories without a
+# faithful single-modality mapping land on multimodal/text per their nature.
+_CATEGORY_MODALITY = {
+    "text_reasoning": "text",
+    "multimodal": "multimodal",
+    "embedding_reranking": "text",
+    "speech_audio": "audio",
+    "image_video": "vision",
+    "vision_document": "vision",
+}
+
 # Name-suffix → bits-per-weight heuristics for synthesized quants.
 _SUFFIX_QUANTS = (
     ("nvfp4", ("NVFP4", 4.0)),
@@ -83,11 +94,13 @@ def build_discovered_profiles(root: Path) -> dict[str, dict[str, Any]]:
             # Without total params the capacity engine cannot size anything.
             continue
         short_id = release.id.removeprefix("release:legacy:")
+        category_value = str(getattr(release.category, "value", "") or "text_reasoning")
+        modality = _CATEGORY_MODALITY.get(category_value, "text")
         profiles[short_id] = {
             "id": short_id,
             "name": release.name,
             "family": release.family_id.removeprefix("family:") or release.name,
-            "modality": str(getattr(release.category, "value", "") or "text"),
+            "modality": modality,
             "ring": _LIFECYCLE_RING.get(str(release.lifecycle.value), "watch"),
             # Discovered entries carry no curated composite score; a neutral
             # maturity keeps their composite honest relative to seeded models.

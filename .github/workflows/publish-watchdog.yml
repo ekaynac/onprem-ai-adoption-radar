@@ -11,8 +11,8 @@ on:
     types: [completed]
 
 permissions:
-  actions: read
-  contents: write
+  actions: write # dispatch the single retry of publish.yml
+  contents: read
   issues: write
 
 concurrency:

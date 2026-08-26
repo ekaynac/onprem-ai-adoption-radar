@@ -74,3 +74,12 @@ def test_benchmark_debt_lists_gaps_per_task() -> None:
     )
     # vision task defines no suites → never in debt
     assert not [row for row in rows if row["task"] == "vision"]
+
+
+def test_category_to_modality_mapping_covers_all_categories() -> None:
+    from radar.models_radar.discovered_profiles import _CATEGORY_MODALITY
+    from radar.models_radar.entities import Modality
+
+    valid = {member.value for member in Modality}
+    for category, modality in _CATEGORY_MODALITY.items():
+        assert modality in valid, f"{category} -> invalid modality {modality}"
