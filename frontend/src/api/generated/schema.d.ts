@@ -692,6 +692,11 @@ export interface components {
             /** Device */
             device: string;
             /**
+             * Include Unverified
+             * @default false
+             */
+            include_unverified: boolean;
+            /**
              * Limit
              * @default 5
              */
