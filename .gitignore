@@ -53,3 +53,7 @@ htmlcov/
 
 # Local isolated feature worktrees
 .worktrees/
+
+# Local agent/tooling scratch dirs (never project artifacts)
+/node_modules/
+/.codex/

@@ -8,9 +8,15 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
+# Bundled seeds resolve as Path(__file__).parents[3] / "config" → /app/config.
+COPY config ./config
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-project
+
+# Normalize file modes: contributor checkouts can carry 600 files that break
+# imports for the non-root runtime user.
+RUN chmod -R a+rX /app/src /app/config
 
 RUN uv sync --locked --no-dev
 
@@ -18,6 +24,9 @@ RUN uv sync --locked --no-dev
 FROM python:3.12-slim-bookworm
 
 RUN groupadd --system radar && useradd --system --gid radar radar
+
+# Project root: owned by the runtime user so `radar init`/serve can persist.
+RUN mkdir -p /data && chown -R radar:radar /data
 
 COPY --from=builder /app /app
 WORKDIR /data
