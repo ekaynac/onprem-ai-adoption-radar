@@ -35,6 +35,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run radar models discover --root .
 
+      # Evidence hygiene: ingest self-reported benchmark scores from model
+      # cards, then surface remaining gaps in the step summary.
+      - name: Ingest model-card benchmarks
+        run: uv run radar models benchcards --root .
+
+      - name: Benchmark debt report
+        if: always()
+        run: |
+          echo "## Benchmark debt (evidence gaps)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          uv run radar models benchdebt --root . >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
       - name: Promote top candidates into catalog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

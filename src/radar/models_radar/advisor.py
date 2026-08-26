@@ -19,7 +19,13 @@ from radar.models_radar.devices import DeviceProfile, resolve_device
 from radar.models_radar.entities import ModelEntry
 
 
-ADVISOR_VERSION = "advisor-v1"
+ADVISOR_VERSION = "advisor-v2"
+
+# A task-capability percentile is only defensible when it aggregates at
+# least this many distinct benchmark suites. One score is a data point,
+# not a ranking basis ("P100 across 1 benchmark" reads like precision
+# that does not exist).
+MIN_TASK_BENCHMARK_SOURCES = 2
 
 TASKS: dict[str, dict[str, Any]] = {
     "coding": {
@@ -93,8 +99,15 @@ def _task_capability(
     if not rows:
         return None
     percentiles = [float(row["percentile"]) for row in rows]
+    distinct = len({row["benchmark"] for row in rows})
     return {
         "percentile": round(sum(percentiles) / len(percentiles)),
+        "distinct_benchmarks": distinct,
+        "evidence": (
+            "sufficient"
+            if distinct >= MIN_TASK_BENCHMARK_SOURCES
+            else "single-source"
+        ),
         "benchmarks": [
             {
                 "benchmark": row["benchmark"],
@@ -136,8 +149,17 @@ def build_answers(
     allowed_licenses: list[str] | None = None,
     min_context: int | None = None,
     limit: int = 5,
+    include_unverified: bool = False,
 ) -> dict[str, Any]:
-    """Rank curated models for a task on a device under a policy."""
+    """Rank curated models for a task on a device under a policy.
+
+    Evidence honesty policy (advisor-v2): candidates with task benchmarks
+    from ``MIN_TASK_BENCHMARK_SOURCES`` or more distinct suites rank
+    normally. Single-source models rank below every sufficient-evidence
+    candidate with an explicit "insufficient evidence" label. Benchmarkless
+    models are excluded by default and only surface when the caller opts in
+    via ``include_unverified``.
+    """
     if task not in TASKS:
         raise ValueError(
             f"Unknown task {task!r}; expected one of {sorted(TASKS)}"
@@ -204,6 +226,31 @@ def build_answers(
             continue
 
         capability = _task_capability(profile, task_spec["benchmarks"])
+        if not task_spec["benchmarks"]:
+            # Task defines no canonical suites yet: nothing to measure
+            # against, so the evidence bar does not apply.
+            evidence_tier = "sufficient"
+        else:
+            evidence_tier = (
+                "sufficient"
+                if capability is not None
+                and capability["evidence"] == "sufficient"
+                else "single-source"
+                if capability is not None
+                else "none"
+            )
+        if evidence_tier == "none" and not include_unverified:
+            excluded.append(
+                {
+                    "model_id": model_id,
+                    "reason": (
+                        "Insufficient evidence: no tracked benchmark for "
+                        "this task (opt in to see curated-score guesses)"
+                    ),
+                }
+            )
+            continue
+
         curated_score = profile.get("score")
         maturity = (
             float(curated_score) / 5.0
@@ -212,11 +259,15 @@ def build_answers(
         )
         fit_weight = _FIT_WEIGHTS.get(fit.verdict, 0.35)
         ring_weight = _RING_WEIGHTS.get(str(ring), 0.4)
-        task_weight = (
-            capability["percentile"] / 100.0
-            if capability is not None
-            else maturity
-        )
+        if capability is not None:
+            # Sufficient evidence ranks on measured percentile; single-source
+            # evidence is discounted hard so one benchmark never masquerades
+            # as a ranking basis.
+            task_weight = capability["percentile"] / 100.0
+            if evidence_tier == "single-source":
+                task_weight *= 0.5
+        else:
+            task_weight = maturity
         composite = round(
             _WEIGHT_FIT * fit_weight
             + _WEIGHT_TASK * task_weight
@@ -237,17 +288,25 @@ def build_answers(
                 )
             )
         if capability is not None:
-            reasons.append(
-                f"Task capability p{capability['percentile']} across "
-                f"{len(capability['benchmarks'])} tracked benchmark(s)"
-            )
+            if evidence_tier == "sufficient":
+                reasons.append(
+                    f"Task capability p{capability['percentile']} across "
+                    f"{len(capability['benchmarks'])} benchmark suites"
+                )
+            else:
+                reasons.append(
+                    f"Insufficient task evidence: single benchmark "
+                    f"({capability['benchmarks'][0]['label']}) — ranked "
+                    "below fully evidenced models"
+                )
         if ring:
             reasons.append(f"Curated ring: {ring}")
         assumptions = []
         if capability is None:
             assumptions.append(
-                "No tracked benchmarks for this task — ranked on the "
-                "curated composite score instead"
+                "No tracked benchmarks for this task — shown only because "
+                "unverified candidates were requested; the curated composite "
+                "score is NOT a measured ranking"
             )
         if fit.verdict == "unknown":
             assumptions.append(
@@ -262,6 +321,7 @@ def build_answers(
                 "release_id": f"release:legacy:{model_id}",
                 "ring": ring,
                 "composite": composite,
+                "evidence_tier": evidence_tier,
                 "fit": {
                     "verdict": fit.verdict,
                     "best_quant_format": fit.best_quant_format,
@@ -287,20 +347,31 @@ def build_answers(
             }
         )
 
-    candidates.sort(key=lambda item: (-item["composite"], item["model_id"]))
+    # Evidence tier dominates the sort: fully-evidenced candidates always
+    # outrank single-source guesses, regardless of composite score.
+    evidence_rank = {"sufficient": 0, "single-source": 1}
+    candidates.sort(
+        key=lambda item: (
+            evidence_rank.get(item["evidence_tier"], 2),
+            -item["composite"],
+            item["model_id"],
+        )
+    )
     return {
         "version": ADVISOR_VERSION,
         "task": task,
         "task_label": task_spec["label"],
         "device": device_profile.name,
         "context_tokens": context_tokens,
+        "min_task_benchmark_sources": MIN_TASK_BENCHMARK_SOURCES,
         "cost": _device_cost(device_profile),
         "candidates": candidates[:limit],
         "excluded": excluded,
         "assumptions": [
             "Fit verdicts come from the deterministic capacity engine at "
             f"{context_tokens} context tokens",
-            "Task capability averages tracked-set benchmark percentiles "
-            "for the task's canonical suites",
+            f"Task capability requires benchmarks from at least "
+            f"{MIN_TASK_BENCHMARK_SOURCES} distinct suites; models below "
+            "that bar are labeled insufficient evidence and ranked last",
         ],
     }

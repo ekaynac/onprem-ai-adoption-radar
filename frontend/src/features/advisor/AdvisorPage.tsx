@@ -61,6 +61,9 @@ export function AdvisorPage({ staticMode = false }: { staticMode?: boolean }) {
   const device = params.get("device") ?? profileDevice;
   const [license, setLicense] = useState("");
   const [minContext, setMinContext] = useState("");
+  // Evidence-honesty toggle: models with no task benchmarks are excluded by
+  // default (advisor-v2) and only surface when the visitor opts in.
+  const showUnverified = params.get("unverified") === "1";
   const [liveAnswer, setLiveAnswer] = useState<AdvisorAnswer | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
 
@@ -86,6 +89,7 @@ export function AdvisorPage({ staticMode = false }: { staticMode?: boolean }) {
           device,
           allowed_licenses: license ? [license] : null,
           min_context: minContext ? Number(minContext) : null,
+          include_unverified: showUnverified,
         }),
       });
       setLiveAnswer(answer);
@@ -196,6 +200,16 @@ export function AdvisorPage({ staticMode = false }: { staticMode?: boolean }) {
             ))}
           </select>
         </label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={showUnverified}
+            onChange={(event) =>
+              update("unverified", event.target.checked ? "1" : "")
+            }
+          />
+          <span>Include benchmark-less models</span>
+        </label>
         {!staticMode && (
           <button
             type="button"
@@ -244,6 +258,22 @@ export function AdvisorPage({ staticMode = false }: { staticMode?: boolean }) {
                   {candidate.ring && (
                     <span className={`ring-pill pill-${candidate.ring}`}>
                       {candidate.ring}
+                    </span>
+                  )}
+                  {candidate.evidence_tier === "single-source" && (
+                    <span
+                      className="ring-pill pill-watch"
+                      title="Ranked from a single benchmark suite — below fully evidenced models"
+                    >
+                      insufficient evidence
+                    </span>
+                  )}
+                  {candidate.evidence_tier === "none" && (
+                    <span
+                      className="ring-pill pill-avoid"
+                      title="No tracked benchmark for this task; shown via opt-in"
+                    >
+                      unverified
                     </span>
                   )}
                 </div>

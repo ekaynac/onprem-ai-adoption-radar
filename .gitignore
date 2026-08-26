@@ -57,3 +57,4 @@ htmlcov/
 # Local agent/tooling scratch dirs (never project artifacts)
 /node_modules/
 /.codex/
+crawl-tmp.cjs

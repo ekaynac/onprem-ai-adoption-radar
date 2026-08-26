@@ -8,6 +8,7 @@ function-local, unlike other commands' imports) so tests can monkeypatch
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -15,10 +16,15 @@ import typer
 
 from radar.cli._shared import BUNDLED_ROOT, console
 
+
+logger = logging.getLogger(__name__)
+
 # Imported at module level (not function-local, unlike this file's other
 # commands) so tests can monkeypatch `_verify_fetch_hf_model` directly —
 # the seam `models verify` uses to stay offline in tests.
-from radar.models_radar.collectors.huggingface import fetch_hf_model as _verify_fetch_hf_model
+from radar.models_radar.collectors.huggingface import (
+    fetch_hf_model as _verify_fetch_hf_model,
+)
 
 
 models_app = typer.Typer(help="Local-model radar (catalog + specs).", no_args_is_help=True)
@@ -574,6 +580,147 @@ def benchmarks_scan(root: Path = typer.Option(Path("."), help="Project root.")) 
         console.print(
             f"  [yellow]{source_id}: expected but unmatched → "
             f"{', '.join(skipped)}[/yellow]"
+        )
+
+
+@models_app.command("benchcards")
+def models_benchcards(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    limit: int = typer.Option(0, help="Limit to N seed models (0 = all)."),
+) -> None:
+    """Ingest self-reported benchmarks from HF model cards into observations.
+
+    For every enabled seed with an hf_repo whose card is not already in the
+    benchmark-sources join, fetches the model-card README, parses canonical
+    benchmark scores, and appends them as ``hf-model-card`` (self-reported)
+    observations. Aggregates pick them up on the next build.
+    """
+    import asyncio
+
+    import httpx
+
+    from radar.models_radar.card_benchmarks import parse_card_benchmarks
+    from radar.models_radar.seed import load_model_seed
+    from radar.storage.benchmark_observations_log import (
+        BenchmarkObservation,
+        append_benchmark_observations,
+        load_benchmark_observations,
+    )
+
+    seed_path = root / "config" / "model-seed.yaml"
+    if not seed_path.exists():
+        seed_path = BUNDLED_ROOT / "config" / "model-seed.yaml"
+    seeds = [s for s in load_model_seed(seed_path) if s.enabled and s.hf_repo]
+    if limit > 0:
+        seeds = seeds[:limit]
+
+    log_path = root / "data" / "benchmark-observations.jsonl"
+    existing = {
+        (row.model_id, row.benchmark, row.source_id)
+        for row in load_benchmark_observations(log_path)
+    }
+    card_url = "https://huggingface.co/{repo}/raw/main/README.md"
+
+    async def _collect() -> dict[str, str | None]:
+        async with httpx.AsyncClient(
+            timeout=20.0, follow_redirects=True
+        ) as client:
+
+            async def _fetch(repo: str) -> str | None:
+                try:
+                    response = await client.get(card_url.format(repo=repo))
+                    response.raise_for_status()
+                except Exception as exc:
+                    logger.warning("Card fetch failed for %s: %s", repo, exc)
+                    return None
+                return response.text
+
+            return {seed.id: await _fetch(seed.hf_repo) for seed in seeds}
+
+    cards = asyncio.run(_collect())
+    from datetime import UTC, datetime
+
+    now = datetime.now(UTC)
+    appended: list[BenchmarkObservation] = []
+    parsed_count = 0
+    skipped = 0
+    for seed in seeds:
+        text = cards.get(seed.id)
+        if not text:
+            skipped += 1
+            continue
+        parsed = parse_card_benchmarks(text)
+        if not parsed:
+            continue
+        parsed_count += 1
+        source_url = card_url.format(repo=seed.hf_repo)
+        for benchmark, (score, _matched) in sorted(parsed.items()):
+            key = (seed.id, benchmark, "hf-model-card")
+            if key in existing:
+                continue  # exactly-once per (model, benchmark, source)
+            appended.append(
+                BenchmarkObservation(
+                    model_id=seed.id,
+                    hf_repo=seed.hf_repo,
+                    benchmark=benchmark,
+                    score=score,
+                    source_id="hf-model-card",
+                    source_url=source_url,
+                    observed_at=now,
+                    self_reported=True,
+                )
+            )
+    append_benchmark_observations(log_path, appended)
+    console.print(
+        f"[green]{len(appended)}[/green] new observation(s) from "
+        f"{parsed_count} card(s); {skipped} card(s) unavailable."
+    )
+
+
+@models_app.command("benchdebt")
+def models_benchdebt(
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Report which tracked models lack sufficient task evidence.
+
+    The ingest worklist: one row per (model, task) below the two-suite
+    evidence bar that advisor-v2 enforces.
+    """
+    from radar.models_radar.advisor import MIN_TASK_BENCHMARK_SOURCES, TASKS
+    from radar.models_radar.benchmarks import build_benchmark_aggregates
+    from radar.models_radar.card_benchmarks import benchmark_debt
+    from radar.models_radar.seed import load_model_seed
+    from radar.storage.benchmark_observations_log import (
+        load_benchmark_observations,
+    )
+
+    seed_path = root / "config" / "model-seed.yaml"
+    seeds = (
+        load_model_seed(seed_path)
+        if seed_path.exists()
+        else load_model_seed(BUNDLED_ROOT / "config" / "model-seed.yaml")
+    )
+    seeds_by_id = {seed.id: seed for seed in seeds}
+    observations = load_benchmark_observations(
+        root / "data" / "benchmark-observations.jsonl"
+    )
+    aggregates = build_benchmark_aggregates(seeds_by_id, observations)
+    rows = benchmark_debt(
+        seeds_by_id,
+        aggregates,
+        TASKS,
+        min_sources=MIN_TASK_BENCHMARK_SOURCES,
+    )
+    if not rows:
+        console.print("[green]No benchmark debt — every tracked task/model pair is evidenced.[/green]")
+        return
+    console.print(f"{len(rows)} evidence gap(s):")
+    for row in rows:
+        have = ", ".join(row["have"]) or "none"
+        console.print(
+            f"  {row['model_id']} · {row['task']}: "
+            f"{row['distinct_have']}/{row['needed']} suites "
+            f"(have: {have}; missing e.g. {', '.join(row['missing'][:3])})"
         )
 
 
