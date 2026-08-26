@@ -79,6 +79,56 @@ def evaluate_fit(
     })
 
 
+# Decode throughput is bandwidth-bound: bytes moved per token ≈ active
+# params × bits/weight ÷ 8. The efficiency factor absorbs KV-cache traffic,
+# kernel overhead, and framework variance; published Spark measurements
+# (gpt-oss-120b ≈ 60 t/s at 273 GB/s) land near 0.75 of the naive bound.
+BANDWIDTH_EFFICIENCY = 0.75
+
+# Interactive-use thresholds (tokens/sec decode).
+TPS_UNUSABLE_BELOW = 2.0   # slower than reading pace — prototyping only
+TPS_SLOW_BELOW = 8.0       # tolerable for batch work, painful for chat
+
+
+def estimate_decode_tps(
+    model: ModelEntry,
+    device: DeviceProfile,
+    quant_bits_per_weight: float | None,
+) -> float | None:
+    """Estimated decode tokens/sec from memory bandwidth and active params.
+
+    Device-agnostic: any profile with ``memory_bandwidth_gbs`` gets scored.
+    Dense models (no ``params_active``) use total params — every param is
+    active. MoE models must carry their active-params figure; unknown stays
+    unknown rather than inventing one from total params.
+    """
+    if not device.memory_bandwidth_gbs or not quant_bits_per_weight:
+        return None
+    active = model.params_active or model.params_total
+    if not active:
+        return None
+    bytes_per_token = active * quant_bits_per_weight / 8.0
+    raw_tps = device.memory_bandwidth_gbs * 1e9 / bytes_per_token
+    return round(raw_tps * BANDWIDTH_EFFICIENCY, 1)
+
+
+def performance_note(tps: float | None) -> str | None:
+    """Human verdict for an estimated tok/s, or None when unestimated."""
+    if tps is None:
+        return None
+    if tps < TPS_UNUSABLE_BELOW:
+        return (
+            f"~{tps:g} tok/s est. on this device's memory bandwidth — "
+            "unusable for interactive use; fine for overnight batch"
+        )
+    if tps < TPS_SLOW_BELOW:
+        return (
+            f"~{tps:g} tok/s est. — slow interactive; prefer a lower "
+            "quant or an MoE alternative"
+        )
+    return f"~{tps:g} tok/s est. decode on this device"
+
+
 _ORDER = {"fits": 0, "fits_tight": 1, "fits_quantized": 2, "wont_fit": 3, "unknown": 4}
 
 

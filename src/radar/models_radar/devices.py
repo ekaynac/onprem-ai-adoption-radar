@@ -103,6 +103,10 @@ def _flatten_nodes(catalog: DeviceCatalog) -> dict[str, DeviceProfile]:
                 "spec_url": node.spec_url or base.spec_url,
                 "verified": node.verified or base.verified,
                 "tdp_watts": node.tdp_watts or base.tdp_watts,
+                "memory_bandwidth_gbs": (
+                    node.memory_bandwidth_gbs or base.memory_bandwidth_gbs
+                ),
+                "tflops_fp4": node.tflops_fp4 or base.tflops_fp4,
                 "indicative_price_usd": (
                     node.indicative_price_usd or base.indicative_price_usd
                 ),

@@ -484,9 +484,11 @@ nodes:
     device: gb10-128gb
     gpus_per_node: 1
     datacenter: false
+    memory_bandwidth_gbs: 273         # "273GB/s unified LPDDR5x memory bandwidth" (DGX Spark spec table, verified 2026-08-26)
+    tflops_fp4: 1000                  # "1 petaFLOP of AI performance at FP4" (DGX Spark spec table, dense assumption; verified 2026-08-26)
     tdp_watts: 240                    # "240 Watts" power supply (DGX Spark spec table, verified 2026-08-05)
     spec_url: https://www.nvidia.com/en-us/products/workstations/dgx-spark/
-    verified: "2026-08-05"
+    verified: "2026-08-26"
     # indicative_price_usd omitted: NVIDIA lists no price on the page (2026-08-05).
   - id: dgx-station-gb300
     name: "NVIDIA DGX Station (GB300)"

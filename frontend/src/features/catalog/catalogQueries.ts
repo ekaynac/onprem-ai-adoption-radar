@@ -186,6 +186,7 @@ export type AdvisorCandidate = {
     }>;
   } | null;
   evidence_tier?: "sufficient" | "single-source" | "none";
+  estimated_tok_s?: number | null;
   license: { value?: string | null; allowed: boolean };
   params_total?: number | null;
   params_active?: number | null;

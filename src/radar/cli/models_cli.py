@@ -613,6 +613,25 @@ def models_benchcards(
     if limit > 0:
         seeds = seeds[:limit]
 
+    # Frontier coverage: discovered releases with an hf_repo get the same
+    # treatment, so a model the sweep found yesterday starts accruing
+    # evidence today instead of waiting for a seed edit.
+    from types import SimpleNamespace
+
+    from radar.web.public_context import load_public_model_profiles
+
+    seeded_ids = {s.id for s in seeds}
+    seed_shims: list[Any] = []
+    for profile_id, profile in load_public_model_profiles(root).items():
+        if profile_id in seeded_ids or not profile.get("source_url"):
+            continue
+        hf_repo = str(profile["source_url"]).removeprefix("https://huggingface.co/")
+        if not hf_repo or "/" not in hf_repo:
+            continue
+        seed_shims.append(
+            SimpleNamespace(id=profile_id, hf_repo=hf_repo, enabled=True)
+        )
+
     log_path = root / "data" / "benchmark-observations.jsonl"
     existing = {
         (row.model_id, row.benchmark, row.source_id)
@@ -636,7 +655,7 @@ def models_benchcards(
 
             return {
                 seed.id: await _fetch(seed.hf_repo or "")
-                for seed in seeds
+                for seed in [*seeds, *seed_shims]
             }
 
     cards = asyncio.run(_collect())
@@ -646,7 +665,7 @@ def models_benchcards(
     appended: list[BenchmarkObservation] = []
     parsed_count = 0
     skipped = 0
-    for seed in seeds:
+    for seed in [*seeds, *seed_shims]:
         text = cards.get(seed.id)
         if not text:
             skipped += 1

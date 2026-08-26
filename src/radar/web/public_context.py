@@ -307,6 +307,20 @@ def load_public_model_profiles(root: Path) -> dict[str, dict[str, Any]]:
     }
     _attach_model_history(root, profiles)
     _attach_benchmarks(root, profiles)
+    # Frontier bridge: releases the discovery pipeline already qualified
+    # (Laguna 2.1, Qwen3.6, DeepSeek V4 Flash, …) join the candidate pool —
+    # curated seed wins on collisions.
+    try:
+        from radar.models_radar.discovered_profiles import (
+            build_discovered_profiles,
+            merge_profile_pools,
+        )
+
+        profiles = merge_profile_pools(
+            profiles, build_discovered_profiles(root)
+        )
+    except Exception as exc:  # additive, never fatal
+        logger.warning("Discovered-profile merge failed: %s", exc)
     return profiles
 
 

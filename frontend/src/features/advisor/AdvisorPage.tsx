@@ -276,6 +276,14 @@ export function AdvisorPage({ staticMode = false }: { staticMode?: boolean }) {
                       unverified
                     </span>
                   )}
+                  {candidate.estimated_tok_s != null && (
+                    <span
+                      className={`ring-pill ${candidate.estimated_tok_s < 8 ? "pill-watch" : "pill-pilot"}`}
+                      title="Estimated decode speed from device memory bandwidth"
+                    >
+                      ~{candidate.estimated_tok_s} tok/s
+                    </span>
+                  )}
                 </div>
                 <p className="try-meta">
                   {formatParams(candidate.params_total, candidate.params_active) ?? "—"}

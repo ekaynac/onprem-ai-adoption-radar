@@ -14,9 +14,23 @@ from __future__ import annotations
 from typing import Any
 
 from radar.models_radar.benchmarks import CANONICAL_BENCHMARKS
-from radar.models_radar.device_fit import evaluate_fit
+from radar.models_radar.device_fit import (
+    TPS_SLOW_BELOW,
+    estimate_decode_tps,
+    evaluate_fit,
+    performance_note,
+)
 from radar.models_radar.devices import DeviceProfile, resolve_device
 from radar.models_radar.entities import ModelEntry
+
+
+def _best_quant_bits(entry: ModelEntry, quant_format: str | None) -> float | None:
+    if not quant_format:
+        return None
+    for quant in entry.quants:
+        if quant.format == quant_format:
+            return quant.bits_per_weight
+    return None
 
 
 ADVISOR_VERSION = "advisor-v2"
@@ -243,6 +257,17 @@ def build_answers(
             )
             continue
 
+        # Bandwidth-bound decode estimate: the dimension that separates
+        # "fits" from "usable" on unified-memory boxes (DGX Spark, Mac
+        # Studio). MoE models win here; dense 70B+ gets flagged.
+        quant_bits = (
+            _best_quant_bits(entry, fit.best_quant_format)
+            if fit.best_quant_format
+            else None
+        )
+        est_tps = estimate_decode_tps(entry, device_profile, quant_bits)
+        perf_note = performance_note(est_tps)
+
         capability = _task_capability(profile, task_spec["benchmarks"])
         if not task_spec["benchmarks"]:
             # Task defines no canonical suites yet: nothing to measure
@@ -319,6 +344,8 @@ def build_answers(
                 )
         if ring:
             reasons.append(f"Curated ring: {ring}")
+        if perf_note:
+            reasons.append(perf_note)
         assumptions = []
         if capability is None:
             assumptions.append(
@@ -340,6 +367,7 @@ def build_answers(
                 "ring": ring,
                 "composite": composite,
                 "evidence_tier": evidence_tier,
+                "estimated_tok_s": est_tps,
                 "fit": {
                     "verdict": fit.verdict,
                     "best_quant_format": fit.best_quant_format,
@@ -375,6 +403,17 @@ def build_answers(
             item["model_id"],
         )
     )
+    ranked = candidates[:limit]
+    insight = _bandwidth_insight(ranked)
+    assumptions = [
+        "Fit verdicts come from the deterministic capacity engine at "
+        f"{context_tokens} context tokens",
+        f"Task capability requires benchmarks from at least "
+        f"{MIN_TASK_BENCHMARK_SOURCES} distinct suites; models below "
+        "that bar are labeled insufficient evidence and ranked last",
+    ]
+    if insight:
+        assumptions.append(insight)
     return {
         "version": ADVISOR_VERSION,
         "task": task,
@@ -383,13 +422,23 @@ def build_answers(
         "context_tokens": context_tokens,
         "min_task_benchmark_sources": MIN_TASK_BENCHMARK_SOURCES,
         "cost": _device_cost(device_profile),
-        "candidates": candidates[:limit],
+        "candidates": ranked,
         "excluded": excluded,
-        "assumptions": [
-            "Fit verdicts come from the deterministic capacity engine at "
-            f"{context_tokens} context tokens",
-            f"Task capability requires benchmarks from at least "
-            f"{MIN_TASK_BENCHMARK_SOURCES} distinct suites; models below "
-            "that bar are labeled insufficient evidence and ranked last",
-        ],
+        "assumptions": assumptions,
     }
+
+
+def _bandwidth_insight(candidates: list[dict[str, Any]]) -> str | None:
+    """Device-level guidance when the shortlist mixes fast and slow decodes."""
+    estimated = [c["estimated_tok_s"] for c in candidates if c.get("estimated_tok_s") is not None]
+    if len(estimated) < 2:
+        return None
+    fastest = max(estimated)
+    slow = [c for c in candidates if (c.get("estimated_tok_s") or 0) < TPS_SLOW_BELOW]
+    if fastest >= TPS_SLOW_BELOW and slow:
+        return (
+            f"Decode speed spans {fastest:g} vs {min(estimated):g} tok/s on this "
+            "device's memory bandwidth — sparse/MoE architectures dominate "
+            "unified-memory boxes; check each candidate's tok/s before committing"
+        )
+    return None

@@ -61,6 +61,10 @@ class NodeSeed(BaseModel):
     tdp_watts: int | None = None
     indicative_price_usd: int | None = None
     datacenter: bool | None = None  # None = default (True for baseboards)
+    # Integrated/system devices (e.g. DGX Spark's GB10) carry their own
+    # bandwidth/compute specs at node level.
+    memory_bandwidth_gbs: float | None = None
+    tflops_fp4: float | None = None
 
 
 class ClusterSeed(BaseModel):
