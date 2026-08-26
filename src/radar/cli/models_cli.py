@@ -14,17 +14,16 @@ from typing import Any
 
 import typer
 
-from radar.cli._shared import BUNDLED_ROOT, console
-
-
-logger = logging.getLogger(__name__)
-
 # Imported at module level (not function-local, unlike this file's other
 # commands) so tests can monkeypatch `_verify_fetch_hf_model` directly —
 # the seam `models verify` uses to stay offline in tests.
+from radar.cli._shared import BUNDLED_ROOT, console
 from radar.models_radar.collectors.huggingface import (
     fetch_hf_model as _verify_fetch_hf_model,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 models_app = typer.Typer(help="Local-model radar (catalog + specs).", no_args_is_help=True)

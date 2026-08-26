@@ -127,10 +127,19 @@ def classify_news(
     client: Any,
     now: datetime,
 ) -> NewsClassifyResult:
-    """Classify up to the per-run budget; failures stay unclassified."""
+    """Classify up to the per-run budget; failures stay unclassified.
+
+    The budget goes to the highest-signal items first (cheap relevance
+    gate, ``news_gate.rank_by_relevance``), not FIFO — a small per-run
+    budget spent on funding gossip while a vLLM security advisory ages
+    out is the failure mode this ordering exists to prevent.
+    """
     result = NewsClassifyResult()
-    budget = items[: config.max_items_per_run]
-    result.over_budget = len(items) - len(budget)
+    from radar.discovery.news_gate import rank_by_relevance
+
+    ordered = rank_by_relevance(items)
+    budget = ordered[: config.max_items_per_run]
+    result.over_budget = len(ordered) - len(budget)
     schema = NewsClassificationPayload.model_json_schema()
     for item in budget:
         try:
