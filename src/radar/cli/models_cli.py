@@ -634,7 +634,10 @@ def models_benchcards(
                     return None
                 return response.text
 
-            return {seed.id: await _fetch(seed.hf_repo) for seed in seeds}
+            return {
+                seed.id: await _fetch(seed.hf_repo or "")
+                for seed in seeds
+            }
 
     cards = asyncio.run(_collect())
     from datetime import UTC, datetime

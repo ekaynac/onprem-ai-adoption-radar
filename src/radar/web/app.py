@@ -5,6 +5,7 @@ from __future__ import annotations
 import hmac
 import logging
 import os
+from datetime import UTC
 from pathlib import Path
 from urllib.parse import quote
 
@@ -186,6 +187,42 @@ def _configure_react_routes(
         )
 
 
+def _warn_if_frontend_stale(frontend_dir: Path, root: Path) -> None:
+    """Log when the served SPA build predates the data it renders.
+
+    A stale ``build/frontend`` silently shows old routes and old copy next
+    to fresh snapshot data (seen 2026-08-26: a 20-day-old build missing the
+    trending page). The publish pipeline rebuilds it; local servers that
+    skip that step should at least say so.
+    """
+    index = frontend_dir / "index.html"
+    try:
+        built_at = index.stat().st_mtime
+        newest_data = max(
+            (
+                path.stat().st_mtime
+                for path in (root / "data").glob("*.json*")
+                if path.is_file()
+            ),
+            default=built_at,
+        )
+    except OSError as exc:
+        logger.warning("Could not stat frontend build under %s: %s", frontend_dir, exc)
+        return
+    if newest_data - built_at > 86400:
+        from datetime import datetime
+
+        age_days = (newest_data - built_at) / 86400
+        built = datetime.fromtimestamp(built_at, tz=UTC).date()
+        logger.warning(
+            "Dashboard SPA build is stale (%.1f days older than data; "
+            "built %s). Run `npm run build --prefix frontend` and re-export, "
+            "or re-run publish, to pick up current routes/copy.",
+            age_days,
+            built,
+        )
+
+
 def create_app(root: Path) -> FastAPI:
     """Create a local dashboard app with read views and seed management."""
     app = create_api_app(root)
@@ -197,6 +234,7 @@ def create_app(root: Path) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     frontend_dir = root / "build" / "frontend"
     if (frontend_dir / "index.html").exists():
+        _warn_if_frontend_stale(frontend_dir, root)
         _configure_react_routes(app, root, frontend_dir)
         return app
     db = RadarDatabase(root / "data" / "radar.db")
