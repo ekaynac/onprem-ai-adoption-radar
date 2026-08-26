@@ -33,12 +33,14 @@ BORN_WINDOW_DAYS = 14
 PUSHED_WINDOW_DAYS = 30
 
 ONPREM_TOPICS = [
-    "llm-inference", "model-serving", "ai-agents", "agent-framework",
-    "mcp-server", "model-context-protocol", "local-llm", "self-hosted-ai",
-    "llmops", "ai-sandbox",
+    "llm-inference", "model-serving", "mcp-server", "model-context-protocol",
+    "local-llm", "self-hosted-ai", "llmops", "ai-sandbox",
 ]
 BROADER_TOPICS = [
     "llm", "generative-ai", "large-language-models", "ai",
+    # Agent frameworks are ecosystem news, not on-prem serving stack; they
+    # used to pollute the desk's evaluate queue (FrontierAgent-class noise).
+    "ai-agents", "agent-framework",
 ]
 
 
