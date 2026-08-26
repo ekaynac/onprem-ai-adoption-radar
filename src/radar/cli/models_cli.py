@@ -688,6 +688,7 @@ def models_benchdebt(
     The ingest worklist: one row per (model, task) below the two-suite
     evidence bar that advisor-v2 enforces.
     """
+    from radar.knowledge import load_task_suite_overrides
     from radar.models_radar.advisor import MIN_TASK_BENCHMARK_SOURCES, TASKS
     from radar.models_radar.benchmarks import build_benchmark_aggregates
     from radar.models_radar.card_benchmarks import benchmark_debt
@@ -707,10 +708,20 @@ def models_benchdebt(
         root / "data" / "benchmark-observations.jsonl"
     )
     aggregates = build_benchmark_aggregates(seeds_by_id, observations)
+    overrides = load_task_suite_overrides(root)
+    effective_tasks = {
+        task: dict(spec) for task, spec in TASKS.items()
+    }
+    for task, suites in overrides.items():
+        if task in effective_tasks:
+            effective_tasks[task]["benchmarks"] = [
+                *effective_tasks[task]["benchmarks"],
+                *(suite for suite in suites if suite not in effective_tasks[task]["benchmarks"]),
+            ]
     rows = benchmark_debt(
         seeds_by_id,
         aggregates,
-        TASKS,
+        effective_tasks,
         min_sources=MIN_TASK_BENCHMARK_SOURCES,
     )
     if not rows:
@@ -724,6 +735,34 @@ def models_benchdebt(
             f"{row['distinct_have']}/{row['needed']} suites "
             f"(have: {have}; missing e.g. {', '.join(row['missing'][:3])})"
         )
+
+
+@models_app.command("teach-suite")
+def models_teach_suite(
+    task: str = typer.Option(..., help="Task key, e.g. coding."),
+    benchmark: str = typer.Option(..., help="Canonical suite id, e.g. swe-bench-verified."),
+    root: Path = typer.Option(Path("."), help="Project root."),
+) -> None:
+    """Teach the advisor a new benchmark suite for a task — no code change.
+
+    Writes to data/knowledge/task-suites.jsonl; the advisor, benchdebt and
+    future sweeps read it back. Nothing about what measures a task stays
+    frozen in source.
+    """
+    from radar.knowledge import learn_task_suite
+    from radar.models_radar.benchmarks import CANONICAL_BENCHMARKS
+
+    if benchmark not in CANONICAL_BENCHMARKS:
+        console.print(
+            f"[red]Unknown suite {benchmark!r}. Canonical suites: "
+            f"{', '.join(sorted(CANONICAL_BENCHMARKS))}[/red]"
+        )
+        raise typer.Exit(code=1)
+    created = learn_task_suite(root, task, benchmark)
+    if created:
+        console.print(f"[green]Learned:[/green] {task} ← {benchmark}")
+    else:
+        console.print(f"[yellow]Already known:[/yellow] {task} ← {benchmark}")
 
 
 @models_app.command("discover")

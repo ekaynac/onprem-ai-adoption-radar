@@ -107,3 +107,44 @@ def test_learned_terms_unlock_desk_evaluate_verdict() -> None:
 def test_merge_puts_learned_first_and_dedupes() -> None:
     merged = merge_terms(["dynamo", "vllm"], ["VLLM", "ollama"])
     assert merged == ["dynamo", "vllm", "ollama"]
+
+
+def test_task_suite_overrides_extend_advisor_mapping(tmp_path) -> None:
+    from radar.knowledge import learn_task_suite, load_task_suite_overrides
+    from radar.models_radar.advisor import TASKS, build_answers
+
+    assert load_task_suite_overrides(tmp_path) == {}
+    assert learn_task_suite(tmp_path, "coding", "ollb-average")
+    assert not learn_task_suite(
+        tmp_path, "coding", "ollb-average"
+    )  # exactly-once
+
+    overrides = load_task_suite_overrides(tmp_path)
+    assert overrides == {"coding": ["ollb-average"]}
+    assert "ollb-average" not in TASKS["coding"]["benchmarks"]
+
+    profiles = {
+        "dual-suite": {
+            "id": "dual-suite",
+            "name": "Dual Suite",
+            "family": "Dual",
+            "modality": "text",
+            "ring": "adopt",
+            "score": 4.0,
+            "license": "apache-2.0",
+            "params_total": 8_000_000_000,
+            "num_layers": 32,
+            "hidden_size": 4096,
+            "context_length": 32768,
+            "quants": [{"format": "GGUF Q4_K_M", "bits_per_weight": 4.5, "source": "manual"}],
+            "benchmark_aggregates": [
+                {"benchmark": "aider-polyglot", "percentile": 60},
+                {"benchmark": "ollb-average", "percentile": 70},
+            ],
+        }
+    }
+    answer = build_answers(profiles, "rtx-4090-24gb", "coding", root=tmp_path)
+    first = answer["candidates"][0]
+    # The taught suite counts toward the two-source evidence bar: without
+    # the override this candidate is single-source.
+    assert first["evidence_tier"] == "sufficient"

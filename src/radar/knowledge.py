@@ -128,6 +128,62 @@ def merge_terms(learned: list[str], defaults: list[str]) -> list[str]:
     return merged
 
 
+# --- Task→benchmark suite overrides -------------------------------------
+#
+# The advisor's per-task benchmark lists are bundled defaults. Operators
+# (and future sweeps) can teach new suites without code changes:
+# ``data/knowledge/task-suites.jsonl`` —
+# ``{"task": "coding", "suite": "swe-bench-full", "source": ..., "added_at": ...}``
+
+TASK_SUITES_FILE = "task-suites.jsonl"
+
+
+def task_suites_path(root: Path) -> Path:
+    return root / "data" / VOCAB_DIR / TASK_SUITES_FILE
+
+
+def load_task_suite_overrides(root: Path) -> dict[str, list[str]]:
+    """Learned extra benchmark suites per task; {} when none."""
+    path = task_suites_path(root)
+    if not path.exists():
+        return {}
+    overrides: dict[str, list[str]] = {}
+    for record in _read_records(path):
+        task = str(record.get("task") or "").strip().lower()
+        suite = str(record.get("suite") or "").strip().lower()
+        if task and suite:
+            overrides.setdefault(task, []).append(suite)
+    return overrides
+
+
+def learn_task_suite(
+    root: Path,
+    task: str,
+    suite: str,
+    *,
+    source: str = "operator",
+    now: datetime | None = None,
+) -> bool:
+    """Teach one benchmark suite for a task. False if already known."""
+    path = task_suites_path(root)
+    existing = {
+        (record.get("task"), record.get("suite")) for record in _read_records(path)
+    }
+    key = (task.strip().lower(), suite.strip().lower())
+    if key in existing:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    row = {
+        "task": key[0],
+        "suite": key[1],
+        "source": source,
+        "added_at": (now or datetime.now(UTC)).isoformat(),
+    }
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return True
+
+
 def _read_records(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []

@@ -41,6 +41,7 @@ def recommend(
             min_context=request.min_context,
             limit=request.limit,
             include_unverified=request.include_unverified,
+            root=root,
         )
     except (ValueError, DeviceError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
