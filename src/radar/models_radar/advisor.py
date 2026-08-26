@@ -95,9 +95,18 @@ _FIT_WEIGHTS = {
 _RING_WEIGHTS = {"adopt": 1.0, "pilot": 0.8, "watch": 0.5}
 
 _WEIGHT_FIT = 0.30
-_WEIGHT_TASK = 0.30
-_WEIGHT_RING = 0.25
-_WEIGHT_MATURITY = 0.15
+_WEIGHT_TASK = 0.25
+_WEIGHT_RING = 0.20
+_WEIGHT_MATURITY = 0.10
+_WEIGHT_PERF = 0.15
+
+# Throughput: log-shaped so 60 tok/s outranks 3 tok/s without an unbounded
+# scale; 0..1 saturating at ~120 tok/s which exceeds the bandwidth-bound
+# ceiling of any current device.
+def _perf_score(est_tps: float | None) -> float:
+    if est_tps is None or est_tps <= 0:
+        return 0.0
+    return min(1.0, (est_tps / 120.0) ** 0.5)
 
 
 def _task_capability(
@@ -311,11 +320,13 @@ def build_answers(
                 task_weight *= 0.5
         else:
             task_weight = maturity
+        perf_weight = _perf_score(est_tps)
         composite = round(
             _WEIGHT_FIT * fit_weight
             + _WEIGHT_TASK * task_weight
             + _WEIGHT_RING * ring_weight
-            + _WEIGHT_MATURITY * maturity,
+            + _WEIGHT_MATURITY * maturity
+            + _WEIGHT_PERF * perf_weight,
             4,
         )
 
