@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-26T12:45:01.977722+00:00",
+ "generated_at": "2026-08-26T14:21:54.722398+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-26T12:42:21.732818+00:00"
+   "observed_at": "2026-08-26T14:19:20.362050+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +107 stars/day (703 total)",
+   "what_happened": "New repo at +114 stars/day (710 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +82 stars/day (1438 total)",
+   "what_happened": "New repo at +88 stars/day (1444 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -133,11 +133,24 @@
     "https://github.com/Spielewoy/autoprompt-skill"
    ],
    "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:hardware:xiaomi--ai-cube-prototype--multi-chip-local-llm-powerhouse",
+   "section": "hardware",
+   "subject": "Xiaomi, AI Cube prototype: Multi-chip local LLM powerhouse",
+   "what_happened": "Xiaomi showed a prototype 'AI Cube' multi-chip desktop system aimed at running LLMs locally, positioned against Apple Mac hardware for on-device inference. It is a prototype with no announced availability, pricing, or software/runtime support details, so there is nothing for operators to act on yet.",
+   "why_it_matters": "A newly launched platform is a hardware-catalog candidate; specs enter the catalog only with a verifiable source",
+   "verdict": "evaluate",
+   "rationale": "Review for the device catalog (curation stays human)",
+   "receipts": [
+    "https://me.mashable.com/tech/75268/xiaomi-reveals-ai-cube-prototype-multi-chip-local-llm-powerhouse-takes-aim-at-apples-macs"
+   ],
+   "observed_at": "2026-08-25T09:08:32+00:00"
   }
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 3,
+  "evaluate": 4,
   "ignore": 7
  },
  "spotlight": {
@@ -152,7 +165,7 @@
    "reasons": [
     "Fit: fits on Mac (128GB unified)",
     "Best quant FP16 (~70.8 GB of 92.2 GB usable)",
-    "Task capability p88 across 3 benchmark suites",
+    "Task capability p86 across 3 benchmark suites",
     "Curated ring: adopt"
    ]
   },
