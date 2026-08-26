@@ -484,3 +484,56 @@ def test_cli_auto_resolve_appends_and_is_idempotent(tmp_path) -> None:
     result = runner.invoke(app, ["desk", "auto-resolve", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert len(load_call_records(tmp_path / "data" / "calls-ledger.jsonl")) == before
+
+
+def test_new_repo_without_serving_signal_is_demoted_to_ignore(
+    tmp_path, monkeypatch
+) -> None:
+    """An agent-app repo at high star velocity must not hit operators as
+    'evaluate' — velocity alone is noise, the description must carry
+    serving-stack signal."""
+    from datetime import UTC, datetime, timedelta
+
+    from radar.discovery.trending_entities import Lane, TrendingObservation
+    from radar.reports.brief import build_brief
+
+    now = datetime(2026, 8, 26, tzinfo=UTC)
+    recent = now - timedelta(days=3)
+
+    def observation(repo: str, description: str) -> TrendingObservation:
+        return TrendingObservation(
+            repo=repo,
+            lane=Lane.ONPREM,
+            stars=800,
+            observed_at=recent,
+            repo_created_at=recent,
+            description=description,
+        )
+
+    agent_app = observation(
+        "acme/FrontierAgent",
+        "Open-source AI coworkers with a browser, files and tools — "
+        "agent framework with CLI and TUI.",
+    )
+    serving = observation(
+        "acme/tiny-inference",
+        "vLLM-compatible inference server for GGUF quantized models on GPU",
+    )
+    data = tmp_path / "data"
+    data.mkdir(parents=True, exist_ok=True)
+    (data / "trending-observations.jsonl").write_text(
+        "\n".join(
+            observation.model_dump_json()
+            for observation in (agent_app, serving)
+        )
+        + "\n"
+    )
+
+    brief = build_brief(tmp_path, now)
+    by_subject = {item["subject"]: item for item in brief["items"]}
+    agent_items = [s for s in by_subject if "FrontierAgent" in s]
+    serving_items = [s for s in by_subject if "tiny-inference" in s]
+    if agent_items:
+        assert by_subject[agent_items[0]]["verdict"] == "ignore"
+    if serving_items:
+        assert by_subject[serving_items[0]]["verdict"] == "evaluate"

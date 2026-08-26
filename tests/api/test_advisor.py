@@ -44,9 +44,22 @@ def test_recommend_returns_cited_shortlist(api_client, tmp_path) -> None:
     assert response.status_code == 200
     answer = response.json()
     assert answer["task"] == "coding"
-    assert answer["candidates"]
-    first = answer["candidates"][0]
+    # The seeded card has no task benchmarks: excluded by default under the
+    # evidence-honesty policy, surfaced when explicitly opted in.
+    assert answer["candidates"] == []
+    assert any("Insufficient evidence" in e["reason"] for e in answer["excluded"])
+
+    opted_in = api_client.post(
+        "/api/v1/recommend",
+        json={
+            "task": "coding",
+            "device": "rtx-4090-24gb",
+            "include_unverified": True,
+        },
+    )
+    first = opted_in.json()["candidates"][0]
     assert first["model_id"] == "kimi-k3-mini"
+    assert first["evidence_tier"] == "none"
     assert first["fit"]["verdict"] in {"fits", "fits_tight", "fits_quantized"}
     assert first["reasons"]
     assert answer["cost"]["note"].startswith("Device-level")

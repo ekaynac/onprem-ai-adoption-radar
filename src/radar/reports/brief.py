@@ -35,6 +35,24 @@ logger = logging.getLogger(__name__)
 BRIEF_VERSION = "brief-v1"
 BENCHMARK_MOVE_POINTS = 3.0
 TRENDING_VELOCITY_THRESHOLD = 200.0
+
+# A new repo must show serving-stack signal in its description to earn an
+# "evaluate" verdict — raw star velocity alone promotes agent apps and
+# consumer tools into operator queues. Terms mirror the newsroom gate.
+_SERVING_SIGNAL_TERMS = (
+    "vllm", "llama.cpp", "llama-cpp", "ollama", "tgi", "sglang",
+    "tensorrt", "lmdeploy", "inference", "serving", "quantiz", "gguf",
+    "awq", "gptq", "fine-tun", "finetun", "lora", "rag", "embedding",
+    "gpu", "vram", "self-host", "on-prem", "local llm", "local-llm",
+    "kv-cache", "speculative", "benchmark", "tokens per second",
+)
+
+
+def _serving_stack_signal(description: str | None) -> bool:
+    if not description:
+        return True  # no evidence either way — keep legacy behavior
+    haystack = description.lower()
+    return any(term in haystack for term in _SERVING_SIGNAL_TERMS)
 _WINDOW_DAYS = 7
 _SPOTLIGHT_TASKS = ("coding", "general-chat", "reasoning", "rag")
 _SPOTLIGHT_DEVICES = ("rtx-4090-24gb", "a100-80gb", "h100-80gb", "mac-128gb")
@@ -238,23 +256,37 @@ def _trending_items(
         if velocity is None:
             continue
         significant = velocity >= TRENDING_VELOCITY_THRESHOLD
+        serving_signal = _serving_stack_signal(entry.description)
+        if significant and not serving_signal:
+            significant = False
+            velocity_note = (
+                f"Velocity ≥ {TRENDING_VELOCITY_THRESHOLD:g}/day but no "
+                "serving-stack signal in the description — demoted to "
+                "ignore so agent apps don't queue operators"
+            )
+            rationale = velocity_note
+            summary = entry.description or "Newly created on-prem-lane repository"
+        elif significant:
+            rationale = (
+                f"Velocity ≥ {TRENDING_VELOCITY_THRESHOLD:g}/day: "
+                "look before the crowd arrives"
+            )
+            summary = entry.description or "Newly created on-prem-lane repository"
+        else:
+            rationale = (
+                f"Velocity below {TRENDING_VELOCITY_THRESHOLD:g}/day "
+                "threshold — recorded so the miss is scoreable"
+            )
+            summary = entry.description or "Newly created on-prem-lane repository"
         items.append(
             _item(
                 brief_id,
                 "new-repos",
                 entry.repo,
                 f"New repo at {velocity:+g} stars/day ({entry.stars} total)",
-                entry.description or "Newly created on-prem-lane repository",
+                summary,
                 "evaluate" if significant else "ignore",
-                (
-                    f"Velocity ≥ {TRENDING_VELOCITY_THRESHOLD:g}/day: "
-                    "look before the crowd arrives"
-                    if significant
-                    else (
-                        f"Velocity below {TRENDING_VELOCITY_THRESHOLD:g}/day "
-                        "threshold — recorded so the miss is scoreable"
-                    )
-                ),
+                rationale,
                 [f"https://github.com/{entry.repo}"],
                 None,
             )

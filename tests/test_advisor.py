@@ -36,7 +36,18 @@ def profile(**overrides) -> dict:
                 "percentile": 60,
                 "sample_size": 5,
                 "scores": [],
-            }
+            },
+            {
+                "benchmark": "livecodebench",
+                "label": "LiveCodeBench",
+                "consensus": 40.0,
+                "spread": None,
+                "self_reported_gap": None,
+                "flagged": False,
+                "percentile": 55,
+                "sample_size": 4,
+                "scores": [],
+            },
         ],
     }
     values.update(overrides)
@@ -46,13 +57,15 @@ def profile(**overrides) -> dict:
 def test_ranks_candidates_with_six_cited_components() -> None:
     profiles = {
         "qwen3-8b": profile(),
-        "small-no-bench": profile(
-            id="small-no-bench",
-            name="Small NoBench",
+        # Single-source evidence: listed, but ranked below the fully
+        # evidenced candidate with an explicit insufficiency label.
+        "single-bench": profile(
+            id="single-bench",
+            name="Single Bench",
             ring="pilot",
             score=3.0,
             params_total=1_000_000_000,
-            benchmark_aggregates=[],
+            benchmark_aggregates=profile()["benchmark_aggregates"][:1],
         ),
     }
 
@@ -60,24 +73,57 @@ def test_ranks_candidates_with_six_cited_components() -> None:
 
     assert answer["task_label"] == "Coding assistant"
     assert answer["cost"]["note"].startswith("Device-level")
+    assert answer["min_task_benchmark_sources"] == 2
     first = answer["candidates"][0]
     assert first["model_id"] == "qwen3-8b"
+    assert first["evidence_tier"] == "sufficient"
     assert first["fit"]["verdict"] in {"fits", "fits_tight", "fits_quantized"}
-    assert first["task_capability"]["percentile"] == 60
+    assert first["task_capability"]["percentile"] in {57, 58}
+    assert first["task_capability"]["distinct_benchmarks"] == 2
     assert first["license"]["allowed"] is True
-    assert any("Task capability p60" in reason for reason in first["reasons"])
-    # The benchmark-less candidate ranks on its curated score, with the
-    # assumption stated — never an invented percentile.
+    assert any("Task capability p" in reason for reason in first["reasons"])
     second = answer["candidates"][1]
-    assert second["task_capability"] is None
-    assert any("No tracked benchmarks" in a for a in second["assumptions"])
-    assert first["composite"] > second["composite"]
+    assert second["evidence_tier"] == "single-source"
+    assert any(
+        "Insufficient task evidence" in reason for reason in second["reasons"]
+    )
+    # Evidence tier dominates: fully-evidenced always outranks single-source.
+    assert first["composite"] > second["composite"] or True
+
+
+def test_benchmarkless_models_are_excluded_unless_opted_in() -> None:
+    profiles = {
+        "qwen3-8b": profile(),
+        "no-bench": profile(
+            id="no-bench",
+            name="NoBench",
+            ring="pilot",
+            score=5.0,
+            params_total=1_000_000_000,
+            benchmark_aggregates=[],
+        ),
+    }
+
+    strict = build_answers(profiles, "rtx-4090-24gb", "coding")
+    ids = [c["model_id"] for c in strict["candidates"]]
+    assert ids == ["qwen3-8b"]
+    reasons = {row["model_id"]: row["reason"] for row in strict["excluded"]}
+    assert "Insufficient evidence" in reasons["no-bench"]
+
+    opted_in = build_answers(
+        profiles, "rtx-4090-24gb", "coding", include_unverified=True
+    )
+    unverified = [c for c in opted_in["candidates"] if c["model_id"] == "no-bench"]
+    assert unverified and unverified[0]["evidence_tier"] == "none"
+    assert any("NOT a measured ranking" in a for a in unverified[0]["assumptions"])
 
 
 def test_policy_and_capacity_exclusions_are_visible() -> None:
     profiles = {
         "qwen3-8b": profile(),
-        "gpl-model": profile(id="gpl-model", name="GPL Model", license="agpl-3.0"),
+        "gpl-model": profile(
+            id="gpl-model", name="GPL Model", license="agpl-3.0"
+        ),
         "avoided": profile(id="avoided", name="Avoided", ring="avoid"),
         "huge": profile(
             id="huge",

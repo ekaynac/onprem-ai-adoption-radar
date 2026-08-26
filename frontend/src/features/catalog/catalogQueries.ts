@@ -174,6 +174,8 @@ export type AdvisorCandidate = {
   };
   task_capability: {
     percentile: number;
+    distinct_benchmarks?: number;
+    evidence?: "sufficient" | "single-source";
     benchmarks: Array<{
       benchmark: string;
       label: string;
@@ -183,6 +185,7 @@ export type AdvisorCandidate = {
       flagged: boolean;
     }>;
   } | null;
+  evidence_tier?: "sufficient" | "single-source" | "none";
   license: { value?: string | null; allowed: boolean };
   params_total?: number | null;
   params_active?: number | null;
