@@ -126,18 +126,24 @@ def classify_news(
     config: NewsClassificationConfig,
     client: Any,
     now: datetime,
+    *,
+    root: Any | None = None,
 ) -> NewsClassifyResult:
     """Classify up to the per-run budget; failures stay unclassified.
 
     The budget goes to the highest-signal items first (cheap relevance
     gate, ``news_gate.rank_by_relevance``), not FIFO — a small per-run
     budget spent on funding gossip while a vLLM security advisory ages
-    out is the failure mode this ordering exists to prevent.
+    out is the failure mode this ordering exists to prevent. When
+    ``root`` is given, the evolved vocabulary from ``data/knowledge/``
+    sharpens the gate's ordering.
     """
     result = NewsClassifyResult()
     from radar.discovery.news_gate import rank_by_relevance
+    from radar.knowledge import load_learned_terms
 
-    ordered = rank_by_relevance(items)
+    learned = load_learned_terms(root) if root is not None else None
+    ordered = rank_by_relevance(items, learned_serving_terms=learned)
     budget = ordered[: config.max_items_per_run]
     result.over_budget = len(ordered) - len(budget)
     schema = NewsClassificationPayload.model_json_schema()

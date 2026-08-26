@@ -150,13 +150,20 @@ def news_classify(
         classification_config = classification_config.model_copy(
             update={"max_items_per_run": limit}
         )
-    result = classify_news(pending, classification_config, client, now)
+    result = classify_news(pending, classification_config, client, now, root=root)
     appended = append_news_classifications(classified_path, result.classifications)
+
+    # Close the learning loop: the analyst's component slugs become
+    # tomorrow's gate vocabulary (nothing stays hardcoded).
+    from radar.knowledge import learn_from_classifications
+
+    learned_count = learn_from_classifications(root, result.classifications, now=now)
+
     console.print(
         f"Classified {appended} item(s) with {config.classification.model} "
         f"→ {classified_path.relative_to(root)}; "
         f"{len(result.failures)} failure(s), {result.over_budget} deferred to "
-        "future runs by budget"
+        f"future runs by budget; vocabulary +{learned_count}"
     )
     for news_id, reason in result.failures:
         console.print(f"  [yellow]{news_id}: {reason}[/yellow]")

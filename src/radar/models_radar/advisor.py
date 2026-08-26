@@ -150,6 +150,7 @@ def build_answers(
     min_context: int | None = None,
     limit: int = 5,
     include_unverified: bool = False,
+    root: Any | None = None,
 ) -> dict[str, Any]:
     """Rank curated models for a task on a device under a policy.
 
@@ -159,12 +160,29 @@ def build_answers(
     candidate with an explicit "insufficient evidence" label. Benchmarkless
     models are excluded by default and only surface when the caller opts in
     via ``include_unverified``.
+
+    The task→suite mapping is not frozen: when ``root`` is given, suites
+    learned in ``data/knowledge/task-suites.jsonl`` (radar.knowledge)
+    extend the bundled defaults.
     """
     if task not in TASKS:
         raise ValueError(
             f"Unknown task {task!r}; expected one of {sorted(TASKS)}"
         )
-    task_spec = TASKS[task]
+    task_spec = dict(TASKS[task])
+    if root is not None:
+        from radar.knowledge import load_task_suite_overrides
+
+        learned_suites = load_task_suite_overrides(root).get(task) or []
+        if learned_suites:
+            task_spec["benchmarks"] = [
+                *task_spec["benchmarks"],
+                *(
+                    suite
+                    for suite in learned_suites
+                    if suite not in task_spec["benchmarks"]
+                ),
+            ]
     device_profile = resolve_device(device)
     context_tokens = min_context or 4096
 
