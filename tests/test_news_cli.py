@@ -81,7 +81,7 @@ def test_news_classify_appends_only_unclassified(tmp_path, monkeypatch):
     def _fake_client():
         return object()
 
-    def _fake_classify(items, config, client, now):
+    def _fake_classify(items, config, client, now, *, root=None):
         from radar.discovery.news_classify import NewsClassifyResult
 
         rows = [

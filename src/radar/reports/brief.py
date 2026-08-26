@@ -38,7 +38,9 @@ TRENDING_VELOCITY_THRESHOLD = 200.0
 
 # A new repo must show serving-stack signal in its description to earn an
 # "evaluate" verdict — raw star velocity alone promotes agent apps and
-# consumer tools into operator queues. Terms mirror the newsroom gate.
+# consumer tools into operator queues. Cold-start terms below; the live
+# gate merges in the learned vocabulary (radar.knowledge) so recognized
+# components evolve without code changes.
 _SERVING_SIGNAL_TERMS = (
     "vllm", "llama.cpp", "llama-cpp", "ollama", "tgi", "sglang",
     "tensorrt", "lmdeploy", "inference", "serving", "quantiz", "gguf",
@@ -48,10 +50,13 @@ _SERVING_SIGNAL_TERMS = (
 )
 
 
-def _serving_stack_signal(description: str | None) -> bool:
+def _serving_stack_signal(description: str | None, extra_terms: list[str] | None = None) -> bool:
     if not description:
         return True  # no evidence either way — keep legacy behavior
     haystack = description.lower()
+    for term in extra_terms or ():
+        if term.lower() in haystack:
+            return True
     return any(term in haystack for term in _SERVING_SIGNAL_TERMS)
 _WINDOW_DAYS = 7
 _SPOTLIGHT_TASKS = ("coding", "general-chat", "reasoning", "rag")
@@ -239,8 +244,10 @@ def _trending_items(
 ) -> list[dict[str, Any]]:
     try:
         from radar.discovery.trending_detect import build_trending
+        from radar.knowledge import load_learned_terms
         from radar.storage.trending_observations_log import load_observations
 
+        learned_terms = load_learned_terms(root)
         entries = build_trending(
             load_observations(root / "data" / "trending-observations.jsonl"),
             now,
@@ -256,7 +263,9 @@ def _trending_items(
         if velocity is None:
             continue
         significant = velocity >= TRENDING_VELOCITY_THRESHOLD
-        serving_signal = _serving_stack_signal(entry.description)
+        serving_signal = _serving_stack_signal(
+            entry.description, extra_terms=learned_terms
+        )
         if significant and not serving_signal:
             significant = False
             velocity_note = (
