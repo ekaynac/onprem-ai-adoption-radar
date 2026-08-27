@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-27T08:02:45.063440+00:00",
+ "generated_at": "2026-08-27T12:05:29.239587+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-27T08:01:38.348421+00:00"
+   "observed_at": "2026-08-27T12:03:46.423583+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -40,19 +40,6 @@
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
    "receipts": [
     "https://github.com/ApodexAI/FrontierAgent"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W35:new-repos:deepseek-ai-deepseek-harness",
-   "section": "new-repos",
-   "subject": "deepseek-ai/deepseek-harness",
-   "what_happened": "New repo at +1557 stars/day (196523 total)",
-   "why_it_matters": "DeepSeek Harness: Everything is a Plugin.",
-   "verdict": "ignore",
-   "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
-   "receipts": [
-    "https://github.com/deepseek-ai/deepseek-harness"
    ],
    "observed_at": null
   },
@@ -70,6 +57,19 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
+   "section": "new-repos",
+   "subject": "halofyai/halofy",
+   "what_happened": "New repo at +107 stars/day (386 total)",
+   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/halofyai/halofy"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W35:new-repos:copilotkit-openbot",
    "section": "new-repos",
    "subject": "CopilotKit/OpenBot",
@@ -83,23 +83,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
-   "section": "new-repos",
-   "subject": "halofyai/halofy",
-   "what_happened": "New repo at +98 stars/day (377 total)",
-   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/halofyai/halofy"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +81 stars/day (758 total)",
+   "what_happened": "New repo at +84 stars/day (764 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +99,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +63.5 stars/day (1483 total)",
+   "what_happened": "New repo at +67.5 stars/day (1491 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -133,6 +120,32 @@
     "https://github.com/yjh051108/dsh-routing-suite"
    ],
    "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:new-repos:agents-universe-agents-universe",
+   "section": "new-repos",
+   "subject": "agents-universe/agents-universe",
+   "what_happened": "New repo at +25 stars/day (139 total)",
+   "why_it_matters": "让智能体像人一样学习和工作，共享智能体和项目记忆",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/agents-universe/agents-universe"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:hardware:xiaomi-ai-cube-targets-local-llms-with-1-22-tb-s-near-memory-bandwidth",
+   "section": "hardware",
+   "subject": "Xiaomi AI Cube Targets Local LLMs with 1.22 TB/S Near-Memory Bandwidth",
+   "what_happened": "Xiaomi announced the AI Cube, a compact local-inference box marketed with 1.22 TB/s near-memory bandwidth for running LLMs on-device. Memory bandwidth at this level is the main constraint on single-stream token generation, so the box is a potential small-footprint alternative to GPU servers for local model hosting, pending independent benchmarks and confirmation of supported runtimes and memory capacity.",
+   "why_it_matters": "A newly launched platform is a hardware-catalog candidate; specs enter the catalog only with a verifiable source",
+   "verdict": "evaluate",
+   "rationale": "Review for the device catalog (curation stays human)",
+   "receipts": [
+    "https://www.hardware-corner.net/xiaomi-ai-cube-targets-local-llms/"
+   ],
+   "observed_at": "2026-08-27T06:52:05+00:00"
   },
   {
    "id": "call:brief-2026-W35:hardware:xiaomi--ai-cube-prototype--multi-chip-local-llm-powerhouse",
@@ -163,7 +176,7 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 5,
+  "evaluate": 6,
   "ignore": 7
  },
  "spotlight": {
