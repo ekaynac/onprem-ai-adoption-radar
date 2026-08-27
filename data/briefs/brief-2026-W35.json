@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-27T06:45:43.879651+00:00",
+ "generated_at": "2026-08-27T08:02:45.063440+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-27T06:44:19.786575+00:00"
+   "observed_at": "2026-08-27T08:01:38.348421+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
    "section": "new-repos",
    "subject": "halofyai/halofy",
-   "what_happened": "New repo at +96 stars/day (375 total)",
+   "what_happened": "New repo at +98 stars/day (377 total)",
    "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,23 +96,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:appllama-appllama-skills",
-   "section": "new-repos",
-   "subject": "Appllama/appllama-skills",
-   "what_happened": "New repo at +88 stars/day (319 total)",
-   "why_it_matters": "A builder, not just a researcher. Agent skills that turn top-grossing app patterns into native-quality mobile screens.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/Appllama/appllama-skills"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +78.5 stars/day (753 total)",
+   "what_happened": "New repo at +81 stars/day (758 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,12 +112,25 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +62 stars/day (1480 total)",
+   "what_happened": "New repo at +63.5 stars/day (1483 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/duty1g/x64dbg-mcp-server"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:new-repos:yjh051108-dsh-routing-suite",
+   "section": "new-repos",
+   "subject": "yjh051108/dsh-routing-suite",
+   "what_happened": "New repo at +31 stars/day (6838 total)",
+   "why_it_matters": "dsh-routing-suite — injector + router-standard kit: install the runtime injector first, then the task-aware reasoning-mode router preset (measured P1-P23).",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/yjh051108/dsh-routing-suite"
    ],
    "observed_at": null
   },
@@ -171,18 +171,20 @@
   "task_label": "RAG over internal documents",
   "device": "mac-128gb",
   "top_candidate": {
-   "model_id": "qwen2.5-32b",
-   "name": "Qwen2.5 32B Instruct",
-   "ring": "adopt",
+   "model_id": "hf-gemma-4-26b-a4b-nvfp4",
+   "name": "Gemma-4-26B-A4B-NVFP4",
+   "ring": "pilot",
    "fit_verdict": "fits",
    "reasons": [
     "Fit: fits on Mac (128GB unified)",
-    "Best quant FP16 (~70.8 GB of 92.2 GB usable)",
-    "Task capability p86 across 3 benchmark suites",
-    "Curated ring: adopt"
+    "Best quant NVFP4 (~17.2 GB of 92.2 GB usable)",
+    "Task capability p100 across 2 benchmark suites",
+    "Curated ring: pilot",
+    "Discovery: lifecycle=recommended → ring=adopt; first observed 2026-05-01T00:00:00+00:00; discovery evidence: trusted_registry; qualified: Estimated 4-bit memory footprint: 15.44 GB at 4096 tokens",
+    "~40.2 tok/s est. decode on this device"
    ]
   },
-  "note": "This week's worked answer: RAG over internal documents on mac-128gb → Qwen2.5 32B Instruct"
+  "note": "This week's worked answer: RAG over internal documents on mac-128gb → Gemma-4-26B-A4B-NVFP4"
  },
  "verdict_rules": "Deterministic v1 rules: adopt-promotions and adopt-exits are act; pilot entries, ≥3-point independent benchmark moves, new on-prem repos at ≥200 stars/day, news classified as breaking, and hardware-launch news (catalog candidates) are evaluate; slower new repos are ignore (recorded, so misses score too)"
 }
