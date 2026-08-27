@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-27T04:17:25.712158+00:00",
+ "generated_at": "2026-08-27T06:45:43.879651+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-27T04:15:41.411459+00:00"
+   "observed_at": "2026-08-27T06:44:19.786575+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
    "section": "new-repos",
    "subject": "halofyai/halofy",
-   "what_happened": "New repo at +93 stars/day (372 total)",
+   "what_happened": "New repo at +96 stars/day (375 total)",
    "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W35:new-repos:appllama-appllama-skills",
    "section": "new-repos",
    "subject": "Appllama/appllama-skills",
-   "what_happened": "New repo at +83 stars/day (314 total)",
+   "what_happened": "New repo at +88 stars/day (319 total)",
    "why_it_matters": "A builder, not just a researcher. Agent skills that turn top-grossing app patterns into native-quality mobile screens.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +76.5 stars/day (749 total)",
+   "what_happened": "New repo at +78.5 stars/day (753 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +60.5 stars/day (1477 total)",
+   "what_happened": "New repo at +62 stars/day (1480 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
