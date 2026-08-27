@@ -347,7 +347,7 @@ devices:
   - {id: mac-48gb, name: "Mac (48GB unified)", kind: apple, total_memory_gb: 48}
   - {id: mac-64gb, name: "Mac (64GB unified)", kind: apple, total_memory_gb: 64}
   - {id: mac-96gb, name: "Mac (96GB unified)", kind: apple, total_memory_gb: 96}
-  - {id: mac-128gb, name: "Mac (128GB unified)", kind: apple, total_memory_gb: 128}
+  - {id: mac-128gb, name: "Mac (128GB unified)", kind: apple, total_memory_gb: 128, memory_bandwidth_gbs: 800, spec_url: "https://www.apple.com/mac-studio/specs/", verified: "2026-08-26"}  # apple.com M2/M3 Ultra unified memory bandwidth 800 GB/s
   - {id: mac-192gb, name: "Mac (192GB unified)", kind: apple, total_memory_gb: 192}
   - {id: mac-256gb, name: "Mac Studio (256GB unified)", kind: apple, total_memory_gb: 256}
   - {id: mac-512gb, name: "Mac Studio (512GB unified)", kind: apple, total_memory_gb: 512}
@@ -496,6 +496,8 @@ nodes:
     device: gb300-desktop-748gb
     gpus_per_node: 1
     datacenter: false
+    memory_bandwidth_gbs: 7100  # nvidia.com DGX Station spec: 252 GB HBM3e @ 7.1 TB/s (verified 2026-08-26)
+    tflops_fp4: 20000  # nvidia.com DGX Station spec: 20 PFLOPS FP4 (verified 2026-08-26)
     spec_url: https://www.nvidia.com/en-us/products/workstations/dgx-station/
     verified: "2026-08-05"
   - id: dgx-b200

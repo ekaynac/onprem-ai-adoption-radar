@@ -874,10 +874,11 @@ h1 {
   white-space: nowrap;
 }
 
-.ring-pill.pill-adopt { color: #116329; border-color: #116329; }
-.ring-pill.pill-pilot { color: #8f5f00; border-color: #8f5f00; }
-.ring-pill.pill-watch { color: #57606a; }
-.ring-pill.pill-avoid { color: #cf222e; border-color: #cf222e; }
+ .ring-pill.pill-adopt { color: #116329; border-color: #116329; }
+ .ring-pill.pill-pilot { color: #8f5f00; border-color: #8f5f00; }
+ .ring-pill.pill-watch { color: #57606a; }
+ .ring-pill.pill-avoid { color: #cf222e; border-color: #cf222e; }
+ .ring-pill.pill-discovery { color: #1f6feb; border-color: #1f6feb; }
 
 .try-grid {
   display: grid;

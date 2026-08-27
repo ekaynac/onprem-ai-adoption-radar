@@ -284,6 +284,29 @@ export function AdvisorPage({ staticMode = false }: { staticMode?: boolean }) {
                       ~{candidate.estimated_tok_s} tok/s
                     </span>
                   )}
+                  {candidate.discovered && (
+                    <span
+                      className="ring-pill pill-discovery"
+                      title={
+                        candidate.discovery_reason?.trail?.join(" · ") ??
+                        "Surfaced by the discovery pipeline"
+                      }
+                    >
+                      discovered
+                    </span>
+                  )}
+                  {candidate.evidence_stale && (
+                    <span
+                      className="ring-pill pill-watch"
+                      title={
+                        candidate.evidence_last_observed
+                          ? `Evidence last refreshed ${candidate.evidence_last_observed} — maturity discounted by staleness`
+                          : "Evidence is stale"
+                      }
+                    >
+                      stale evidence
+                    </span>
+                  )}
                 </div>
                 <p className="try-meta">
                   {formatParams(candidate.params_total, candidate.params_active) ?? "—"}

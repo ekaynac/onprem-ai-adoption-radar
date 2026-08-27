@@ -173,6 +173,16 @@ def resolve_device(spec: str | dict[str, Any]) -> DeviceProfile:
             kind=spec["kind"],
             total_memory_gb=float(spec["total_memory_gb"]),
             gpu_count=int(spec.get("gpu_count", 1)),
+            memory_bandwidth_gbs=(
+                float(spec["memory_bandwidth_gbs"])
+                if spec.get("memory_bandwidth_gbs") is not None
+                else None
+            ),
+            tflops_fp4=(
+                float(spec["tflops_fp4"])
+                if spec.get("tflops_fp4") is not None
+                else None
+            ),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise DeviceError(f"Invalid device spec {spec!r}: {exc}") from exc

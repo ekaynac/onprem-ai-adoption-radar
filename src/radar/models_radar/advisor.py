@@ -11,6 +11,7 @@ assumption, not an invented percentile.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 from radar.models_radar.benchmarks import CANONICAL_BENCHMARKS
@@ -109,6 +110,38 @@ def _perf_score(est_tps: float | None) -> float:
     return min(1.0, (est_tps / 120.0) ** 0.5)
 
 
+# Evidence that has not been refreshed within this window is treated as
+# stale: the model still ranks, but its maturity is discounted so a
+# continuously-observed peer drifts ahead. This is the "knowledge keeps
+# evolving" backstop — silence is a slow downgrade, not a frozen truth.
+EVIDENCE_STALENESS_DAYS = 180
+_STALE_DECAY = 0.6
+
+
+def _evidence_last_observed(profile: dict[str, Any]) -> datetime | None:
+    """Most recent non-seed benchmark observation for this profile.
+
+    Seed card values carry no timestamp (they are curated baselines), so a
+    profile whose only evidence is the curated card returns None and is not
+    decayed — only scraped/observed evidence ages.
+    """
+    latest: datetime | None = None
+    for aggregate in profile.get("benchmark_aggregates") or []:
+        for score in aggregate.get("scores") or []:
+            observed = score.get("observed_at")
+            if not observed:
+                continue
+            try:
+                when = datetime.fromisoformat(str(observed).replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=UTC)
+            if latest is None or when > latest:
+                latest = when
+    return latest
+
+
 def _task_capability(
     profile: dict[str, Any],
     benchmark_keys: list[str],
@@ -174,6 +207,7 @@ def build_answers(
     limit: int = 5,
     include_unverified: bool = False,
     root: Any | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Rank curated models for a task on a device under a policy.
 
@@ -208,6 +242,7 @@ def build_answers(
             ]
     device_profile = resolve_device(device)
     context_tokens = min_context or 4096
+    now = now or datetime.now(UTC)
 
     candidates: list[dict[str, Any]] = []
     excluded: list[dict[str, str]] = []
@@ -309,6 +344,16 @@ def build_answers(
             if isinstance(curated_score, int | float)
             else 0.4
         )
+        # Staleness backstop: evidence not refreshed in EVIDENCE_STALENESS_DAYS
+        # is discounted, so a continuously-observed peer drifts ahead. The
+        # discount is recorded as an explicit assumption, never hidden.
+        last_observed = _evidence_last_observed(profile)
+        is_stale = (
+            last_observed is not None
+            and (now - last_observed).days > EVIDENCE_STALENESS_DAYS
+        )
+        if is_stale:
+            maturity *= _STALE_DECAY
         fit_weight = _FIT_WEIGHTS.get(fit.verdict, 0.35)
         ring_weight = _RING_WEIGHTS.get(str(ring), 0.4)
         if capability is not None:
@@ -355,6 +400,11 @@ def build_answers(
                 )
         if ring:
             reasons.append(f"Curated ring: {ring}")
+        if profile.get("discovered"):
+            discovery = profile.get("discovery_reason") or {}
+            trail = discovery.get("trail") or []
+            if trail:
+                reasons.append("Discovery: " + "; ".join(trail))
         if perf_note:
             reasons.append(perf_note)
         assumptions = []
@@ -368,6 +418,12 @@ def build_answers(
             assumptions.append(
                 f"Fit is unknown ({fit.note or 'insufficient sizing data'}) "
                 "— verify memory before committing"
+            )
+        if is_stale and last_observed is not None:
+            assumptions.append(
+                f"Evidence last refreshed {last_observed.date().isoformat()} "
+                f"({(now - last_observed).days} days ago) — maturity discounted "
+                f"by staleness; re-run the benchmark sweep to refresh"
             )
 
         candidates.append(
@@ -399,6 +455,12 @@ def build_answers(
                 "params_active": profile.get("params_active"),
                 "context_length": model_context,
                 "maturity_score": profile.get("score"),
+                "discovered": bool(profile.get("discovered")),
+                "discovery_reason": profile.get("discovery_reason"),
+                "evidence_last_observed": (
+                    last_observed.isoformat() if last_observed else None
+                ),
+                "evidence_stale": bool(is_stale),
                 "reasons": reasons,
                 "assumptions": assumptions,
             }
@@ -423,6 +485,16 @@ def build_answers(
         f"{MIN_TASK_BENCHMARK_SOURCES} distinct suites; models below "
         "that bar are labeled insufficient evidence and ranked last",
     ]
+    if any(candidate.get("evidence_stale") for candidate in ranked):
+        stale_names = ", ".join(
+            candidate["name"]
+            for candidate in ranked
+            if candidate.get("evidence_stale")
+        )
+        assumptions.append(
+            f"Stale evidence discount applied to: {stale_names} — re-run the "
+            f"benchmark sweep (older than {EVIDENCE_STALENESS_DAYS} days)"
+        )
     if insight:
         assumptions.append(insight)
     return {

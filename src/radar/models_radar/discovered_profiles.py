@@ -85,6 +85,7 @@ def build_discovered_profiles(root: Path) -> dict[str, dict[str, Any]]:
             "license", "num_layers", "hidden_size",
         },
     )
+    qualification_fn = getattr(repo, "get_qualification", None)
 
     def _string_claim(value: Any) -> str | None:
         # HF license metadata arrives as str or list-of-tags depending on
@@ -106,12 +107,39 @@ def build_discovered_profiles(root: Path) -> dict[str, dict[str, Any]]:
         short_id = release.id.removeprefix("release:legacy:")
         category_value = str(getattr(release.category, "value", "") or "text_reasoning")
         modality = _CATEGORY_MODALITY.get(category_value, "text")
+        ring = _LIFECYCLE_RING.get(str(release.lifecycle.value), "watch")
+        first_seen = release.first_observed_at.isoformat() if release.first_observed_at else None
+        evidence_strength = str(getattr(release.discovery_evidence_strength, "value", "")
+                               or "unknown")
+        # Claim lineage: why is this model on the radar at all, and why this
+        # ring? Surfaced verbatim (not a curated opinion) so an operator can
+        # audit the discovery trail, not just the conclusion.
+        trail = [
+            f"lifecycle={release.lifecycle.value} → ring={ring}",
+            f"first observed {first_seen or 'unknown'}",
+            f"discovery evidence: {evidence_strength}",
+        ]
+        discovery_reason: dict[str, Any] = {
+            "ring": ring,
+            "lifecycle": str(release.lifecycle.value),
+            "first_observed_at": first_seen,
+            "evidence_strength": evidence_strength,
+            "trail": trail,
+        }
+        if qualification_fn is not None:
+            try:
+                qualification = qualification_fn(release.id)
+            except Exception:
+                qualification = None
+            if qualification is not None and getattr(qualification, "reasons", None):
+                discovery_reason["qualification_reasons"] = list(qualification.reasons)
+                trail.append("qualified: " + "; ".join(qualification.reasons))
         profiles[short_id] = {
             "id": short_id,
             "name": release.name,
             "family": release.family_id.removeprefix("family:") or release.name,
             "modality": modality,
-            "ring": _LIFECYCLE_RING.get(str(release.lifecycle.value), "watch"),
+            "ring": ring,
             # Discovered entries carry no curated composite score; a neutral
             # maturity keeps their composite honest relative to seeded models.
             "score": 3.2,
@@ -143,6 +171,7 @@ def build_discovered_profiles(root: Path) -> dict[str, dict[str, Any]]:
             "benchmark_aggregates": [],
             "discovered": True,
             "lifecycle": str(release.lifecycle.value),
+            "discovery_reason": discovery_reason,
             "source_url": (
                 f"https://huggingface.co/{claims['hf_repo']}"
                 if claims.get("hf_repo")
@@ -195,4 +224,11 @@ def merge_profile_pools(
                 target[field] = discovered_profile[field]
         if not target.get("source_url") and discovered_profile.get("source_url"):
             target["source_url"] = discovered_profile["source_url"]
+        # The curated seed remains authoritative for ring/score, but a model the
+        # discovery pipeline also tracks still carries its provenance trail —
+        # otherwise the discovery bridge would be invisible for seeded models
+        # (e.g. gpt-oss-120b) and the operator could not audit why it is here.
+        target["discovered"] = True
+        if discovered_profile.get("discovery_reason"):
+            target["discovery_reason"] = discovered_profile["discovery_reason"]
     return merged

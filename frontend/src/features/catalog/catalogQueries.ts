@@ -192,6 +192,17 @@ export type AdvisorCandidate = {
   params_active?: number | null;
   context_length?: number | null;
   maturity_score?: number | null;
+  discovered?: boolean;
+  discovery_reason?: {
+    ring?: string;
+    lifecycle?: string;
+    first_observed_at?: string | null;
+    evidence_strength?: string;
+    trail?: string[];
+    qualification_reasons?: string[];
+  } | null;
+  evidence_last_observed?: string | null;
+  evidence_stale?: boolean;
   reasons: string[];
   assumptions: string[];
 };
