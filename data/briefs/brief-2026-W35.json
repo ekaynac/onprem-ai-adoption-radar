@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-28T21:50:23.112748+00:00",
+ "generated_at": "2026-08-28T22:40:12.718700+00:00",
  "window_days": 7,
  "items": [
   {
@@ -392,7 +392,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-28T21:49:23.410735+00:00"
+   "observed_at": "2026-08-28T22:39:24.531957+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +101.7 stars/day (1661 total)",
+   "what_happened": "New repo at +103 stars/day (1665 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,7 +450,7 @@
    "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
    "section": "new-repos",
    "subject": "halofyai/halofy",
-   "what_happened": "New repo at +87.5 stars/day (454 total)",
+   "what_happened": "New repo at +88 stars/day (455 total)",
    "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
