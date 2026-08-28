@@ -49,3 +49,4 @@
 {"alert_id": "alert:ring:deepseek-r1:2026-08-28T03:44:54.306104+00:00", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-28T03:45:37.721681Z"}
 {"alert_id": "alert:ring:deepseek-r1-distill-qwen-7b:2026-08-28T03:44:54.306104+00:00", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-28T03:45:37.721681Z"}
 {"alert_id": "alert:ring:mistral-small-3:2026-08-28T03:44:54.306104+00:00", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-28T03:45:37.721681Z"}
+{"alert_id": "alert:news:news:819172b794a2e0cc", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-28T11:34:42.755103Z"}

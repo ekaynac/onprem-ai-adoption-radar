@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-28T07:35:10.815193+00:00",
+ "generated_at": "2026-08-28T11:34:36.210358+00:00",
  "window_days": 7,
  "items": [
   {
@@ -392,7 +392,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-28T07:33:31.384847+00:00"
+   "observed_at": "2026-08-28T11:33:50.214500+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +77 stars/day (1587 total)",
+   "what_happened": "New repo at +89 stars/day (1623 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,7 +450,7 @@
    "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
    "section": "new-repos",
    "subject": "halofyai/halofy",
-   "what_happened": "New repo at +74.5 stars/day (428 total)",
+   "what_happened": "New repo at +77.5 stars/day (434 total)",
    "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -463,7 +463,7 @@
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +71.7 stars/day (811 total)",
+   "what_happened": "New repo at +75.7 stars/day (823 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -497,6 +497,19 @@
     "https://github.com/yjh051108/dsh-routing-suite"
    ],
    "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:news:four-reproducible-vllm-parser-failures-that-return-200-with-the-wrong-tool-call",
+   "section": "news",
+   "subject": "Four reproducible vLLM parser failures that return 200 with the wrong tool call",
+   "what_happened": "Report documents four reproducible failure modes in vLLM's tool/function-call parsers where malformed or unparsed model output is returned as an HTTP 200 with an incorrect tool call instead of an error. Operators running vLLM's OpenAI-compatible server for agentic or tool-calling workloads should validate tool-call arguments downstream and check which parser their deployment uses, since failures are silent and will not surface in error rates.",
+   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on vllm, tool-calling, openai-api",
+   "verdict": "evaluate",
+   "rationale": "Assess exposure before the next upgrade window",
+   "receipts": [
+    "https://ingot.tools/reports/parser-silent-failure"
+   ],
+   "observed_at": "2026-08-27T21:41:59+00:00"
   },
   {
    "id": "call:brief-2026-W35:hardware:xiaomi-ai-cube-targets-local-llms-with-1-22-tb-s-near-memory-bandwidth",
@@ -540,7 +553,7 @@
  ],
  "verdict_counts": {
   "act": 24,
-  "evaluate": 10,
+  "evaluate": 11,
   "ignore": 7
  },
  "spotlight": {
