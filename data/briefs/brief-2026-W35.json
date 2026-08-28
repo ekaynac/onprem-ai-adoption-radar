@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-27T23:58:37.432820+00:00",
+ "generated_at": "2026-08-28T03:45:31.891144+00:00",
  "window_days": 7,
  "items": [
   {
@@ -187,6 +187,188 @@
    "observed_at": "2026-08-27T23:58:03.904565+00:00"
   },
   {
+   "id": "call:brief-2026-W35:ring-moves:deepseek-r1",
+   "section": "ring-moves",
+   "subject": "deepseek-r1",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:deepseek-r1-distill-qwen-7b",
+   "section": "ring-moves",
+   "subject": "deepseek-r1-distill-qwen-7b",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:gemma-3-12b",
+   "section": "ring-moves",
+   "subject": "gemma-3-12b",
+   "what_happened": "Model ring avoid → pilot (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:gpt-oss-20b",
+   "section": "ring-moves",
+   "subject": "gpt-oss-20b",
+   "what_happened": "Model ring watch → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:hf-deepseek-v4-flash-dspark",
+   "section": "ring-moves",
+   "subject": "hf-deepseek-v4-flash-dspark",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:hf-gemma-4-26b-a4b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-gemma-4-26b-a4b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:hf-gpt-oss-120b",
+   "section": "ring-moves",
+   "subject": "hf-gpt-oss-120b",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:hf-qwen3-6-27b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-qwen3-6-27b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:hf-qwen3-6-35b-a3b-nvfp4",
+   "section": "ring-moves",
+   "subject": "hf-qwen3-6-35b-a3b-nvfp4",
+   "what_happened": "Model ring adopt → pilot (demoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Left adopt: review current usage before upgrading",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:llama-3-1-8b",
+   "section": "ring-moves",
+   "subject": "llama-3.1-8b",
+   "what_happened": "Model ring avoid → pilot (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:mistral-small-3",
+   "section": "ring-moves",
+   "subject": "mistral-small-3",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:phi-4",
+   "section": "ring-moves",
+   "subject": "phi-4",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:qwen3-30b-a3b",
+   "section": "ring-moves",
+   "subject": "qwen3-30b-a3b",
+   "what_happened": "Model ring pilot → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
+   "id": "call:brief-2026-W35:ring-moves:qwen3-8b",
+   "section": "ring-moves",
+   "subject": "qwen3-8b",
+   "what_happened": "Model ring avoid → adopt (promoted)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "act",
+   "rationale": "Promotion into adopt: start a production pilot path",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-28T03:44:54.306104+00:00"
+  },
+  {
    "id": "call:brief-2026-W35:ring-moves:openevolve",
    "section": "ring-moves",
    "subject": "openevolve",
@@ -210,7 +392,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-27T23:58:05.896042+00:00"
+   "observed_at": "2026-08-28T03:44:56.379215+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -222,19 +404,6 @@
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
    "receipts": [
     "https://github.com/ApodexAI/FrontierAgent"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
-   "section": "new-repos",
-   "subject": "halofyai/halofy",
-   "what_happened": "New repo at +129 stars/day (408 total)",
-   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/halofyai/halofy"
    ],
    "observed_at": null
   },
@@ -265,15 +434,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
+   "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
    "section": "new-repos",
-   "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +99.5 stars/day (795 total)",
-   "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
+   "subject": "halofyai/halofy",
+   "what_happened": "New repo at +70 stars/day (419 total)",
+   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/syv-ai/qwen38-27b-rtx3090"
+    "https://github.com/halofyai/halofy"
    ],
    "observed_at": null
   },
@@ -281,7 +450,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +93 stars/day (1542 total)",
+   "what_happened": "New repo at +69 stars/day (1563 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -291,15 +460,28 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:agents-universe-agents-universe",
+   "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
-   "subject": "agents-universe/agents-universe",
-   "what_happened": "New repo at +32 stars/day (146 total)",
-   "why_it_matters": "让智能体像人一样学习和工作，共享智能体和项目记忆",
+   "subject": "syv-ai/qwen38-27b-rtx3090",
+   "what_happened": "New repo at +68.3 stars/day (801 total)",
+   "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/agents-universe/agents-universe"
+    "https://github.com/syv-ai/qwen38-27b-rtx3090"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:new-repos:decionis-docker",
+   "section": "new-repos",
+   "subject": "decionis/docker",
+   "what_happened": "New repo at +53 stars/day (165 total)",
+   "why_it_matters": "Govern consequential AI agent actions in Docker with deterministic policy, human approval, and signed Decision Dossiers.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/decionis/docker"
    ],
    "observed_at": null
   },
@@ -357,8 +539,8 @@
   }
  ],
  "verdict_counts": {
-  "act": 12,
-  "evaluate": 8,
+  "act": 24,
+  "evaluate": 10,
   "ignore": 7
  },
  "spotlight": {
@@ -368,15 +550,15 @@
   "top_candidate": {
    "model_id": "hf-gemma-4-26b-a4b-nvfp4",
    "name": "Gemma-4-26B-A4B-NVFP4",
-   "ring": "adopt",
+   "ring": "pilot",
    "fit_verdict": "fits",
    "reasons": [
     "Fit: fits on Mac (128GB unified)",
-    "Best quant FP16 (~57.2 GB of 92.2 GB usable)",
+    "Best quant NVFP4 (~17.2 GB of 92.2 GB usable)",
     "Task capability p100 across 2 benchmark suites",
-    "Curated ring: adopt",
+    "Curated ring: pilot",
     "Discovery: lifecycle=recommended → ring=adopt; first observed 2026-05-01T00:00:00+00:00; discovery evidence: trusted_registry; qualified: Estimated 4-bit memory footprint: 15.44 GB at 4096 tokens",
-    "~11.3 tok/s est. decode on this device"
+    "~40.2 tok/s est. decode on this device"
    ]
   },
   "note": "This week's worked answer: RAG over internal documents on mac-128gb → Gemma-4-26B-A4B-NVFP4"
