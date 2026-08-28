@@ -8,6 +8,7 @@ function-local, unlike other commands' imports) so tests can monkeypatch
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -582,10 +583,39 @@ def benchmarks_scan(root: Path = typer.Option(Path("."), help="Project root.")) 
         )
 
 
+def _load_gated_ledger(path: Path) -> dict[str, dict[str, Any]]:
+    """Return {hf_repo: record} for repos known to be un-fetchable."""
+    if not path.exists():
+        return {}
+    records: dict[str, dict[str, Any]] = {}
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            records[rec["hf_repo"]] = rec
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return records
+
+
+def _save_gated_ledger(path: Path, records: dict[str, dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "\n".join(json.dumps(rec) for rec in records.values()) + "\n",
+        encoding="utf-8",
+    )
+
+
 @models_app.command("benchcards")
 def models_benchcards(
     root: Path = typer.Option(Path("."), help="Project root."),
     limit: int = typer.Option(0, help="Limit to N seed models (0 = all)."),
+    include_gated: bool = typer.Option(
+        False,
+        help="Retry license-gated repos (403) — use after accepting the "
+        "license on huggingface.co so the card can be fetched.",
+    ),
 ) -> None:
     """Ingest self-reported benchmarks from HF model cards into observations.
 
@@ -593,6 +623,10 @@ def models_benchcards(
     benchmark-sources join, fetches the model-card README, parses canonical
     benchmark scores, and appends them as ``hf-model-card`` (self-reported)
     observations. Aggregates pick them up on the next build.
+
+    License-gated repos (403) are recorded in data/gated-card-repos.jsonl and
+    skipped on subsequent runs so the autopilot does not re-hit them every
+    week; accept the license on huggingface.co and pass --include-gated once.
     """
     import asyncio
 
@@ -638,16 +672,25 @@ def models_benchcards(
         for row in load_benchmark_observations(log_path)
     }
     card_url = "https://huggingface.co/{repo}/raw/main/README.md"
+    gated_ledger_path = root / "data" / "gated-card-repos.jsonl"
+    gated = _load_gated_ledger(gated_ledger_path)
 
-    async def _collect() -> dict[str, str | None]:
+    async def _collect() -> tuple[dict[str, str | None], dict[str, str]]:
         from radar.huggingface_auth import apply_hf_auth
 
         client_kwargs = apply_hf_auth(
             {"timeout": 20.0, "follow_redirects": True}, root
         )
         async with httpx.AsyncClient(**client_kwargs) as client:
+            newly_gated: dict[str, str] = {}
 
             async def _fetch(repo: str) -> str | None:
+                if not repo:
+                    return None
+                # Skip known-gate repos unless explicitly retried. This keeps
+                # the autopilot from hammering license-gated cards each week.
+                if not include_gated and repo in gated:
+                    return None
                 try:
                     response = await client.get(card_url.format(repo=repo))
                     response.raise_for_status()
@@ -662,6 +705,7 @@ def models_benchcards(
                             "Card fetch for %s needs HF_TOKEN (401)", repo
                         )
                     elif status == 403:
+                        newly_gated[repo] = "license-gated"
                         logger.warning(
                             "Card fetch for %s is license-gated (403): accept "
                             "the license on huggingface.co to enable ingestion",
@@ -672,18 +716,36 @@ def models_benchcards(
                     return None
                 return response.text
 
-            return {
+            result = {
                 seed.id: await _fetch(seed.hf_repo or "")
                 for seed in [*seeds, *seed_shims]
             }
+            return result, newly_gated
 
-    cards = asyncio.run(_collect())
+    cards, newly_gated = asyncio.run(_collect())
     from datetime import UTC, datetime
 
     now = datetime.now(UTC)
+    now_iso = now.isoformat()
+
+    # Persist gated ledger so future runs skip (and report) these repos.
+    for repo, status in newly_gated.items():
+        rec = gated.get(
+            repo, {"hf_repo": repo, "status": status, "first_seen": now_iso}
+        )
+        rec["status"] = status
+        rec["last_seen"] = now_iso
+        gated[repo] = rec
+    _save_gated_ledger(gated_ledger_path, gated)
+
     appended: list[BenchmarkObservation] = []
     parsed_count = 0
     skipped = 0
+    gated_skipped = sum(
+        1
+        for s in [*seeds, *seed_shims]
+        if not include_gated and (s.hf_repo or "") in gated
+    )
     for seed in [*seeds, *seed_shims]:
         text = cards.get(seed.id)
         if not text:
@@ -715,6 +777,13 @@ def models_benchcards(
         f"[green]{len(appended)}[/green] new observation(s) from "
         f"{parsed_count} card(s); {skipped} card(s) unavailable."
     )
+    if gated:
+        console.print(
+            f"[yellow]{len(gated)} card(s) license-gated"
+            f" ({gated_skipped} skipped this run)[/yellow] "
+            "(accept the license on huggingface.co, then re-run with "
+            "--include-gated): " + ", ".join(sorted(gated))
+        )
 
 
 @models_app.command("benchdebt")

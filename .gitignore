@@ -39,6 +39,8 @@ data/overrides.yaml
 data/proposed-seeds.yaml
 data/proposed-model-seeds.yaml
 data/proposed-technique-seeds.yaml
+# License-gated card ledger (regenerated every benchcards run; not versioned).
+data/gated-card-repos.jsonl
 
 # Coverage artifacts
 .coverage
