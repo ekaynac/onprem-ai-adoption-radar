@@ -652,7 +652,23 @@ def models_benchcards(
                     response = await client.get(card_url.format(repo=repo))
                     response.raise_for_status()
                 except Exception as exc:
-                    logger.warning("Card fetch failed for %s: %s", repo, exc)
+                    # Classify so the autopilot debt report is actionable:
+                    # 401 = token missing, 403 = repo is license-gated (accept
+                    # the license on huggingface.co — a token alone cannot),
+                    # anything else = transient network/parse issue.
+                    status = getattr(getattr(exc, "response", None), "status_code", None)
+                    if status == 401:
+                        logger.warning(
+                            "Card fetch for %s needs HF_TOKEN (401)", repo
+                        )
+                    elif status == 403:
+                        logger.warning(
+                            "Card fetch for %s is license-gated (403): accept "
+                            "the license on huggingface.co to enable ingestion",
+                            repo,
+                        )
+                    else:
+                        logger.warning("Card fetch failed for %s: %s", repo, exc)
                     return None
                 return response.text
 
