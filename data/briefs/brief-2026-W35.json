@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-28T16:46:52.084584+00:00",
+ "generated_at": "2026-08-28T21:50:23.112748+00:00",
  "window_days": 7,
  "items": [
   {
@@ -392,7 +392,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-28T16:45:58.247780+00:00"
+   "observed_at": "2026-08-28T21:49:23.410735+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +98.3 stars/day (1651 total)",
+   "what_happened": "New repo at +101.7 stars/day (1661 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,7 +450,7 @@
    "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
    "section": "new-repos",
    "subject": "halofyai/halofy",
-   "what_happened": "New repo at +84 stars/day (447 total)",
+   "what_happened": "New repo at +87.5 stars/day (454 total)",
    "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -463,7 +463,7 @@
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +81 stars/day (839 total)",
+   "what_happened": "New repo at +85 stars/day (851 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -486,15 +486,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:yjh051108-dsh-routing-suite",
+   "id": "call:brief-2026-W35:new-repos:agents-universe-agents-universe",
    "section": "new-repos",
-   "subject": "yjh051108/dsh-routing-suite",
-   "what_happened": "New repo at +31 stars/day (6838 total)",
-   "why_it_matters": "dsh-routing-suite — injector + router-standard kit: install the runtime injector first, then the task-aware reasoning-mode router preset (measured P1-P23).",
+   "subject": "agents-universe/agents-universe",
+   "what_happened": "New repo at +22.5 stars/day (159 total)",
+   "why_it_matters": "让智能体像人一样学习和工作，共享智能体和项目记忆",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/yjh051108/dsh-routing-suite"
+    "https://github.com/agents-universe/agents-universe"
    ],
    "observed_at": null
   },
