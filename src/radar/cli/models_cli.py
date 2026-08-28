@@ -640,9 +640,12 @@ def models_benchcards(
     card_url = "https://huggingface.co/{repo}/raw/main/README.md"
 
     async def _collect() -> dict[str, str | None]:
-        async with httpx.AsyncClient(
-            timeout=20.0, follow_redirects=True
-        ) as client:
+        from radar.huggingface_auth import apply_hf_auth
+
+        client_kwargs = apply_hf_auth(
+            {"timeout": 20.0, "follow_redirects": True}, root
+        )
+        async with httpx.AsyncClient(**client_kwargs) as client:
 
             async def _fetch(repo: str) -> str | None:
                 try:

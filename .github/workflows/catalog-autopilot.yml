@@ -36,8 +36,12 @@ jobs:
         run: uv run radar models discover --root .
 
       # Evidence hygiene: ingest self-reported benchmark scores from model
-      # cards, then surface remaining gaps in the step summary.
+      # cards, then surface remaining gaps in the step summary. The HF token
+      # (when configured as a repo secret) lets gated cards (gemma, command-r,
+      # …) be fetched instead of 401-ing — otherwise only public cards fill.
       - name: Ingest model-card benchmarks
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: uv run radar models benchcards --root .
 
       - name: Benchmark debt report
@@ -67,21 +71,23 @@ jobs:
           print(f'catalog OK: {len(seeds)} models, ids unique')
           "
 
-      # Commit only when config/model-seed.yaml actually changed.
-      # promote validates-or-aborts before writing, so if we reach here the
-      # catalog is known good.  We use a $GITHUB_OUTPUT flag so the dispatch
-      # step can use the same condition cleanly.
-      - name: Commit catalog changes (if any)
+      # Commit when the catalog OR the ingested benchmark evidence changed.
+      # benchcards writes data/benchmark-observations.jsonl — that evidence must
+      # be committed too, or the self-evolving loop silently loses it. promote
+      # validates-or-aborts before writing, so if we reach here the catalog is
+      # known good. We use a $GITHUB_OUTPUT flag so the dispatch step can reuse
+      # the same condition cleanly.
+      - name: Commit catalog + evidence changes (if any)
         id: commit
         run: |
-          if git diff --quiet -- config/model-seed.yaml; then
-            echo "No new models this week — nothing to commit."
+          if git diff --quiet -- config/model-seed.yaml data/benchmark-observations.jsonl; then
+            echo "No new models or benchmark evidence this week — nothing to commit."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             git config user.name "radar-bot"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add config/model-seed.yaml
-            git commit -m "chore(catalog): autopilot model additions $(date -u +%F)"
+            git add config/model-seed.yaml data/benchmark-observations.jsonl
+            git commit -m "chore(catalog): autopilot model + evidence refresh $(date -u +%F)"
             git push
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
