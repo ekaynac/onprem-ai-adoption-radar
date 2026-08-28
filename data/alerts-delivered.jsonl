@@ -43,3 +43,6 @@
 {"alert_id": "alert:news:news:08740f9c3e29ad24", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-26T15:56:24.620025Z"}
 {"alert_id": "alert:news:news:961640db332cb785", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-26T19:15:11.591504Z"}
 {"alert_id": "alert:news:news:bccc41e585b95514", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-26T19:15:11.591504Z"}
+{"alert_id": "alert:ring:deepseek-r1-distill-qwen-7b:2026-08-27T23:58:03.904565+00:00", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-27T23:58:43.216533Z"}
+{"alert_id": "alert:ring:mistral-small-3:2026-08-27T23:58:03.904565+00:00", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-27T23:58:43.216533Z"}
+{"alert_id": "alert:ring:deepseek-r1:2026-08-27T23:58:03.904565+00:00", "profile": "Mega reference stack (demo)", "delivered_at": "2026-08-27T23:58:43.216533Z"}
