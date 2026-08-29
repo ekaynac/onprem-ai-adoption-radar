@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-28T22:40:12.718700+00:00",
+ "generated_at": "2026-08-29T01:07:17.645572+00:00",
  "window_days": 7,
  "items": [
   {
@@ -392,7 +392,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-28T22:39:24.531957+00:00"
+   "observed_at": "2026-08-29T01:06:27.616326+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -404,6 +404,19 @@
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
    "receipts": [
     "https://github.com/ApodexAI/FrontierAgent"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W35:new-repos:xiaoduoya-codex-with-chatgpt",
+   "section": "new-repos",
+   "subject": "XiaoDuoYa/codex-with-chatgpt",
+   "what_happened": "New repo at +165 stars/day (313 total)",
+   "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/XiaoDuoYa/codex-with-chatgpt"
    ],
    "observed_at": null
   },
@@ -437,7 +450,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +103 stars/day (1665 total)",
+   "what_happened": "New repo at +78.2 stars/day (1669 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -447,23 +460,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
-   "section": "new-repos",
-   "subject": "halofyai/halofy",
-   "what_happened": "New repo at +88 stars/day (455 total)",
-   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/halofyai/halofy"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W35:new-repos:syv-ai-qwen38-27b-rtx3090",
    "section": "new-repos",
    "subject": "syv-ai/qwen38-27b-rtx3090",
-   "what_happened": "New repo at +85 stars/day (851 total)",
+   "what_happened": "New repo at +64.5 stars/day (854 total)",
    "why_it_matters": "Qwen3.8-27B on a single RTX 3090 with vLLM: ~1,000 tok/s at 64 concurrent (int8 tensor-core GEMMs, fp16 DeltaNet state), ~114 tok/s single-user at default sampling / ~124 greedy (MTP drafts, own-outpu",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -473,28 +473,28 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W35:new-repos:halofyai-halofy",
+   "section": "new-repos",
+   "subject": "halofyai/halofy",
+   "what_happened": "New repo at +60 stars/day (459 total)",
+   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/halofyai/halofy"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W35:new-repos:decionis-docker",
    "section": "new-repos",
    "subject": "decionis/docker",
-   "what_happened": "New repo at +53 stars/day (165 total)",
+   "what_happened": "New repo at +26.5 stars/day (165 total)",
    "why_it_matters": "Govern consequential AI agent actions in Docker with deterministic policy, human approval, and signed Decision Dossiers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/decionis/docker"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W35:new-repos:agents-universe-agents-universe",
-   "section": "new-repos",
-   "subject": "agents-universe/agents-universe",
-   "what_happened": "New repo at +22.5 stars/day (159 total)",
-   "why_it_matters": "让智能体像人一样学习和工作，共享智能体和项目记忆",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/agents-universe/agents-universe"
    ],
    "observed_at": null
   },
