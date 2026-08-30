@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W35",
- "generated_at": "2026-08-30T05:58:13.066194+00:00",
+ "generated_at": "2026-08-30T06:50:00.630095+00:00",
  "window_days": 7,
  "items": [
   {
@@ -392,7 +392,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-30T05:57:18.953862+00:00"
+   "observed_at": "2026-08-30T06:49:13.575785+00:00"
   },
   {
    "id": "call:brief-2026-W35:new-repos:apodexai-frontieragent",
@@ -411,7 +411,7 @@
    "id": "call:brief-2026-W35:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +428.5 stars/day (1005 total)",
+   "what_happened": "New repo at +438 stars/day (1024 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -450,7 +450,7 @@
    "id": "call:brief-2026-W35:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +79.8 stars/day (1755 total)",
+   "what_happened": "New repo at +80.2 stars/day (1757 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -473,6 +473,19 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W35:new-repos:agents-universe-agents-universe",
+   "section": "new-repos",
+   "subject": "agents-universe/agents-universe",
+   "what_happened": "New repo at +17.8 stars/day (185 total)",
+   "why_it_matters": "让智能体像人一样学习和工作，共享智能体和项目记忆",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/agents-universe/agents-universe"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W35:new-repos:decionis-docker",
    "section": "new-repos",
    "subject": "decionis/docker",
@@ -482,19 +495,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/decionis/docker"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W35:new-repos:agents-universe-agents-universe",
-   "section": "new-repos",
-   "subject": "agents-universe/agents-universe",
-   "what_happened": "New repo at +17.5 stars/day (184 total)",
-   "why_it_matters": "让智能体像人一样学习和工作，共享智能体和项目记忆",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/agents-universe/agents-universe"
    ],
    "observed_at": null
   },
