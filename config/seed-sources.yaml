@@ -694,6 +694,14 @@ sources:
     url: https://github.com/algorithmicsuperintelligence/openevolve
     tags: [alpha-evolve, alphacode, alphaevolve, coding-agent, auto-added]
     backer: {name: algorithmicsuperintelligence, type: community}
+  - id: github-x64dbg-mcp-server
+    type: github_repo
+    enabled: true
+    project: x64dbg-mcp-server
+    category: general_agents
+    url: https://github.com/duty1g/x64dbg-mcp-server
+    tags: [ai-agents, ai-debugging, binary-analysis, claude, auto-added]
+    backer: {name: duty1g, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
