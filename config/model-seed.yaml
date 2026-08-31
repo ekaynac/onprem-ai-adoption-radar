@@ -799,3 +799,14 @@ models:
     license: mit
     openness: open-permissive
     release_date: 2026-08
+
+  - id: hf-qwen3-8-27b-obliterated
+    name: Qwen3.8-27B-OBLITERATED
+    family: OBLITERATUS
+    hf_repo: OBLITERATUS/Qwen3.8-27B-OBLITERATED
+    backer: {name: "OBLITERATUS", type: community}
+    params_total: 27781427952
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-08
