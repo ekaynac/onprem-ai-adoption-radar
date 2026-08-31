@@ -117,3 +117,4 @@
 {"model_id": "phi-4", "family": "Phi", "change_type": "promoted", "ring": "adopt", "previous_ring": "avoid", "run_id": "run-20260828T034454Z-6b1f92ae", "observed_at": "2026-08-28T03:44:54.306104Z", "reasons": ["promoted to adopt"]}
 {"model_id": "qwen3-30b-a3b", "family": "Qwen3", "change_type": "promoted", "ring": "adopt", "previous_ring": "pilot", "run_id": "run-20260828T034454Z-6b1f92ae", "observed_at": "2026-08-28T03:44:54.306104Z", "reasons": ["promoted to adopt"]}
 {"model_id": "qwen3-8b", "family": "Qwen3", "change_type": "promoted", "ring": "adopt", "previous_ring": "avoid", "run_id": "run-20260828T034454Z-6b1f92ae", "observed_at": "2026-08-28T03:44:54.306104Z", "reasons": ["promoted to adopt"]}
+{"model_id": "hf-qwen3-8-27b-obliterated", "family": "OBLITERATUS", "change_type": "new", "ring": "adopt", "previous_ring": null, "run_id": "run-20260831T072809Z-25ca6818", "observed_at": "2026-08-31T07:28:09.616556Z", "reasons": ["new to adopt"]}

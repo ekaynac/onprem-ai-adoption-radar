@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-08-31T07:09:00.493497+00:00",
+ "generated_at": "2026-08-31T07:31:12.178384+00:00",
  "window_days": 7,
  "items": [
   {
@@ -369,6 +369,19 @@
    "observed_at": "2026-08-28T03:44:54.306104+00:00"
   },
   {
+   "id": "call:brief-2026-W36:ring-moves:hf-qwen3-8-27b-obliterated",
+   "section": "ring-moves",
+   "subject": "hf-qwen3-8-27b-obliterated",
+   "what_happened": "Model ring new → adopt (new)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered adopt: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-08-31T07:28:09.616556+00:00"
+  },
+  {
    "id": "call:brief-2026-W36:ring-moves:openevolve",
    "section": "ring-moves",
    "subject": "openevolve",
@@ -392,7 +405,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-31T07:06:12.379198+00:00"
+   "observed_at": "2026-08-31T07:28:12.173971+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:apodexai-frontieragent",
@@ -411,7 +424,7 @@
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +466 stars/day (1546 total)",
+   "what_happened": "New repo at +469.7 stars/day (1557 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -553,7 +566,7 @@
  ],
  "verdict_counts": {
   "act": 24,
-  "evaluate": 11,
+  "evaluate": 12,
   "ignore": 7
  },
  "spotlight": {
