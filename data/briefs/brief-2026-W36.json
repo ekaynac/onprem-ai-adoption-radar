@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-08-31T08:44:29.780866+00:00",
+ "generated_at": "2026-08-31T10:45:15.988919+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,7 +405,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-31T08:41:43.834529+00:00"
+   "observed_at": "2026-08-31T10:42:10.507745+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:apodexai-frontieragent",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +479.7 stars/day (1587 total)",
+   "what_happened": "New repo at +497.3 stars/day (1640 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
