@@ -2,9 +2,9 @@
 <rect width="1080" height="1350" fill="#ffffff"/>
 <rect width="1080" height="168" fill="#009FDA"/>
 <text x="48" y="128" font-size="56" font-weight="700" fill="#ffffff">MEGA</text>
-<text x="48" y="258" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W33</text>
-<text x="48" y="348" font-size="40" fill="#222222">kimi-k3-in-c  (tool) adopt</text>
-<text x="48" y="412" font-size="40" fill="#222222">skill-recorder  (tool) pilot</text>
-<text x="48" y="476" font-size="40" fill="#222222">hf-deepseek-v4-flash-0731  (model) pilot</text>
+<text x="48" y="258" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W36</text>
+<text x="48" y="348" font-size="40" fill="#222222">disaggregated-prefill-decode  (technique) pilot → adopt</text>
+<text x="48" y="412" font-size="40" fill="#222222">domain-randomization  (technique) avoid → watch</text>
+<text x="48" y="476" font-size="40" fill="#222222">fp8-quantization  (technique) pilot → adopt</text>
 <text x="48" y="1302" font-size="32" fill="#009FDA">on-prem AI adoption radar</text>
 </svg>
