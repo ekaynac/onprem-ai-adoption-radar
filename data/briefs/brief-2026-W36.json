@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-01T04:47:25.566499+00:00",
+ "generated_at": "2026-09-01T06:59:57.829465+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,7 +405,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-01T04:46:27.035807+00:00"
+   "observed_at": "2026-09-01T06:57:15.889471+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:apodexai-frontieragent",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +444.5 stars/day (1926 total)",
+   "what_happened": "New repo at +457.5 stars/day (1978 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +148 stars/day (199 total)",
+   "what_happened": "New repo at +159 stars/day (210 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -473,6 +473,19 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W36:new-repos:tczyliu-china-travel-kit",
+   "section": "new-repos",
+   "subject": "tczyliu/china-travel-kit",
+   "what_happened": "New repo at +24 stars/day (74 total)",
+   "why_it_matters": "Source-aware China inbound travel data, CLI, HTTP API, and MCP server",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/tczyliu/china-travel-kit"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W36:new-repos:halofyai-halofy",
    "section": "new-repos",
    "subject": "halofyai/halofy",
@@ -482,19 +495,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/halofyai/halofy"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W36:new-repos:tczyliu-china-travel-kit",
-   "section": "new-repos",
-   "subject": "tczyliu/china-travel-kit",
-   "what_happened": "New repo at +22 stars/day (72 total)",
-   "why_it_matters": "Source-aware China inbound travel data, CLI, HTTP API, and MCP server",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/tczyliu/china-travel-kit"
    ],
    "observed_at": null
   },
