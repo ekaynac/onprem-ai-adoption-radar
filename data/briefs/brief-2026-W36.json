@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-08-31T22:42:32.524085+00:00",
+ "generated_at": "2026-09-01T01:29:32.741107+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,7 +405,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-08-31T22:39:37.111898+00:00"
+   "observed_at": "2026-09-01T01:28:49.163224+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:apodexai-frontieragent",
@@ -424,12 +424,25 @@
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +558 stars/day (1822 total)",
+   "what_happened": "New repo at +426 stars/day (1852 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
    "receipts": [
     "https://github.com/XiaoDuoYa/codex-with-chatgpt"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
+   "section": "new-repos",
+   "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
+   "what_happened": "New repo at +139 stars/day (190 total)",
+   "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/Ryze-AI-Adgent/open-seo-mcp-skills"
    ],
    "observed_at": null
   },
@@ -460,15 +473,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:omaekumiko2-create-kru",
+   "id": "call:brief-2026-W36:new-repos:rokbenko-quackd",
    "section": "new-repos",
-   "subject": "omaekumiko2-create/kru",
-   "what_happened": "New repo at +39 stars/day (126 total)",
-   "why_it_matters": "Local-first MCP password and credential manager for AI agents. Use passwords, API keys, SSH identities, and TOTP without exposing hidden plaintext to the model.",
+   "subject": "rokbenko/quackd",
+   "what_happened": "New repo at +30 stars/day (86 total)",
+   "why_it_matters": "🦆🧠 Give your Microduck a brain. Tell a small robot with two legs what you want in plain language. An LLM (Claude, OpenAI, Gemini, Grok, or a local model via Ollama, vLLM or llama.cpp) uses the skills ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/omaekumiko2-create/kru"
+    "https://github.com/rokbenko/quackd"
    ],
    "observed_at": null
   },
@@ -476,7 +489,7 @@
    "id": "call:brief-2026-W36:new-repos:halofyai-halofy",
    "section": "new-repos",
    "subject": "halofyai/halofy",
-   "what_happened": "New repo at +28.2 stars/day (420 total)",
+   "what_happened": "New repo at +23.5 stars/day (420 total)",
    "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -486,28 +499,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:agents-universe-agents-universe",
+   "id": "call:brief-2026-W36:new-repos:omaekumiko2-create-kru",
    "section": "new-repos",
-   "subject": "agents-universe/agents-universe",
-   "what_happened": "New repo at +17 stars/day (199 total)",
-   "why_it_matters": "让智能体像人一样学习和工作，共享智能体和项目记忆",
+   "subject": "omaekumiko2-create/kru",
+   "what_happened": "New repo at +19.5 stars/day (126 total)",
+   "why_it_matters": "Local-first MCP password and credential manager for AI agents. Use passwords, API keys, SSH identities, and TOTP without exposing hidden plaintext to the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/agents-universe/agents-universe"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W36:new-repos:decionis-docker",
-   "section": "new-repos",
-   "subject": "decionis/docker",
-   "what_happened": "New repo at +13.5 stars/day (166 total)",
-   "why_it_matters": "Govern consequential AI agent actions in Docker with deterministic policy, human approval, and signed Decision Dossiers.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/decionis/docker"
+    "https://github.com/omaekumiko2-create/kru"
    ],
    "observed_at": null
   },
