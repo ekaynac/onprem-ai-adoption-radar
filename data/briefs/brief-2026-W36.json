@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-01T08:53:26.542718+00:00",
+ "generated_at": "2026-09-01T10:50:49.614464+00:00",
  "window_days": 7,
  "items": [
   {
@@ -405,7 +405,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-01T08:50:37.130622+00:00"
+   "observed_at": "2026-09-01T10:48:09.060481+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:apodexai-frontieragent",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +467.2 stars/day (2017 total)",
+   "what_happened": "New repo at +475.2 stars/day (2049 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +161 stars/day (212 total)",
+   "what_happened": "New repo at +166 stars/day (217 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -463,7 +463,7 @@
    "id": "call:brief-2026-W36:new-repos:rokbenko-quackd",
    "section": "new-repos",
    "subject": "rokbenko/quackd",
-   "what_happened": "New repo at +37 stars/day (93 total)",
+   "what_happened": "New repo at +38 stars/day (94 total)",
    "why_it_matters": "🦆🧠 Give your Microduck a brain. Tell a small robot with two legs what you want in plain language. An LLM (Claude, OpenAI, Gemini, Grok, or a local model via Ollama, vLLM or llama.cpp) uses the skills ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -476,7 +476,7 @@
    "id": "call:brief-2026-W36:new-repos:tczyliu-china-travel-kit",
    "section": "new-repos",
    "subject": "tczyliu/china-travel-kit",
-   "what_happened": "New repo at +25 stars/day (75 total)",
+   "what_happened": "New repo at +26 stars/day (76 total)",
    "why_it_matters": "Source-aware China inbound travel data, CLI, HTTP API, and MCP server",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -549,24 +549,11 @@
     "https://www.hardware-corner.net/xiaomi-ai-cube-targets-local-llms/"
    ],
    "observed_at": "2026-08-27T06:52:05+00:00"
-  },
-  {
-   "id": "call:brief-2026-W36:hardware:xiaomi--ai-cube-prototype--multi-chip-local-llm-powerhouse",
-   "section": "hardware",
-   "subject": "Xiaomi, AI Cube prototype: Multi-chip local LLM powerhouse",
-   "what_happened": "Xiaomi showed a prototype 'AI Cube' multi-chip desktop system aimed at running LLMs locally, positioned against Apple Mac hardware for on-device inference. It is a prototype with no announced availability, pricing, or software/runtime support details, so there is nothing for operators to act on yet.",
-   "why_it_matters": "A newly launched platform is a hardware-catalog candidate; specs enter the catalog only with a verifiable source",
-   "verdict": "evaluate",
-   "rationale": "Review for the device catalog (curation stays human)",
-   "receipts": [
-    "https://me.mashable.com/tech/75268/xiaomi-reveals-ai-cube-prototype-multi-chip-local-llm-powerhouse-takes-aim-at-apples-macs"
-   ],
-   "observed_at": "2026-08-25T09:08:32+00:00"
   }
  ],
  "verdict_counts": {
   "act": 24,
-  "evaluate": 12,
+  "evaluate": 11,
   "ignore": 7
  },
  "spotlight": {
