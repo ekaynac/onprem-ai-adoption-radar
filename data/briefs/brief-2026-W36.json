@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-02T16:51:25.397582+00:00",
+ "generated_at": "2026-09-02T18:54:05.718132+00:00",
  "window_days": 7,
  "items": [
   {
@@ -392,7 +392,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-02T16:48:42.002501+00:00"
+   "observed_at": "2026-09-02T18:51:08.285173+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
@@ -411,7 +411,7 @@
    "id": "call:brief-2026-W36:new-repos:carloslfu-slotstream",
    "section": "new-repos",
    "subject": "carloslfu/slotstream",
-   "what_happened": "New repo at +148 stars/day (229 total)",
+   "what_happened": "New repo at +153 stars/day (234 total)",
    "why_it_matters": "Run Qwen3.8-Flash-Next (125B MoE, 104 GB at 4-bit) on Macs with a fraction of that RAM by streaming experts from SSD. MLX + Swift, Ollama-compatible API.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -424,7 +424,7 @@
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +128 stars/day (307 total)",
+   "what_happened": "New repo at +133.5 stars/day (318 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -437,7 +437,7 @@
    "id": "call:brief-2026-W36:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +66.6 stars/day (1790 total)",
+   "what_happened": "New repo at +66 stars/day (1790 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,8 +450,8 @@
    "id": "call:brief-2026-W36:new-repos:rokbenko-quackd",
    "section": "new-repos",
    "subject": "rokbenko/quackd",
-   "what_happened": "New repo at +29.5 stars/day (115 total)",
-   "why_it_matters": "🦆🧠 Give your Microduck a brain. Tell a small robot with two legs what you want in plain language. An LLM (Claude, OpenAI, Gemini, Grok, or a local model via Ollama, vLLM or llama.cpp) uses the skills ",
+   "what_happened": "New repo at +32 stars/day (120 total)",
+   "why_it_matters": "🦆🧠 Give your small robot a brain. Tell a Microduck, a Reachy Mini, a LeRobot arm or any ROS base what you want in plain language. An LLM (Claude, OpenAI, Gemini, Grok, or a local model via Ollama, vLL",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
@@ -486,17 +486,30 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:halofyai-halofy",
+   "id": "call:brief-2026-W36:new-repos:elliottophellia-ryuumonbuchi",
    "section": "new-repos",
-   "subject": "halofyai/halofy",
-   "what_happened": "New repo at +12.3 stars/day (422 total)",
-   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
+   "subject": "elliottophellia/Ryuumonbuchi",
+   "what_happened": "New repo at +12 stars/day (63 total)",
+   "why_it_matters": "Maybe the headless Ghidra MCP you are looking for.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/halofyai/halofy"
+    "https://github.com/elliottophellia/Ryuumonbuchi"
    ],
    "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W36:news:researchers-trick-fortune-500-ai-agents-into-running-arbitrary-code-via-llms-txt",
+   "section": "news",
+   "subject": "Researchers trick Fortune-500 AI agents into running arbitrary code via llms.txt",
+   "what_happened": "Researchers demonstrated indirect prompt-injection supply-chain attacks in which malicious instructions embedded in llms.txt guidance files caused AI agents at Fortune-500 companies to execute arbitrary code. Operators running self-hosted agent stacks should treat llms.txt and other fetched documentation as untrusted data, not instructions, and sandbox or gate any tool/code-execution path driven by retrieved content.",
+   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on llms.txt, mcp, agent-frameworks",
+   "verdict": "evaluate",
+   "rationale": "Assess exposure before the next upgrade window",
+   "receipts": [
+    "https://www.tomshardware.com/tech-industry/artificial-intelligence/researchers-easily-trick-fortune-500-companies-ai-agents-into-running-arbitrary-code-supply-chain-attack-via-llms-txt-guidance-file-illustrates-how-data-has-become-code"
+   ],
+   "observed_at": "2026-09-02T15:07:08+00:00"
   },
   {
    "id": "call:brief-2026-W36:news:18-month-survey-of-unsecured-ollama-servers-and-an-unsolved-mystery",
@@ -540,7 +553,7 @@
  ],
  "verdict_counts": {
   "act": 24,
-  "evaluate": 9,
+  "evaluate": 10,
   "ignore": 8
  },
  "spotlight": {
