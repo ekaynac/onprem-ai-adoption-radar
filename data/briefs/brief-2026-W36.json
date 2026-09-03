@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-02T22:44:37.730924+00:00",
+ "generated_at": "2026-09-03T01:26:29.280276+00:00",
  "window_days": 7,
  "items": [
   {
@@ -392,13 +392,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-02T22:43:48.139464+00:00"
+   "observed_at": "2026-09-03T01:25:32.691387+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +424.4 stars/day (2270 total)",
+   "what_happened": "New repo at +354.7 stars/day (2276 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -408,23 +408,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:carloslfu-slotstream",
-   "section": "new-repos",
-   "subject": "carloslfu/slotstream",
-   "what_happened": "New repo at +163 stars/day (244 total)",
-   "why_it_matters": "Run Qwen3.8-Flash-Next (125B MoE, 104 GB at 4-bit) on Macs with a fraction of that RAM by streaming experts from SSD. MLX + Swift, Ollama-compatible API.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/carloslfu/slotstream"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +139 stars/day (329 total)",
+   "what_happened": "New repo at +95.3 stars/day (337 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -434,10 +421,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W36:new-repos:carloslfu-slotstream",
+   "section": "new-repos",
+   "subject": "carloslfu/slotstream",
+   "what_happened": "New repo at +82.5 stars/day (246 total)",
+   "why_it_matters": "Run Qwen3.8-Flash-Next (125B MoE, 104 GB at 4-bit) on Macs with a fraction of that RAM by streaming experts from SSD. MLX + Swift, Ollama-compatible API.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/carloslfu/slotstream"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W36:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +64.6 stars/day (1790 total)",
+   "what_happened": "New repo at +79.8 stars/day (1790 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -450,7 +450,7 @@
    "id": "call:brief-2026-W36:new-repos:rokbenko-quackd",
    "section": "new-repos",
    "subject": "rokbenko/quackd",
-   "what_happened": "New repo at +32.5 stars/day (121 total)",
+   "what_happened": "New repo at +22 stars/day (122 total)",
    "why_it_matters": "🦆🧠 Give your small robot a brain. Tell a Microduck, a Reachy Mini, a LeRobot arm or any ROS base what you want in plain language. An LLM (Claude, OpenAI, Gemini, Grok, or a local model via Ollama, vLL",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -463,7 +463,7 @@
    "id": "call:brief-2026-W36:new-repos:tczyliu-china-travel-kit",
    "section": "new-repos",
    "subject": "tczyliu/china-travel-kit",
-   "what_happened": "New repo at +20.5 stars/day (91 total)",
+   "what_happened": "New repo at +14 stars/day (92 total)",
    "why_it_matters": "Source-aware China inbound travel data, CLI, HTTP API, and MCP server",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -476,7 +476,7 @@
    "id": "call:brief-2026-W36:new-repos:omaekumiko2-create-kru",
    "section": "new-repos",
    "subject": "omaekumiko2-create/kru",
-   "what_happened": "New repo at +13 stars/day (126 total)",
+   "what_happened": "New repo at +9.8 stars/day (126 total)",
    "why_it_matters": "Local-first MCP password and credential manager for AI agents. Use passwords, API keys, SSH identities, and TOTP without exposing hidden plaintext to the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -486,15 +486,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:elliottophellia-ryuumonbuchi",
+   "id": "call:brief-2026-W36:new-repos:halofyai-halofy",
    "section": "new-repos",
-   "subject": "elliottophellia/Ryuumonbuchi",
-   "what_happened": "New repo at +13 stars/day (64 total)",
-   "why_it_matters": "Maybe the headless Ghidra MCP you are looking for.",
+   "subject": "halofyai/halofy",
+   "what_happened": "New repo at +7.9 stars/day (422 total)",
+   "why_it_matters": "Halofy is the open access and governance layer for AI agents across your organization. Identity, policy, provenance, audit, and signed erasure.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/elliottophellia/Ryuumonbuchi"
+    "https://github.com/halofyai/halofy"
    ],
    "observed_at": null
   },
