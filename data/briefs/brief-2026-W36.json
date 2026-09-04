@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-04T18:49:24.606702+00:00",
+ "generated_at": "2026-09-04T20:43:30.618779+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-04T18:47:24.973283+00:00"
+   "observed_at": "2026-09-04T20:42:41.319296+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
@@ -47,7 +47,7 @@
    "id": "call:brief-2026-W36:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +150 stars/day (867 total)",
+   "what_happened": "New repo at +158 stars/day (875 total)",
    "why_it_matters": "Anti-hallucination for AI agents that read binaries. The model proposes, deterministic tools decide: every claim is VERIFIED or REFUTED against the real bytes, with evidence, and grounded facts surviv",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +99.2 stars/day (448 total)",
+   "what_happened": "New repo at +101 stars/day (455 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W36:new-repos:tczyliu-china-travel-kit",
    "section": "new-repos",
    "subject": "tczyliu/china-travel-kit",
-   "what_happened": "New repo at +16.2 stars/day (115 total)",
+   "what_happened": "New repo at +16.8 stars/day (117 total)",
    "why_it_matters": "Source-aware China inbound travel data, CLI, HTTP API, and MCP server",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
