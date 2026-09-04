@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-04T07:05:31.576004+00:00",
+ "generated_at": "2026-09-04T08:56:14.621041+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-04T07:03:33.901677+00:00"
+   "observed_at": "2026-09-04T08:55:00.575373+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +326.7 stars/day (2435 total)",
+   "what_happened": "New repo at +327.6 stars/day (2441 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -47,7 +47,7 @@
    "id": "call:brief-2026-W36:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +114 stars/day (831 total)",
+   "what_happened": "New repo at +122 stars/day (839 total)",
    "why_it_matters": "Anti-hallucination for AI agents that read binaries. The model proposes, deterministic tools decide: every claim is VERIFIED or REFUTED against the real bytes, with evidence, and grounded facts surviv",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +93.5 stars/day (425 total)",
+   "what_happened": "New repo at +94 stars/day (427 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -70,23 +70,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:duty1g-x64dbg-mcp-server",
-   "section": "new-repos",
-   "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +68.7 stars/day (1790 total)",
-   "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/duty1g/x64dbg-mcp-server"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W36:new-repos:carloslfu-slotstream",
    "section": "new-repos",
    "subject": "carloslfu/slotstream",
-   "what_happened": "New repo at +66.3 stars/day (280 total)",
+   "what_happened": "New repo at +67 stars/day (282 total)",
    "why_it_matters": "Run Qwen3.8-Flash-Next (125B MoE, 104 GB at 4-bit) on Macs with a fraction of that RAM by streaming experts from SSD. MLX + Swift, Ollama-compatible API.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,10 +83,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W36:new-repos:duty1g-x64dbg-mcp-server",
+   "section": "new-repos",
+   "subject": "duty1g/x64dbg-mcp-server",
+   "what_happened": "New repo at +55.7 stars/day (1790 total)",
+   "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/duty1g/x64dbg-mcp-server"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W36:new-repos:rokbenko-quackd",
    "section": "new-repos",
    "subject": "rokbenko/quackd",
-   "what_happened": "New repo at +21.5 stars/day (142 total)",
+   "what_happened": "New repo at +21.8 stars/day (143 total)",
    "why_it_matters": "🦆🧠 Give your small robot a brain. Tell a Microduck, an Open Duck Mini you built yourself, a Reachy Mini, a LeRobot arm or any ROS base what you want in plain language. An LLM (Claude, OpenAI, Gemini, ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W36:new-repos:tczyliu-china-travel-kit",
    "section": "new-repos",
    "subject": "tczyliu/china-travel-kit",
-   "what_happened": "New repo at +15.2 stars/day (111 total)",
+   "what_happened": "New repo at +15.5 stars/day (112 total)",
    "why_it_matters": "Source-aware China inbound travel data, CLI, HTTP API, and MCP server",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
