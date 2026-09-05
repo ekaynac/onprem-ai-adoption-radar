@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-05T04:44:14.457049+00:00",
+ "generated_at": "2026-09-05T06:55:40.560764+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-05T04:43:05.658233+00:00"
+   "observed_at": "2026-09-05T06:53:02.370448+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +280.7 stars/day (2482 total)",
+   "what_happened": "New repo at +271.7 stars/day (2487 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -47,8 +47,8 @@
    "id": "call:brief-2026-W36:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +86.5 stars/day (890 total)",
-   "why_it_matters": "Anti-hallucination for AI agents that read binaries. The model proposes, deterministic tools decide: every claim is VERIFIED or REFUTED against the real bytes, with evidence, and grounded facts surviv",
+   "what_happened": "New repo at +89.5 stars/day (896 total)",
+   "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +83.8 stars/day (470 total)",
+   "what_happened": "New repo at +84.6 stars/day (474 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W36:new-repos:duty1g-x64dbg-mcp-server",
    "section": "new-repos",
    "subject": "duty1g/x64dbg-mcp-server",
-   "what_happened": "New repo at +56 stars/day (1790 total)",
+   "what_happened": "New repo at +54 stars/day (1790 total)",
    "why_it_matters": "x64dbg-MCP Server is a native MCP (Model Context Protocol) plugin for x64dbg that exposes the debugger's full functionality over HTTP. Connect any MCP-compatible AI assistant and control x64dbg progra",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W36:new-repos:shtjww-llm-inference-capacity-handbook",
    "section": "new-repos",
    "subject": "shtjww/llm-inference-capacity-handbook",
-   "what_happened": "New repo at +25 stars/day (76 total)",
+   "what_happened": "New repo at +30 stars/day (81 total)",
    "why_it_matters": "大模型推理案头手册（开源版）：给定 GPU 算力，一个模型能扛多少 QPS？三层模型 × 三面墙 × 排队论 × 开环压测",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W36:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +17 stars/day (67 total)",
+   "what_happened": "New repo at +19 stars/day (69 total)",
    "why_it_matters": "Qwen3.8-27B on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
