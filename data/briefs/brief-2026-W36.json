@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-05T18:47:42.131471+00:00",
+ "generated_at": "2026-09-05T20:43:57.824304+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-05T18:46:42.733188+00:00"
+   "observed_at": "2026-09-05T20:43:15.157680+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +232.7 stars/day (2518 total)",
+   "what_happened": "New repo at +231.4 stars/day (2520 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +90.2 stars/day (502 total)",
+   "what_happened": "New repo at +90.6 stars/day (504 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W36:new-repos:shtjww-llm-inference-capacity-handbook",
    "section": "new-repos",
    "subject": "shtjww/llm-inference-capacity-handbook",
-   "what_happened": "New repo at +37 stars/day (88 total)",
+   "what_happened": "New repo at +38 stars/day (89 total)",
    "why_it_matters": "大模型推理案头手册（开源版）：给定 GPU 算力，一个模型能扛多少 QPS？三层模型 × 三面墙 × 排队论 × 开环压测",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
