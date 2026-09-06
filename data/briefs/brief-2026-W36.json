@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W36",
- "generated_at": "2026-09-05T22:40:12.744790+00:00",
+ "generated_at": "2026-09-06T01:26:40.976111+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-05T22:39:24.789275+00:00"
+   "observed_at": "2026-09-06T01:24:02.494558+00:00"
   },
   {
    "id": "call:brief-2026-W36:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +264.2 stars/day (2522 total)",
+   "what_happened": "New repo at +221.1 stars/day (2523 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -44,23 +44,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:2akouwu-reverify",
-   "section": "new-repos",
-   "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +102.5 stars/day (922 total)",
-   "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/2akouwu/reverify"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W36:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +90.8 stars/day (505 total)",
+   "what_happened": "New repo at +75.8 stars/day (506 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -70,10 +57,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W36:new-repos:2akouwu-reverify",
+   "section": "new-repos",
+   "subject": "2akouwu/reverify",
+   "what_happened": "New repo at +68.7 stars/day (923 total)",
+   "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/2akouwu/reverify"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W36:new-repos:carloslfu-slotstream",
    "section": "new-repos",
    "subject": "carloslfu/slotstream",
-   "what_happened": "New repo at +53.5 stars/day (295 total)",
+   "what_happened": "New repo at +42.8 stars/day (295 total)",
    "why_it_matters": "Run Qwen3.8-Flash-Next (125B MoE, 104 GB at 4-bit) on Macs with a fraction of that RAM by streaming experts from SSD. MLX + Swift, Ollama-compatible API.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W36:new-repos:shtjww-llm-inference-capacity-handbook",
    "section": "new-repos",
    "subject": "shtjww/llm-inference-capacity-handbook",
-   "what_happened": "New repo at +38 stars/day (89 total)",
+   "what_happened": "New repo at +19 stars/day (89 total)",
    "why_it_matters": "大模型推理案头手册（开源版）：给定 GPU 算力，一个模型能扛多少 QPS？三层模型 × 三面墙 × 排队论 × 开环压测",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,10 +96,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W36:new-repos:rokbenko-quackd",
+   "section": "new-repos",
+   "subject": "rokbenko/quackd",
+   "what_happened": "New repo at +17.8 stars/day (163 total)",
+   "why_it_matters": "🦆🧠 Give your small robot a brain. Tell a Microduck, an Open Duck Mini you built yourself, a Reachy Mini, a LeRobot arm or any ROS base what you want in human language. An LLM (Claude, OpenAI, Gemini, ",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/rokbenko/quackd"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W36:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +27 stars/day (77 total)",
+   "what_happened": "New repo at +15 stars/day (80 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,23 +122,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W36:new-repos:rokbenko-quackd",
-   "section": "new-repos",
-   "subject": "rokbenko/quackd",
-   "what_happened": "New repo at +21.8 stars/day (143 total)",
-   "why_it_matters": "🦆🧠 Give your small robot a brain. Tell a Microduck, an Open Duck Mini you built yourself, a Reachy Mini, a LeRobot arm or any ROS base what you want in plain language. An LLM (Claude, OpenAI, Gemini, ",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/rokbenko/quackd"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W36:new-repos:tczyliu-china-travel-kit",
    "section": "new-repos",
    "subject": "tczyliu/china-travel-kit",
-   "what_happened": "New repo at +15 stars/day (125 total)",
+   "what_happened": "New repo at +12.5 stars/day (125 total)",
    "why_it_matters": "Source-aware China inbound travel data, CLI, HTTP API, and MCP server",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
