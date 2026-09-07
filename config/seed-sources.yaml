@@ -702,6 +702,14 @@ sources:
     url: https://github.com/duty1g/x64dbg-mcp-server
     tags: [ai-agents, ai-debugging, binary-analysis, claude, auto-added]
     backer: {name: duty1g, type: community}
+  - id: github-codex-with-chatgpt
+    type: github_repo
+    enabled: true
+    project: codex-with-chatgpt
+    category: mcp_tooling
+    url: https://github.com/XiaoDuoYa/codex-with-chatgpt
+    tags: [ai-agents, chatgpt, codex, mcp, auto-added]
+    backer: {name: XiaoDuoYa, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
