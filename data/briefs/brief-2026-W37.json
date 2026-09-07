@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-07T18:52:50.012813+00:00",
+ "generated_at": "2026-09-07T20:46:58.804042+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-07T18:52:00.327312+00:00"
+   "observed_at": "2026-09-07T20:43:37.309898+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +109.3 stars/day (2573 total)",
+   "what_happened": "New repo at +107.3 stars/day (2573 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -47,7 +47,7 @@
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +72 stars/day (1005 total)",
+   "what_happened": "New repo at +72.8 stars/day (1008 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +57.6 stars/day (586 total)",
+   "what_happened": "New repo at +58 stars/day (594 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W37:new-repos:lotchuazzz-crypto-papergraph-mcp",
    "section": "new-repos",
    "subject": "lotchuazzz-crypto/papergraph-mcp",
-   "what_happened": "New repo at +20 stars/day (97 total)",
+   "what_happened": "New repo at +21 stars/day (98 total)",
    "why_it_matters": "Turn arXiv and LaTeX mathematical papers into theorem dependency graphs for AI agents through MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
