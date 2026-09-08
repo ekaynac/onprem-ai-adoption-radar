@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-08T08:55:06.866518+00:00",
+ "generated_at": "2026-09-08T10:47:24.806418+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-08T08:53:59.416257+00:00"
+   "observed_at": "2026-09-08T10:46:35.676367+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:datawhalechina-zero-to-sglang",
    "section": "new-repos",
    "subject": "datawhalechina/zero-to-sglang",
-   "what_happened": "New repo at +376 stars/day (500 total)",
+   "what_happened": "New repo at +388 stars/day (512 total)",
    "why_it_matters": "面向大模型开发者的 SGLang 系统化开源教程：从推理基础与环境搭建开始，逐步学习模型部署、结构化生成、服务开发和性能优化，   结合实战案例带你从 0 到 1 掌握 SGLang，构建高性能 LLM 推理应用",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +61.4 stars/day (1024 total)",
+   "what_happened": "New repo at +61.8 stars/day (1026 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +57.4 stars/day (619 total)",
+   "what_happened": "New repo at +58.7 stars/day (628 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W37:new-repos:carloslfu-slotstream",
    "section": "new-repos",
    "subject": "carloslfu/slotstream",
-   "what_happened": "New repo at +33.4 stars/day (315 total)",
+   "what_happened": "New repo at +33.7 stars/day (317 total)",
    "why_it_matters": "Run Qwen3.8-Flash-Next (125B MoE, 104 GB at 4-bit) on Macs with a fraction of that RAM by streaming experts from SSD. MLX + Swift, Ollama-compatible API.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W37:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +25.5 stars/day (152 total)",
+   "what_happened": "New repo at +25.8 stars/day (153 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W37:new-repos:truespar-paddock",
    "section": "new-repos",
    "subject": "truespar/paddock",
-   "what_happened": "New repo at +17 stars/day (67 total)",
+   "what_happened": "New repo at +18 stars/day (68 total)",
    "why_it_matters": "Native Rust inference server for open models on NVIDIA GPUs. OpenAI- and Anthropic-compatible APIs, GGUF + safetensors, FP8/NVFP4/MXFP4/Q8/Q4, built-in Studio",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
