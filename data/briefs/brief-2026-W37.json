@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-09T14:47:37.770128+00:00",
+ "generated_at": "2026-09-09T16:52:16.282711+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-09T14:46:57.133215+00:00"
+   "observed_at": "2026-09-09T16:48:24.040174+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:datawhalechina-zero-to-sglang",
    "section": "new-repos",
    "subject": "datawhalechina/zero-to-sglang",
-   "what_happened": "New repo at +248 stars/day (620 total)",
+   "what_happened": "New repo at +249.5 stars/day (623 total)",
    "why_it_matters": "Official SGLang × Datawhale course on LLM inference (中英双语): understand inference, build a mini-sglang from scratch, then read the real SGLang source and land your first PR. 《从零手搓SGLang》：读懂推理，手搓 mini-s",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +57.5 stars/day (1062 total)",
+   "what_happened": "New repo at +57.7 stars/day (1063 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +54.7 stars/day (690 total)",
+   "what_happened": "New repo at +53.4 stars/day (692 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude on your real GSC/GA4/ads data. Free MCP: claude mcp add ryze --transport http https://connector.get-ryze.ai/mcp",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W37:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +28 stars/day (506 total)",
+   "what_happened": "New repo at +32 stars/day (510 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W37:new-repos:chadhurley25075-png-pd-bridge",
    "section": "new-repos",
    "subject": "chadhurley25075-png/pd-bridge",
-   "what_happened": "New repo at +26 stars/day (104 total)",
+   "what_happened": "New repo at +26.5 stars/day (105 total)",
    "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W37:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +22.8 stars/day (164 total)",
+   "what_happened": "New repo at +23 stars/day (165 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -146,24 +146,11 @@
     "https://tiiny.ai/"
    ],
    "observed_at": "2026-09-07T21:09:12+00:00"
-  },
-  {
-   "id": "call:brief-2026-W37:news:researchers-trick-fortune-500-ai-agents-into-running-arbitrary-code-via-llms-txt",
-   "section": "news",
-   "subject": "Researchers trick Fortune-500 AI agents into running arbitrary code via llms.txt",
-   "what_happened": "Researchers demonstrated indirect prompt-injection supply-chain attacks in which malicious instructions embedded in llms.txt guidance files caused AI agents at Fortune-500 companies to execute arbitrary code. Operators running self-hosted agent stacks should treat llms.txt and other fetched documentation as untrusted data, not instructions, and sandbox or gate any tool/code-execution path driven by retrieved content.",
-   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on llms.txt, mcp, agent-frameworks",
-   "verdict": "evaluate",
-   "rationale": "Assess exposure before the next upgrade window",
-   "receipts": [
-    "https://www.tomshardware.com/tech-industry/artificial-intelligence/researchers-easily-trick-fortune-500-companies-ai-agents-into-running-arbitrary-code-supply-chain-attack-via-llms-txt-guidance-file-illustrates-how-data-has-become-code"
-   ],
-   "observed_at": "2026-09-02T15:07:08+00:00"
   }
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 5,
+  "evaluate": 4,
   "ignore": 7
  },
  "spotlight": {
