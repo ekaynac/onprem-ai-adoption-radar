@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-08T22:45:14.270366+00:00",
+ "generated_at": "2026-09-09T01:21:20.341072+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-08T22:42:39.646656+00:00"
+   "observed_at": "2026-09-09T01:20:37.113595+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:datawhalechina-zero-to-sglang",
    "section": "new-repos",
    "subject": "datawhalechina/zero-to-sglang",
-   "what_happened": "New repo at +429 stars/day (553 total)",
+   "what_happened": "New repo at +216 stars/day (556 total)",
    "why_it_matters": "面向大模型开发者的 SGLang 系统化开源教程：从推理基础与环境搭建开始，逐步学习模型部署、结构化生成、服务开发和性能优化，   结合实战案例带你从 0 到 1 掌握 SGLang，构建高性能 LLM 推理应用",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -57,11 +57,24 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W37:new-repos:noskillish-bankmcp",
+   "section": "new-repos",
+   "subject": "noskillish/bankmcp",
+   "what_happened": "New repo at +67 stars/day (163 total)",
+   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/noskillish/bankmcp"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +67.5 stars/day (660 total)",
-   "why_it_matters": "Open-source SEO + GEO skills for Claude — keyword research, rank tracking, site audits, backlinks, competitor gaps, AI visibility. Runs on your real Search Console / GA4 / ads data via MCP, with DataF",
+   "what_happened": "New repo at +58 stars/day (661 total)",
+   "why_it_matters": "Open-source SEO + GEO skills for Claude on your real GSC/GA4/ads data. Free MCP: claude mcp add ryze --transport http https://connector.get-ryze.ai/mcp",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
@@ -73,7 +86,7 @@
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +64.4 stars/day (1039 total)",
+   "what_happened": "New repo at +53.8 stars/day (1040 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -83,23 +96,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W37:new-repos:chadhurley25075-png-pd-bridge",
-   "section": "new-repos",
-   "subject": "chadhurley25075-png/pd-bridge",
-   "what_happened": "New repo at +50 stars/day (102 total)",
-   "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/chadhurley25075-png/pd-bridge"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W37:new-repos:carloslfu-slotstream",
    "section": "new-repos",
    "subject": "carloslfu/slotstream",
-   "what_happened": "New repo at +33.2 stars/day (324 total)",
+   "what_happened": "New repo at +28.4 stars/day (324 total)",
    "why_it_matters": "Run Qwen3.8-Flash-Next (125B MoE, 104 GB at 4-bit) on Macs with a fraction of that RAM by streaming experts from SSD. MLX + Swift, Ollama-compatible API.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,28 +109,28 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W37:new-repos:chadhurley25075-png-pd-bridge",
+   "section": "new-repos",
+   "subject": "chadhurley25075-png/pd-bridge",
+   "what_happened": "New repo at +25 stars/day (102 total)",
+   "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/chadhurley25075-png/pd-bridge"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W37:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +26.2 stars/day (155 total)",
+   "what_happened": "New repo at +21 stars/day (155 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/ARahim3/kaggle-tpu-lab"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W37:new-repos:truespar-paddock",
-   "section": "new-repos",
-   "subject": "truespar/paddock",
-   "what_happened": "New repo at +21 stars/day (71 total)",
-   "why_it_matters": "Native Rust inference server for open models on NVIDIA GPUs. OpenAI- and Anthropic-compatible APIs, GGUF + safetensors, FP8/NVFP4/MXFP4/Q8/Q4, built-in Studio",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/truespar/paddock"
    ],
    "observed_at": null
   },
