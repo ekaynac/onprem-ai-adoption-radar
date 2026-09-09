@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-09T16:52:16.282711+00:00",
+ "generated_at": "2026-09-09T18:53:29.750939+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-09T16:48:24.040174+00:00"
+   "observed_at": "2026-09-09T18:50:42.736035+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:datawhalechina-zero-to-sglang",
    "section": "new-repos",
    "subject": "datawhalechina/zero-to-sglang",
-   "what_happened": "New repo at +249.5 stars/day (623 total)",
+   "what_happened": "New repo at +251.5 stars/day (627 total)",
    "why_it_matters": "Official SGLang × Datawhale course on LLM inference (中英双语): understand inference, build a mini-sglang from scratch, then read the real SGLang source and land your first PR. 《从零手搓SGLang》：读懂推理，手搓 mini-s",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -47,7 +47,7 @@
    "id": "call:brief-2026-W37:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +75 stars/day (171 total)",
+   "what_happened": "New repo at +76 stars/day (172 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +57.7 stars/day (1063 total)",
+   "what_happened": "New repo at +58 stars/day (1065 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +53.4 stars/day (692 total)",
+   "what_happened": "New repo at +54.3 stars/day (698 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude on your real GSC/GA4/ads data. Free MCP: claude mcp add ryze --transport http https://connector.get-ryze.ai/mcp",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W37:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +32 stars/day (510 total)",
+   "what_happened": "New repo at +33 stars/day (511 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W37:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +23 stars/day (165 total)",
+   "what_happened": "New repo at +23.6 stars/day (168 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
