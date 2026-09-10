@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-10T20:44:36.315150+00:00",
+ "generated_at": "2026-09-10T22:39:54.268550+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-10T20:43:44.859911+00:00"
+   "observed_at": "2026-09-10T22:39:14.305184+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +48.1 stars/day (747 total)",
+   "what_happened": "New repo at +48.4 stars/day (749 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude on your real GSC/GA4/ads data. Free MCP: claude mcp add ryze --transport http https://connector.get-ryze.ai/mcp",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W37:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +40.5 stars/day (177 total)",
+   "what_happened": "New repo at +41 stars/day (178 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W37:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +34.5 stars/day (547 total)",
+   "what_happened": "New repo at +35.5 stars/day (549 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
