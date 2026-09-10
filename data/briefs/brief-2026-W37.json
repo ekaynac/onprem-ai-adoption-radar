@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-10T10:51:36.506768+00:00",
+ "generated_at": "2026-09-10T13:02:42.634084+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,13 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-10T10:48:55.779967+00:00"
+   "observed_at": "2026-09-10T12:59:58.850029+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:xiaoduoya-codex-with-chatgpt",
    "section": "new-repos",
    "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +58.8 stars/day (2573 total)",
+   "what_happened": "New repo at +54.8 stars/day (2573 total)",
    "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -47,7 +47,7 @@
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +52.7 stars/day (1086 total)",
+   "what_happened": "New repo at +53.1 stars/day (1089 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,12 +60,25 @@
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +49.4 stars/day (727 total)",
+   "what_happened": "New repo at +48.6 stars/day (729 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude on your real GSC/GA4/ads data. Free MCP: claude mcp add ryze --transport http https://connector.get-ryze.ai/mcp",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/Ryze-AI-Adgent/open-seo-mcp-skills"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W37:new-repos:atomburstofficial-geiger",
+   "section": "new-repos",
+   "subject": "Atomburstofficial/geiger",
+   "what_happened": "New repo at +44 stars/day (96 total)",
+   "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/Atomburstofficial/geiger"
    ],
    "observed_at": null
   },
@@ -83,23 +96,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W37:new-repos:atomburstofficial-geiger",
-   "section": "new-repos",
-   "subject": "Atomburstofficial/geiger",
-   "what_happened": "New repo at +39 stars/day (91 total)",
-   "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/Atomburstofficial/geiger"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W37:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +28 stars/day (534 total)",
+   "what_happened": "New repo at +30.5 stars/day (539 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
