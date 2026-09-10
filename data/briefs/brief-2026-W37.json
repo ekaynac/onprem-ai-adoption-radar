@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-09T22:44:51.027438+00:00",
+ "generated_at": "2026-09-10T01:23:39.009445+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,31 +28,18 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-09T22:43:32.216304+00:00"
+   "observed_at": "2026-09-10T01:20:46.584164+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:datawhalechina-zero-to-sglang",
    "section": "new-repos",
    "subject": "datawhalechina/zero-to-sglang",
-   "what_happened": "New repo at +251.5 stars/day (627 total)",
+   "what_happened": "New repo at +168.3 stars/day (629 total)",
    "why_it_matters": "Official SGLang × Datawhale course on LLM inference (中英双语): understand inference, build a mini-sglang from scratch, then read the real SGLang source and land your first PR. 《从零手搓SGLang》：读懂推理，手搓 mini-s",
-   "verdict": "evaluate",
-   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
-   "receipts": [
-    "https://github.com/datawhalechina/zero-to-sglang"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W37:new-repos:noskillish-bankmcp",
-   "section": "new-repos",
-   "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +77 stars/day (173 total)",
-   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/noskillish/bankmcp"
+    "https://github.com/datawhalechina/zero-to-sglang"
    ],
    "observed_at": null
   },
@@ -73,7 +60,7 @@
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +61.8 stars/day (708 total)",
+   "what_happened": "New repo at +53.3 stars/day (710 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude on your real GSC/GA4/ads data. Free MCP: claude mcp add ryze --transport http https://connector.get-ryze.ai/mcp",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +73,7 @@
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +58.2 stars/day (1066 total)",
+   "what_happened": "New repo at +50.1 stars/day (1068 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,10 +83,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W37:new-repos:noskillish-bankmcp",
+   "section": "new-repos",
+   "subject": "noskillish/bankmcp",
+   "what_happened": "New repo at +38.5 stars/day (173 total)",
+   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/noskillish/bankmcp"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W37:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +40 stars/day (518 total)",
+   "what_happened": "New repo at +20.5 stars/day (519 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,28 +109,28 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W37:new-repos:chadhurley25075-png-pd-bridge",
-   "section": "new-repos",
-   "subject": "chadhurley25075-png/pd-bridge",
-   "what_happened": "New repo at +26.5 stars/day (105 total)",
-   "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/chadhurley25075-png/pd-bridge"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W37:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +24 stars/day (170 total)",
+   "what_happened": "New repo at +20 stars/day (170 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/ARahim3/kaggle-tpu-lab"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W37:new-repos:atomburstofficial-geiger",
+   "section": "new-repos",
+   "subject": "Atomburstofficial/geiger",
+   "what_happened": "New repo at +18 stars/day (70 total)",
+   "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/Atomburstofficial/geiger"
    ],
    "observed_at": null
   },
@@ -150,8 +150,8 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 4,
-  "ignore": 7
+  "evaluate": 3,
+  "ignore": 8
  },
  "spotlight": {
   "task": "general-chat",
