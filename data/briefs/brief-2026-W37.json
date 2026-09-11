@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W37",
- "generated_at": "2026-09-11T02:57:23.015935+00:00",
+ "generated_at": "2026-09-11T04:52:27.325405+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,26 +28,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-11T02:54:46.884115+00:00"
-  },
-  {
-   "id": "call:brief-2026-W37:new-repos:xiaoduoya-codex-with-chatgpt",
-   "section": "new-repos",
-   "subject": "XiaoDuoYa/codex-with-chatgpt",
-   "what_happened": "New repo at +50.7 stars/day (2573 total)",
-   "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/XiaoDuoYa/codex-with-chatgpt"
-   ],
-   "observed_at": null
+   "observed_at": "2026-09-11T04:49:28.949075+00:00"
   },
   {
    "id": "call:brief-2026-W37:new-repos:ryze-ai-adgent-open-seo-mcp-skills",
    "section": "new-repos",
    "subject": "Ryze-AI-Adgent/open-seo-mcp-skills",
-   "what_happened": "New repo at +47.3 stars/day (754 total)",
+   "what_happened": "New repo at +47 stars/day (754 total)",
    "why_it_matters": "Open-source SEO + GEO skills for Claude on your real GSC/GA4/ads data. Free MCP: claude mcp add ryze --transport http https://connector.get-ryze.ai/mcp",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -57,10 +44,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W37:new-repos:xiaoduoya-codex-with-chatgpt",
+   "section": "new-repos",
+   "subject": "XiaoDuoYa/codex-with-chatgpt",
+   "what_happened": "New repo at +46 stars/day (2573 total)",
+   "why_it_matters": "ChatGPT thinks. Codex works. Use ChatGPT as the planning brain while keeping the Codex harness.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/XiaoDuoYa/codex-with-chatgpt"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W37:new-repos:2akouwu-reverify",
    "section": "new-repos",
    "subject": "2akouwu/reverify",
-   "what_happened": "New repo at +42 stars/day (1109 total)",
+   "what_happened": "New repo at +39.7 stars/day (1109 total)",
    "why_it_matters": "Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W37:new-repos:atomburstofficial-geiger",
    "section": "new-repos",
    "subject": "Atomburstofficial/geiger",
-   "what_happened": "New repo at +25.5 stars/day (103 total)",
+   "what_happened": "New repo at +26.5 stars/day (105 total)",
    "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W37:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +23.7 stars/day (549 total)",
+   "what_happened": "New repo at +24.3 stars/day (551 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
