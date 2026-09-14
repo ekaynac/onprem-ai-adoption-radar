@@ -1,13 +1,26 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-14T07:20:07.112435+00:00",
+ "generated_at": "2026-09-14T08:12:33.610908+00:00",
  "window_days": 7,
  "items": [
   {
-   "id": "call:brief-2026-W38:ring-moves:codex-with-chatgpt",
+   "id": "call:brief-2026-W38:ring-moves:hf-glm-5-3",
    "section": "ring-moves",
-   "subject": "codex-with-chatgpt",
+   "subject": "hf-glm-5-3",
+   "what_happened": "Model ring new → watch (new)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Ring changed to watch: reassess posture",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-09-14T08:11:21.469197+00:00"
+  },
+  {
+   "id": "call:brief-2026-W38:ring-moves:reverify",
+   "section": "ring-moves",
+   "subject": "reverify",
    "what_happened": "Project ring new → pilot (new)",
    "why_it_matters": "Project rings track the serving/tooling stack around the models",
    "verdict": "evaluate",
@@ -15,7 +28,7 @@
    "receipts": [
     "data/history.jsonl"
    ],
-   "observed_at": "2026-09-07T07:54:23.497028+00:00"
+   "observed_at": "2026-09-14T08:11:05.754642+00:00"
   },
   {
    "id": "call:brief-2026-W38:benchmark-moves:qwen2-5-coder-32b---aider-polyglot",
@@ -28,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-14T07:17:26.948340+00:00"
+   "observed_at": "2026-09-14T08:11:23.700106+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +25.5 stars/day (631 total)",
+   "what_happened": "New repo at +25.8 stars/day (633 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -70,6 +83,19 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W38:new-repos:krmisystems-fantasy-football-manager",
+   "section": "new-repos",
+   "subject": "krmisystems/fantasy-football-manager",
+   "what_happened": "New repo at +10.5 stars/day (87 total)",
+   "why_it_matters": "ESPN draft and lineup tools for Codex and other MCP clients, with browser sign-in, approval modes, per-team limits, and server monitoring.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/krmisystems/fantasy-football-manager"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W38:new-repos:lotchuazzz-crypto-papergraph-mcp",
    "section": "new-repos",
    "subject": "lotchuazzz-crypto/papergraph-mcp",
@@ -86,12 +112,25 @@
    "id": "call:brief-2026-W38:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +9.9 stars/day (202 total)",
+   "what_happened": "New repo at +10 stars/day (203 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/ARahim3/kaggle-tpu-lab"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W38:new-repos:reality-opened-openreality",
+   "section": "new-repos",
+   "subject": "reality-opened/openreality",
+   "what_happened": "New repo at +9 stars/day (96 total)",
+   "why_it_matters": "Open Reality: phone video to AI-queryable 3D scenes. MCP tools for Claude/Codex/Cursor (npm openreality-mcp), the self-hostable broker, and the VGGT-SLAM library, in one repo. BSD-2-Clause.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/reality-opened/openreality"
    ],
    "observed_at": null
   },
@@ -105,32 +144,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/chadhurley25075-png/pd-bridge"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W38:new-repos:reality-opened-openreality",
-   "section": "new-repos",
-   "subject": "reality-opened/openreality",
-   "what_happened": "New repo at +8.4 stars/day (93 total)",
-   "why_it_matters": "Open Reality: phone video to AI-queryable 3D scenes. MCP tools for Claude/Codex/Cursor (npm openreality-mcp), the self-hostable broker, and the VGGT-SLAM library, in one repo. BSD-2-Clause.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/reality-opened/openreality"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W38:new-repos:krmisystems-fantasy-football-manager",
-   "section": "new-repos",
-   "subject": "krmisystems/fantasy-football-manager",
-   "what_happened": "New repo at +6.5 stars/day (79 total)",
-   "why_it_matters": "ESPN draft and lineup tools for Codex and other MCP clients, with browser sign-in, approval modes, per-team limits, and server monitoring.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/krmisystems/fantasy-football-manager"
    ],
    "observed_at": null
   },
@@ -163,7 +176,7 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 4,
+  "evaluate": 5,
   "ignore": 8
  },
  "spotlight": {
