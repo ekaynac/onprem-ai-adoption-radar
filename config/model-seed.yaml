@@ -810,3 +810,17 @@ models:
     license: apache-2.0
     openness: open-permissive
     release_date: 2026-08
+
+  - id: hf-glm-5-3
+    name: GLM-5.3
+    family: zai-org
+    hf_repo: zai-org/GLM-5.3
+    backer: {name: "zai-org", type: community}
+    params_total: 753329940480
+    num_layers: 78
+    hidden_size: 6144
+    context_length: 1048576
+    modality: text
+    license: other
+    openness: open-restricted
+    release_date: 2026-09
