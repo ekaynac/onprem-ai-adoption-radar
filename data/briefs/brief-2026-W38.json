@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-14T01:36:56.314483+00:00",
+ "generated_at": "2026-09-14T03:02:09.699325+00:00",
  "window_days": 7,
  "items": [
   {
@@ -28,7 +28,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-14T01:34:17.804165+00:00"
+   "observed_at": "2026-09-14T03:01:30.169030+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
@@ -47,7 +47,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +19.7 stars/day (214 total)",
+   "what_happened": "New repo at +19.8 stars/day (215 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:arahim3-kaggle-tpu-lab",
    "section": "new-repos",
    "subject": "ARahim3/kaggle-tpu-lab",
-   "what_happened": "New repo at +11.3 stars/day (200 total)",
+   "what_happened": "New repo at +10.7 stars/day (200 total)",
    "why_it_matters": "Qwen3.8-27B (bf16) on a free Kaggle TPU: OpenAI-compatible endpoint, 262k context, ~130 tok/s, works with Claude Code, Codex, Opencode and Pi.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:lotchuazzz-crypto-papergraph-mcp",
    "section": "new-repos",
    "subject": "lotchuazzz-crypto/papergraph-mcp",
-   "what_happened": "New repo at +10.6 stars/day (162 total)",
+   "what_happened": "New repo at +10.3 stars/day (163 total)",
    "why_it_matters": "PaperGraph MCP turns math papers into evidence-grounded reading maps for AI agents: extract results, trace proof evidence, plan reading order, and review external dependencies without guessing.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W38:new-repos:reality-opened-openreality",
    "section": "new-repos",
    "subject": "reality-opened/openreality",
-   "what_happened": "New repo at +8 stars/day (91 total)",
+   "what_happened": "New repo at +8.2 stars/day (92 total)",
    "why_it_matters": "Open Reality: phone video to AI-queryable 3D scenes. MCP tools for Claude/Codex/Cursor (npm openreality-mcp), the self-hostable broker, and the VGGT-SLAM library, in one repo. BSD-2-Clause.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
