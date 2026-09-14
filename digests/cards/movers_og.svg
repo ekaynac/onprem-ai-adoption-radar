@@ -2,7 +2,9 @@
 <rect width="1200" height="630" fill="#ffffff"/>
 <rect width="1200" height="120" fill="#009FDA"/>
 <text x="48" y="80" font-size="56" font-weight="700" fill="#ffffff">MEGA</text>
-<text x="48" y="210" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W37</text>
-<text x="48" y="300" font-size="40" fill="#222222">codex-with-chatgpt  (tool) pilot</text>
+<text x="48" y="210" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W38</text>
+<text x="48" y="300" font-size="40" fill="#222222">hf-glm-5-3  (model) watch</text>
+<text x="48" y="364" font-size="40" fill="#222222">reverify  (tool) pilot</text>
+<text x="48" y="428" font-size="40" fill="#222222">disaggregated-prefill-decode  (technique) pilot → adopt</text>
 <text x="48" y="582" font-size="32" fill="#009FDA">on-prem AI adoption radar</text>
 </svg>
