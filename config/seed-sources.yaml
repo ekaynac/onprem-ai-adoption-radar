@@ -710,6 +710,14 @@ sources:
     url: https://github.com/XiaoDuoYa/codex-with-chatgpt
     tags: [ai-agents, chatgpt, codex, mcp, auto-added]
     backer: {name: XiaoDuoYa, type: community}
+  - id: github-reverify
+    type: github_repo
+    enabled: true
+    project: reverify
+    category: general_agents
+    url: https://github.com/2akouwu/reverify
+    tags: [ai, ai-agents, ai-coding, anti-hallucination, auto-added]
+    backer: {name: 2akouwu, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
