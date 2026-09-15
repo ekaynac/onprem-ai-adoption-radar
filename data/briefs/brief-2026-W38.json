@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-15T09:01:10.625730+00:00",
+ "generated_at": "2026-09-15T10:53:18.257140+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-15T08:59:28.655556+00:00"
+   "observed_at": "2026-09-15T10:51:15.666851+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +24.7 stars/day (651 total)",
+   "what_happened": "New repo at +24.9 stars/day (654 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +17.1 stars/day (216 total)",
+   "what_happened": "New repo at +17.3 stars/day (217 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W38:new-repos:chadhurley25075-png-pd-bridge",
    "section": "new-repos",
    "subject": "chadhurley25075-png/pd-bridge",
-   "what_happened": "New repo at +2 stars/day (113 total)",
+   "what_happened": "New repo at +1.6 stars/day (113 total)",
    "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -135,15 +135,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:bsab-italia-mcp-servers",
+   "id": "call:brief-2026-W38:new-repos:bsab-france-mcp-servers",
    "section": "new-repos",
-   "subject": "bsab/italia-mcp-servers",
-   "what_happened": "New repo at +0.7 stars/day (101 total)",
-   "why_it_matters": "Catalogo curato dei server MCP (Model Context Protocol) italiani — dati pubblici, legal-tech, fatturazione, PA e altro.",
+   "subject": "bsab/france-mcp-servers",
+   "what_happened": "New repo at +0.4 stars/day (84 total)",
+   "why_it_matters": "A curated catalog of Model Context Protocol servers for French data, laws, and services.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/bsab/italia-mcp-servers"
+    "https://github.com/bsab/france-mcp-servers"
    ],
    "observed_at": null
   },
