@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-15T10:53:18.257140+00:00",
+ "generated_at": "2026-09-15T13:08:10.619237+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,31 +41,18 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-15T10:51:15.666851+00:00"
+   "observed_at": "2026-09-15T13:04:35.673695+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +24.9 stars/day (654 total)",
+   "what_happened": "New repo at +24.4 stars/day (656 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/okf-memory/okf-agent-memory"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
-   "section": "new-repos",
-   "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +17.3 stars/day (217 total)",
-   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/noskillish/bankmcp"
    ],
    "observed_at": null
   },
@@ -83,10 +70,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
+   "section": "new-repos",
+   "subject": "noskillish/bankmcp",
+   "what_happened": "New repo at +13.1 stars/day (218 total)",
+   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/noskillish/bankmcp"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W38:new-repos:lotchuazzz-crypto-papergraph-mcp",
    "section": "new-repos",
    "subject": "lotchuazzz-crypto/papergraph-mcp",
-   "what_happened": "New repo at +10.3 stars/day (177 total)",
+   "what_happened": "New repo at +10.3 stars/day (178 total)",
    "why_it_matters": "PaperGraph MCP turns math papers into evidence-grounded reading maps for AI agents: extract results, trace proof evidence, plan reading order, and review external dependencies without guessing.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W38:new-repos:truespar-paddock",
    "section": "new-repos",
    "subject": "truespar/paddock",
-   "what_happened": "New repo at +3 stars/day (89 total)",
+   "what_happened": "New repo at +2.9 stars/day (90 total)",
    "why_it_matters": "Native Rust inference server for open models on NVIDIA GPUs. OpenAI- and Anthropic-compatible APIs, GGUF + safetensors, FP8/NVFP4/MXFP4/Q8/Q4, built-in Studio",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W38:new-repos:bsab-france-mcp-servers",
    "section": "new-repos",
    "subject": "bsab/france-mcp-servers",
-   "what_happened": "New repo at +0.4 stars/day (84 total)",
+   "what_happened": "New repo at +0.3 stars/day (84 total)",
    "why_it_matters": "A curated catalog of Model Context Protocol servers for French data, laws, and services.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
