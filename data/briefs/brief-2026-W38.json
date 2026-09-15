@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-15T18:53:47.512805+00:00",
+ "generated_at": "2026-09-15T20:51:07.665482+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-15T18:53:06.747184+00:00"
+   "observed_at": "2026-09-15T20:48:35.851933+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +24.4 stars/day (660 total)",
+   "what_happened": "New repo at +24.7 stars/day (663 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -83,28 +83,28 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
-   "section": "new-repos",
-   "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +9 stars/day (218 total)",
-   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/noskillish/bankmcp"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W38:new-repos:lotchuazzz-crypto-papergraph-mcp",
    "section": "new-repos",
    "subject": "lotchuazzz-crypto/papergraph-mcp",
-   "what_happened": "New repo at +9 stars/day (173 total)",
+   "what_happened": "New repo at +8.6 stars/day (173 total)",
    "why_it_matters": "PaperGraph MCP turns math papers into evidence-grounded reading maps for AI agents: extract results, trace proof evidence, plan reading order, and review external dependencies without guessing.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/lotchuazzz-crypto/papergraph-mcp"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
+   "section": "new-repos",
+   "subject": "noskillish/bankmcp",
+   "what_happened": "New repo at +8 stars/day (218 total)",
+   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/noskillish/bankmcp"
    ],
    "observed_at": null
   },
