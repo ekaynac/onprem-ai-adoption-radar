@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-15T13:08:10.619237+00:00",
+ "generated_at": "2026-09-15T14:51:46.431123+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-15T13:04:35.673695+00:00"
+   "observed_at": "2026-09-15T14:48:35.459703+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +24.4 stars/day (656 total)",
+   "what_happened": "New repo at +24.6 stars/day (657 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
