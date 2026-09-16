@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-16T16:54:43.871940+00:00",
+ "generated_at": "2026-09-16T18:57:54.370124+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,7 +41,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-16T16:52:00.578072+00:00"
+   "observed_at": "2026-09-16T18:56:08.636204+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +24.1 stars/day (680 total)",
+   "what_happened": "New repo at +23.9 stars/day (682 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:atomburstofficial-geiger",
    "section": "new-repos",
    "subject": "Atomburstofficial/geiger",
-   "what_happened": "New repo at +12.3 stars/day (138 total)",
+   "what_happened": "New repo at +11.3 stars/day (138 total)",
    "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +7.7 stars/day (226 total)",
+   "what_happened": "New repo at +8.1 stars/day (229 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W38:new-repos:krmisystems-fantasy-football-manager",
    "section": "new-repos",
    "subject": "krmisystems/fantasy-football-manager",
-   "what_happened": "New repo at +6.8 stars/day (93 total)",
+   "what_happened": "New repo at +7 stars/day (94 total)",
    "why_it_matters": "ESPN draft and lineup tools for Codex and other MCP clients, with browser sign-in, approval modes, per-team limits, and server monitoring.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W38:new-repos:nativephp-superstack",
    "section": "new-repos",
    "subject": "NativePHP/superstack",
-   "what_happened": "New repo at +5 stars/day (55 total)",
+   "what_happened": "New repo at +6 stars/day (56 total)",
    "why_it_matters": "Open-source Laravel starter with Filament, NativePHP SuperNative, and MCP",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
