@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-16T09:03:35.672008+00:00",
+ "generated_at": "2026-09-16T11:00:18.231991+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-16T09:02:43.393522+00:00"
+   "observed_at": "2026-09-16T10:58:11.692551+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
    "section": "new-repos",
    "subject": "JakeATX/llamAmpere",
-   "what_happened": "New repo at +30 stars/day (82 total)",
+   "what_happened": "New repo at +31 stars/day (83 total)",
    "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +24.9 stars/day (676 total)",
+   "what_happened": "New repo at +25.1 stars/day (680 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:atomburstofficial-geiger",
    "section": "new-repos",
    "subject": "Atomburstofficial/geiger",
-   "what_happened": "New repo at +12 stars/day (136 total)",
+   "what_happened": "New repo at +12.1 stars/day (137 total)",
    "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +7.1 stars/day (220 total)",
+   "what_happened": "New repo at +7.4 stars/day (223 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W38:new-repos:truespar-paddock",
    "section": "new-repos",
    "subject": "truespar/paddock",
-   "what_happened": "New repo at +2.4 stars/day (90 total)",
+   "what_happened": "New repo at +2.3 stars/day (90 total)",
    "why_it_matters": "Native Rust inference server for open models on NVIDIA GPUs. OpenAI- and Anthropic-compatible APIs, GGUF + safetensors, FP8/NVFP4/MXFP4/Q8/Q4, built-in Studio",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W38:new-repos:chadhurley25075-png-pd-bridge",
    "section": "new-repos",
    "subject": "chadhurley25075-png/pd-bridge",
-   "what_happened": "New repo at +2 stars/day (117 total)",
+   "what_happened": "New repo at +2.1 stars/day (118 total)",
    "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
