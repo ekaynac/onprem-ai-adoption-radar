@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-18T06:55:27.337880+00:00",
+ "generated_at": "2026-09-18T08:48:19.832784+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-18T06:54:37.013042+00:00"
+   "observed_at": "2026-09-18T08:46:38.624091+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +20.1 stars/day (694 total)",
+   "what_happened": "New repo at +19.9 stars/day (694 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -57,23 +57,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
-   "section": "new-repos",
-   "subject": "JakeATX/llamAmpere",
-   "what_happened": "New repo at +14 stars/day (94 total)",
-   "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/JakeATX/llamAmpere"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +14 stars/day (66 total)",
+   "what_happened": "New repo at +16 stars/day (68 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -83,10 +70,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
+   "section": "new-repos",
+   "subject": "JakeATX/llamAmpere",
+   "what_happened": "New repo at +14.3 stars/day (95 total)",
+   "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/JakeATX/llamAmpere"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +11 stars/day (72 total)",
+   "what_happened": "New repo at +11.5 stars/day (73 total)",
    "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +8.1 stars/day (235 total)",
+   "what_happened": "New repo at +8.3 stars/day (236 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W38:new-repos:nativephp-superstack",
    "section": "new-repos",
    "subject": "NativePHP/superstack",
-   "what_happened": "New repo at +5.3 stars/day (66 total)",
+   "what_happened": "New repo at +5.7 stars/day (67 total)",
    "why_it_matters": "Open-source Laravel starter with Filament, NativePHP SuperNative, and MCP",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
