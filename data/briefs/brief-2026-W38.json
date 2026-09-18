@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-18T02:50:46.069873+00:00",
+ "generated_at": "2026-09-18T04:45:07.671715+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-18T02:48:03.728651+00:00"
+   "observed_at": "2026-09-18T04:42:31.719435+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +20.7 stars/day (694 total)",
+   "what_happened": "New repo at +20.4 stars/day (694 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +10.5 stars/day (71 total)",
+   "what_happened": "New repo at +11 stars/day (72 total)",
    "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,19 +109,6 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:atomburstofficial-geiger",
-   "section": "new-repos",
-   "subject": "Atomburstofficial/geiger",
-   "what_happened": "New repo at +5.4 stars/day (141 total)",
-   "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/Atomburstofficial/geiger"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W38:new-repos:nativephp-superstack",
    "section": "new-repos",
    "subject": "NativePHP/superstack",
@@ -131,6 +118,19 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/NativePHP/superstack"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W38:new-repos:atomburstofficial-geiger",
+   "section": "new-repos",
+   "subject": "Atomburstofficial/geiger",
+   "what_happened": "New repo at +5.1 stars/day (141 total)",
+   "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/Atomburstofficial/geiger"
    ],
    "observed_at": null
   },
