@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-18T08:48:19.832784+00:00",
+ "generated_at": "2026-09-18T10:41:00.785735+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-18T08:46:38.624091+00:00"
+   "observed_at": "2026-09-18T10:38:20.950792+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +19.9 stars/day (694 total)",
+   "what_happened": "New repo at +19.6 stars/day (694 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +16 stars/day (68 total)",
+   "what_happened": "New repo at +18 stars/day (70 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +11.5 stars/day (73 total)",
+   "what_happened": "New repo at +12 stars/day (74 total)",
    "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W38:new-repos:nativephp-superstack",
    "section": "new-repos",
    "subject": "NativePHP/superstack",
-   "what_happened": "New repo at +5.7 stars/day (67 total)",
+   "what_happened": "New repo at +6.3 stars/day (69 total)",
    "why_it_matters": "Open-source Laravel starter with Filament, NativePHP SuperNative, and MCP",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
