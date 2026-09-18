@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-18T16:39:21.634981+00:00",
+ "generated_at": "2026-09-18T18:41:23.183019+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-18T16:38:21.848185+00:00"
+   "observed_at": "2026-09-18T18:40:21.570532+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +24 stars/day (76 total)",
+   "what_happened": "New repo at +31 stars/day (83 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +18.1 stars/day (695 total)",
+   "what_happened": "New repo at +17.7 stars/day (697 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
    "section": "new-repos",
    "subject": "JakeATX/llamAmpere",
-   "what_happened": "New repo at +14.3 stars/day (95 total)",
+   "what_happened": "New repo at +14.7 stars/day (96 total)",
    "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +12.5 stars/day (75 total)",
+   "what_happened": "New repo at +13.5 stars/day (77 total)",
    "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +8 stars/day (238 total)",
+   "what_happened": "New repo at +7.7 stars/day (238 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W38:new-repos:atomburstofficial-geiger",
    "section": "new-repos",
    "subject": "Atomburstofficial/geiger",
-   "what_happened": "New repo at +5.3 stars/day (144 total)",
+   "what_happened": "New repo at +5.1 stars/day (144 total)",
    "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -135,15 +135,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:krmisystems-fantasy-football-manager",
+   "id": "call:brief-2026-W38:new-repos:chadhurley25075-png-pd-bridge",
    "section": "new-repos",
-   "subject": "krmisystems/fantasy-football-manager",
-   "what_happened": "New repo at +4.7 stars/day (94 total)",
-   "why_it_matters": "ESPN draft and lineup tools for Codex and other MCP clients, with browser sign-in, approval modes, per-team limits, and server monitoring.",
+   "subject": "chadhurley25075-png/pd-bridge",
+   "what_happened": "New repo at +4.1 stars/day (138 total)",
+   "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/krmisystems/fantasy-football-manager"
+    "https://github.com/chadhurley25075-png/pd-bridge"
    ],
    "observed_at": null
   },
