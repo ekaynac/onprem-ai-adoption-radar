@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-18T01:15:23.957359+00:00",
+ "generated_at": "2026-09-18T02:50:46.069873+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-18T01:14:30.598769+00:00"
+   "observed_at": "2026-09-18T02:48:03.728651+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +20.6 stars/day (693 total)",
+   "what_happened": "New repo at +20.7 stars/day (694 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
    "section": "new-repos",
    "subject": "JakeATX/llamAmpere",
-   "what_happened": "New repo at +13.7 stars/day (93 total)",
+   "what_happened": "New repo at +14 stars/day (94 total)",
    "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +12 stars/day (64 total)",
+   "what_happened": "New repo at +14 stars/day (66 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W38:new-repos:atomburstofficial-geiger",
    "section": "new-repos",
    "subject": "Atomburstofficial/geiger",
-   "what_happened": "New repo at +5.7 stars/day (141 total)",
+   "what_happened": "New repo at +5.4 stars/day (141 total)",
    "why_it_matters": "A Geiger counter for AI agents — one read-only command that inventories every agent, MCP server, plugin, and AI extension on a machine",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -206,7 +206,7 @@
     "Best quant Q8_0 (~36.7 GB of 68.0 GB usable)",
     "Task capability p82 across 3 benchmark suites",
     "Curated ring: adopt",
-    "Discovery: lifecycle=verified → ring=pilot; first observed 2024-09-01T00:00:00+00:00; discovery evidence: trusted_registry",
+    "Discovery: lifecycle=recommended → ring=adopt; first observed 2024-09-01T00:00:00+00:00; discovery evidence: trusted_registry; qualified: Estimated 4-bit memory footprint: 61.65 GB at 32768 tokens",
     "~77.3 tok/s est. decode on this device"
    ]
   },
