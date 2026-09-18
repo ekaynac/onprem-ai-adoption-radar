@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-18T18:41:23.183019+00:00",
+ "generated_at": "2026-09-18T20:36:39.351123+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-18T18:40:21.570532+00:00"
+   "observed_at": "2026-09-18T20:35:51.803075+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +31 stars/day (83 total)",
+   "what_happened": "New repo at +38 stars/day (90 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +13.5 stars/day (77 total)",
+   "what_happened": "New repo at +14 stars/day (78 total)",
    "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +7.7 stars/day (238 total)",
+   "what_happened": "New repo at +7.6 stars/day (238 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W38:new-repos:chadhurley25075-png-pd-bridge",
    "section": "new-repos",
    "subject": "chadhurley25075-png/pd-bridge",
-   "what_happened": "New repo at +4.1 stars/day (138 total)",
+   "what_happened": "New repo at +4.3 stars/day (139 total)",
    "why_it_matters": "Heterogeneous prefill/decode for DeepSeek-V4-Flash: CUDA prefill (DGX Spark, vLLM) -> Metal decode (Mac Studio, oMLX) over plain 10GbE",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -172,24 +172,11 @@
     "https://lognebudo.github.io/llmxray/docs/en/articles/ollama-prefill-metrics.html"
    ],
    "observed_at": "2026-09-14T21:14:58+00:00"
-  },
-  {
-   "id": "call:brief-2026-W38:news:llmjacking--ai-model-hijacking-reaches-black-market-scale",
-   "section": "news",
-   "subject": "LLMjacking: AI Model Hijacking Reaches Black Market Scale",
-   "what_happened": "CSA research documents LLMjacking, where stolen credentials for LLM API endpoints are resold on black markets to run inference on someone else's infrastructure at their cost. Operators exposing self-hosted inference endpoints (vLLM, Ollama, TGI) should verify authentication is enforced, rotate leaked keys, and monitor for unexpected token consumption or unfamiliar client traffic.",
-   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on llm-inference-server, api-keys",
-   "verdict": "evaluate",
-   "rationale": "Assess exposure before the next upgrade window",
-   "receipts": [
-    "https://labs.cloudsecurityalliance.org/research/csa-research-note-llmjacking-black-market-ai-model-hijacking/"
-   ],
-   "observed_at": "2026-09-11T20:19:43+00:00"
   }
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 6,
+  "evaluate": 5,
   "ignore": 8
  },
  "spotlight": {
