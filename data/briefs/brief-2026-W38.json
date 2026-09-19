@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-19T04:39:26.672503+00:00",
+ "generated_at": "2026-09-19T06:50:10.248394+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-19T04:38:22.095878+00:00"
+   "observed_at": "2026-09-19T06:47:28.375892+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +44 stars/day (125 total)",
+   "what_happened": "New repo at +47 stars/day (128 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +20 stars/day (72 total)",
+   "what_happened": "New repo at +24 stars/day (76 total)",
    "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +16.9 stars/day (697 total)",
+   "what_happened": "New repo at +16.4 stars/day (698 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +10 stars/day (80 total)",
+   "what_happened": "New repo at +10.3 stars/day (81 total)",
    "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +7 stars/day (238 total)",
+   "what_happened": "New repo at +6.4 stars/day (238 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W38:new-repos:nativephp-superstack",
    "section": "new-repos",
    "subject": "NativePHP/superstack",
-   "what_happened": "New repo at +5.8 stars/day (73 total)",
+   "what_happened": "New repo at +6 stars/day (74 total)",
    "why_it_matters": "Open-source Laravel starter with Filament, NativePHP SuperNative, and MCP",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
