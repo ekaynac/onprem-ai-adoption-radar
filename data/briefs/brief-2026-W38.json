@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-19T14:36:23.059739+00:00",
+ "generated_at": "2026-09-19T16:40:27.364940+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-19T14:34:24.017361+00:00"
+   "observed_at": "2026-09-19T16:37:08.797430+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +59 stars/day (140 total)",
+   "what_happened": "New repo at +70 stars/day (151 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +34 stars/day (120 total)",
+   "what_happened": "New repo at +36 stars/day (124 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +31 stars/day (83 total)",
+   "what_happened": "New repo at +32 stars/day (84 total)",
    "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,12 +86,25 @@
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +14.9 stars/day (699 total)",
+   "what_happened": "New repo at +14.7 stars/day (700 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/okf-memory/okf-agent-memory"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
+   "section": "new-repos",
+   "subject": "hsj576/virtual-ai-infra-team",
+   "what_happened": "New repo at +11.3 stars/day (84 total)",
+   "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/hsj576/virtual-ai-infra-team"
    ],
    "observed_at": null
   },
@@ -109,32 +122,6 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
-   "section": "new-repos",
-   "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +10.7 stars/day (82 total)",
-   "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/hsj576/virtual-ai-infra-team"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
-   "section": "new-repos",
-   "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +6.3 stars/day (241 total)",
-   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/noskillish/bankmcp"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W38:new-repos:nativephp-superstack",
    "section": "new-repos",
    "subject": "NativePHP/superstack",
@@ -144,6 +131,19 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/NativePHP/superstack"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
+   "section": "new-repos",
+   "subject": "noskillish/bankmcp",
+   "what_happened": "New repo at +6.1 stars/day (242 total)",
+   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/noskillish/bankmcp"
    ],
    "observed_at": null
   },
