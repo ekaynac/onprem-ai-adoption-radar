@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-19T18:42:05.110136+00:00",
+ "generated_at": "2026-09-19T20:39:25.518203+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-19T18:38:07.495203+00:00"
+   "observed_at": "2026-09-19T20:38:37.840418+00:00"
   },
   {
    "id": "call:brief-2026-W38:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +71 stars/day (152 total)",
+   "what_happened": "New repo at +75 stars/day (156 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +39 stars/day (130 total)",
+   "what_happened": "New repo at +42.5 stars/day (137 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:okf-memory-okf-agent-memory",
    "section": "new-repos",
    "subject": "okf-memory/okf-agent-memory",
-   "what_happened": "New repo at +14.6 stars/day (700 total)",
+   "what_happened": "New repo at +14.3 stars/day (700 total)",
    "why_it_matters": "Git-native persistent memory for AI coding agents. Implements Google OKF v0.2 with sub-300µs in-memory BM25 search, embedded MCP server, and progressive disclosure. Slashes token bloat by 80% with zer",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +11.3 stars/day (84 total)",
+   "what_happened": "New repo at +11.7 stars/day (85 total)",
    "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,12 +112,25 @@
    "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
    "section": "new-repos",
    "subject": "JakeATX/llamAmpere",
-   "what_happened": "New repo at +11.2 stars/day (97 total)",
+   "what_happened": "New repo at +11.5 stars/day (98 total)",
    "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/JakeATX/llamAmpere"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
+   "section": "new-repos",
+   "subject": "noskillish/bankmcp",
+   "what_happened": "New repo at +6.4 stars/day (244 total)",
+   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/noskillish/bankmcp"
    ],
    "observed_at": null
   },
@@ -135,17 +148,17 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
-   "section": "new-repos",
-   "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +6.1 stars/day (242 total)",
-   "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "id": "call:brief-2026-W38:hardware:mac-mini-alternatives-for-local-llms--m6--m5-and-strix-halo",
+   "section": "hardware",
+   "subject": "Mac Mini Alternatives for Local LLMs: M6, M5 and Strix Halo",
+   "what_happened": "Roundup comparing small-form-factor machines for running local LLMs, covering Apple M5/M6-class Mac Mini systems against AMD Strix Halo (Ryzen AI Max) mini-PCs with large unified memory. Relevant to operators sizing low-cost single-node inference boxes, but it is a buyer's comparison rather than a product release or software change.",
+   "why_it_matters": "A newly launched platform is a hardware-catalog candidate; specs enter the catalog only with a verifiable source",
+   "verdict": "evaluate",
+   "rationale": "Review for the device catalog (curation stays human)",
    "receipts": [
-    "https://github.com/noskillish/bankmcp"
+    "https://terminalbytes.com/mac-mini-alternatives-local-llm-2026/"
    ],
-   "observed_at": null
+   "observed_at": "2026-09-19T17:09:01+00:00"
   },
   {
    "id": "call:brief-2026-W38:news:shodan-indexes-over-47-000-exposed-ollama-instances",
@@ -176,7 +189,7 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 5,
+  "evaluate": 6,
   "ignore": 8
  },
  "spotlight": {
