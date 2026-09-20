@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W38",
- "generated_at": "2026-09-19T22:35:42.178095+00:00",
+ "generated_at": "2026-09-20T01:21:14.078351+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,26 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-19T22:35:08.999773+00:00"
+   "observed_at": "2026-09-20T01:18:08.434038+00:00"
+  },
+  {
+   "id": "call:brief-2026-W38:new-repos:incoai-splash",
+   "section": "new-repos",
+   "subject": "incoai/splash",
+   "what_happened": "New repo at +242 stars/day (298 total)",
+   "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
+   "verdict": "evaluate",
+   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
+   "receipts": [
+    "https://github.com/incoai/splash"
+   ],
+   "observed_at": null
   },
   {
    "id": "call:brief-2026-W38:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +78 stars/day (159 total)",
+   "what_happened": "New repo at +41.5 stars/day (164 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +73,7 @@
    "id": "call:brief-2026-W38:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +46 stars/day (144 total)",
+   "what_happened": "New repo at +34.3 stars/day (155 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +86,7 @@
    "id": "call:brief-2026-W38:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +36 stars/day (88 total)",
+   "what_happened": "New repo at +19 stars/day (90 total)",
    "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -83,23 +96,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
-   "section": "new-repos",
-   "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +12 stars/day (86 total)",
-   "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/hsj576/virtual-ai-infra-team"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W38:new-repos:jakeatx-llamampere",
    "section": "new-repos",
    "subject": "JakeATX/llamAmpere",
-   "what_happened": "New repo at +11.5 stars/day (98 total)",
+   "what_happened": "New repo at +9.4 stars/day (99 total)",
    "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,10 +109,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W38:new-repos:hsj576-virtual-ai-infra-team",
+   "section": "new-repos",
+   "subject": "hsj576/virtual-ai-infra-team",
+   "what_happened": "New repo at +9.2 stars/day (87 total)",
+   "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/hsj576/virtual-ai-infra-team"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W38:new-repos:noskillish-bankmcp",
    "section": "new-repos",
    "subject": "noskillish/bankmcp",
-   "what_happened": "New repo at +6.6 stars/day (245 total)",
+   "what_happened": "New repo at +6.4 stars/day (245 total)",
    "why_it_matters": "BankMCP™: your AI can now read your bank. Self-hosted, read-only MCP server for your own bank accounts via open banking (Enable Banking). Standard MCP; tested with Claude and Ollama.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,25 +138,12 @@
    "id": "call:brief-2026-W38:new-repos:nativephp-superstack",
    "section": "new-repos",
    "subject": "NativePHP/superstack",
-   "what_happened": "New repo at +6.2 stars/day (75 total)",
+   "what_happened": "New repo at +5 stars/day (75 total)",
    "why_it_matters": "Open-source Laravel starter with Filament, NativePHP SuperNative, and MCP",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/NativePHP/superstack"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W38:new-repos:jangtrinh-design-os-3d-blender",
-   "section": "new-repos",
-   "subject": "jangtrinh/design-os-3d-blender",
-   "what_happened": "New repo at +5 stars/day (75 total)",
-   "why_it_matters": "AI agent operating system for Blender 5.2: bpy knowledge base, AGENT_OK execution contract, 3D-print production gate, worked keyboard and desktop-robot builds.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/jangtrinh/design-os-3d-blender"
    ],
    "observed_at": null
   },
@@ -189,8 +189,8 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 6,
-  "ignore": 8
+  "evaluate": 7,
+  "ignore": 7
  },
  "spotlight": {
   "task": "reasoning",
