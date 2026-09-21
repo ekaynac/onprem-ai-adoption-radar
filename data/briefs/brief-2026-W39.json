@@ -1,22 +1,9 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-21T07:56:46.355527+00:00",
+ "generated_at": "2026-09-21T08:40:15.484145+00:00",
  "window_days": 7,
  "items": [
-  {
-   "id": "call:brief-2026-W39:ring-moves:hf-glm-5-3",
-   "section": "ring-moves",
-   "subject": "hf-glm-5-3",
-   "what_happened": "Model ring new → watch (new)",
-   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
-   "verdict": "evaluate",
-   "rationale": "Ring changed to watch: reassess posture",
-   "receipts": [
-    "data/model-history.jsonl"
-   ],
-   "observed_at": "2026-09-14T08:11:21.469197+00:00"
-  },
   {
    "id": "call:brief-2026-W39:ring-moves:hf-minicpm5-2b",
    "section": "ring-moves",
@@ -29,19 +16,6 @@
     "data/model-history.jsonl"
    ],
    "observed_at": "2026-09-21T07:26:59.873381+00:00"
-  },
-  {
-   "id": "call:brief-2026-W39:ring-moves:reverify",
-   "section": "ring-moves",
-   "subject": "reverify",
-   "what_happened": "Project ring new → pilot (new)",
-   "why_it_matters": "Project rings track the serving/tooling stack around the models",
-   "verdict": "evaluate",
-   "rationale": "Entered pilot: worth a scoped evaluation",
-   "receipts": [
-    "data/history.jsonl"
-   ],
-   "observed_at": "2026-09-14T08:11:05.754642+00:00"
   },
   {
    "id": "call:brief-2026-W39:ring-moves:ai-infra-book",
@@ -67,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-21T07:53:54.904995+00:00"
+   "observed_at": "2026-09-21T08:37:32.182930+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +219.5 stars/day (495 total)",
+   "what_happened": "New repo at +221.5 stars/day (499 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -86,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +517 stars/day (574 total)",
+   "what_happened": "New repo at +520 stars/day (577 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -99,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +49 stars/day (112 total)",
+   "what_happened": "New repo at +51 stars/day (114 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +36.8 stars/day (199 total)",
+   "what_happened": "New repo at +37.2 stars/day (201 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -151,7 +125,7 @@
    "id": "call:brief-2026-W39:new-repos:ying-kai-liao-jev-browser",
    "section": "new-repos",
    "subject": "Ying-Kai-Liao/jev-browser",
-   "what_happened": "New repo at +11 stars/day (61 total)",
+   "what_happened": "New repo at +12 stars/day (62 total)",
    "why_it_matters": "Browser automation where an LLM plans and Jev (Typesafe System One) decides. Library, CLI and MCP server.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -215,7 +189,7 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 9,
+  "evaluate": 7,
   "ignore": 7
  },
  "spotlight": {
