@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-21T20:40:29.248264+00:00",
+ "generated_at": "2026-09-21T22:36:21.822479+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-21T20:37:02.056160+00:00"
+   "observed_at": "2026-09-21T22:35:01.153186+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +244 stars/day (544 total)",
+   "what_happened": "New repo at +248 stars/day (552 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +537 stars/day (594 total)",
+   "what_happened": "New repo at +538 stars/day (595 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +43.8 stars/day (227 total)",
+   "what_happened": "New repo at +45.8 stars/day (235 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +37.7 stars/day (194 total)",
+   "what_happened": "New repo at +38 stars/day (195 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -172,24 +172,11 @@
     "https://twitter.com/co11ateral/status/2100313790604599444"
    ],
    "observed_at": "2026-09-17T05:19:28+00:00"
-  },
-  {
-   "id": "call:brief-2026-W39:news:ollama-0-33-3-changed-what-prompt-eval-duration-measures",
-   "section": "news",
-   "subject": "Ollama 0.33.3 changed what prompt_eval_duration measures",
-   "what_happened": "Ollama 0.33.3 changed the semantics of the prompt_eval_duration field so it no longer measures the same prefill interval as in prior releases. Operators comparing prefill/TTFT benchmarks or dashboards built on Ollama's API timing fields across versions will see discontinuous numbers and should re-baseline their metrics.",
-   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on ollama",
-   "verdict": "evaluate",
-   "rationale": "Assess exposure before the next upgrade window",
-   "receipts": [
-    "https://lognebudo.github.io/llmxray/docs/en/articles/ollama-prefill-metrics.html"
-   ],
-   "observed_at": "2026-09-14T21:14:58+00:00"
   }
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 7,
+  "evaluate": 6,
   "ignore": 7
  },
  "spotlight": {
