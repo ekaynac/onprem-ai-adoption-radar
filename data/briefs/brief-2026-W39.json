@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-21T07:29:42.005737+00:00",
+ "generated_at": "2026-09-21T07:56:46.355527+00:00",
  "window_days": 7,
  "items": [
   {
@@ -44,6 +44,19 @@
    "observed_at": "2026-09-14T08:11:05.754642+00:00"
   },
   {
+   "id": "call:brief-2026-W39:ring-moves:ai-infra-book",
+   "section": "ring-moves",
+   "subject": "ai-infra-book",
+   "what_happened": "Project ring new → pilot (new)",
+   "why_it_matters": "Project rings track the serving/tooling stack around the models",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/history.jsonl"
+   ],
+   "observed_at": "2026-09-21T07:53:40.503186+00:00"
+  },
+  {
    "id": "call:brief-2026-W39:benchmark-moves:qwen2-5-coder-32b---aider-polyglot",
    "section": "benchmark-moves",
    "subject": "qwen2.5-coder-32b · aider-polyglot",
@@ -54,13 +67,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-21T07:27:02.034330+00:00"
+   "observed_at": "2026-09-21T07:53:54.904995+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +218 stars/day (492 total)",
+   "what_happened": "New repo at +219.5 stars/day (495 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "evaluate",
    "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
@@ -86,7 +99,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +46 stars/day (109 total)",
+   "what_happened": "New repo at +49 stars/day (112 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +125,7 @@
    "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +36 stars/day (189 total)",
+   "what_happened": "New repo at +36.7 stars/day (191 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -135,6 +148,19 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W39:new-repos:ying-kai-liao-jev-browser",
+   "section": "new-repos",
+   "subject": "Ying-Kai-Liao/jev-browser",
+   "what_happened": "New repo at +11 stars/day (61 total)",
+   "why_it_matters": "Browser automation where an LLM plans and Jev (Typesafe System One) decides. Library, CLI and MCP server.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/Ying-Kai-Liao/jev-browser"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W39:new-repos:hsj576-virtual-ai-infra-team",
    "section": "new-repos",
    "subject": "hsj576/virtual-ai-infra-team",
@@ -144,19 +170,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/hsj576/virtual-ai-infra-team"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W39:new-repos:ying-kai-liao-jev-browser",
-   "section": "new-repos",
-   "subject": "Ying-Kai-Liao/jev-browser",
-   "what_happened": "New repo at +9 stars/day (59 total)",
-   "why_it_matters": "Browser automation where an LLM plans and Jev (Typesafe System One) decides. Library, CLI and MCP server.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/Ying-Kai-Liao/jev-browser"
    ],
    "observed_at": null
   },
@@ -202,7 +215,7 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 8,
+  "evaluate": 9,
   "ignore": 7
  },
  "spotlight": {
