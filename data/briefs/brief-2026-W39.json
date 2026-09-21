@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-21T07:09:02.225918+00:00",
+ "generated_at": "2026-09-21T07:29:42.005737+00:00",
  "window_days": 7,
  "items": [
   {
@@ -16,6 +16,19 @@
     "data/model-history.jsonl"
    ],
    "observed_at": "2026-09-14T08:11:21.469197+00:00"
+  },
+  {
+   "id": "call:brief-2026-W39:ring-moves:hf-minicpm5-2b",
+   "section": "ring-moves",
+   "subject": "hf-minicpm5-2b",
+   "what_happened": "Model ring new → pilot (new)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-09-21T07:26:59.873381+00:00"
   },
   {
    "id": "call:brief-2026-W39:ring-moves:reverify",
@@ -41,7 +54,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-21T07:06:12.295955+00:00"
+   "observed_at": "2026-09-21T07:27:02.034330+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
@@ -60,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +516 stars/day (573 total)",
+   "what_happened": "New repo at +517 stars/day (574 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -73,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +45 stars/day (108 total)",
+   "what_happened": "New repo at +46 stars/day (109 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +99,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +36.5 stars/day (198 total)",
+   "what_happened": "New repo at +36.8 stars/day (199 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -189,7 +202,7 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 7,
+  "evaluate": 8,
   "ignore": 7
  },
  "spotlight": {
