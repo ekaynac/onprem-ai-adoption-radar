@@ -1,0 +1,216 @@
+{
+ "version": "brief-v1",
+ "id": "brief-2026-W39",
+ "generated_at": "2026-09-21T01:18:09.246420+00:00",
+ "window_days": 7,
+ "items": [
+  {
+   "id": "call:brief-2026-W39:ring-moves:hf-glm-5-3",
+   "section": "ring-moves",
+   "subject": "hf-glm-5-3",
+   "what_happened": "Model ring new → watch (new)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Ring changed to watch: reassess posture",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-09-14T08:11:21.469197+00:00"
+  },
+  {
+   "id": "call:brief-2026-W39:ring-moves:reverify",
+   "section": "ring-moves",
+   "subject": "reverify",
+   "what_happened": "Project ring new → pilot (new)",
+   "why_it_matters": "Project rings track the serving/tooling stack around the models",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/history.jsonl"
+   ],
+   "observed_at": "2026-09-14T08:11:05.754642+00:00"
+  },
+  {
+   "id": "call:brief-2026-W39:benchmark-moves:qwen2-5-coder-32b---aider-polyglot",
+   "section": "benchmark-moves",
+   "subject": "qwen2.5-coder-32b · aider-polyglot",
+   "what_happened": "aider-polyglot moved +8.4 points on aider-polyglot (8 → 16.4)",
+   "why_it_matters": "Independent benchmark movement changes the capability ranking the Answer Machine uses",
+   "verdict": "evaluate",
+   "rationale": "Re-rank candidates for affected tasks",
+   "receipts": [
+    "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
+   ],
+   "observed_at": "2026-09-21T01:16:38.900743+00:00"
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:incoai-splash",
+   "section": "new-repos",
+   "subject": "incoai/splash",
+   "what_happened": "New repo at +200 stars/day (456 total)",
+   "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
+   "verdict": "evaluate",
+   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
+   "receipts": [
+    "https://github.com/incoai/splash"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
+   "section": "new-repos",
+   "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
+   "what_happened": "New repo at +469 stars/day (526 total)",
+   "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
+   "verdict": "ignore",
+   "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
+   "receipts": [
+    "https://github.com/pallavi-shekhar/ai-engineering-interview-questions-company-wise"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
+   "section": "new-repos",
+   "subject": "hirotomasato/yowes",
+   "what_happened": "New repo at +39 stars/day (102 total)",
+   "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/hirotomasato/yowes"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
+   "section": "new-repos",
+   "subject": "ZeroDayEvil/ai-security-tool",
+   "what_happened": "New repo at +36.2 stars/day (197 total)",
+   "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/ZeroDayEvil/ai-security-tool"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
+   "section": "new-repos",
+   "subject": "NiazMorshed2007/jev-review",
+   "what_happened": "New repo at +34.3 stars/day (184 total)",
+   "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/NiazMorshed2007/jev-review"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
+   "section": "new-repos",
+   "subject": "mmdju/digikala-mcp",
+   "what_happened": "New repo at +14.7 stars/day (96 total)",
+   "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/mmdju/digikala-mcp"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:hsj576-virtual-ai-infra-team",
+   "section": "new-repos",
+   "subject": "hsj576/virtual-ai-infra-team",
+   "what_happened": "New repo at +9.4 stars/day (97 total)",
+   "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/hsj576/virtual-ai-infra-team"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:jakeatx-llamampere",
+   "section": "new-repos",
+   "subject": "JakeATX/llamAmpere",
+   "what_happened": "New repo at +8.5 stars/day (103 total)",
+   "why_it_matters": "llama.cpp fork for significantly improved performance on Ampere (especially RTX 3090 / 3090 Ti): TurboQuant KV cache, MTP speculative decoding with a 64K draft-vocabulary shortlist, custom SM86 + Qwen",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/JakeATX/llamAmpere"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:hardware:mac-mini-alternatives-for-local-llms--m6--m5-and-strix-halo",
+   "section": "hardware",
+   "subject": "Mac Mini Alternatives for Local LLMs: M6, M5 and Strix Halo",
+   "what_happened": "Roundup comparing small-form-factor machines for running local LLMs, covering Apple M5/M6-class Mac Mini systems against AMD Strix Halo (Ryzen AI Max) mini-PCs with large unified memory. Relevant to operators sizing low-cost single-node inference boxes, but it is a buyer's comparison rather than a product release or software change.",
+   "why_it_matters": "A newly launched platform is a hardware-catalog candidate; specs enter the catalog only with a verifiable source",
+   "verdict": "evaluate",
+   "rationale": "Review for the device catalog (curation stays human)",
+   "receipts": [
+    "https://terminalbytes.com/mac-mini-alternatives-local-llm-2026/"
+   ],
+   "observed_at": "2026-09-19T17:09:01+00:00"
+  },
+  {
+   "id": "call:brief-2026-W39:news:shodan-indexes-over-47-000-exposed-ollama-instances",
+   "section": "news",
+   "subject": "Shodan indexes over 47.000 exposed Ollama instances",
+   "what_happened": "A Shodan scan reportedly indexes over 47,000 Ollama instances reachable on the public internet, which by default expose unauthenticated API endpoints allowing model listing, pulling, deletion, and inference. Operators should verify OLLAMA_HOST binding, keep port 11434 off public interfaces, and place any external access behind an authenticating reverse proxy or VPN. Note: the source is a single social media post, so the figure is unverified.",
+   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on ollama",
+   "verdict": "evaluate",
+   "rationale": "Assess exposure before the next upgrade window",
+   "receipts": [
+    "https://twitter.com/co11ateral/status/2100313790604599444"
+   ],
+   "observed_at": "2026-09-17T05:19:28+00:00"
+  },
+  {
+   "id": "call:brief-2026-W39:news:ollama-0-33-3-changed-what-prompt-eval-duration-measures",
+   "section": "news",
+   "subject": "Ollama 0.33.3 changed what prompt_eval_duration measures",
+   "what_happened": "Ollama 0.33.3 changed the semantics of the prompt_eval_duration field so it no longer measures the same prefill interval as in prior releases. Operators comparing prefill/TTFT benchmarks or dashboards built on Ollama's API timing fields across versions will see discontinuous numbers and should re-baseline their metrics.",
+   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on ollama",
+   "verdict": "evaluate",
+   "rationale": "Assess exposure before the next upgrade window",
+   "receipts": [
+    "https://lognebudo.github.io/llmxray/docs/en/articles/ollama-prefill-metrics.html"
+   ],
+   "observed_at": "2026-09-14T21:14:58+00:00"
+  }
+ ],
+ "verdict_counts": {
+  "act": 0,
+  "evaluate": 7,
+  "ignore": 7
+ },
+ "spotlight": {
+  "task": "rag",
+  "task_label": "RAG over internal documents",
+  "device": "mac-128gb",
+  "top_candidate": {
+   "model_id": "hf-gemma-4-26b-a4b-nvfp4",
+   "name": "Gemma-4-26B-A4B-NVFP4",
+   "ring": "pilot",
+   "fit_verdict": "fits",
+   "reasons": [
+    "Fit: fits on Mac (128GB unified)",
+    "Best quant NVFP4 (~17.2 GB of 92.2 GB usable)",
+    "Task capability p100 across 2 benchmark suites",
+    "Curated ring: pilot",
+    "Discovery: lifecycle=verified → ring=pilot; first observed 2026-05-01T00:00:00+00:00; discovery evidence: trusted_registry; qualified: Estimated 4-bit memory footprint: 15.44 GB at 4096 tokens; No documented or tested platform compatibility evidence",
+    "~40.2 tok/s est. decode on this device"
+   ]
+  },
+  "note": "This week's worked answer: RAG over internal documents on mac-128gb → Gemma-4-26B-A4B-NVFP4"
+ },
+ "verdict_rules": "Deterministic v1 rules: adopt-promotions and adopt-exits are act; pilot entries, ≥3-point independent benchmark moves, new on-prem repos at ≥200 stars/day, news classified as breaking, and hardware-launch news (catalog candidates) are evaluate; slower new repos are ignore (recorded, so misses score too)"
+}
