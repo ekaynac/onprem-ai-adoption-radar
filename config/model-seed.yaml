@@ -824,3 +824,17 @@ models:
     license: other
     openness: open-restricted
     release_date: 2026-09
+
+  - id: hf-minicpm5-2b
+    name: MiniCPM5-2B
+    family: MiniCPM5
+    hf_repo: openbmb/MiniCPM5-2B
+    backer: {name: "openbmb", type: community}
+    params_total: 2516756480
+    num_layers: 42
+    hidden_size: 2048
+    context_length: 131072
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-09
