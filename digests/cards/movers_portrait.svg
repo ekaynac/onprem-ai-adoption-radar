@@ -2,9 +2,8 @@
 <rect width="1080" height="1350" fill="#ffffff"/>
 <rect width="1080" height="168" fill="#009FDA"/>
 <text x="48" y="128" font-size="56" font-weight="700" fill="#ffffff">MEGA</text>
-<text x="48" y="258" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W38</text>
-<text x="48" y="348" font-size="40" fill="#222222">hf-glm-5-3  (model) watch</text>
-<text x="48" y="412" font-size="40" fill="#222222">reverify  (tool) pilot</text>
-<text x="48" y="476" font-size="40" fill="#222222">disaggregated-prefill-decode  (technique) pilot → adopt</text>
+<text x="48" y="258" font-size="52" font-weight="700" fill="#111111">Ring changes · 2026-W39</text>
+<text x="48" y="348" font-size="40" fill="#222222">ai-infra-book  (tool) pilot</text>
+<text x="48" y="412" font-size="40" fill="#222222">hf-minicpm5-2b  (model) pilot</text>
 <text x="48" y="1302" font-size="32" fill="#009FDA">on-prem AI adoption radar</text>
 </svg>
