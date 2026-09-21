@@ -718,6 +718,14 @@ sources:
     url: https://github.com/2akouwu/reverify
     tags: [ai, ai-agents, ai-coding, anti-hallucination, auto-added]
     backer: {name: 2akouwu, type: community}
+  - id: github-ai-infra-book
+    type: github_repo
+    enabled: true
+    project: ai-infra-book
+    category: ai_infrastructure
+    url: https://github.com/bojieli/ai-infra-book
+    tags: [accelerator, ai-infra, ai-infrastructure, book, auto-added]
+    backer: {name: bojieli, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
