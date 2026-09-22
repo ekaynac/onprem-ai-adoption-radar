@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-22T14:43:12.750328+00:00",
+ "generated_at": "2026-09-22T16:43:03.798957+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-22T14:42:23.035505+00:00"
+   "observed_at": "2026-09-22T16:41:45.816585+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +282 stars/day (621 total)",
+   "what_happened": "New repo at +283 stars/day (623 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +182.3 stars/day (603 total)",
+   "what_happened": "New repo at +184.3 stars/day (609 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +40.5 stars/day (144 total)",
+   "what_happened": "New repo at +42 stars/day (147 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +39.2 stars/day (248 total)",
+   "what_happened": "New repo at +40 stars/day (252 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +12 stars/day (100 total)",
+   "what_happened": "New repo at +12.8 stars/day (103 total)",
    "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
