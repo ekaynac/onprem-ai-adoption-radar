@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-21T22:36:21.822479+00:00",
+ "generated_at": "2026-09-22T01:16:10.407604+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,26 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-21T22:35:01.153186+00:00"
-  },
-  {
-   "id": "call:brief-2026-W39:new-repos:incoai-splash",
-   "section": "new-repos",
-   "subject": "incoai/splash",
-   "what_happened": "New repo at +248 stars/day (552 total)",
-   "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
-   "verdict": "evaluate",
-   "rationale": "Velocity ≥ 200/day: look before the crowd arrives",
-   "receipts": [
-    "https://github.com/incoai/splash"
-   ],
-   "observed_at": null
+   "observed_at": "2026-09-22T01:14:23.839005+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +538 stars/day (595 total)",
+   "what_happened": "New repo at +272 stars/day (601 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -70,15 +57,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
+   "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
-   "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +64 stars/day (127 total)",
-   "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
+   "subject": "incoai/splash",
+   "what_happened": "New repo at +168.7 stars/day (562 total)",
+   "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/hirotomasato/yowes"
+    "https://github.com/incoai/splash"
    ],
    "observed_at": null
   },
@@ -86,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +45.8 stars/day (235 total)",
+   "what_happened": "New repo at +38 stars/day (242 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,10 +83,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
+   "section": "new-repos",
+   "subject": "hirotomasato/yowes",
+   "what_happened": "New repo at +33 stars/day (129 total)",
+   "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/hirotomasato/yowes"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +38 stars/day (195 total)",
+   "what_happened": "New repo at +28.8 stars/day (196 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +16 stars/day (100 total)",
+   "what_happened": "New repo at +12 stars/day (100 total)",
    "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -122,28 +122,28 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W39:new-repos:js713-lab-sonic-match-mcp",
+   "section": "new-repos",
+   "subject": "js713-lab/sonic-match-mcp",
+   "what_happened": "New repo at +10 stars/day (81 total)",
+   "why_it_matters": "MCP server that watches video footage and returns license-safe BGM matches, hook windows, and ffmpeg ducking specs for agents.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/js713-lab/sonic-match-mcp"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W39:new-repos:ying-kai-liao-jev-browser",
    "section": "new-repos",
    "subject": "Ying-Kai-Liao/jev-browser",
-   "what_happened": "New repo at +16 stars/day (66 total)",
+   "what_happened": "New repo at +8.5 stars/day (67 total)",
    "why_it_matters": "Browser automation where an LLM plans and Jev (Typesafe System One) decides. Library, CLI and MCP server.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/Ying-Kai-Liao/jev-browser"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W39:new-repos:hsj576-virtual-ai-infra-team",
-   "section": "new-repos",
-   "subject": "hsj576/virtual-ai-infra-team",
-   "what_happened": "New repo at +9.8 stars/day (99 total)",
-   "why_it_matters": "An open-source virtual AI Infra team that discovers, benchmarks, and safely upgrades local LLM inference—with independent quality gates, a stable OpenAI-compatible API, and automatic rollback.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/hsj576/virtual-ai-infra-team"
    ],
    "observed_at": null
   },
@@ -176,8 +176,8 @@
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 6,
-  "ignore": 7
+  "evaluate": 5,
+  "ignore": 8
  },
  "spotlight": {
   "task": "rag",
