@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-22T06:54:48.366285+00:00",
+ "generated_at": "2026-09-22T08:46:09.584676+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-22T06:54:10.036763+00:00"
+   "observed_at": "2026-09-22T08:45:30.980820+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +278.5 stars/day (614 total)",
+   "what_happened": "New repo at +280 stars/day (617 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity ≥ 200/day but no serving-stack signal in the description — demoted to ignore so agent apps don't queue operators",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +175 stars/day (581 total)",
+   "what_happened": "New repo at +177.7 stars/day (589 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +38 stars/day (242 total)",
+   "what_happened": "New repo at +38.6 stars/day (245 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +34.5 stars/day (132 total)",
+   "what_happened": "New repo at +36.5 stars/day (136 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,6 +109,19 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W39:new-repos:js713-lab-sonic-match-mcp",
+   "section": "new-repos",
+   "subject": "js713-lab/sonic-match-mcp",
+   "what_happened": "New repo at +14 stars/day (85 total)",
+   "why_it_matters": "MCP server that watches video footage and returns license-safe BGM matches, hook windows, and ffmpeg ducking specs for agents.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/js713-lab/sonic-match-mcp"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
@@ -122,23 +135,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W39:new-repos:js713-lab-sonic-match-mcp",
-   "section": "new-repos",
-   "subject": "js713-lab/sonic-match-mcp",
-   "what_happened": "New repo at +11 stars/day (82 total)",
-   "why_it_matters": "MCP server that watches video footage and returns license-safe BGM matches, hook windows, and ffmpeg ducking specs for agents.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/js713-lab/sonic-match-mcp"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W39:new-repos:ying-kai-liao-jev-browser",
    "section": "new-repos",
    "subject": "Ying-Kai-Liao/jev-browser",
-   "what_happened": "New repo at +8.5 stars/day (67 total)",
+   "what_happened": "New repo at +9.5 stars/day (69 total)",
    "why_it_matters": "Browser automation where an LLM plans and Jev (Typesafe System One) decides. Library, CLI and MCP server.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
