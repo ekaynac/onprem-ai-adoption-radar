@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-24T04:44:28.263899+00:00",
+ "generated_at": "2026-09-24T06:55:12.472564+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-24T04:41:02.203204+00:00"
+   "observed_at": "2026-09-24T06:54:07.618783+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +146 stars/day (641 total)",
+   "what_happened": "New repo at +146.8 stars/day (644 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +128.6 stars/day (699 total)",
+   "what_happened": "New repo at +130 stars/day (706 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +38.1 stars/day (319 total)",
+   "what_happened": "New repo at +38 stars/day (318 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +27 stars/day (171 total)",
+   "what_happened": "New repo at +27.2 stars/day (172 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W39:new-repos:noizai-yue2-turbo",
    "section": "new-repos",
    "subject": "NoizAI/YuE2-Turbo",
-   "what_happened": "New repo at +13 stars/day (64 total)",
+   "what_happened": "New repo at +14 stars/day (65 total)",
    "why_it_matters": "Fast, concurrent inference for YuE2. Same model and recipe: 1.68× faster per song, 3.31× more songs per GPU.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -135,15 +135,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W39:new-repos:js713-lab-sonic-match-mcp",
+   "id": "call:brief-2026-W39:new-repos:nassim-arifette-jevgrep",
    "section": "new-repos",
-   "subject": "js713-lab/sonic-match-mcp",
-   "what_happened": "New repo at +10.3 stars/day (102 total)",
-   "why_it_matters": "MCP server that watches video footage and returns license-safe BGM matches, hook windows, and ffmpeg ducking specs for agents.",
+   "subject": "nassim-arifette/jevgrep",
+   "what_happened": "New repo at +9 stars/day (62 total)",
+   "why_it_matters": "Jev-powered semantic code search for coding agents — find behavior across repositories via CLI or MCP, with exact source excerpts and line numbers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/js713-lab/sonic-match-mcp"
+    "https://github.com/nassim-arifette/jevgrep"
    ],
    "observed_at": null
   },
@@ -159,24 +159,11 @@
     "https://terminalbytes.com/mac-mini-alternatives-local-llm-2026/"
    ],
    "observed_at": "2026-09-19T17:09:01+00:00"
-  },
-  {
-   "id": "call:brief-2026-W39:news:shodan-indexes-over-47-000-exposed-ollama-instances",
-   "section": "news",
-   "subject": "Shodan indexes over 47.000 exposed Ollama instances",
-   "what_happened": "A Shodan scan reportedly indexes over 47,000 Ollama instances reachable on the public internet, which by default expose unauthenticated API endpoints allowing model listing, pulling, deletion, and inference. Operators should verify OLLAMA_HOST binding, keep port 11434 off public interfaces, and place any external access behind an authenticating reverse proxy or VPN. Note: the source is a single social media post, so the figure is unverified.",
-   "why_it_matters": "Classified as breaking for on-prem operators: action may be required on ollama",
-   "verdict": "evaluate",
-   "rationale": "Assess exposure before the next upgrade window",
-   "receipts": [
-    "https://twitter.com/co11ateral/status/2100313790604599444"
-   ],
-   "observed_at": "2026-09-17T05:19:28+00:00"
   }
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 5,
+  "evaluate": 4,
   "ignore": 8
  },
  "spotlight": {
