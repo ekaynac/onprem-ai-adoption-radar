@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-24T10:42:04.533850+00:00",
+ "generated_at": "2026-09-24T12:52:19.969732+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-24T10:41:04.805565+00:00"
+   "observed_at": "2026-09-24T12:50:37.318969+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +147 stars/day (645 total)",
+   "what_happened": "New repo at +147.2 stars/day (646 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +132.6 stars/day (719 total)",
+   "what_happened": "New repo at +133.4 stars/day (723 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +23 stars/day (219 total)",
+   "what_happened": "New repo at +23.2 stars/day (220 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,23 +109,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
-   "section": "new-repos",
-   "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +10.7 stars/day (116 total)",
-   "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/mmdju/digikala-mcp"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W39:new-repos:nassim-arifette-jevgrep",
    "section": "new-repos",
    "subject": "nassim-arifette/jevgrep",
-   "what_happened": "New repo at +9 stars/day (62 total)",
+   "what_happened": "New repo at +11 stars/day (64 total)",
    "why_it_matters": "Jev-powered semantic code search for coding agents — find behavior across repositories via CLI or MCP, with exact source excerpts and line numbers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -135,10 +122,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
+   "section": "new-repos",
+   "subject": "mmdju/digikala-mcp",
+   "what_happened": "New repo at +10.5 stars/day (115 total)",
+   "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/mmdju/digikala-mcp"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W39:new-repos:ying-kai-liao-jev-browser",
    "section": "new-repos",
    "subject": "Ying-Kai-Liao/jev-browser",
-   "what_happened": "New repo at +8 stars/day (82 total)",
+   "what_happened": "New repo at +8.2 stars/day (83 total)",
    "why_it_matters": "Browser automation where an LLM plans and Jev (Typesafe System One) decides. Library, CLI and MCP server.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
