@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-24T01:13:16.152961+00:00",
+ "generated_at": "2026-09-24T02:48:21.353623+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-24T01:12:41.187567+00:00"
+   "observed_at": "2026-09-24T02:45:25.873379+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +145.2 stars/day (638 total)",
+   "what_happened": "New repo at +145.8 stars/day (640 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +126 stars/day (686 total)",
+   "what_happened": "New repo at +126.8 stars/day (690 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:zerodayevil-ai-security-tool",
    "section": "new-repos",
    "subject": "ZeroDayEvil/ai-security-tool",
-   "what_happened": "New repo at +37.9 stars/day (317 total)",
+   "what_happened": "New repo at +38.1 stars/day (319 total)",
    "why_it_matters": "🛡️ Free open-source AI-powered security terminal & vulnerability scanner (CVE, SBOM). Supports SSH, SFTP, RDP, VNC, Serial, and 12+ autonomous AI agents (DeepSeek, OpenAI) for automated security workf",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +26.8 stars/day (170 total)",
+   "what_happened": "New repo at +27 stars/day (171 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W39:new-repos:noizai-yue2-turbo",
    "section": "new-repos",
    "subject": "NoizAI/YuE2-Turbo",
-   "what_happened": "New repo at +14 stars/day (65 total)",
+   "what_happened": "New repo at +13 stars/day (64 total)",
    "why_it_matters": "Fast, concurrent inference for YuE2. Same model and recipe: 1.68× faster per song, 3.31× more songs per GPU.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W39:new-repos:js713-lab-sonic-match-mcp",
    "section": "new-repos",
    "subject": "js713-lab/sonic-match-mcp",
-   "what_happened": "New repo at +9.7 stars/day (100 total)",
+   "what_happened": "New repo at +10 stars/day (101 total)",
    "why_it_matters": "MCP server that watches video footage and returns license-safe BGM matches, hook windows, and ffmpeg ducking specs for agents.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
