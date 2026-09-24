@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-24T16:45:44.109931+00:00",
+ "generated_at": "2026-09-24T18:44:23.563811+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-24T16:44:50.941543+00:00"
+   "observed_at": "2026-09-24T18:42:07.208645+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +147.2 stars/day (646 total)",
+   "what_happened": "New repo at +147.8 stars/day (648 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +138 stars/day (746 total)",
+   "what_happened": "New repo at +139.8 stars/day (755 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +27.5 stars/day (173 total)",
+   "what_happened": "New repo at +27.8 stars/day (174 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,28 +96,28 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W39:new-repos:noizai-yue2-turbo",
-   "section": "new-repos",
-   "subject": "NoizAI/YuE2-Turbo",
-   "what_happened": "New repo at +14 stars/day (65 total)",
-   "why_it_matters": "Fast, concurrent inference for YuE2. Same model and recipe: 1.68× faster per song, 3.31× more songs per GPU.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/NoizAI/YuE2-Turbo"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W39:new-repos:nassim-arifette-jevgrep",
    "section": "new-repos",
    "subject": "nassim-arifette/jevgrep",
-   "what_happened": "New repo at +13 stars/day (66 total)",
+   "what_happened": "New repo at +16 stars/day (69 total)",
    "why_it_matters": "Jev-powered semantic code search for coding agents — find behavior across repositories via CLI or MCP, with exact source excerpts and line numbers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/nassim-arifette/jevgrep"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:noizai-yue2-turbo",
+   "section": "new-repos",
+   "subject": "NoizAI/YuE2-Turbo",
+   "what_happened": "New repo at +15 stars/day (66 total)",
+   "why_it_matters": "Fast, concurrent inference for YuE2. Same model and recipe: 1.68× faster per song, 3.31× more songs per GPU.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/NoizAI/YuE2-Turbo"
    ],
    "observed_at": null
   },
