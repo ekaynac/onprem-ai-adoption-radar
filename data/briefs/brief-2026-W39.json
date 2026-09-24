@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-24T12:52:19.969732+00:00",
+ "generated_at": "2026-09-24T14:46:34.873698+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,7 +41,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-24T12:50:37.318969+00:00"
+   "observed_at": "2026-09-24T14:43:21.318273+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +133.4 stars/day (723 total)",
+   "what_happened": "New repo at +135.2 stars/day (732 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +27.2 stars/day (172 total)",
+   "what_happened": "New repo at +27.5 stars/day (173 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,7 +86,7 @@
    "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +23.2 stars/day (220 total)",
+   "what_happened": "New repo at +23.3 stars/day (221 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
