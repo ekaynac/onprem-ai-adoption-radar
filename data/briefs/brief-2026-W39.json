@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-24T20:41:53.066225+00:00",
+ "generated_at": "2026-09-24T22:39:26.036774+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-24T20:39:51.662282+00:00"
+   "observed_at": "2026-09-24T22:36:47.295201+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +147.8 stars/day (648 total)",
+   "what_happened": "New repo at +148 stars/day (649 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +141.4 stars/day (763 total)",
+   "what_happened": "New repo at +142 stars/day (766 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +10.8 stars/day (117 total)",
+   "what_happened": "New repo at +11 stars/day (118 total)",
    "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
