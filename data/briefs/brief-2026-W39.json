@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-24T14:46:34.873698+00:00",
+ "generated_at": "2026-09-24T16:45:44.109931+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,7 +41,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-24T14:43:21.318273+00:00"
+   "observed_at": "2026-09-24T16:44:50.941543+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +135.2 stars/day (732 total)",
+   "what_happened": "New repo at +138 stars/day (746 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W39:new-repos:nassim-arifette-jevgrep",
    "section": "new-repos",
    "subject": "nassim-arifette/jevgrep",
-   "what_happened": "New repo at +11 stars/day (64 total)",
+   "what_happened": "New repo at +13 stars/day (66 total)",
    "why_it_matters": "Jev-powered semantic code search for coding agents — find behavior across repositories via CLI or MCP, with exact source excerpts and line numbers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W39:new-repos:mmdju-digikala-mcp",
    "section": "new-repos",
    "subject": "mmdju/digikala-mcp",
-   "what_happened": "New repo at +10.5 stars/day (115 total)",
+   "what_happened": "New repo at +10.8 stars/day (117 total)",
    "why_it_matters": "MCP server for Digikala: search, compare and price-check products on Iran's largest marketplace. Read-only, no API key. 16 tools, hosted on Cloudflare Workers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
