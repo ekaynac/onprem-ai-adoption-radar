@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-25T01:13:11.246472+00:00",
+ "generated_at": "2026-09-25T02:44:39.906804+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-25T01:12:21.527525+00:00"
+   "observed_at": "2026-09-25T02:43:39.027959+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +119.2 stars/day (771 total)",
+   "what_happened": "New repo at +119.5 stars/day (773 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +118.4 stars/day (649 total)",
+   "what_happened": "New repo at +118.6 stars/day (650 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W39:new-repos:insane0777-awwards-mcp",
    "section": "new-repos",
    "subject": "INSANE0777/Awwards-mcp",
-   "what_happened": "New repo at +28 stars/day (78 total)",
+   "what_happened": "New repo at +32 stars/day (82 total)",
    "why_it_matters": "Free, open-source MCP server that gives AI coding agents (Claude Code, Codex, Cursor, OpenCode, ZCode…) design inspiration from award-winning websites — search with real screenshots, pull design DNA, ",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +20 stars/day (221 total)",
+   "what_happened": "New repo at +19.6 stars/day (221 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -109,10 +109,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W39:new-repos:akashpriyadarshii-jev-seo",
+   "section": "new-repos",
+   "subject": "AkashPriyadarshii/jev-seo",
+   "what_happened": "New repo at +11 stars/day (62 total)",
+   "why_it_matters": "jev-seo: Rust SEO and GEO CLI plus MCP server for coding agents: 50-rule audits, live crawls, GEO scores, rank drift, CI gates. MIT, zero subscription.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/AkashPriyadarshii/jev-seo"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W39:new-repos:thinkflowlab-system1-agents",
    "section": "new-repos",
    "subject": "ThinkFlowLab/system1-agents",
-   "what_happened": "New repo at +10 stars/day (60 total)",
+   "what_happened": "New repo at +11 stars/day (61 total)",
    "why_it_matters": "System 1 decision models (Jev, Laya, Cua-S1) as brain for agents: Browser use, computer use, games and robotics",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -131,19 +144,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/mmdju/digikala-mcp"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W39:new-repos:akashpriyadarshii-jev-seo",
-   "section": "new-repos",
-   "subject": "AkashPriyadarshii/jev-seo",
-   "what_happened": "New repo at +9 stars/day (60 total)",
-   "why_it_matters": "jev-seo: Rust SEO and GEO CLI plus MCP server for coding agents: 50-rule audits, live crawls, GEO scores, rank drift, CI gates. MIT, zero subscription.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/AkashPriyadarshii/jev-seo"
    ],
    "observed_at": null
   },
