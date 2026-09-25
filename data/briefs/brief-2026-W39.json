@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-25T16:45:22.502108+00:00",
+ "generated_at": "2026-09-25T18:47:24.626886+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-25T16:42:27.765340+00:00"
+   "observed_at": "2026-09-25T18:44:43.834875+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +187 stars/day (992 total)",
+   "what_happened": "New repo at +196.6 stars/day (1040 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +122.8 stars/day (793 total)",
+   "what_happened": "New repo at +123.7 stars/day (798 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,12 +86,25 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +22.4 stars/day (175 total)",
+   "what_happened": "New repo at +22.6 stars/day (176 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/hirotomasato/yowes"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W39:new-repos:thinkflowlab-system1-agents",
+   "section": "new-repos",
+   "subject": "ThinkFlowLab/system1-agents",
+   "what_happened": "New repo at +22 stars/day (72 total)",
+   "why_it_matters": "System 1 decision models (Jev, Laya, Cua-S1) as brain for agents: Browser use, computer use, games and robotics",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/ThinkFlowLab/system1-agents"
    ],
    "observed_at": null
   },
@@ -109,23 +122,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W39:new-repos:thinkflowlab-system1-agents",
-   "section": "new-repos",
-   "subject": "ThinkFlowLab/system1-agents",
-   "what_happened": "New repo at +20 stars/day (70 total)",
-   "why_it_matters": "System 1 decision models (Jev, Laya, Cua-S1) as brain for agents: Browser use, computer use, games and robotics",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/ThinkFlowLab/system1-agents"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W39:new-repos:niazmorshed2007-jev-review",
    "section": "new-repos",
    "subject": "NiazMorshed2007/jev-review",
-   "what_happened": "New repo at +15.6 stars/day (223 total)",
+   "what_happened": "New repo at +15.6 stars/day (224 total)",
    "why_it_matters": "Local-first MCP plugin for continuous software-quality review by AI coding agents, powered by Jev.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W39:new-repos:nassim-arifette-jevgrep",
    "section": "new-repos",
    "subject": "nassim-arifette/jevgrep",
-   "what_happened": "New repo at +9 stars/day (71 total)",
+   "what_happened": "New repo at +9.5 stars/day (72 total)",
    "why_it_matters": "Jev-powered semantic code search for coding agents — find behavior across repositories via CLI or MCP, with exact source excerpts and line numbers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
