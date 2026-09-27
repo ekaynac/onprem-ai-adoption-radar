@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W39",
- "generated_at": "2026-09-27T14:39:30.626524+00:00",
+ "generated_at": "2026-09-27T16:46:40.474308+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-27T14:36:43.095185+00:00"
+   "observed_at": "2026-09-27T16:43:42.401843+00:00"
   },
   {
    "id": "call:brief-2026-W39:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +143.3 stars/day (1447 total)",
+   "what_happened": "New repo at +141.3 stars/day (1458 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W39:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +65.3 stars/day (881 total)",
+   "what_happened": "New repo at +65.3 stars/day (887 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -70,23 +70,10 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W39:new-repos:graygnatconsole-mcp-audit-tool",
-   "section": "new-repos",
-   "subject": "graygnatconsole/mcp-audit-tool",
-   "what_happened": "New repo at +39 stars/day (94 total)",
-   "why_it_matters": "🛡️ Security audit CLI for Model Context Protocol (MCP) servers — scan AI agent configs for tool poisoning, rug pulls, hardcoded secrets, command injection & supply-chain risks. Pure Python, SARIF + CI",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/graygnatconsole/mcp-audit-tool"
-   ],
-   "observed_at": null
-  },
-  {
    "id": "call:brief-2026-W39:new-repos:breakstageaxe61-genspark-claw",
    "section": "new-repos",
    "subject": "breakstageaxe61/genspark-claw",
-   "what_happened": "New repo at +38 stars/day (93 total)",
+   "what_happened": "New repo at +45 stars/day (100 total)",
    "why_it_matters": "🦀⚡ Community skill pack & CLI for Genspark Claw, OpenClaw & Hermes agents — 5 production-ready SKILL.md skills (deep research, reports, slides, browser automation, AI call prep), zero-dependency Node.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -96,10 +83,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W39:new-repos:graygnatconsole-mcp-audit-tool",
+   "section": "new-repos",
+   "subject": "graygnatconsole/mcp-audit-tool",
+   "what_happened": "New repo at +44 stars/day (99 total)",
+   "why_it_matters": "🛡️ Security audit CLI for Model Context Protocol (MCP) servers — scan AI agent configs for tool poisoning, rug pulls, hardcoded secrets, command injection & supply-chain risks. Pure Python, SARIF + CI",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/graygnatconsole/mcp-audit-tool"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W39:new-repos:xiaopuouo-openchatx-mcp",
    "section": "new-repos",
    "subject": "XiaoPuOuO/openchatx-mcp",
-   "what_happened": "New repo at +37 stars/day (140 total)",
+   "what_happened": "New repo at +38 stars/day (142 total)",
    "why_it_matters": "Turn ChatGPT into a local agent runtime. Operate your computer, use local tools, discover MCP servers, and delegate work to your own models through one MCP connection.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W39:new-repos:thinkflowlab-system1-agents",
    "section": "new-repos",
    "subject": "ThinkFlowLab/system1-agents",
-   "what_happened": "New repo at +24.7 stars/day (124 total)",
+   "what_happened": "New repo at +25.3 stars/day (126 total)",
    "why_it_matters": "System 1 decision models (Jev, Laya, Cua-S1) as brain for agents: Browser use, computer use, games and robotics",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,7 +125,7 @@
    "id": "call:brief-2026-W39:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +13.3 stars/day (189 total)",
+   "what_happened": "New repo at +14.1 stars/day (195 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
