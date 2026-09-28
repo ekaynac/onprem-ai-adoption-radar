@@ -1,0 +1,176 @@
+{
+ "version": "brief-v1",
+ "id": "brief-2026-W40",
+ "generated_at": "2026-09-28T01:24:30.292868+00:00",
+ "window_days": 7,
+ "items": [
+  {
+   "id": "call:brief-2026-W40:ring-moves:hf-minicpm5-2b",
+   "section": "ring-moves",
+   "subject": "hf-minicpm5-2b",
+   "what_happened": "Model ring new → pilot (new)",
+   "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/model-history.jsonl"
+   ],
+   "observed_at": "2026-09-21T07:26:59.873381+00:00"
+  },
+  {
+   "id": "call:brief-2026-W40:ring-moves:ai-infra-book",
+   "section": "ring-moves",
+   "subject": "ai-infra-book",
+   "what_happened": "Project ring new → pilot (new)",
+   "why_it_matters": "Project rings track the serving/tooling stack around the models",
+   "verdict": "evaluate",
+   "rationale": "Entered pilot: worth a scoped evaluation",
+   "receipts": [
+    "data/history.jsonl"
+   ],
+   "observed_at": "2026-09-21T07:53:40.503186+00:00"
+  },
+  {
+   "id": "call:brief-2026-W40:benchmark-moves:qwen2-5-coder-32b---aider-polyglot",
+   "section": "benchmark-moves",
+   "subject": "qwen2.5-coder-32b · aider-polyglot",
+   "what_happened": "aider-polyglot moved +8.4 points on aider-polyglot (8 → 16.4)",
+   "why_it_matters": "Independent benchmark movement changes the capability ranking the Answer Machine uses",
+   "verdict": "evaluate",
+   "rationale": "Re-rank candidates for affected tasks",
+   "receipts": [
+    "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
+   ],
+   "observed_at": "2026-09-28T01:21:33.087823+00:00"
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
+   "section": "new-repos",
+   "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
+   "what_happened": "New repo at +133.1 stars/day (1481 total)",
+   "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/pallavi-shekhar/ai-engineering-interview-questions-company-wise"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:incoai-splash",
+   "section": "new-repos",
+   "subject": "incoai/splash",
+   "what_happened": "New repo at +63.4 stars/day (910 total)",
+   "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/incoai/splash"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:xiaopuouo-openchatx-mcp",
+   "section": "new-repos",
+   "subject": "XiaoPuOuO/openchatx-mcp",
+   "what_happened": "New repo at +31 stars/day (159 total)",
+   "why_it_matters": "Turn ChatGPT into a local agent runtime. Operate your computer, use local tools, discover MCP servers, and delegate work to your own models through one MCP connection.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/XiaoPuOuO/openchatx-mcp"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:breakstageaxe61-genspark-claw",
+   "section": "new-repos",
+   "subject": "breakstageaxe61/genspark-claw",
+   "what_happened": "New repo at +25.5 stars/day (106 total)",
+   "why_it_matters": "🦀⚡ Community skill pack & CLI for Genspark Claw, OpenClaw & Hermes agents — 5 production-ready SKILL.md skills (deep research, reports, slides, browser automation, AI call prep), zero-dependency Node.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/breakstageaxe61/genspark-claw"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:graygnatconsole-mcp-audit-tool",
+   "section": "new-repos",
+   "subject": "graygnatconsole/mcp-audit-tool",
+   "what_happened": "New repo at +25 stars/day (105 total)",
+   "why_it_matters": "🛡️ Security audit CLI for Model Context Protocol (MCP) servers — scan AI agent configs for tool poisoning, rug pulls, hardcoded secrets, command injection & supply-chain risks. Pure Python, SARIF + CI",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/graygnatconsole/mcp-audit-tool"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:thinkflowlab-system1-agents",
+   "section": "new-repos",
+   "subject": "ThinkFlowLab/system1-agents",
+   "what_happened": "New repo at +19.8 stars/day (129 total)",
+   "why_it_matters": "System 1 decision models (Jev, Laya, Cua-S1) as brain for agents: Browser use, computer use, games and robotics",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/ThinkFlowLab/system1-agents"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:hirotomasato-yowes",
+   "section": "new-repos",
+   "subject": "hirotomasato/yowes",
+   "what_happened": "New repo at +12.9 stars/day (195 total)",
+   "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/hirotomasato/yowes"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:insane0777-awwards-mcp",
+   "section": "new-repos",
+   "subject": "INSANE0777/Awwards-mcp",
+   "what_happened": "New repo at +9.5 stars/day (88 total)",
+   "why_it_matters": "Free, open-source MCP server that gives AI coding agents (Claude Code, Codex, Cursor, OpenCode, ZCode…) design inspiration from award-winning websites — search with real screenshots, pull design DNA, ",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/INSANE0777/Awwards-mcp"
+   ],
+   "observed_at": null
+  }
+ ],
+ "verdict_counts": {
+  "act": 0,
+  "evaluate": 3,
+  "ignore": 8
+ },
+ "spotlight": {
+  "task": "coding",
+  "task_label": "Coding assistant",
+  "device": "rtx-4090-24gb",
+  "top_candidate": {
+   "model_id": "mistral-small-3",
+   "name": "Mistral Small 3",
+   "ring": "adopt",
+   "fit_verdict": "fits",
+   "reasons": [
+    "Fit: fits on RTX 4090 (24GB)",
+    "Best quant Q5_K_M (~19.2 GB of 20.4 GB usable)",
+    "Insufficient task evidence: single benchmark (HumanEval) — ranked below fully evidenced models",
+    "Curated ring: adopt",
+    "~46.6 tok/s est. decode on this device"
+   ]
+  },
+  "note": "This week's worked answer: Coding assistant on rtx-4090-24gb → Mistral Small 3"
+ },
+ "verdict_rules": "Deterministic v1 rules: adopt-promotions and adopt-exits are act; pilot entries, ≥3-point independent benchmark moves, new on-prem repos at ≥200 stars/day, news classified as breaking, and hardware-launch news (catalog candidates) are evaluate; slower new repos are ignore (recorded, so misses score too)"
+}
