@@ -1,13 +1,13 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W40",
- "generated_at": "2026-09-28T07:13:07.429699+00:00",
+ "generated_at": "2026-09-28T07:39:33.517163+00:00",
  "window_days": 7,
  "items": [
   {
-   "id": "call:brief-2026-W40:ring-moves:hf-minicpm5-2b",
+   "id": "call:brief-2026-W40:ring-moves:hf-qwen3-8-27b-nvfp4",
    "section": "ring-moves",
-   "subject": "hf-minicpm5-2b",
+   "subject": "hf-qwen3-8-27b-nvfp4",
    "what_happened": "Model ring new → pilot (new)",
    "why_it_matters": "Curated rings are the radar's deterministic adoption verdicts; a move is a change in deployment advice",
    "verdict": "evaluate",
@@ -15,7 +15,7 @@
    "receipts": [
     "data/model-history.jsonl"
    ],
-   "observed_at": "2026-09-21T07:26:59.873381+00:00"
+   "observed_at": "2026-09-28T07:36:49.737079+00:00"
   },
   {
    "id": "call:brief-2026-W40:ring-moves:ai-infra-book",
@@ -41,7 +41,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-28T07:10:19.876298+00:00"
+   "observed_at": "2026-09-28T07:36:51.923038+00:00"
   },
   {
    "id": "call:brief-2026-W40:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W40:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +61.3 stars/day (921 total)",
+   "what_happened": "New repo at +61.3 stars/day (924 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W40:new-repos:xiaopuouo-openchatx-mcp",
    "section": "new-repos",
    "subject": "XiaoPuOuO/openchatx-mcp",
-   "what_happened": "New repo at +35.7 stars/day (173 total)",
+   "what_happened": "New repo at +36 stars/day (174 total)",
    "why_it_matters": "Turn ChatGPT into a local agent runtime. Operate your computer, use local tools, discover MCP servers, and delegate work to your own models through one MCP connection.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -138,7 +138,7 @@
    "id": "call:brief-2026-W40:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +12.4 stars/day (196 total)",
+   "what_happened": "New repo at +12 stars/day (196 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
