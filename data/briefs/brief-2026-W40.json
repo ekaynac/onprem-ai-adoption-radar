@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W40",
- "generated_at": "2026-09-28T04:51:30.652283+00:00",
+ "generated_at": "2026-09-28T07:13:07.429699+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-28T04:48:32.604002+00:00"
+   "observed_at": "2026-09-28T07:10:19.876298+00:00"
   },
   {
    "id": "call:brief-2026-W40:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +132 stars/day (1497 total)",
+   "what_happened": "New repo at +133.3 stars/day (1507 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W40:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +60.6 stars/day (916 total)",
+   "what_happened": "New repo at +61.3 stars/day (921 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W40:new-repos:xiaopuouo-openchatx-mcp",
    "section": "new-repos",
    "subject": "XiaoPuOuO/openchatx-mcp",
-   "what_happened": "New repo at +31 stars/day (159 total)",
+   "what_happened": "New repo at +35.7 stars/day (173 total)",
    "why_it_matters": "Turn ChatGPT into a local agent runtime. Operate your computer, use local tools, discover MCP servers, and delegate work to your own models through one MCP connection.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -83,10 +83,23 @@
    "observed_at": null
   },
   {
+   "id": "call:brief-2026-W40:new-repos:surya-koritala-glyd",
+   "section": "new-repos",
+   "subject": "surya-koritala/Glyd",
+   "what_happened": "New repo at +34 stars/day (237 total)",
+   "why_it_matters": "Lossless AI compression: 33% less GPU memory, bit for bit.",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/surya-koritala/Glyd"
+   ],
+   "observed_at": null
+  },
+  {
    "id": "call:brief-2026-W40:new-repos:breakstageaxe61-genspark-claw",
    "section": "new-repos",
    "subject": "breakstageaxe61/genspark-claw",
-   "what_happened": "New repo at +27.5 stars/day (110 total)",
+   "what_happened": "New repo at +29.5 stars/day (114 total)",
    "why_it_matters": "🦀⚡ Community skill pack & CLI for Genspark Claw, OpenClaw & Hermes agents — 5 production-ready SKILL.md skills (deep research, reports, slides, browser automation, AI call prep), zero-dependency Node.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -99,7 +112,7 @@
    "id": "call:brief-2026-W40:new-repos:graygnatconsole-mcp-audit-tool",
    "section": "new-repos",
    "subject": "graygnatconsole/mcp-audit-tool",
-   "what_happened": "New repo at +26.5 stars/day (108 total)",
+   "what_happened": "New repo at +29 stars/day (113 total)",
    "why_it_matters": "🛡️ Security audit CLI for Model Context Protocol (MCP) servers — scan AI agent configs for tool poisoning, rug pulls, hardcoded secrets, command injection & supply-chain risks. Pure Python, SARIF + CI",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -125,25 +138,12 @@
    "id": "call:brief-2026-W40:new-repos:hirotomasato-yowes",
    "section": "new-repos",
    "subject": "hirotomasato/yowes",
-   "what_happened": "New repo at +12.4 stars/day (195 total)",
+   "what_happened": "New repo at +12.4 stars/day (196 total)",
    "why_it_matters": "Generate realistic teacher documents (ID cards, licenses, letters) for 13 countries via MCP.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/hirotomasato/yowes"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W40:new-repos:insane0777-awwards-mcp",
-   "section": "new-repos",
-   "subject": "INSANE0777/Awwards-mcp",
-   "what_happened": "New repo at +9.5 stars/day (88 total)",
-   "why_it_matters": "Free, open-source MCP server that gives AI coding agents (Claude Code, Codex, Cursor, OpenCode, ZCode…) design inspiration from award-winning websites — search with real screenshots, pull design DNA, ",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/INSANE0777/Awwards-mcp"
    ],
    "observed_at": null
   }
