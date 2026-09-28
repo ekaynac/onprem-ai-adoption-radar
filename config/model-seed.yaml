@@ -838,3 +838,14 @@ models:
     license: apache-2.0
     openness: open-permissive
     release_date: 2026-09
+
+  - id: hf-qwen3-8-27b-nvfp4
+    name: Qwen3.8-27B-NVFP4
+    family: nvidia
+    hf_repo: nvidia/Qwen3.8-27B-NVFP4
+    backer: {name: "NVIDIA", type: big_tech}
+    params_total: 18164649200
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-09
