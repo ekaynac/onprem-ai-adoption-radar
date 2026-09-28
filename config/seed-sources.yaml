@@ -726,6 +726,14 @@ sources:
     url: https://github.com/bojieli/ai-infra-book
     tags: [accelerator, ai-infra, ai-infrastructure, book, auto-added]
     backer: {name: bojieli, type: community}
+  - id: github-splash
+    type: github_repo
+    enabled: true
+    project: splash
+    category: coding_agents
+    url: https://github.com/incoai/splash
+    tags: [apple-silicon, coding-agents, llm-inference, macos, auto-added]
+    backer: {name: incoai, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
