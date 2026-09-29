@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W40",
- "generated_at": "2026-09-29T02:51:42.962765+00:00",
+ "generated_at": "2026-09-29T04:47:43.027576+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-29T02:48:53.280809+00:00"
+   "observed_at": "2026-09-29T04:44:45.558512+00:00"
   },
   {
    "id": "call:brief-2026-W40:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +135 stars/day (1553 total)",
+   "what_happened": "New repo at +134.6 stars/day (1556 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -60,7 +60,7 @@
    "id": "call:brief-2026-W40:new-repos:incoai-splash",
    "section": "new-repos",
    "subject": "incoai/splash",
-   "what_happened": "New repo at +57.7 stars/day (924 total)",
+   "what_happened": "New repo at +57.2 stars/day (924 total)",
    "why_it_matters": "A local inference engine for Apple silicon, built around the model.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -73,7 +73,7 @@
    "id": "call:brief-2026-W40:new-repos:xiaopuouo-openchatx-mcp",
    "section": "new-repos",
    "subject": "XiaoPuOuO/openchatx-mcp",
-   "what_happened": "New repo at +34 stars/day (202 total)",
+   "what_happened": "New repo at +35.2 stars/day (207 total)",
    "why_it_matters": "Turn ChatGPT into a local agent runtime. Operate your computer, use local tools, discover MCP servers, and delegate work to your own models through one MCP connection.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -86,12 +86,25 @@
    "id": "call:brief-2026-W40:new-repos:breakstageaxe61-genspark-claw",
    "section": "new-repos",
    "subject": "breakstageaxe61/genspark-claw",
-   "what_happened": "New repo at +23 stars/day (124 total)",
+   "what_happened": "New repo at +23.7 stars/day (126 total)",
    "why_it_matters": "🦀⚡ Community skill pack & CLI for Genspark Claw, OpenClaw & Hermes agents — 5 production-ready SKILL.md skills (deep research, reports, slides, browser automation, AI call prep), zero-dependency Node.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/breakstageaxe61/genspark-claw"
+   ],
+   "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:new-repos:graygnatconsole-mcp-audit-tool",
+   "section": "new-repos",
+   "subject": "graygnatconsole/mcp-audit-tool",
+   "what_happened": "New repo at +23 stars/day (124 total)",
+   "why_it_matters": "🛡️ Security audit CLI for Model Context Protocol (MCP) servers — scan AI agent configs for tool poisoning, rug pulls, hardcoded secrets, command injection & supply-chain risks. Pure Python, SARIF + CI",
+   "verdict": "ignore",
+   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
+   "receipts": [
+    "https://github.com/graygnatconsole/mcp-audit-tool"
    ],
    "observed_at": null
   },
@@ -109,15 +122,15 @@
    "observed_at": null
   },
   {
-   "id": "call:brief-2026-W40:new-repos:graygnatconsole-mcp-audit-tool",
+   "id": "call:brief-2026-W40:new-repos:perrylink-jevcore",
    "section": "new-repos",
-   "subject": "graygnatconsole/mcp-audit-tool",
-   "what_happened": "New repo at +22.3 stars/day (122 total)",
-   "why_it_matters": "🛡️ Security audit CLI for Model Context Protocol (MCP) servers — scan AI agent configs for tool poisoning, rug pulls, hardcoded secrets, command injection & supply-chain risks. Pure Python, SARIF + CI",
+   "subject": "PerryLink/jevcore",
+   "what_happened": "New repo at +18 stars/day (70 total)",
+   "why_it_matters": "TypeSafe Jev for DeepSeek Harness, the Model Context Protocol, and plain Node: typed judgments instead of prose, offline by default.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
-    "https://github.com/graygnatconsole/mcp-audit-tool"
+    "https://github.com/PerryLink/jevcore"
    ],
    "observed_at": null
   },
@@ -131,19 +144,6 @@
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
    "receipts": [
     "https://github.com/ThinkFlowLab/system1-agents"
-   ],
-   "observed_at": null
-  },
-  {
-   "id": "call:brief-2026-W40:new-repos:perrylink-jevcore",
-   "section": "new-repos",
-   "subject": "PerryLink/jevcore",
-   "what_happened": "New repo at +13 stars/day (65 total)",
-   "why_it_matters": "TypeSafe Jev for DeepSeek Harness, the Model Context Protocol, and plain Node: typed judgments instead of prose, offline by default.",
-   "verdict": "ignore",
-   "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
-   "receipts": [
-    "https://github.com/PerryLink/jevcore"
    ],
    "observed_at": null
   }
