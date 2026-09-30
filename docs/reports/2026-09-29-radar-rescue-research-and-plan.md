@@ -251,22 +251,33 @@ dersimiz, PR check'lerinin yetmediği ve publish'in main'de doğrulanması gerek
 
 ### Faz 1 — Tek öğe modeli ve kaynak genişletme (3–4 gün) · `feature/pulse/ingest`
 
-- [ ] `PulseItem` pydantic şeması (lane, title, url, source, published_at, signals) ve
-      `data/pulse/items.jsonl` adaptörleri. Mevcut toplayıcıların çıktısını dönüştürür, yeni ağ
-      kodu yazılmaz.
-- [ ] **Paper şeridi:** HF daily papers ve arXiv sweep doğrudan paper öğesi olur. Keyword kapısı
-      kalkar, teknik önerisi mekanizması ayrı kalır.
-- [ ] **Model şeridi:** HF yeni modeller + lab org allowlist'i (`config/pulse-orgs.yaml`: Qwen,
-      deepseek-ai, meta-llama, google, mistralai, zai-org, openai, nvidia, microsoft,
-      moonshotai, …). Allowlist dışındakiler de gelir ama triyaja girer.
-- [ ] **Haber genişletme:** lab blog RSS'leri ve HN "AI" ön sayfa filtresi. Her yeni kaynak
-      `source-health`'e bağlanır.
-- [ ] Deterministik ön filtre (türev regex'leri, dedup).
-      - Test: kayıtlı gerçek örneklerle (fixture) `unsloth/...-GGUF` türev sayılmalı,
-        `Qwen/Qwen3.6-35B-A3B` orijinal sayılmalı.
-- [ ] **Geriye dönük kabul testi (K1):** son 60 günün büyük sürüm listesi (DeepSeek-V4-Flash,
-      Qwen3.6, GLM-5.x, gpt-oss…) altın liste yapılır. Pipeline kayıtlı veride bunların %100'ünü
-      model şeridine düşürmeli.
+- [x] `PulseItem` şeması (`src/radar/pulse/items.py`) ve `data/pulse/items.jsonl` deposu. Birleştirme
+      saf bir fonksiyon, yazma atomik, pencere 14 gün (`config/pulse.yaml`). Repo ve haber
+      şeritleri mevcut gözlem günlüklerinden okunuyor (`adapters.py`), yeni ağ kodu yok.
+- [x] **Paper şeridi:** HF daily papers doğrudan paper öğesi olur (upvote ve kod linki sinyaliyle).
+      Keyword kapısı ve insan onayı yok. Ham arXiv sweep'i bilerek eklenmedi: günde yüzlerce
+      filtresiz başlık, triyaj (Faz 2) gelmeden gürültüden başka bir şey üretmez.
+- [x] **Model şeridi:** 30 lab org'unun en yeni yüklemeleri doğrudan HF API'den çekiliyor
+      (`sources.py`). Aday taramasına bağlı değil, çünkü o tarama seed'e giren modeli bırakıyor.
+      Kimi-K3'ün gözlemleri 2026-07-31'de bu yüzden kesilmişti.
+- [x] **Haber genişletme:** 10 doğrulanmış kaynak eklendi: OpenAI, DeepMind, Google AI, Mistral,
+      NVIDIA Dev, MSR, GitHub AI, Simon Willison, Latent Space ve HN LLM >100 puan. Anthropic ve
+      Meta'nın RSS'i yok (404); Qwen blogu 2025-09'da durmuş. Bunlar gerekçesiyle config'e yazıldı.
+- [x] **Deterministik köken triyajı** (`lineage.py`): HF `base_model` etiketi (quantized, finetune,
+      adapter, merge) + org + ad işaretleri → original, variant, derivative veya unknown. Yalnızca
+      `unknown` classifier'a (Jev) gider. Canlı ilk koşuda ortaya çıkan hata düzeltildi: bir lab'ın
+      başka bir tabandan eğittiği model (apple/LensVLM-9B → Qwen3.5-9B) yeni bir sürümdür.
+- [x] **K1 kabul testi** (`tests/test_pulse_k1_acceptance.py`): 2026-08/09'dan 16 lab sürümü
+      (Qwen3.8, GLM-5.3, DeepSeek-V4.1-Flash, Kimi-K3, MiniCPM5, Nemotron-3.5…) gerçek HF
+      etiketleriyle %100 "original" çıkıyor. 9 quant/repack'in hiçbiri "original" değil.
+- [x] `radar pulse collect` publish hattına eklendi (her 2 saat). Tüm kaynaklar düşerse run'da
+      görünür uyarı çıkar, site yayını engellenmez. `data/pulse/items.jsonl` bot tarafından persist
+      edilir.
+
+**Faz 1 canlı ölçüm (2026-09-30):** son 14 günde 20 model (15 original), 100 paper, 44 repo ve
+571 haber. Haber şeridinin yarısından fazlası gürültü (hn-vllm 388; OpenAI'ın müşteri hikâyeleri).
+"Introducing GPT-6.1 Sol" gibi kaçırılmaması gereken bir öğe, "Airbnb widens access…" gibi
+kalabalığın arasında kalıyor. **Bu, Faz 2'nin (Jev triyajı) tam olarak çözeceği problem.**
 
 ### Faz 2 — Classifier katmanı ve Jev (3–4 gün) · `feature/pulse/classifier`
 
