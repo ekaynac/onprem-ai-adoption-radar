@@ -9,6 +9,7 @@ the owner keeps these secrets at home:
 | Daily Pulse digest after 08:00 Istanbul, every new item, exactly once | Memati (`@memati_claw_bot`) | `radar pulse telegram` |
 | Dead-man checks every 30 min: live site age, publish failures, empty lanes, failing sources, degraded triage, missed digest | Çakır (`@cakir_claw_bot`) | `radar pulse watchdog` |
 | Worker itself failed | Çakır | `notify-failure.py` via `OnFailure=` |
+| One Turkish sentence per shown digest item | Claude (owner's subscription, `claude` from the signed apt repo, **all tools disabled**) | `radar pulse telegram --summaries claude-cli` |
 
 The worker **never pulls code on its own.** Per the homelab onboarding rule
 ("an unattended git pull | build | deploy loop is a supply-chain foothold"), the
