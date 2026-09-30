@@ -19,5 +19,9 @@ jobs:
         run: uv sync --locked --no-dev
       # A red run IS the drift flag — a human updates the seed (or the model
       # card changed and the seed is right; either way, eyes on it).
+      # Gated repos (meta-llama, google/gemma, Cohere) return 401 without a
+      # token and are skipped, which hides their drift.
       - name: Verify specs
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: uv run radar models verify --root . --check
