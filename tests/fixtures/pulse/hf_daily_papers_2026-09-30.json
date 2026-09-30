@@ -1,0 +1,79 @@
+[
+ {
+  "paper": {
+   "id": "2609.33748",
+   "publishedAt": "2026-09-27T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-30T00:00:00.000Z",
+   "title": "AnyStep-WAM: Budget-Aligned Distillation and Adaptive Inference for World Action Models",
+   "summary": "World-action models (WAMs) couple predictive visual modeling with action generation, typically relying on iterative denoising with a fixed denoising steps. However, manipulation tasks contain actions chunks with varying sensitivity to generation errors: critical actions require precision, while less sensitive actions allow faster generation with fewer denoising steps. Here we introduce AnyStep World Action Model, a general framework for tunable-budget prediction and scene-dependent computation allocation. Our budget-aligned teacher-trajectory distillation trains interval-conditioned flow maps using explicit frozen-teacher transitions and shared low-rank adapters, supporting action generation from one-step prediction to multi-step refinement. Building on this capability, a lightweight risk-benefit scheduler predicts teacher-curvature-based difficulty and budget-specific student-teacher fidelity from a single one-step preview, selecting the smallest budget predicted to satisfy risk-adaptive fidelity requirements. We evaluate our framework on three widely used WAMs Motus, FastWAM, and LingBotVA using RoboTwin 2.0. Our method reduces average denoising steps by 60.2%, 49.8%, and 85.28%, respectively, while maintaining baseline task success rates. In particular, our AnyStep training substantially improves model performance under a one-step denoising budget, increasing task success rates by 7.07%, 12.08%, and 8.94% on Motus, FastWAM, and LingBotVA, respectively. Experiments on six real-world manipulation tasks further validate its effectiveness.",
+   "upvotes": 0,
+   "discussionId": "6abcb1bbd51a189976e0288d",
+   "projectPage": "https://ruiwang724.github.io/AnyStep-WAM/",
+   "githubRepo": "https://github.com/RuiWang724/AnyStep-WAM"
+  },
+  "publishedAt": "2026-09-26T20:00:00.000Z",
+  "title": "AnyStep-WAM: Budget-Aligned Distillation and Adaptive Inference for World Action Models",
+  "summary": "World-action models (WAMs) couple predictive visual modeling with action generation, typically relying on iterative denoising with a fixed denoising steps. However, manipulation tasks contain actions chunks with varying sensitivity to generation errors: critical actions require precision, while less sensitive actions allow faster generation with fewer denoising steps. Here we introduce AnyStep World Action Model, a general framework for tunable-budget prediction and scene-dependent computation allocation. Our budget-aligned teacher-trajectory distillation trains interval-conditioned flow maps using explicit frozen-teacher transitions and shared low-rank adapters, supporting action generation from one-step prediction to multi-step refinement. Building on this capability, a lightweight risk-benefit scheduler predicts teacher-curvature-based difficulty and budget-specific student-teacher fidelity from a single one-step preview, selecting the smallest budget predicted to satisfy risk-adaptive fidelity requirements. We evaluate our framework on three widely used WAMs Motus, FastWAM, and LingBotVA using RoboTwin 2.0. Our method reduces average denoising steps by 60.2%, 49.8%, and 85.28%, respectively, while maintaining baseline task success rates. In particular, our AnyStep training substantially improves model performance under a one-step denoising budget, increasing task success rates by 7.07%, 12.08%, and 8.94% on Motus, FastWAM, and LingBotVA, respectively. Experiments on six real-world manipulation tasks further validate its effectiveness.",
+  "numComments": 1,
+  "isAuthorParticipating": false
+ },
+ {
+  "paper": {
+   "id": "2609.33627",
+   "mediaUrls": [
+    "https://cdn-uploads.huggingface.co/production/uploads/68563e56c09959da82e70968/6gze5SBQVQOT8cU46fUwA.mp4"
+   ],
+   "publishedAt": "2026-09-27T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-30T00:00:00.000Z",
+   "title": "StoryEngine: A State-Grounded Agentic Framework for Video Storytelling",
+   "summary": "Despite recent progress in agentic multi-shot video generation, producing coherent and consistent long-form stories remains challenging. Existing agentic pipelines typically rely on textual shot plans or previously generated pixels, yet lack an explicit mechanism for propagating the consequences of story events and maintaining the video world state across shots. As a result, missing visual details may be reconstructed inaccurately, while visual drift may propagate across subsequent shots, undermining both narrative coherence and visual consistency. To address these challenges, we propose StoryEngine, a state-grounded agentic framework for video storytelling. StoryEngine establishes a separation between authoritative semantic plans and unreliable visual observations. Specifically, StoryEngine maintains a structured representation of entity placement and story-relevant states, and propagates event-induced changes to define the intended start and end states of each shot. To visually realize these states, StoryEngine constructs canonical references for recurring entities and environments, and compiles state and visual constraints into executable render plans. Meanwhile, to realize these states correctly, a bounded evaluation-guided repair loop further corrects local state inconsistencies. Together, these mechanisms preserve causal story progression and prevent local visual errors from propagating across shots. To comprehensively evaluate long-form storytelling, we construct a benchmark across diverse scenarios and visual styles, with metrics assessing storytelling quality, narrative coherence, and visual consistency. Experimental results demonstrate that StoryEngine consistently outperforms state-of-the-art methods across all evaluation dimensions, validating its effectiveness for coherent and consistent video storytelling.",
+   "upvotes": 7,
+   "discussionId": "6abc7887d51a189976e025a4",
+   "projectPage": "https://wwwtaylor.github.io/StoryEngine/",
+   "githubRepo": "https://github.com/wwwTaylor/StoryEngine",
+   "organization": {
+    "_id": "6508ab2b349930913196378b",
+    "name": "NationalUniversityofSingapore",
+    "fullname": "National University of Singapore",
+    "avatar": "https://cdn-avatars.huggingface.co/v1/production/uploads/630ca0817dacb93b33506ce7/ZYUmpSMsa5Whihw3me2Bw.png"
+   }
+  },
+  "publishedAt": "2026-09-26T20:00:00.000Z",
+  "title": "StoryEngine: A State-Grounded Agentic Framework for Video Storytelling",
+  "summary": "Despite recent progress in agentic multi-shot video generation, producing coherent and consistent long-form stories remains challenging. Existing agentic pipelines typically rely on textual shot plans or previously generated pixels, yet lack an explicit mechanism for propagating the consequences of story events and maintaining the video world state across shots. As a result, missing visual details may be reconstructed inaccurately, while visual drift may propagate across subsequent shots, undermining both narrative coherence and visual consistency. To address these challenges, we propose StoryEngine, a state-grounded agentic framework for video storytelling. StoryEngine establishes a separation between authoritative semantic plans and unreliable visual observations. Specifically, StoryEngine maintains a structured representation of entity placement and story-relevant states, and propagates event-induced changes to define the intended start and end states of each shot. To visually realize these states, StoryEngine constructs canonical references for recurring entities and environments, and compiles state and visual constraints into executable render plans. Meanwhile, to realize these states correctly, a bounded evaluation-guided repair loop further corrects local state inconsistencies. Together, these mechanisms preserve causal story progression and prevent local visual errors from propagating across shots. To comprehensively evaluate long-form storytelling, we construct a benchmark across diverse scenarios and visual styles, with metrics assessing storytelling quality, narrative coherence, and visual consistency. Experimental results demonstrate that StoryEngine consistently outperforms state-of-the-art methods across all evaluation dimensions, validating its effectiveness for coherent and consistent video storytelling.",
+  "mediaUrls": [
+   "https://cdn-uploads.huggingface.co/production/uploads/68563e56c09959da82e70968/6gze5SBQVQOT8cU46fUwA.mp4"
+  ],
+  "numComments": 1,
+  "organization": {
+   "_id": "6508ab2b349930913196378b",
+   "name": "NationalUniversityofSingapore",
+   "fullname": "National University of Singapore",
+   "avatar": "https://cdn-avatars.huggingface.co/v1/production/uploads/630ca0817dacb93b33506ce7/ZYUmpSMsa5Whihw3me2Bw.png"
+  },
+  "isAuthorParticipating": false
+ },
+ {
+  "paper": {
+   "id": "2609.35342",
+   "mediaUrls": [
+    "https://cdn-uploads.huggingface.co/production/uploads/6aaa92c0e3d5cf236e4f024b/NFtaYObkiQZiT31rYJtdD.png"
+   ],
+   "publishedAt": "2026-09-28T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-30T00:00:00.000Z",
+   "title": "Jev thinks \"I don't know'', but doesn't say it: Introducing Sys1Cal-v1 Dataset for Probability Calibration",
+   "summary": "The appearance of Jev marked the era of System One Models, foundation models that return structured decisions with probability distributions rather than text. Aside from low cost and great speed, Jev's central promise is that these probabilities are calibrated: such claim is not backed by any public test and available external benchmarks evaluate confidence calibration, not whether every returned option probability has the right numerical meaning. To tackle this issue, we introduce Sys1Cal-v1, a dataset of True/False questions about a proposition A for which the exact probability P(A) is known by construction. Each item is queried through the three Jev primitives - Noul, Choice and Score - and evaluated by total variation distance from the ground-truth distribution, which can be used to estimate a soft accuracy of System One Models.\n  We showcase the utility of Sys1Cal-v1 as a benchmark dataset by evaluating Jev and SemIf, an open-source Choice-style baseline. In this work, however, we focus even more deeply on Jev, by studying the calibration of its Score and Choice answers. In particular, we discover a peculiar behaviour that can be explained by assuming that Jev suppresses a third truth value, going beyond True and False. In other words, in Choice answers, P(A) and P(neg A) are presented as if P(A)+P(neg A)=1, while a term P(U)neq0 is missing in the sum. Recovering P(U) leads to an improvement of median soft accuracy in Choice answers from 0.771 to 0.978, suggesting that, even in binary decisions, Jev wants to answer with a third option:``I don't know''.",
+   "upvotes": 0,
+   "discussionId": "6abb77869e8c2556a1025c1a",
+   "githubRepo": "https://github.com/little-g-ai/Sys1Cal-v1"
+  },
+  "publishedAt": "2026-09-27T20:00:00.000Z",
+  "title": "Jev thinks \"I don't know'', but doesn't say it: Introducing Sys1Cal-v1 Dataset for Probability Calibration",
+  "summary": "The appearance of Jev marked the era of System One Models, foundation models that return structured decisions with probability distributions rather than text. Aside from low cost and great speed, Jev's central promise is that these probabilities are calibrated: such claim is not backed by any public test and available external benchmarks evaluate confidence calibration, not whether every returned option probability has the right numerical meaning. To tackle this issue, we introduce Sys1Cal-v1, a dataset of True/False questions about a proposition A for which the exact probability P(A) is known by construction. Each item is queried through the three Jev primitives - Noul, Choice and Score - and evaluated by total variation distance from the ground-truth distribution, which can be used to estimate a soft accuracy of System One Models.\n  We showcase the utility of Sys1Cal-v1 as a benchmark dataset by evaluating Jev and SemIf, an open-source Choice-style baseline. In this work, however, we focus even more deeply on Jev, by studying the calibration of its Score and Choice answers. In particular, we discover a peculiar behaviour that can be explained by assuming that Jev suppresses a third truth value, going beyond True and False. In other words, in Choice answers, P(A) and P(neg A) are presented as if P(A)+P(neg A)=1, while a term P(U)neq0 is missing in the sum. Recovering P(U) leads to an improvement of median soft accuracy in Choice answers from 0.771 to 0.978, suggesting that, even in binary decisions, Jev wants to answer with a third option:``I don't know''.",
+  "mediaUrls": [
+   "https://cdn-uploads.huggingface.co/production/uploads/6aaa92c0e3d5cf236e4f024b/NFtaYObkiQZiT31rYJtdD.png"
+  ],
+  "numComments": 1,
+  "isAuthorParticipating": true
+ }
+]

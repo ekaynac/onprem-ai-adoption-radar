@@ -162,6 +162,11 @@ jobs:
           uv run radar trending scan --root .
           uv run radar news scan --root .
           uv run radar news classify --root .
+          # Pulse reads the trending/news logs written just above. A total
+          # Pulse outage is surfaced as a run annotation but never blocks the
+          # site publish.
+          uv run radar pulse collect --root . \
+            || echo "::warning title=Pulse::every Pulse network source failed this run"
           uv run radar desk brief --root .
           uv run radar desk auto-resolve --root .
           uv run radar alerts notify --root . \
@@ -238,6 +243,7 @@ jobs:
             data/trending-observations.jsonl \
             data/news-observations.jsonl \
             data/news-classified.jsonl \
+            data/pulse/items.jsonl \
             data/alerts-delivered.jsonl \
             data/calls-ledger.jsonl \
             "data/briefs/" \
