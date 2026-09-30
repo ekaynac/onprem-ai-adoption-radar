@@ -1,0 +1,66 @@
+# Radar Pulse triage questions, per lane. Provider-agnostic: the same
+# definitions drive Jev (choice / score / noul) and any other engine.
+#
+# Ask FACTS, not taste. The 2026-09-30 smoke test showed Jev separating
+# "what kind of event is this" cleanly (GPT-6.1 Sol -> model-release, 1.00)
+# while a subjective "would a developer regret missing this?" scored a
+# frontier launch and an Airbnb customer story the same (0.33 vs 0.34).
+# Importance is computed from these facts plus source signals in rank.py.
+#
+# Bump `version` whenever a question changes: labels are cached per version.
+version: 1
+
+lanes:
+  news:
+    event:
+      type: choice
+      instructions: What single kind of event does this article report?
+      criteria:
+        model-release: A new AI model or model version is released or made available
+        tool-release: A new AI software tool, library, framework, or a new version of one is released
+        research: A research paper, technical study, or deep technical explanation
+        benchmark: A benchmark, leaderboard, or evaluation result comparing AI systems
+        security: A security vulnerability, incident, or advisory involving AI software
+        tutorial-opinion: A tutorial, how-to, personal opinion, essay, or community discussion
+        business-policy: Funding, partnerships, pricing, hiring, policy, regulation, or safety frameworks
+        customer-story: A company describes how a customer or partner uses its AI product
+        unrelated: The article is not about AI or machine learning
+  repo:
+    kind:
+      type: choice
+      instructions: What is this GitHub repository?
+      criteria:
+        tool: A usable AI tool, library, CLI, SDK, server, or inference engine
+        framework: A framework for building AI applications or agents
+        model: Model weights, training code, or the official code release of a model or paper
+        app-demo: An end-user application, demo, or example project
+        list-course: A curated list, course, interview-question set, prompt collection, or tutorial collection
+        other: Anything else, including repositories unrelated to AI
+  paper:
+    topic:
+      type: choice
+      instructions: What is the main topic of this AI paper?
+      criteria:
+        inference-efficiency: Faster or cheaper inference, quantization, serving, long context, compression
+        training: Pre-training, post-training, fine-tuning, RL, data, or scaling methods
+        agents-tools: Agents, tool use, coding agents, or planning
+        retrieval: Retrieval, RAG, memory, or search
+        multimodal: Vision, audio, video, image or video generation, or multimodal models
+        evaluation: Benchmarks, evaluation methods, or analysis of model behaviour
+        safety: Safety, alignment, security, or interpretability
+        embodied: Robotics, embodied agents, world models, or autonomous driving
+        other: Theory or anything else
+    usable_now:
+      type: noul
+      instructions: Does this paper release something a developer can use today?
+      criteria:
+        "true": It releases code, model weights, a dataset, or a ready-to-use tool
+        "false": It only describes ideas or results without a usable release
+  model:
+    # Only asked for models the deterministic lineage triage left UNKNOWN.
+    new_model:
+      type: noul
+      instructions: Is this Hugging Face repository a genuinely new model trained by its uploader?
+      criteria:
+        "true": A new model or model version trained or post-trained by the uploader
+        "false": A quantization, format conversion, merge, re-upload, adapter, or small personal fine-tune of an existing model

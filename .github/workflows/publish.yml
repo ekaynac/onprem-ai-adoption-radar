@@ -150,6 +150,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RADAR_WEBHOOK_URL: ${{ secrets.RADAR_WEBHOOK_URL }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: |
           uv run radar init --root .
           uv run radar scan --root . --days 7 --publish-history
@@ -167,6 +168,8 @@ jobs:
           # site publish.
           uv run radar pulse collect --root . \
             || echo "::warning title=Pulse::every Pulse network source failed this run"
+          uv run radar pulse triage --root . \
+            || echo "::warning title=Pulse::triage failed; items stay untriaged this run"
           uv run radar desk brief --root .
           uv run radar desk auto-resolve --root .
           uv run radar alerts notify --root . \
@@ -244,6 +247,7 @@ jobs:
             data/news-observations.jsonl \
             data/news-classified.jsonl \
             data/pulse/items.jsonl \
+            data/pulse/labels.jsonl \
             data/alerts-delivered.jsonl \
             data/calls-ledger.jsonl \
             "data/briefs/" \

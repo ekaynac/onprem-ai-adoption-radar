@@ -22,7 +22,8 @@ import httpx
 logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 4
-RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
+# 529 = "overloaded" (TypeSafe Jev, Anthropic): transient by definition.
+RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504, 529})
 RETRY_BASE_SECONDS = 0.5
 RETRY_MAX_SLEEP_SECONDS = 30.0
 
