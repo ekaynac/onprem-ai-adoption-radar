@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 
-// D6 gate — the 30-second job test: from a cold visit, a hardware+task
+// D6 gate — the 30-second job test (Answer Machine moved to /ask when
+// Pulse became the homepage, 2026-09-30): from a cold visit, a hardware+task
 // question reaches a cited recommendation in ≤3 interactions.
 test("cold visit reaches a cited recommendation in three interactions", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/#/ask");
   await expect(
     page.getByRole("heading", { name: "What should you run?" }),
   ).toBeVisible();
@@ -28,8 +29,8 @@ test("cold visit reaches a cited recommendation in three interactions", async ({
 });
 
 
-test("homepage leads with the desk and the MCP pitch", async ({ page }) => {
-  await page.goto("/");
+test("answer machine page leads with the desk and the MCP pitch", async ({ page }) => {
+  await page.goto("/#/ask");
   await expect(page.getByText("The Desk — this week")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Plug Mega's radar into your assistant" }),
