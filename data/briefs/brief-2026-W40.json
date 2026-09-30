@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W40",
- "generated_at": "2026-09-30T11:33:10.259857+00:00",
+ "generated_at": "2026-09-30T11:59:56.055900+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,7 +41,7 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-30T11:31:48.702583+00:00"
+   "observed_at": "2026-09-30T11:58:56.723834+00:00"
   },
   {
    "id": "call:brief-2026-W40:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
@@ -99,7 +99,7 @@
    "id": "call:brief-2026-W40:new-repos:breakstageaxe61-genspark-claw",
    "section": "new-repos",
    "subject": "breakstageaxe61/genspark-claw",
-   "what_happened": "New repo at +15.8 stars/day (118 total)",
+   "what_happened": "New repo at +16 stars/day (119 total)",
    "why_it_matters": "🦀⚡ Community skill pack & CLI for Genspark Claw, OpenClaw & Hermes agents — 5 production-ready SKILL.md skills (deep research, reports, slides, browser automation, AI call prep), zero-dependency Node.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -112,7 +112,7 @@
    "id": "call:brief-2026-W40:new-repos:graygnatconsole-mcp-audit-tool",
    "section": "new-repos",
    "subject": "graygnatconsole/mcp-audit-tool",
-   "what_happened": "New repo at +14.8 stars/day (114 total)",
+   "what_happened": "New repo at +15 stars/day (115 total)",
    "why_it_matters": "🛡️ Security audit CLI for Model Context Protocol (MCP) servers — scan AI agent configs for tool poisoning, rug pulls, hardcoded secrets, command injection & supply-chain risks. Pure Python, SARIF + CI",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
@@ -146,11 +146,24 @@
     "https://github.com/PerryLink/jevcore"
    ],
    "observed_at": null
+  },
+  {
+   "id": "call:brief-2026-W40:hardware:how-nvidia-dsx-maxlps-maximizes-ai-factory-throughput-and-efficiency",
+   "section": "hardware",
+   "subject": "How NVIDIA DSX MaxLPS Maximizes AI Factory Throughput and Efficiency",
+   "what_happened": "NVIDIA describes DSX MaxLPS, a reference AI datacenter design that oversubscribes power by smoothing GPU power draw so racks can be provisioned below theoretical peak instead of worst-case. Relevant only to operators planning new GPU hall builds at AI-factory scale; no change to existing self-hosted inference stacks.",
+   "why_it_matters": "A newly launched platform is a hardware-catalog candidate; specs enter the catalog only with a verifiable source",
+   "verdict": "evaluate",
+   "rationale": "Review for the device catalog (curation stays human)",
+   "receipts": [
+    "https://developer.nvidia.com/blog/how-nvidia-dsx-maxlps-maximizes-ai-factory-throughput-and-efficiency/"
+   ],
+   "observed_at": "2026-09-28T01:00:00+00:00"
   }
  ],
  "verdict_counts": {
   "act": 0,
-  "evaluate": 3,
+  "evaluate": 4,
   "ignore": 8
  },
  "spotlight": {
