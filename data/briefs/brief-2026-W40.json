@@ -1,7 +1,7 @@
 {
  "version": "brief-v1",
  "id": "brief-2026-W40",
- "generated_at": "2026-09-30T10:47:44.884195+00:00",
+ "generated_at": "2026-09-30T11:33:10.259857+00:00",
  "window_days": 7,
  "items": [
   {
@@ -41,13 +41,13 @@
    "receipts": [
     "https://cdn.jsdelivr.net/gh/Aider-AI/aider@main/aider/website/_data/polyglot_leaderboard.yml"
    ],
-   "observed_at": "2026-09-30T10:45:12.644975+00:00"
+   "observed_at": "2026-09-30T11:31:48.702583+00:00"
   },
   {
    "id": "call:brief-2026-W40:new-repos:pallavi-shekhar-ai-engineering-interview-questions-company-wise",
    "section": "new-repos",
    "subject": "pallavi-shekhar/ai-engineering-interview-questions-company-wise",
-   "what_happened": "New repo at +136.3 stars/day (1585 total)",
+   "what_happened": "New repo at +136.4 stars/day (1586 total)",
    "why_it_matters": "Your Cheat Sheet For AI Engineering Interviews at Top AI Companies - Questions and Answers.",
    "verdict": "ignore",
    "rationale": "Velocity below 200/day threshold — recorded so the miss is scoreable",
