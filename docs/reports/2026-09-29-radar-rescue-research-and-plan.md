@@ -407,11 +407,23 @@ kurulunca başlayacak. Buna bağlı iki tasarım kararı:
       - Servis kayıt tablosuna `105 ct-radar 10.10.0.6` satırı.
 - [x] Canlı UX düzeltmesi: köken kurallarıyla belirlenen modeller "UNTRIAGED" yerine "lineage"
       rozeti taşıyor ve degraded hesabında kural motoruyla sıralanmış gibi sayılmıyor.
-- [ ] **Sahibin adımları:**
-      - runbook'u host'ta çalıştırma (onay verip bana bırakmak ya da kendin çalıştırmak)
-      - `/etc/radar/env` dosyasını doldurma: Memati token, Çakır token, chat id
-      - timer'ı etkinleştirme
-      - reboot testi
+- [x] **Canlıya alındı (2026-09-30).** Sahip, runbook'u benim çalıştırmama ve token'ları kendi
+      makinesinden almama açıkça izin verdi. Adımlar:
+      - homelab#8 merge edildi.
+      - Host'a Tailscale üzerinden bağlanıldı (Tailscale SSH kontrolünü sahip tarayıcıda onayladı).
+      - `runbooks/radar-worker-setup.sh` çalıştı: ct-radar 105 kuruldu, unattended-upgrades
+        `active`, LAN'dan `isolated`.
+      - Token'lar ve chat ID openclaw yapılandırmasından (`secrets.json` `/telegram/default` ve
+        `/telegram/cakir`; `telegram-default-allowFrom.json`) SSH stdin ile doğrudan
+        `/etc/radar/env` dosyasına yazıldı. Değerler hiçbir çıktıda görünmedi.
+      - `getMe` ile doğrulandı: `@memati_claw_bot`, `@cakir_claw_bot`.
+      - Timer açıldı; ilk çalıştırma **630 öğeyi 22 mesajda** gönderdi. Bunlar 14 günlük pencerenin
+        tamamı; sonraki günler yalnızca yenileri gidecek. Bekçi: "All radar checks healthy".
+      - Konteyner reboot testi geçti: timer ve teslim durumu korundu, izolasyon sürüyor.
+      - `save-host-config.sh` ile anlık görüntü kaydedildi (homelab `ddcc502`).
+
+      Not: `tmp`, `run-lock` ve `mqueue` mount hataları (systemd "degraded") ct-cv ve ct-mcweb'de de
+      var. Bu, nesting'siz Debian 13'ün platform genelindeki normal hali; worker'ı etkilemiyor.
 - [ ] Mac'teki launchd ajanlarını (`com.megabilisim.onpremradar.news-classify`,
       `ai.openclaw.radar-scan`) emekliye ayırmak ve Memati HEARTBEAT Adım B'yi kapatmak.
       ct-radar'ın ilk özeti geldikten sonra, sahibin onayıyla yapılacak.
