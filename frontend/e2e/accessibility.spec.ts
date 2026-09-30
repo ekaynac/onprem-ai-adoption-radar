@@ -4,6 +4,7 @@ import axe from "axe-core";
 
 const routes = [
   "/",
+  "/#/ask",
   "/#/overview",
   "/#/releases",
   "/#/catalog",

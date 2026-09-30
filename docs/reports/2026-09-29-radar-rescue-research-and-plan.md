@@ -325,18 +325,41 @@ görünür rozetle etiketlenmiş olarak çalışır. Kural motoru her an geri d�
 (latent-space) ve Jev lansmanı var. Bilinen hata: "How we will do better for Australia" →
 `security (0.93)`. Altın set bu tür hataların oranını ölçecek.
 
-### Faz 3 — Pulse yüzeyi ve teslimat (3 gün) · `feature/pulse/surface`
+### Faz 3 — Pulse yüzeyi ve teslimat · `feature/pulse/surface`
 
-- [ ] Sitenin ön sayfası "Bugün / Bu hafta" olur. 4 şerit, her birinde en çok 10 öğe, önem
-      sırasıyla. Her öğede kaynak linki, HF/arXiv/GitHub linki, motor ve güven rozeti bulunur.
-- [ ] "Emin değil" kovası. Degraded rozetleri.
-- [ ] Şerit başına RSS/JSON (`pulse-models.xml` ve diğerleri).
-- [ ] Haftalık bülten: mevcut digest iş akışı Pulse'tan beslenir. Halka değişiklikleri
-      bültenden çıkar, istenirse ekte kalır.
-- [ ] Teslimat kanalı (karar → §6): e-posta, Telegram veya Slack webhook. Mevcut
-      `notify/webhook.py` yeniden kullanılır.
-- [ ] Testler: Playwright ile ön sayfanın 4 şeridi dolu mu; boş şeritte açıklayıcı mesaj var mı.
-      Bülten snapshot testi.
+**Sahibin yön değişikliği (2026-09-30): "I want all. As much as possible."** Pulse artık hiçbir şeyi
+kırpmıyor ve saklamıyor. Sıralama yalnızca sırayı belirliyor; kovalar yalnızca gruplama yapıyor.
+
+- [x] **Görünüm** (`src/radar/pulse/view.py`): tek bir JSON (`data/pulse.v1.json`); statik site ve
+      dev API (`GET /api/v1/pulse`) aynı JSON'u sunuyor. Her şeridin tüm öğeleri, "emin değil"
+      öğeleri ve **elenen öğeler (gerekçeleriyle)** içinde. Sağlık bilgisi de var: Pulse
+      kaynaklarının son durumu, motor dağılımı ve `degraded` bayrağı (gösterilenlerin yarısından
+      fazlası kurallarla sıralandıysa).
+- [x] **Ön sayfa = Pulse** (`/`): 4 şerit; her şerit önce 15 öğe gösteriyor, "Show all N" ile
+      hepsi açılıyor. Dönem filtresi: 24 saat, 7 gün veya tümü. "Emin değil" ve "elenen"
+      bölümleri gerekçeleriyle açılabiliyor. Her öğede motor rozeti (jev, rules, untriaged) ve
+      gerekçe zinciri var. Degraded veya kaynak hatası olursa ekranda görünür bir uyarı çıkıyor.
+      Answer Machine `/ask` altına taşındı, kenar çubuğunda "Pulse · What's new" ilk sırada.
+- [x] **RSS:** `pulse.xml` (hepsi) ve `pulse-models.xml`, `pulse-papers.xml`, `pulse-repos.xml`,
+      `pulse-news.xml`. Yalnızca TOP kovası girer, en yeni görülen başta, en fazla 50 öğe.
+- [x] **Telegram** (`src/radar/pulse/telegram.py`, `radar pulse telegram`): İstanbul saatiyle
+      08:00'den sonraki ilk çalıştırmada günlük özet. **Sınır yok:** tüm yeni TOP öğeler
+      gönderilir, 4096 karakteri aşan özet öğe bölünmeden birden fazla mesaja ayrılır. Tam olarak
+      bir kez teslim: her mesaj gönderildiği anda o mesajdaki öğeler kaydedilir; gün ise ancak tüm
+      mesajlar gidince işaretlenir, böylece yarıda kalan bir özet aynı gün tamamlanır.
+      **Token güvenliği:** Bot API token'ı URL'de durduğu için hata mesajları URL'siz yeniden
+      yazılıyor ve httpx/httpcore log seviyesi WARNING'e çekiliyor; testle sabitlendi.
+- [x] Publish hattında çalışıyor. `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` secret'ları yoksa
+      görünür bir "skipped" satırı basılıyor. Durum dosyası `data/pulse/telegram-state.json`
+      persist ediliyor.
+- [x] Testler: Python'da görünüm, feed geçerliliği ve escape, özet bölme ve kimlik korunumu,
+      teslim durumu, token sızıntısı (2 senaryo). Frontend'de PulsePage (5 test). CI'da
+      Playwright ile ön sayfa başlığı + erişilebilirlik (axe) `/` ve `/#/ask` için. Yerelde
+      33/33 e2e geçti.
+- [ ] **Açık karar:** Telegram secret'ları nerede yaşayacak? (a) Hemen GitHub secret'ı olarak:
+      özet yarın sabahtan itibaren gelir. (b) Homelab hazır olunca oraya: Faz 4.
+- [ ] Haftalık digest iş akışının Pulse'tan beslenmesi: RSS ve Telegram bu ihtiyacı karşıladığı
+      için Faz 5 (sadeleştirme) ile birlikte ele alınacak.
 
 ### Faz 4 — Gerçek unattended operasyon (1–2 gün) · `feature/pulse/ops`
 

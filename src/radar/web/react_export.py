@@ -157,7 +157,22 @@ def export_react_site(
         base_url=base_url,
         project_events=project_events,
     )
+    _write_pulse(root, out_dir, now, base_url)
     return out_dir
+
+
+def _write_pulse(root: Path, out_dir: Path, now: datetime, base_url: str) -> None:
+    """Pulse front page data + per-lane RSS (docs/reports rescue plan, Faz 3)."""
+    from radar.pulse.feeds import write_feeds
+    from radar.pulse.view import build_pulse_view
+
+    view = build_pulse_view(root, now)
+    data_dir = out_dir / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "pulse.v1.json").write_text(
+        json.dumps(view, ensure_ascii=False), encoding="utf-8"
+    )
+    write_feeds(view, out_dir, base_url)
 
 
 def main() -> None:

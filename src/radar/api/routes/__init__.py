@@ -6,6 +6,7 @@ from radar.api.routes.catalog import router as catalog_router
 from radar.api.routes.deployments import router as deployments_router
 from radar.api.routes.integrations import router as integrations_router
 from radar.api.routes.operations import router as operations_router
+from radar.api.routes.pulse import router as pulse_router
 from radar.api.routes.releases import router as releases_router
 from radar.api.routes.workspaces import router as workspaces_router
 
@@ -19,6 +20,7 @@ ROUTERS = (
     workspaces_router,
     operations_router,
     integrations_router,
+    pulse_router,
 )
 
 

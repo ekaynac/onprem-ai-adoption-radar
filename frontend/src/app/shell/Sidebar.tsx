@@ -6,9 +6,13 @@ import { isSourceHealthy } from "../../features/operations/sourceHealth";
 
 const navigation = [
   {
+    label: "Pulse",
+    items: [{ to: "/", label: "What's new", mark: "PU" }],
+  },
+  {
     label: "The Desk",
     items: [
-      { to: "/", label: "Answer Machine", mark: "AM" },
+      { to: "/ask", label: "Answer Machine", mark: "AM" },
       { to: "/desk", label: "Weekly brief", mark: "WB" },
       { to: "/newsroom", label: "Newsroom", mark: "NW" },
       { to: "/workspaces", label: "Stack profile", mark: "WS" },

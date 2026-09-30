@@ -151,6 +151,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RADAR_WEBHOOK_URL: ${{ secrets.RADAR_WEBHOOK_URL }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           uv run radar init --root .
           uv run radar scan --root . --days 7 --publish-history
@@ -170,6 +172,11 @@ jobs:
             || echo "::warning title=Pulse::every Pulse network source failed this run"
           uv run radar pulse triage --root . \
             || echo "::warning title=Pulse::triage failed; items stay untriaged this run"
+          # Daily digest after 08:00 Istanbul, exactly once per item; a visible
+          # skip line while the bot secrets are not configured.
+          uv run radar pulse telegram --root . --skip-without-credentials \
+            --site-url "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" \
+            || echo "::warning title=Pulse::Telegram digest failed; undelivered items retry next run"
           uv run radar desk brief --root .
           uv run radar desk auto-resolve --root .
           uv run radar alerts notify --root . \
@@ -248,6 +255,7 @@ jobs:
             data/news-classified.jsonl \
             data/pulse/items.jsonl \
             data/pulse/labels.jsonl \
+            data/pulse/telegram-state.json \
             data/alerts-delivered.jsonl \
             data/calls-ledger.jsonl \
             "data/briefs/" \

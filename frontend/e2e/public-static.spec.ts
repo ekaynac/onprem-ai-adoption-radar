@@ -4,8 +4,12 @@ import { expect, test } from "@playwright/test";
 test("public static command center navigates without a backend", async ({ page }) => {
   await page.goto("/");
 
-  // Question-first homepage (D6 IA cutover); the overview lives on in
-  // the evidence appendix.
+  // Pulse is the homepage (radar rescue, 2026-09-30); the Answer Machine
+  // and the overview stay one click away.
+  await expect(
+    page.getByRole("heading", { name: "New models, papers, repositories and news" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Answer Machine", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "What should you run?" }),
   ).toBeVisible();

@@ -16,6 +16,7 @@ import { ReviewQueuePage } from "../features/operations/ReviewQueuePage";
 import { SourceHealthPage } from "../features/operations/SourceHealthPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { HomePage } from "../features/home/HomePage";
+import { PulsePage } from "../features/pulse/PulsePage";
 import { AdvisorPage } from "../features/advisor/AdvisorPage";
 import { DeskPage } from "../features/desk/DeskPage";
 import { NewsroomPage } from "../features/newsroom/NewsroomPage";
@@ -35,7 +36,8 @@ export function App({
   return (
     <Routes>
       <Route element={<AppShell staticMode={staticMode} />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<PulsePage />} />
+        <Route path="/ask" element={<HomePage />} />
         <Route path="/overview" element={<OverviewPage staticMode={staticMode} />} />
         <Route path="/desk" element={<DeskPage staticMode={staticMode} />} />
         <Route path="/releases" element={<ReleaseStreamPage />} />
