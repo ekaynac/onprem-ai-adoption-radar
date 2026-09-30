@@ -37,16 +37,25 @@ raw = re.sub(r"\x1b\][^\x07\x1b]*(\x07|\x1b\\)", "", raw)  # OSC sequences
 start = raw.rfind("sk-ant-oat01-")
 if start < 0:
     sys.exit("no sk-ant-oat01- token found in the setup-token output")
+# setup-token draws the token inside a box: borders (│ ┃ ╭ ─ ...) and padding
+# sit around every wrapped line, so strip them before reading the token run.
+BORDER = "".join(chr(c) for c in range(0x2500, 0x2580)) + "|"
+lines = raw[start:].replace("\r", "").split("\n")
 segments = []
-for line in raw[start:].replace("\r", "").split("\n"):
-    match = re.match(r"\s*([A-Za-z0-9_-]+)\s*$", line)
+for line in lines:
+    core = line.strip().strip(BORDER).strip()
+    match = re.fullmatch(r"[A-Za-z0-9_-]+", core)
     if not match:  # blank line or prose: the token ended on an earlier line
         break
-    segments.append(match.group(1))
+    segments.append(core)
 joined = ["".join(segments[:n]) for n in range(len(segments), 0, -1)]
 good = [c for c in joined if c.startswith("sk-ant-oat01-") and 90 <= len(c) <= 140]
 if not good:
-    sys.exit("no plausible token (90-140 chars) in the setup-token output")
+    # Diagnose without leaking: letters and digits masked as x.
+    masked = [re.sub(r"[A-Za-z0-9]", "x", line)[:120] for line in lines[:4]]
+    sys.exit("no plausible token (90-140 chars) in the setup-token output.\n"
+             f"segment lengths: {[len(s) for s in segments]}\n"
+             "masked lines after the token start:\n  " + "\n  ".join(repr(m) for m in masked))
 print("\n".join(good))
 PY
 )"
