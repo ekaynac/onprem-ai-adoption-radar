@@ -458,11 +458,43 @@ ayarına güveniyoruz.
 
 ### Faz 5 — Sadeleştirme (2–3 gün) · `refactor/pulse-slim`
 
-- [ ] Publish'ten dondurulan adımlar: kapasite/TCO, lineage backfill, calls ledger, backtest,
-      review kuyruğu, workspaces, hardware (karar → §6).
-- [ ] Hedef: publish süresi 16–34 dk'dan 10 dk'nın altına iner. Tek ingest hattı kalır: legacy
-      `radar scan` veya `intelligence`'tan biri.
-- [ ] 4 hafta dondurulup kimse aramazsa silme PR'ı açılır (vulture raporu eşliğinde).
+**Ölçüm (son 6 başarılı publish, 2026-09-30):** toplam 13,0–18,8 dk. Adım başına ortalama:
+
+| Adım | Süre |
+|---|---|
+| Scan (17 komut) | 4,0 dk; ilk ~165 sn eski proje ve model taramaları, platforms-verify ~48 sn, **Pulse komutlarının toplamı ~5 sn** |
+| Discover intelligence | 2,8 dk |
+| Backfill lineage | 2,4 dk |
+| Export | 1,1 dk |
+| Checkout (tam geçmiş) | 1,0 dk |
+| Checkpoint × 2 | 2,0 dk |
+| Rebuild | 0,9 dk |
+| Verify new | 0,8 dk |
+
+**Sonuç:** zamanın büyük kısmını Pulse değil, eski intelligence/katalog katmanı harcıyor.
+
+**5a — bu PR (onaylı dondurma listesi):**
+- [x] Lineage backfill ve triage publish'ten çıkarıldı (~2,4 dk).
+- [x] Desk brief, calls ledger auto-resolve ve stack-profile webhook alarmları çıkarıldı.
+      `RADAR_WEBHOOK_URL` artık kullanılmıyor.
+- [x] `radar news classify` çıkarıldı. CI'da API anahtarı olmadığı için zaten her çalıştırmada
+      atlanıyordu; Mac bot'u da kapatıldı. Pulse haberlerini Jev triyajlıyor.
+- [x] Checkout sığlaştırıldı (`fetch-depth: 20`, ~1 dk). Kod git geçmişi okumuyor; persist betiği
+      tek commit'i rebase ediyor.
+- [x] Dondurulan store'lar persist listesinden çıkarıldı: `news-classified`, `alerts-delivered`,
+      `calls-ledger`, `briefs/`.
+- [x] Kenar çubuğunda "Frozen · retiring" grubu: Weekly brief, Newsroom, Stack profile,
+      Deployment planner, Hardware. Sayfalar erişilebilir kalıyor ama ana ürünün parçası değil.
+- [x] Testler yeni sözleşmeye göre yazıldı: dondurulan komutlar publish'te **yok**; Pulse sırası
+      trending → news → pulse collect → pulse triage → export; checkout sığ.
+- Beklenen etki: ~15 dk → ~11–12 dk. Merge sonrası canlı ölçülecek.
+
+**5b — sahibin kararı gerekiyor (10 dk altı için):** kalan en büyük kalem, intelligence/katalog
+katmanının keşif, doğrulama ve iki checkpoint adımı (~5,5 dk). Bu katman Catalog, Release stream
+ve Answer Machine'i besliyor, Pulse'u beslemiyor. Dondurulursa publish ~6 dk'ya iner. Ancak bu,
+Answer Machine ve katalog sayfalarının bayatlaması demek. Karar sahibin.
+
+- [ ] **2026-10-28:** dondurulan özelliklerin silinmesi için karar PR'ı (vulture raporuyla).
 
 ### Faz 6 — (Opsiyonel) Kısa özetler (1 gün)
 

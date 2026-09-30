@@ -27,10 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
-      # Full history is needed so the committed history log carries forward.
+      # Shallow on purpose (radar rescue Faz 5): no step reads git history, and
+      # persist_publication.sh only rebases its one commit onto origin/main.
+      # Full history of the 2-hourly data files cost ~1 min per run.
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 20
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
@@ -96,14 +98,9 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: uv run radar intelligence-run discovery --root .
 
-      - name: Backfill lineage
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          uv run radar intelligence-lineage-backfill --root . \
-            --fetch-limit 150 --parent-limit 100 --max-minutes 20
-          uv run radar intelligence-lineage-triage --root . \
-            --fetch-limit 200 --max-minutes 12
+      # FROZEN 2026-09-30 (radar rescue Faz 5, owner-approved): lineage
+      # backfill/triage (~2.4 min per run) no longer runs. Catalog pages keep
+      # the last lineage state; deletion is decided on 2026-10-28.
 
       - name: Checkpoint discovered intelligence
         env:
@@ -148,8 +145,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          RADAR_WEBHOOK_URL: ${{ secrets.RADAR_WEBHOOK_URL }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: |
           uv run radar init --root .
@@ -162,7 +157,6 @@ jobs:
           uv run radar research candidates scan --root .
           uv run radar trending scan --root .
           uv run radar news scan --root .
-          uv run radar news classify --root .
           # Pulse reads the trending/news logs written just above. A total
           # Pulse outage is surfaced as a run annotation but never blocks the
           # site publish.
@@ -172,10 +166,9 @@ jobs:
             || echo "::warning title=Pulse::triage failed; items stay untriaged this run"
           # The Telegram digest is sent by the homelab worker (ct-radar), which
           # holds the bot token; see deploy/homelab/README.md.
-          uv run radar desk brief --root .
-          uv run radar desk auto-resolve --root .
-          uv run radar alerts notify --root . \
-            --base-url "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+          # FROZEN 2026-09-30 (Faz 5): news classify (no API key in CI; the
+          # Mac bot is retired: Jev triages Pulse news), the desk brief and
+          # calls ledger, and stack-profile webhook alerts.
           enrichment_output="$(uv run radar intelligence-run enrichment --root .)"
           echo "$enrichment_output"
           {
@@ -247,12 +240,8 @@ jobs:
             data/technique-metrics.jsonl \
             data/trending-observations.jsonl \
             data/news-observations.jsonl \
-            data/news-classified.jsonl \
             data/pulse/items.jsonl \
             data/pulse/labels.jsonl \
-            data/alerts-delivered.jsonl \
-            data/calls-ledger.jsonl \
-            "data/briefs/" \
             data/intelligence/public-snapshot.v1.json
 
   deploy:
