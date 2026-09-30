@@ -20,18 +20,38 @@ def test_readme_matches_shipping_cadence_without_a_frozen_source_count() -> None
     assert "a daily github action scans" not in readme.casefold()
 
 
-def test_readme_tells_the_shipped_desk_story() -> None:
+def test_readme_leads_with_pulse_and_links_its_docs() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "### Radar — shipping" in readme
-    assert "### Intelligence — shipping" in readme
-    assert "### Planner — CLI and MCP" in readme
-    # The restoration era is over; the README must not resurrect it.
+    assert readme.index("## Radar Pulse") < readme.index("## Also in this repository")
+    for link in ("docs/pulse.md", "docs/jev.md",
+                 "docs/reports/2026-09-29-radar-rescue-research-and-plan.md"):
+        assert link in readme and Path(link).exists(), link
+    # Frozen features are named as frozen, not sold as shipping.
+    assert "Frozen since 2026-09-30" in readme
+    assert "### Planner — CLI and MCP" not in readme
     assert "restoration in progress" not in readme.casefold()
-    assert "web planner arrives in phase 3" not in readme.casefold()
-    # The v3 surfaces are the story.
-    assert "Answer Machine" in readme
-    assert "calls ledger" in readme.casefold()
+
+
+def test_jev_doc_matches_the_shipped_configuration() -> None:
+    import yaml as _yaml
+
+    from radar.pulse.telegram import DIGEST_PER_LANE
+
+    doc = Path("docs/jev.md").read_text(encoding="utf-8")
+    pulse = _yaml.safe_load(Path("config/pulse.yaml").read_text(encoding="utf-8"))
+    questions = _yaml.safe_load(Path("config/pulse-questions.yaml").read_text(encoding="utf-8"))
+
+    budget = pulse["triage"]["token_budget_per_run"]
+    assert f"{budget:,}" in doc  # "300,000"
+    assert "config/pulse-questions.yaml" in doc
+    for lane, keys in questions["lanes"].items():
+        for key in keys:
+            assert f"`{key}`" in doc, f"{lane}.{key} undocumented"
+    pulse_doc = Path("docs/pulse.md").read_text(encoding="utf-8")
+    counts = DIGEST_PER_LANE
+    assert (f"top {counts['model']} models, {counts['paper']} papers, "
+            f"{counts['repo']} repos and {counts['news']} news items") in pulse_doc
 
 
 def test_readme_describes_current_verification_behavior_without_refetch_claims() -> None:

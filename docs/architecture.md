@@ -1,5 +1,10 @@
 # Architecture
 
+> **Start with [Radar Pulse](pulse.md)** (the daily "what's new" product) and
+> [how it uses Jev](jev.md). This page describes the older intelligence and
+> adoption-radar layers underneath, several of which are frozen since
+> 2026-09-30 (see the README).
+
 ## Canonical intelligence platform
 
 The architect command center is a layered product over one shared intelligence
