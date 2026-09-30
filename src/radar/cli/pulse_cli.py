@@ -250,6 +250,10 @@ def pulse_telegram(
         "", help="Read the published pulse.v1.json from this URL instead of local data "
                  "(homelab worker: data over HTTPS, code never auto-updated).",
     ),
+    summaries: str = typer.Option(
+        "none", help="'claude-cli' adds a one-sentence Turkish explanation per shown item "
+                     "via the owner's Claude subscription; 'none' skips it.",
+    ),
 ) -> None:
     """Send today's Pulse digest via the radar bot (TELEGRAM_BOT_TOKEN/CHAT_ID)."""
     import asyncio
@@ -290,7 +294,8 @@ def pulse_telegram(
         return
     view = _remote_view(view_url) if view_url else build_pulse_view(root, now)
     picks = select_new(view, set(state["delivered"]))
-    messages = render_digest(picks, view, site_url, today)
+    explanations = _explanations(root, picks, summaries, now) if summaries != "none" else {}
+    messages = render_digest(picks, view, site_url, today, explanations=explanations)
     if not messages:
         console.print("Nothing new to send.")
         return
@@ -432,3 +437,31 @@ def _remote_view(url: str) -> dict:
         console.print(f"[red]Published Pulse view unusable ({url}): "
                       f"{type(exc).__name__}: {str(exc).splitlines()[0]}[/red]")
         raise typer.Exit(code=1) from None
+
+
+def _explanations(root: Path, picks: dict, engine: str, now) -> dict[str, str]:
+    """Best effort: a summaries failure never blocks or delays the digest."""
+    from radar.pulse.summaries import (
+        CACHE_PATH,
+        claude_cli_runner,
+        load_cache,
+        save_cache,
+        summarize,
+    )
+    from radar.pulse.telegram import shown_rows, state_file
+
+    if engine != "claude-cli":
+        raise typer.BadParameter(f"unknown summaries engine {engine!r}")
+    rows = shown_rows(picks)
+    cache_path = state_file(root, CACHE_PATH)
+    try:
+        cache = load_cache(cache_path)
+        cache, added = summarize(rows, cache, claude_cli_runner(), now)
+        save_cache(cache_path, cache)
+        console.print(f"Summaries: {added} new, {len(rows)} shown item(s).")
+    except Exception as exc:
+        console.print(f"[yellow]Summaries skipped ({type(exc).__name__}: "
+                      f"{str(exc).splitlines()[0][:200] if str(exc) else ''}); "
+                      "the digest goes out without them.[/yellow]")
+        return {}
+    return {row["id"]: cache[row["id"]]["text"] for row in rows if row["id"] in cache}
