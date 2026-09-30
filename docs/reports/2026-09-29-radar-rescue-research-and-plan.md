@@ -383,8 +383,34 @@ GitHub
 Kural motoru homelab'da da yedektir. Jev kesilirse ya da `claude` oturumu düşerse sistem
 susmaz: görünür bir "degraded" rozeti gösterir ve Telegram'a uyarı düşer.
 
-Homelab'ın ayrıntıları (OS, Docker var mı, CPU mimarisi, dışarıya nasıl açılacağı) Faz 4'ten
-önce netleştirilecek.
+**Homelab ayrıntıları (2026-09-30, `~/Github/homelab` okunarak):** tek node'lu Proxmox VE 9.2,
+32 GB RAM, GTX 1070. Kurallar: her servis ayrı bir unprivileged LXC'de, `vmbr1` üzerinde; router'da
+port yönlendirme yok; herkese açık trafik yalnızca Cloudflare Tunnel + Access üzerinden, yönetim
+Tailscale üzerinden.
+
+Bu kurallara uyan öneri:
+
+- **`ct-radar` (CTID 105, 10.10.0.6).** Debian 13, unprivileged, GPU yok (Jev bir API; `claude` CLI
+  GPU istemiyor). `onboot 1`, `unattended-upgrades` açık, nightly PBS yedeği otomatik.
+- **Dışarıya hiçbir yüzey açılmıyor.** ct-radar yalnızca dışarıya bağlanan bir işçi: pipeline'ı
+  çalıştırır, sonucu GitHub'a push eder. Site ve RSS GitHub Pages'ten sunulur. Bu yüzden yeni bir
+  tunnel hostname'i veya Access uygulaması gerekmiyor. Kural: "şüphedeysen Tailscale / hiçbir şey açma".
+- **Secret'lar** `/etc/radar/env` dosyasında (izin 600) durur: `TYPESAFE_API_KEY`, `GITHUB_TOKEN`
+  (yalnızca bu repoya yazabilen fine-grained deploy anahtarı), `HF_TOKEN`, Telegram bot token'ları.
+  Repoya asla girmez.
+- **`claude` aboneliği:** ct-radar içinde Enes, Tailscale SSH ile bir kez `claude` login yapar.
+  Oturum düşerse Çakır alarm verir ve özetler kaynak metne düşer (görünür rozetle).
+
+**Telegram (openclaw bot'larından seçim):**
+
+- **Pulse özetleri → Memati (`@memati_claw_bot`).** Memati zaten "Radar Brifingcisi". Ancak
+  bugünkü brifingi (HEARTBEAT Adım B), Mac'teki dev checkout'u MCP ile okuyor. O checkout
+  2026-09-29'da 569 commit gerideydi ve üstelik branch değiştikçe değişiyor. Pulse, mesajı
+  deterministik olarak Bot API `sendMessage` ile Memati'nin bot'undan gönderir. Openclaw gateway'in
+  polling'iyle çakışmaz. Pulse canlıya çıkınca Memati'nin Adım B'si emekliye ayrılır (Enes'in
+  onayıyla), böylece çift brifing olmaz. Memati sohbet ve soru-cevap için kalır.
+- **Alarmlar → Çakır (`@cakir_claw_bot`).** Çakır zaten "radar tarama/brifing tazeliği" nöbetçisi.
+  Dead-man switch ve degraded uyarıları onun kanalından gider.
 
 ## 7. Mentörlük notu — neden bu sefer farklı olmalı
 
