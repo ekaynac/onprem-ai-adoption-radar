@@ -81,6 +81,7 @@ def _row(entry: RankedItem) -> dict[str, Any]:
         "bucket": entry.bucket.value,
         "reasons": list(entry.reasons),
         "engine": entry.engine,
+        "signals": dict(item.signals),
     }
 
 

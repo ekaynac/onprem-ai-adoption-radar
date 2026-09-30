@@ -38,6 +38,31 @@ LANE_HEADINGS = {
     "repo": "🧰 Repolar",
     "news": "📰 Haberler",
 }
+# Telegram shows the top of each lane; the site and RSS carry everything.
+DIGEST_PER_LANE = {"model": 6, "paper": 5, "repo": 5, "news": 8}
+TITLE_LIMIT = 70
+TURKISH_MONTHS = (
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+)
+SOURCE_NAMES = {
+    "openai-news": "OpenAI",
+    "deepmind-blog": "Google DeepMind",
+    "google-ai-blog": "Google",
+    "mistral-news": "Mistral",
+    "nvidia-dev-blog": "NVIDIA",
+    "msr-blog": "Microsoft Research",
+    "github-blog-ai": "GitHub",
+    "simonwillison": "Simon Willison",
+    "latent-space": "Latent Space",
+    "hf-blog": "Hugging Face",
+    "vllm-blog": "vLLM",
+    "ollama-blog": "Ollama",
+    "hn-llm-top": "Hacker News",
+    "hn-vllm": "Hacker News",
+    "hn-ollama": "Hacker News",
+    "hn-llamacpp": "Hacker News",
+}
 
 
 class TelegramError(RuntimeError):
@@ -90,36 +115,52 @@ def render_digest(
     view: dict[str, Any],
     site_url: str,
     today: date,
+    per_lane: dict[str, int] | None = None,
 ) -> list[DigestMessage]:
-    """The digest as Telegram-sized messages (each <= 4096 chars); [] if nothing new.
+    """A short, scannable digest; [] if nothing new.
 
-    Items are never split across messages: a message closes before the item
-    that would overflow it and the lane heading repeats on the next one. Each
-    message knows its item ids so delivery is recorded per message sent.
+    The first live digest (2026-09-30) listed all 630 new items in 22
+    messages and the owner found it unreadable. Telegram now carries the top
+    ``per_lane`` items of each lane as numbered one-liners; the rest are
+    counted ("+N more on the site") and still recorded as delivered so they
+    never pile up. The site and RSS keep everything ("I want all").
+
+    Messages stay under Telegram's 4096-char limit; if the capped digest is
+    still too long, it splits without breaking an item, and every message
+    knows its item ids so delivery is recorded per message sent.
     """
     if not any(picks.values()):
         return []
-    lines = [f"🛰️ <b>AI Radar Pulse</b> — {today.isoformat()}"]
+    caps = per_lane or DIGEST_PER_LANE
+    total_new = sum(len(rows) for rows in picks.values())
+    lines = [f"🛰️ <b>AI Radar Pulse</b> · {_turkish_date(today)}"]
     if view["health"].get("degraded"):
-        lines.append("⚠️ <i>Triage degraded: most items were ranked by rules, not Jev.</i>")
-    footer = [f'<a href="{escape(site_url, quote=True)}">Full list and RSS</a>'] if site_url else []
+        lines.append("⚠️ <i>Sıralama bugün yedek kurallarla yapıldı (Jev'e ulaşılamadı).</i>")
 
     chunks: list[tuple[list[str], list[str]]] = []
     ids: list[str] = []
     for lane, rows in picks.items():
         if not rows:
             continue
-        heading = f"<b>{LANE_HEADINGS[lane]}</b>"
+        shown, rest = rows[: caps.get(lane, 5)], rows[caps.get(lane, 5):]
+        heading = f"<b>{LANE_HEADINGS[lane]}</b> <i>({len(rows)} yeni)</i>"
         lines += ["", heading]
-        for row in rows:
-            line = _item_line(row)
+        for number, row in enumerate(shown, start=1):
+            line = _item_line(number, row)
             if len("\n".join([*lines, line])) > TELEGRAM_LIMIT - 16:  # room for "(n/N)"
                 chunks.append((lines, ids))
-                lines, ids = [f"{heading} (continued)"], []
+                lines, ids = [f"{heading} (devam)"], []
             lines.append(line)
             ids.append(row["id"])
-    if footer and len("\n".join([*lines, "", *footer])) <= TELEGRAM_LIMIT - 16:
-        lines += ["", *footer]
+        if rest:
+            lines.append(f"<i>+{len(rest)} daha sitede</i>")
+            ids.extend(row["id"] for row in rest)  # seen via the site; never re-sent
+    if site_url:
+        site = escape(site_url, quote=True)
+        rss = escape(site_url.rstrip("/") + "/pulse.xml", quote=True)
+        footer = f'Tümü ({total_new} yeni öğe): <a href="{site}">site</a> · <a href="{rss}">RSS</a>'
+        if len("\n".join([*lines, "", footer])) <= TELEGRAM_LIMIT - 16:
+            lines += ["", footer]
     chunks.append((lines, ids))
     total = len(chunks)
     return [
@@ -131,11 +172,40 @@ def render_digest(
     ]
 
 
-def _item_line(row: dict[str, Any]) -> str:
-    detail = _detail(row)
-    line = (f'• <a href="{escape(row["url"], quote=True)}">{escape(row["title"])}</a>'
-            + (f" — {escape(detail)}" if detail else ""))
-    return line[: TELEGRAM_LIMIT - 200]
+def _item_line(number: int, row: dict[str, Any]) -> str:
+    """``1. <link>Short title</link> · owner · signal`` — one line, no raw URLs."""
+    title = str(row["title"])
+    owner = ""
+    if row["lane"] in ("model", "repo") and "/" in title:
+        owner, title = title.split("/", 1)
+    parts = [f'<a href="{escape(row["url"], quote=True)}">{escape(_shorten(title))}</a>']
+    parts += [escape(part) for part in (owner, _signal(row)) if part]
+    return f"{number}. " + " · ".join(parts)
+
+
+def _shorten(text: str, limit: int = TITLE_LIMIT) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
+
+def _signal(row: dict[str, Any]) -> str:
+    """The one number that says why this item is here."""
+    signals = row.get("signals") or {}
+    lane = row["lane"]
+    if lane == "model" and signals.get("likes"):
+        return f"♥ {int(signals['likes'])}"
+    if lane == "paper":
+        upvotes = f"▲ {int(signals.get('upvotes', 0))}"
+        return upvotes + (" · kod" if signals.get("has_code") else "")
+    if lane == "repo" and signals.get("stars_per_day"):
+        return f"★ {round(signals['stars_per_day'])}/gün"
+    if lane == "news":
+        return SOURCE_NAMES.get(str(row.get("source", "")), str(row.get("source", "")))
+    return ""
+
+
+def _turkish_date(day: date) -> str:
+    return f"{day.day} {TURKISH_MONTHS[day.month - 1]} {day.year}"
 
 
 async def send_message(client: Any, token: str, chat_id: str, text: str) -> None:
@@ -175,13 +245,3 @@ def save_state(path: Path, state: dict[str, Any]) -> None:
 
 def local_today(now: datetime) -> date:
     return now.astimezone(LOCAL_TZ).date()
-
-
-def _detail(row: dict[str, Any]) -> str:
-    """One compact signal per line: likes for models, upvotes/velocity, news source."""
-    reasons = row.get("reasons") or []
-    if row["lane"] == "news":
-        return str(row.get("source", ""))
-    if row["lane"] == "model":
-        return str(reasons[-1]) if reasons else ""
-    return str(reasons[0]) if reasons else ""
