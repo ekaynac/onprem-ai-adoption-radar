@@ -10,20 +10,11 @@ const navigation = [
     items: [{ to: "/", label: "What's new", mark: "PU" }],
   },
   {
-    label: "The Desk",
+    label: "Explore",
     items: [
       { to: "/ask", label: "Answer Machine", mark: "AM" },
-      { to: "/desk", label: "Weekly brief", mark: "WB" },
-      { to: "/newsroom", label: "Newsroom", mark: "NW" },
-      { to: "/workspaces", label: "Stack profile", mark: "WS" },
-    ],
-  },
-  {
-    label: "Decide",
-    items: [
       { to: "/advisor", label: "Advisor", mark: "AD" },
       { to: "/compare", label: "Compare", mark: "CO" },
-      { to: "/planner", label: "Deployment planner", mark: "DP" },
     ],
   },
   {
@@ -34,9 +25,21 @@ const navigation = [
       { to: "/projects", label: "GitHub projects", mark: "GH" },
       { to: "/trending", label: "Trending repos", mark: "TR" },
       { to: "/platforms", label: "Platforms", mark: "PL" },
-      { to: "/hardware", label: "Hardware", mark: "HW" },
       { to: "/research", label: "Research", mark: "RE" },
       { to: "/overview", label: "Rings overview", mark: "OV" },
+    ],
+  },
+  {
+    // Radar rescue Faz 5 (2026-09-30): frozen, no longer refreshed by
+    // publish (the newsroom's Claude classifier ran on the retired Mac bot;
+    // Pulse news is triaged by Jev); reachable until the 2026-10-28 decision.
+    label: "Frozen · retiring",
+    items: [
+      { to: "/desk", label: "Weekly brief", mark: "WB" },
+      { to: "/newsroom", label: "Newsroom", mark: "NW" },
+      { to: "/workspaces", label: "Stack profile", mark: "WS" },
+      { to: "/planner", label: "Deployment planner", mark: "DP" },
+      { to: "/hardware", label: "Hardware", mark: "HW" },
     ],
   },
   {
