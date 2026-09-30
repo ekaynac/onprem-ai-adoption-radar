@@ -2,8 +2,9 @@
 # Deliberate code update for ct-radar (mirrors ct-cv's update-site): show what
 # would change, then fast-forward and re-sync. Never run from a timer.
 #
-#   pct exec 105 -- update-radar          # show pending commits, ask
-#   pct exec 105 -- update-radar --yes    # apply without asking
+#   pct exec 105 -- /usr/local/bin/update-radar          # show pending commits, ask
+#   pct exec 105 -- /usr/local/bin/update-radar --yes    # apply without asking
+# (full path: pct exec does not put /usr/local/bin on PATH)
 set -euo pipefail
 
 REPO_DIR="${RADAR_REPO_DIR:-/opt/radar/repo}"
