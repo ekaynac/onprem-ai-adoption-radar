@@ -281,23 +281,49 @@ kalabalığın arasında kalıyor. **Bu, Faz 2'nin (Jev triyajı) tam olarak ç�
 
 ### Faz 2 — Classifier katmanı ve Jev (3–4 gün) · `feature/pulse/classifier`
 
-- [ ] `Classifier` protokolü ve `config/pulse-questions.yaml`. Soru tanımları sağlayıcıdan
-      bağımsız tutulur.
-- [ ] Motorlar:
-      - `rules` (her zaman var)
-      - `jev` (httpx; 429/529 backoff; batch; token ve maliyet kaydı)
-      - `claude-api` (aynı sorular JSON şema ile; mevcut `news_classify.py` yeniden kullanılır)
-- [ ] Önbellek: `labels.jsonl` içerik hash'i ile. Aynı öğe iki kez ücretlendirilmez.
-- [ ] **Değerlendirme harness'i** (`radar pulse eval`): 2.487 gümüş etiket ve 150 öğelik altın
-      set.
-      - Raporlanan metrikler: relevant F1, event_type macro-F1, kalibrasyon (ECE), güven
-        eşiğine göre kapsam.
-      - **Kapı:** Jev, altın sette `relevant` için F1 ≥ 0.85 ve Claude'a uyum ≥ %80 ise varsayılan
-        motor olur. Aksi halde `claude-api` veya `rules` motorunda kalınır ve karar raporlanır.
-- [ ] Testler: HTTP mock (respx), şema doğrulama, kesinti anında `rules` motoruna düşme, bütçe
-      sınırı (günlük token tavanı aşılınca durma ve rapor).
-- [ ] Gereken secret: `TYPESAFE_API_KEY` (başlangıçta doğrulanır; yoksa görünür uyarı verilir ve
-      `rules` motoru kullanılır).
+- [x] Sağlayıcıdan bağımsız soru setleri: `config/pulse-questions.yaml` (şerit başına; versiyonlu,
+      etiketler versiyona göre önbelleklenir). İlke: **olgu sor, zevk sorma.** İlk canlı denemede Jev
+      olay türünü net ayırdı (GPT-6.1 Sol → model-release, 1.00). Öznel "kaçırılmamalı mı?" sorusu ise
+      bir frontier lansmanıyla Airbnb müşteri hikâyesine aynı puanı verdi (0.33'e karşı 0.34).
+- [x] Motorlar: `jev` (`src/radar/pulse/jev.py`; Bearer auth; 429/529 backoff — 529 ortak retry
+      setine eklendi; anahtar hiçbir hata mesajına sızmaz) ve `rules` (her zaman var, güveni 0.3).
+      `claude-api` motoru **düştü**: kararın gereği API anahtarı yok. Claude, homelab'daki abonelik
+      üzerinden yalnızca özetler için kullanılacak (Faz 6).
+- [x] Önbellek: `data/pulse/labels.jsonl`, (öğe, içerik hash'i, soru versiyonu) anahtarıyla.
+      Kurallarla etiketlenmiş öğeler Jev erişilebilir olunca yükseltilir. Sonradan gelen bir kural
+      etiketi, aynı içerikteki bir Jev etiketini asla ezmez. Canlı doğrulama: ikinci çalıştırma
+      yalnızca 52 öğeyi yükseltti, üçüncüsü 0 çağrı yaptı.
+- [x] Bütçe ve dayanıklılık: çalıştırma başına 300k token tavanı (~0,013$). 5 ardışık hatada devre
+      kesici açılır. Her iki durum da raporda ve run log'unda görünür.
+- [x] Deterministik sıralama (`rank.py`): olay türü ağırlığı × güven × kaynak otoritesi; model için
+      köken + like/indirme; paper için upvote + konu + "kod/ağırlık yayınlıyor"; repo için tür +
+      yıldız/gün. Her öğe gerekçesini taşır. Güveni düşük olan "emin değil" kovasına düşer;
+      müşteri hikâyeleri, listeler ve repack'ler gizlenir.
+- [x] Publish hattında: `radar pulse triage`, `TYPESAFE_API_KEY` secret'ı ile her 2 saatte bir
+      çalışır. Hata olursa run'da uyarı çıkar ve öğeler etiketsiz kalır ("emin değil").
+- [ ] **Kapı: sahibin altın seti.** `eval/pulse-gold-2026-09-30.md`: şerit bazında tabakalı 120 öğe
+      (Jev'den bağımsız örneklem) ve donmuş snapshot. Sahip işaretler; `radar pulse eval` Jev ile
+      kural motorunun TOP kovasını precision/recall/F1 olarak karşılaştırır.
+
+**Gümüş karşılaştırma (Claude opus'un 266 tabakalı newsroom etiketi, 2026-09-30, maliyet
+0,0073$).** Ön kayıtlı kapı "F1 ≥ 0.85 ve uyum ≥ %80" idi; Jev **az farkla geçemedi**:
+
+| Ölçüm | Jev ve Claude karşılaştırması |
+|---|---|
+| "On-prem operatör için ilgili mi?" F1 (eşik 0.4) | 0.83 (P 0.82 / R 0.84) |
+| Uyum | %79,3 |
+| Olay türü uyumu / macro-F1 | %63,9 / 0.66. En büyük karışıklık: Claude "other" dediğine Jev "community" diyor (24 öğe); ikisi de ürün için önemsiz kovalar |
+| Güven ≥ 0.9 | %48 kapsam, %79,5 uyum. Güven puanı anlamlı |
+
+**Karar:** Claude'un etiketleri eski ürün sorusunu (on-prem operatör ilgisi) yanıtlıyor, Pulse'un
+sorusunu ("AI developer bunu görmeli mi?") değil. Bu yüzden gümüş sonuç Jev'i reddetmek için de
+kabul etmek için de yetmez. **Nihai kapı sahibin altın seti.** O gelene kadar Jev, sonuçları
+görünür rozetle etiketlenmiş olarak çalışır. Kural motoru her an geri dönüş olarak hazır.
+
+**Canlı sıralama örneği (haber, 2026-09-30):** ilk sıralarda GPT-6 Sol/Luna ve GPT-6.1 Sol
+(openai), Gemini 3.8 Live (deepmind), Claude Sonnet/Opus 5.5 (simonwillison), MiMo-V2.6-Pro
+(latent-space) ve Jev lansmanı var. Bilinen hata: "How we will do better for Australia" →
+`security (0.93)`. Altın set bu tür hataların oranını ölçecek.
 
 ### Faz 3 — Pulse yüzeyi ve teslimat (3 gün) · `feature/pulse/surface`
 
