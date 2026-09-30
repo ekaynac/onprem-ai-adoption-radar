@@ -5,6 +5,8 @@ from pathlib import Path
 
 import yaml
 
+from test_intelligence_workflows import all_run_commands, load_yaml
+
 
 def _publish_workflow() -> str:
     return Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
@@ -35,15 +37,11 @@ def test_publish_checkpoints_discovery_and_verified_state_before_export():
     text = _publish_workflow()
 
     discovery_idx = text.index("radar intelligence-run discovery")
-    lineage_idx = text.index("radar intelligence-lineage-backfill")
     discovery_checkpoint_idx = text.index("Checkpoint discovered intelligence")
     verify_new_idx = text.index("radar intelligence-run verify-new")
     verified_checkpoint_idx = text.index("Checkpoint verified intelligence")
     export_idx = text.index("radar export")
 
-    assert discovery_idx < lineage_idx < discovery_checkpoint_idx
-    # Rate-limited HF days must not stall publish for hours (2026-08-04/05).
-    assert "--max-minutes 20" in text
     assert discovery_idx < discovery_checkpoint_idx < verify_new_idx
     assert verify_new_idx < verified_checkpoint_idx < export_idx
     assert text.count("gh release upload radar-state") >= 2
@@ -230,51 +228,42 @@ def test_bounded_pipeline_results_are_written_to_the_job_summary():
     assert "enrichment" in scan["run"]
 
 
-def test_publish_runs_news_scan_and_classify_and_commits_stores():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+def test_publish_feeds_pulse_from_fresh_trending_and_news_before_export():
+    text = _publish_workflow()
     trending_idx = text.index("radar trending scan")
     news_idx = text.index("radar news scan")
-    classify_idx = text.index("radar news classify")
-    brief_idx = text.index("radar desk brief")
+    collect_idx = text.index("radar pulse collect")
+    triage_idx = text.index("radar pulse triage")
     export_idx = text.index("radar export")
-    # News lands before the brief so breaking items can produce calls.
-    assert trending_idx < news_idx < classify_idx < brief_idx < export_idx
-    assert "data/news-observations.jsonl" in text
-    assert "data/news-classified.jsonl" in text
-    # Classification key must be available to the Scan step (optional secret).
-    assert "ANTHROPIC_API_KEY" in text
+    assert trending_idx < news_idx < collect_idx < triage_idx < export_idx
+    assert "TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}" in text
+    for store in ("data/news-observations.jsonl", "data/pulse/items.jsonl",
+                  "data/pulse/labels.jsonl"):
+        assert store in text
 
 
-def test_publish_builds_the_desk_brief_and_persists_the_ledger():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-    trending_idx = text.index("radar trending scan")
-    brief_idx = text.index("radar desk brief")
-    resolve_idx = text.index("radar desk auto-resolve")
-    export_idx = text.index("radar export")
-    # Scoring runs right after the brief so the exported track record
-    # reflects every call whose window elapsed.
-    assert trending_idx < brief_idx < resolve_idx < export_idx
-    assert "data/calls-ledger.jsonl" in text
-    assert "data/briefs/" in text
+def test_frozen_features_no_longer_run_in_publish():
+    # Radar rescue Faz 5 (2026-09-30, owner-approved freeze; deletion decided
+    # 2026-10-28). The commands stay in the CLI; publish must not spend on them.
+    commands = all_run_commands(load_yaml(".github/workflows/publish.yml"))
+    for frozen in (
+        "intelligence-lineage-backfill",
+        "intelligence-lineage-triage",
+        "radar news classify",
+        "radar desk brief",
+        "radar desk auto-resolve",
+        "radar alerts notify",
+        "radar pulse telegram",  # owned by the homelab worker
+    ):
+        assert frozen not in commands, frozen
 
 
-def test_publish_delivers_stack_alerts_after_scoring():
-    text = _publish_workflow()
-    resolve_idx = text.index("radar desk auto-resolve")
-    alerts_idx = text.index("radar alerts notify")
-    export_idx = text.index("radar export")
-    assert resolve_idx < alerts_idx < export_idx
-    # Exactly-once delivery state must survive CI runs; the webhook URL
-    # rides an optional secret (delivery is off unless notify: enables it).
-    assert "data/alerts-delivered.jsonl" in text
-    assert "RADAR_WEBHOOK_URL" in text
-
-
-def test_publish_runs_lineage_triage_after_backfill():
-    text = _publish_workflow()
-    backfill_idx = text.index("radar intelligence-lineage-backfill")
-    triage_idx = text.index("radar intelligence-lineage-triage")
-    scan_idx = text.index("radar scan ")
-    assert backfill_idx < triage_idx < scan_idx
-    # Budgeted like the backfill: a rate-limited day must not stall publish.
-    assert "intelligence-lineage-triage --root . \\\n            --fetch-limit 200 --max-minutes 12" in text
+def test_publish_checkout_is_shallow():
+    # Full history of the 2-hourly data files cost ~1 min per run; no step
+    # reads git history and persist_publication.sh only rebases one commit.
+    workflow = load_yaml(".github/workflows/publish.yml")
+    checkout = next(
+        step for step in workflow["jobs"]["build"]["steps"]
+        if str(step.get("uses", "")).startswith("actions/checkout")
+    )
+    assert 0 < checkout["with"]["fetch-depth"] <= 50
