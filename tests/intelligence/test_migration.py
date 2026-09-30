@@ -313,6 +313,45 @@ def test_reimport_after_seed_edit_appends_content_addressed_evidence(
     import_legacy_state(tmp_path, repository)
 
 
+def test_reimport_after_seed_value_correction_supersedes_the_claim(
+    tmp_path: Path,
+) -> None:
+    """Production repro (2026-09-30): correcting a seeded number
+    (gpt-oss-120b params_total 120.4B -> 116.8B) raised RepositoryConflict
+    ("Claim id changed") and failed every publish run.
+
+    A corrected seed value appends a content-addressed claim that wins
+    "latest value" ordering, and the superseded claim goes STALE so
+    verification never treats the correction as a dispute.
+    """
+    from radar.intelligence.contracts import ClaimState
+
+    seed_legacy_root(tmp_path)
+    database = Database(f"sqlite:///{tmp_path / 'data' / 'intelligence.db'}")
+    database.create_schema()
+    repository = SqlAlchemyIntelligenceRepository(database)
+    import_legacy_state(tmp_path, repository)
+
+    (tmp_path / "config" / "model-seed.yaml").write_text(
+        MODEL_SEED.replace("params_total: 8000000000", "params_total: 8030261248"),
+        encoding="utf-8",
+    )
+    import_legacy_state(tmp_path, repository)
+    import_legacy_state(tmp_path, repository)  # stable on repeat
+
+    release_id = "release:legacy:sample-8b"
+    latest = repository.latest_claim_values([release_id], {"params_total"})
+    assert latest[release_id]["params_total"] == 8030261248
+    claims = [
+        claim for claim in repository.list_claims_for_subject(release_id)
+        if claim.predicate == "params_total"
+    ]
+    assert len(claims) == 2
+    states = {claim.value: claim.state for claim in claims}
+    assert states[8000000000] is ClaimState.STALE
+    assert states[8030261248] is not ClaimState.STALE
+
+
 def test_migrate_amnesties_volatile_conflict_backlog(tmp_path: Path) -> None:
     """The amnesty rides the unconditional rebuild step: qualification
     leases only once per day, so hooking it there left the backlog

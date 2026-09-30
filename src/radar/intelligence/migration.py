@@ -284,17 +284,17 @@ def _import_model(seed: ModelSeed, publisher: Publisher, repository) -> bool:
             evidence_ids=[evidence.id],
         )
         existing_claim = repository.get_claim(claim.id)
-        if existing_claim is not None and (
-            existing_claim.subject_id == claim.subject_id
-            and existing_claim.predicate == claim.predicate
-            and existing_claim.value == claim.value
-            and existing_claim.unit == claim.unit
+        if existing_claim is None:
+            repository.append_claim(claim)
+            continue
+        if _same_claim_value(existing_claim, claim) and (
+            existing_claim.state is not ClaimState.STALE
         ):
             # Verification and freshness jobs may advance state/time, and a
             # seed edit re-addresses the evidence id. Re-import must preserve
             # the stored claim rather than conflicting over those fields.
             continue
-        repository.append_claim(claim)
+        _supersede_seed_claim(claim, repository)
     current = repository.get_release_required(release_id)
     if seed.spec_verified:
         reason = "Legacy seed carries human-verified specifications"
@@ -405,6 +405,40 @@ def _import_model_history(path: Path, repository) -> tuple[int, int]:
         imported += int(created)
         present += int(not created)
     return imported, present
+
+
+def _same_claim_value(stored: Claim, fresh: Claim) -> bool:
+    return (
+        stored.subject_id == fresh.subject_id
+        and stored.predicate == fresh.predicate
+        and stored.value == fresh.value
+        and stored.unit == fresh.unit
+    )
+
+
+def _supersede_seed_claim(claim: Claim, repository) -> None:
+    """A corrected seed value: append, don't conflict (2026-09-30 incident).
+
+    Claims are immutable, so the corrected value gets a content-addressed id
+    (the evidence/platform pattern). It is observed "now" so it wins the
+    ``latest_claim_values`` ordering over the 2000-01-01 legacy rows, and every
+    other claim this seed produced for the predicate goes STALE, which
+    verification skips, so a correction never reads as a dispute.
+    """
+    value_hash = _checksum({"value": claim.value, "unit": claim.unit})
+    corrected_id = f"{claim.id}:{value_hash.removeprefix('sha256:')[:16]}"
+    if repository.get_claim(corrected_id) is None:
+        repository.append_claim(
+            claim.model_copy(update={"id": corrected_id, "observed_at": datetime.now(UTC)})
+        )
+    for stored in repository.list_claims_for_subject(claim.subject_id):
+        if (
+            stored.predicate == claim.predicate
+            and (stored.id == claim.id or stored.id.startswith(f"{claim.id}:"))
+            and stored.id != corrected_id
+            and stored.state is not ClaimState.STALE
+        ):
+            repository.set_claim_state(stored.id, ClaimState.STALE)
 
 
 def import_legacy_state(root: Path, repository) -> MigrationReport:
