@@ -175,6 +175,7 @@ def _failure_reason(stdout: str, stderr: str) -> str:
         payload = None
     if isinstance(payload, dict):
         reason = payload.get("terminal_reason") or payload.get("subtype") or ""
-        detail = payload.get("result") if isinstance(payload.get("result"), str) else ""
-        return f"{reason} {detail[:200]}".strip() or "no reason given"
+        result = payload.get("result")
+        detail = result[:200] if isinstance(result, str) else ""
+        return f"{reason} {detail}".strip() or "no reason given"
     return stderr.strip()[:300] or "no output"
