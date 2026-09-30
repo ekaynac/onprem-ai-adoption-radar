@@ -45,3 +45,7 @@ models:
 papers:
   # Hugging Face daily papers (community-curated, carries upvotes + code links).
   daily_papers_limit: 100
+
+triage:
+  # Classifier input-token ceiling per run (Jev: $0.042 per million).
+  token_budget_per_run: 300000

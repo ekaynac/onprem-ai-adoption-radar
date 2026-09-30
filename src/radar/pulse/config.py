@@ -21,12 +21,21 @@ class PapersConfig(BaseModel):
     daily_papers_limit: int = Field(default=100, ge=1, le=500)
 
 
+class TriageConfig(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # Hard ceiling on classifier input tokens per run; past it, rules take over.
+    # 300k tokens = $0.0126 at Jev's $0.042/M; 12 runs/day caps spend near $0.15.
+    token_budget_per_run: int = Field(default=300_000, ge=0)
+
+
 class PulseConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     window_days: int = Field(default=14, ge=1, le=90)
     models: ModelsConfig
     papers: PapersConfig = PapersConfig()
+    triage: TriageConfig = TriageConfig()
 
     @property
     def lab_org_set(self) -> frozenset[str]:
