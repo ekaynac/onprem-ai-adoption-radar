@@ -361,16 +361,64 @@ kırpmıyor ve saklamıyor. Sıralama yalnızca sırayı belirliyor; kovalar yal
 - [ ] Haftalık digest iş akışının Pulse'tan beslenmesi: RSS ve Telegram bu ihtiyacı karşıladığı
       için Faz 5 (sadeleştirme) ile birlikte ele alınacak.
 
-### Faz 4 — Gerçek unattended operasyon (1–2 gün) · `feature/pulse/ops`
+### Faz 4 — Gerçek unattended operasyon (homelab) · `feature/pulse/homelab-worker`
 
-- [ ] Sınıflandırma tamamen GitHub Actions'ta çalışır. **launchd ajanları emekliye ayrılır**
-      (kaldırma adımları dokümante edilir; kaldırma işini sahip yapar ya da onaylar).
-- [ ] **Dead-man switch:** herhangi bir şerit 24 saattir boşsa, herhangi bir iş akışı 2 kez üst
-      üste kırmızıysa ya da herhangi bir kaynak 3 gündür bayatsa → sahibe bildirim gider ve bir
-      GitHub issue açılır.
-- [ ] Haftalık öz-rapor: toplanan öğeler, motor dağılımı, maliyet, kırmızı iş akışları,
-      bayat kaynaklar.
-- [ ] Yerel MCP için `radar-scan` checkout'u `git pull` ile başlar; ya da MCP canlı siteden okur.
+**Karar (2026-09-30):** Telegram secret'ları GitHub'a değil homelab'a gidecek; özet `ct-radar`
+kurulunca başlayacak. Buna bağlı iki tasarım kararı:
+
+- **İş bölümü.** Toplama, Jev triyajı, site ve RSS GitHub Actions'ta kalıyor; hepsi çalışıyor
+  ve yeşil. Homelab yalnızca GitHub'ın yapamadığını yapıyor: Memati üzerinden günlük özet ve
+  Çakır üzerinden bekçi. GitHub'daki Telegram adımı kaldırıldı. Özetin tek göndericisi homelab
+  olduğu için çift gönderim riski yok.
+- **Homelab kuralına uyum.** Homelab'da gözetimsiz bir pull, build ve deploy döngüsünün tedarik
+  zinciri için tutunma noktası olduğu kuralı var. Bu yüzden worker **kodu kendisi asla
+  güncellemiyor**. Kod yalnızca sahip `update-radar` komutunu çalıştırınca değişiyor; komut
+  önce bekleyen commit'leri ve worker'ı etkileyen diff'i gösterip onay istiyor. Veri, canlı
+  sitedeki `pulse.v1.json`'dan HTTPS ile geliyor ve sınırda şema kontrolünden geçiyor
+  (`validate_view`: şerit adları, zorunlu alanlar, yalnızca http(s) URL). Worker'da GitHub
+  kimlik bilgisi yok ve hiçbir şey push etmiyor.
+
+- [x] `radar pulse watchdog` şunları kontrol ediyor:
+      - canlı site 6 saatten eski ya da erişilemiyor
+      - son iki publish başarısız
+      - boş şerit ya da hata veren kaynak
+      - degraded triyaj
+      - saat 10:00'a kadar gitmemiş özet
+
+      Her sorun bir kez bildiriliyor, çözülünce "resolved" geliyor; tekrar tekrar dürtmüyor
+      (Çakır'ın kuralı). Yalnızca public uç noktaları okuyor. Canlı dry-run'da site ve publish
+      sağlıklıydı; tek bulgu "özet gitmedi" oldu, bu da homelab kurulana kadar beklenen durum.
+- [x] `radar pulse telegram --view-url`: özet canlı JSON'dan kuruluyor. `RADAR_STATE_DIR`
+      sayesinde teslim ve alarm durumu klonun dışında, `/var/lib/radar` altında tutuluyor.
+- [x] `deploy/homelab/` içeriği:
+      - `radar-worker.sh`: kod çekmez.
+      - `update-radar.sh`: bilinçli, elle güncelleme.
+      - systemd service, 30 dakikalık timer ve `OnFailure` → `notify-failure.py`. Bildirici
+        yalnızca stdlib kullanıyor; token komut satırına ya da log'a düşmüyor.
+      - `env.example` ve README.
+
+      Mount namespace isteyen sandbox seçeneklerini çıkardım: nesting'siz unprivileged LXC'de
+      unit `226/NAMESPACE` hatasıyla hiç başlamazdı. İzolasyon sınırını konteyner sağlıyor.
+- [x] Homelab reposu (ayrı PR):
+      - `docs/services/radar.md`: onboarding'in dört kararı, alarm tablosu ve bilinen kör nokta.
+      - `runbooks/radar-worker-setup.sh`: tekrar çalıştırılabilir; `uv==0.11.19` kendi venv'ine
+        pinli kuruluyor, indirilen bir betik kabuğa verilmiyor; LAN sızıntısı ve
+        unattended-upgrades kontrol ediliyor; secret'lara hiç dokunmuyor.
+      - Servis kayıt tablosuna `105 ct-radar 10.10.0.6` satırı.
+- [x] Canlı UX düzeltmesi: köken kurallarıyla belirlenen modeller "UNTRIAGED" yerine "lineage"
+      rozeti taşıyor ve degraded hesabında kural motoruyla sıralanmış gibi sayılmıyor.
+- [ ] **Sahibin adımları:**
+      - runbook'u host'ta çalıştırma (onay verip bana bırakmak ya da kendin çalıştırmak)
+      - `/etc/radar/env` dosyasını doldurma: Memati token, Çakır token, chat id
+      - timer'ı etkinleştirme
+      - reboot testi
+- [ ] Mac'teki launchd ajanlarını (`com.megabilisim.onpremradar.news-classify`,
+      `ai.openclaw.radar-scan`) emekliye ayırmak ve Memati HEARTBEAT Adım B'yi kapatmak.
+      ct-radar'ın ilk özeti geldikten sonra, sahibin onayıyla yapılacak.
+
+**Bilinen kör nokta:** host tamamen kapanırsa içeriden alarm veren kimse kalmaz. Bu durum için
+host'un mevcut e-posta alarmına ve README'de bekleyen BIOS "Restore AC Power Loss → Power On"
+ayarına güveniyoruz.
 
 ### Faz 5 — Sadeleştirme (2–3 gün) · `refactor/pulse-slim`
 
