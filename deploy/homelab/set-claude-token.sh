@@ -18,16 +18,22 @@ HOST="${RADAR_HOST:-root@100.75.17.74}"
 CTID="${RADAR_CTID:-105}"
 
 log="$(mktemp)"
-trap 'rm -f "$log"' EXIT
+extractor="$(mktemp)"
+trap 'rm -f "$log" "$extractor"' EXIT
 
 echo "1/4  Opening 'claude setup-token' — approve in the browser, then return here."
-script -q "$log" claude setup-token
+# A 1000-column pseudo-terminal keeps the token on one line: when the real
+# window wrapped it, two characters were lost at the wrap (owner's Mac,
+# 2026-09-30: 52+52+9 = 113 of 115 chars, every join rejected with 401).
+script -q "$log" /bin/sh -c 'stty cols 1000 2>/dev/null; exec claude setup-token'
 
 echo "2/4  Extracting the token from the recorded output…"
-# Candidates, longest first: the token may be wrapped over several lines, and
+# Candidates, shortest first: the token may be wrapped over several lines, and
 # text printed right after it may start on the very next line, so every
 # line-boundary prefix of 90-140 chars is a candidate. Anthropic decides.
-candidates="$(python3 - "$log" <<'PY'
+# Written to a file first: macOS /bin/bash 3.2 mis-parses a heredoc inside
+# $(...) when its body contains an apostrophe ("unexpected EOF").
+cat > "$extractor" <<'PY'
 import re
 import sys
 
@@ -41,19 +47,20 @@ if start < 0:
 # sit around every wrapped line, so strip them before reading the token run.
 BORDER = "".join(chr(c) for c in range(0x2500, 0x2580)) + "|"
 lines = raw[start:].replace("\r", "").split("\n")
-TOKEN_RUN = re.compile(r"[A-Za-z0-9_-]+")
-# First line: the token starts it; prose may follow on the same line after a
-# space (seen on the owner's Mac, 2026-09-30), which means the token ended there.
-first = TOKEN_RUN.match(lines[0])
-segments = [first.group(0)] if first else []
-rest_of_first = lines[0][first.end():].strip().strip(BORDER).strip() if first else ""
-# Only a line that ends with the token can continue on the next (wrapped) line.
-for line in ([] if rest_of_first else lines[1:]):
-    core = line.strip().strip(BORDER).strip()
-    if not TOKEN_RUN.fullmatch(core):  # blank line or prose: the token ended
+# The renderer breaks the token wherever the terminal width falls: sometimes
+# a newline, sometimes a plain space (both seen on the owner's Mac on
+# 2026-09-30), and prose may follow the last piece. So collect the
+# whitespace-separated chunks after the start and offer every prefix join;
+# the container check decides which one Anthropic accepts.
+text = " ".join(line.strip().strip(BORDER) for line in lines[:6])
+segments = []
+for chunk in text.split():
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", chunk):
         break
-    segments.append(core)
-joined = ["".join(segments[:n]) for n in range(len(segments), 0, -1)]
+    segments.append(chunk)
+    if len(segments) == 8:
+        break
+joined = ["".join(segments[:n]) for n in range(1, len(segments) + 1)]
 good = [c for c in joined if c.startswith("sk-ant-oat01-") and 90 <= len(c) <= 140]
 if not good:
     # Diagnose without leaking: letters and digits masked as x.
@@ -63,20 +70,39 @@ if not good:
              "masked lines after the token start:\n  " + "\n  ".join(repr(m) for m in masked))
 print("\n".join(good))
 PY
-)"
+candidates="$(python3 "$extractor" "$log")"
 
-echo "3/4  Checking the token with Anthropic…"
+echo "3/4  Checking each candidate from ct-radar itself (where it will be used)…"
+# Checked inside the container, as the radar user: the Mac's own Claude login,
+# hooks and settings cannot interfere. The candidate travels on ssh stdin.
+# shellcheck disable=SC2016  # $t must expand in the container, not here
+check_script='read -r t; cd /tmp; echo OK | CLAUDE_CODE_OAUTH_TOKEN=$t HOME=/opt/radar claude -p --output-format json --model haiku --strict-mcp-config --no-session-persistence 2>&1'
 token=""
 while IFS= read -r candidate; do
-  check="$(CLAUDE_CODE_OAUTH_TOKEN="$candidate" claude -p --output-format json --tools "" \
-    --strict-mcp-config --no-session-persistence --model haiku <<<'Yalnızca OK yaz.' || true)"
-  if python3 -c 'import json,sys; d=json.loads(sys.argv[1]); sys.exit(1 if d.get("is_error") else 0)' "$check" 2>/dev/null; then
+  # shellcheck disable=SC2029  # CTID and check_script are meant to expand locally
+  reply="$(printf '%s\n' "$candidate" | ssh "$HOST" "LC_ALL=C pct exec ${CTID} -- runuser -u radar -- sh -c '${check_script}'" || true)"
+  verdict="$(python3 -c '
+import json, re, sys
+raw = sys.argv[1]
+try:
+    data = json.loads(raw)
+except ValueError:
+    print("non-JSON reply: " + re.sub(r"[A-Za-z0-9_-]{20,}", "<masked>", raw)[:200])
+    sys.exit(0)
+if data.get("is_error"):
+    reason = data.get("terminal_reason") or data.get("subtype") or "error"
+    print(reason + ": " + str(data.get("result", ""))[:160])
+else:
+    print("ok")
+' "$reply")"
+  echo "     candidate (${#candidate} chars): ${verdict}"
+  if [ "$verdict" = "ok" ]; then
     token="$candidate"
     break
   fi
 done <<<"$candidates"
 if [ -z "$token" ]; then
-  echo "Anthropic rejected every candidate; nothing was changed on ct-radar. Run this script again." >&2
+  echo "No candidate was accepted; nothing was changed on ct-radar." >&2
   exit 1
 fi
 
@@ -84,7 +110,7 @@ echo "4/4  Writing it to ct-radar (${HOST}, CT ${CTID})…"
 # The remote side keeps /etc/radar/env's inode (and so root:radar 0640) by
 # rewriting it with `cat >`, and builds the new copy under umask 077.
 # shellcheck disable=SC2029  # CTID is meant to expand locally
-printf '%s' "$token" | ssh "$HOST" "pct exec ${CTID} -- sh -c '
+printf '%s' "$token" | ssh "$HOST" "LC_ALL=C pct exec ${CTID} -- sh -c '
 umask 077
 t=\$(cat)
 case \$t in sk-ant-oat01-*) ;; *) echo token-format-invalid >&2; exit 1;; esac
