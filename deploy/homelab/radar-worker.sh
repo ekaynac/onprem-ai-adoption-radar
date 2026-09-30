@@ -18,7 +18,10 @@ cd "$REPO_DIR"
 # The digest must not be blocked by a watchdog problem, and vice versa;
 # either failing still fails the unit so OnFailure reports it.
 status=0
-uv run --no-sync radar pulse telegram --root . \
+# --summaries: one Turkish sentence per shown item via the owner's Claude
+# subscription (CLAUDE_CODE_OAUTH_TOKEN). Best effort: if claude is missing or
+# fails, the digest still goes out, just without the sentences.
+uv run --no-sync radar pulse telegram --root . --summaries claude-cli \
   --view-url "${SITE_URL%/}/data/pulse.v1.json" --site-url "$SITE_URL" || status=1
 uv run --no-sync radar pulse watchdog --root . || status=1
 exit "$status"

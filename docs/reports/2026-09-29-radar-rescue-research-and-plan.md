@@ -496,11 +496,33 @@ Answer Machine ve katalog sayfalarının bayatlaması demek. Karar sahibin.
 
 - [ ] **2026-10-28:** dondurulan özelliklerin silinmesi için karar PR'ı (vulture raporuyla).
 
-### Faz 6 — (Opsiyonel) Kısa özetler (1 gün)
+### Faz 6 — Türkçe tek cümlelik açıklamalar · `feature/pulse/summaries`
 
-- [ ] Günün ilk 10 öğesi için 1–2 cümlelik Türkçe/İngilizce özet: Claude Haiku 4.5
-      (`ANTHROPIC_API_KEY`). Günlük bütçe tavanı ~0,05$ civarında olur.
-- [ ] Anahtar yoksa kaynak özeti (HF kartı veya arXiv abstract'ının ilk cümlesi) kullanılır.
+API anahtarı yok; özetler sahibin Claude aboneliğiyle, ct-radar'da `claude -p` üzerinden üretiliyor.
+
+- [x] `src/radar/pulse/summaries.py`:
+      - Yalnızca Telegram'da **gösterilen** öğeler özetleniyor (en fazla 24). Her öğe bir kez
+        özetleniyor; sonuç `$RADAR_STATE_DIR/summaries.json` içinde önbelleğe alınıyor.
+      - Günde tek bir `claude` çağrısı yapılıyor, model `haiku`.
+- [x] Güvenlik (öğe metinleri internetten geliyor):
+      - Prompt, öğeleri **veri** olarak çerçeveliyor ve içlerindeki talimatlara uyulmamasını
+        açıkça söylüyor.
+      - `--tools ""`: tüm yerleşik araçlar kapalı (`claude --help` 2.1.285 ile doğrulandı).
+        Enjekte edilmiş bir talimat dosya okutamaz, komut çalıştıramaz.
+      - `--strict-mcp-config` ve `--no-session-persistence` ile MCP ve oturum kaydı kapalı.
+      - `claude` alt süreci yalnızca kendi token'ını ve `HOME`/`USER`/`PATH` değişkenlerini
+        görüyor; Telegram token'ları ona verilmiyor. Boş bir geçici dizinde çalışıyor.
+      - Çıktı sıkı doğrulanıyor: yalnızca istenen kimlikler, HTML temizleniyor, en fazla 200
+        karakter. Telegram'a yazılırken ayrıca escape ediliyor.
+- [x] Her şey best-effort: `claude` yoksa ya da hata verirse özet yine gidiyor, yalnızca
+      açıklamasız. Hata nedeni CLI'ın JSON'undaki `terminal_reason` alanından raporlanıyor.
+- [x] Canlı deneme (Mac, gerçek abonelik): 6 öğe 25 saniyede özetlendi. Örnek: "OpenAI, farklı
+      performans ve maliyet dengesiyle GPT-6 Sol ve Luna sunuyor." Model özetleri yalnızca repo
+      adına dayandığı için genel kalıyor; ileride HF kartıyla zenginleştirilebilir.
+- [ ] ct-radar'a `claude-code` kurulumu: Anthropic'in imzalı apt deposundan, parmak izi
+      `31DD DE24 DDFA B679 F42D 7BD2 BAA9 29FF 1A7E CACE` doğrulanarak (homelab runbook).
+- [ ] **Sahibin adımı:** Mac'te `claude setup-token` (1 yıl geçerli) ve token'ı
+      `/etc/radar/env` dosyasına `CLAUDE_CODE_OAUTH_TOKEN` olarak eklemek.
 
 **Toplam tahmin:** yaklaşık 2–3 hafta, parça parça. Her faz tek başına değer üretir. Faz 0 ile
 Faz 1'in sonunda bile "yeni modeller ve paper'lar görünüyor" hedefine ulaşılır.

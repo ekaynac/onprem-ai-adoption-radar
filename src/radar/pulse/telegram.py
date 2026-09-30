@@ -110,12 +110,21 @@ class DigestMessage:
     item_ids: tuple[str, ...]
 
 
+def shown_rows(
+    picks: dict[str, list[dict[str, Any]]], per_lane: dict[str, int] | None = None,
+) -> list[dict[str, Any]]:
+    """The rows the digest will actually display (the rest go to "+N on the site")."""
+    caps = per_lane or DIGEST_PER_LANE
+    return [row for lane, rows in picks.items() for row in rows[: caps.get(lane, 5)]]
+
+
 def render_digest(
     picks: dict[str, list[dict[str, Any]]],
     view: dict[str, Any],
     site_url: str,
     today: date,
     per_lane: dict[str, int] | None = None,
+    explanations: dict[str, str] | None = None,
 ) -> list[DigestMessage]:
     """A short, scannable digest; [] if nothing new.
 
@@ -147,6 +156,9 @@ def render_digest(
         lines += ["", heading]
         for number, row in enumerate(shown, start=1):
             line = _item_line(number, row)
+            note = (explanations or {}).get(row["id"])
+            if note:
+                line += f"\n    <i>{escape(note)}</i>"
             if len("\n".join([*lines, line])) > TELEGRAM_LIMIT - 16:  # room for "(n/N)"
                 chunks.append((lines, ids))
                 lines, ids = [f"{heading} (devam)"], []
