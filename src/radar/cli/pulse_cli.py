@@ -232,3 +232,90 @@ def pulse_eval(
                 f"shown={score.shown:3} precision={score.precision:.2f} "
                 f"recall={score.recall:.2f} F1={score.f1:.2f}"
             )
+
+
+@pulse_app.command("telegram")
+def pulse_telegram(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    site_url: str = typer.Option("", help="Public site URL for the footer link."),
+    dry_run: bool = typer.Option(False, help="Print the message; send and record nothing."),
+    force: bool = typer.Option(False, help="Send even if today's digest already went out."),
+    not_before_hour: int = typer.Option(
+        8, min=0, max=23, help="Earliest local (Europe/Istanbul) hour to send the daily digest.",
+    ),
+    skip_without_credentials: bool = typer.Option(
+        False, help="Exit 0 with a visible notice when the bot secrets are absent (CI).",
+    ),
+) -> None:
+    """Send today's Pulse digest via the radar bot (TELEGRAM_BOT_TOKEN/CHAT_ID)."""
+    import asyncio
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from radar.pulse.telegram import (
+        LOCAL_TZ,
+        STATE_PATH,
+        TelegramError,
+        load_state,
+        local_today,
+        mark_sent,
+        record_delivery,
+        render_digest,
+        save_state,
+        select_new,
+        send_message,
+        telegram_credentials,
+    )
+    from radar.pulse.view import build_pulse_view
+
+    now = datetime.now(UTC)
+    today = local_today(now)
+    if not dry_run and not force and now.astimezone(LOCAL_TZ).hour < not_before_hour:
+        console.print(f"Before {not_before_hour:02d}:00 Istanbul time; the digest waits.")
+        return
+    if not dry_run and telegram_credentials(root) is None and skip_without_credentials:
+        console.print("[yellow]Telegram digest skipped: TELEGRAM_BOT_TOKEN / "
+                      "TELEGRAM_CHAT_ID are not configured.[/yellow]")
+        return
+    state_path = root / STATE_PATH
+    state = load_state(state_path)
+    if state.get("last_sent_date") == today.isoformat() and not force and not dry_run:
+        console.print(f"Telegram digest already sent for {today}; skipping.")
+        return
+    view = build_pulse_view(root, now)
+    picks = select_new(view, set(state["delivered"]))
+    messages = render_digest(picks, view, site_url, today)
+    if not messages:
+        console.print("Nothing new to send.")
+        return
+    if dry_run:
+        for message in messages:
+            console.print(message.text, markup=False, highlight=False)
+            console.print("-" * 40)
+        return
+    credentials = telegram_credentials(root)
+    if credentials is None:
+        console.print("[yellow]TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set: "
+                      "digest not sent.[/yellow]")
+        raise typer.Exit(code=1)
+
+    async def _send_one(text: str) -> None:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            await send_message(client, *credentials, text)
+
+    sent = 0
+    for message in messages:
+        try:
+            asyncio.run(_send_one(message.text))
+        except TelegramError as exc:
+            console.print(f"[red]{exc}[/red] ({sent}/{len(messages)} message(s) sent; "
+                          "the rest retry next run)")
+            raise typer.Exit(code=1) from None
+        # Record per message so a mid-digest failure never re-sends earlier parts.
+        state = record_delivery(state, list(message.item_ids))
+        save_state(state_path, state)
+        sent += 1
+    save_state(state_path, mark_sent(state, today))
+    items = sum(len(m.item_ids) for m in messages)
+    console.print(f"Sent Telegram digest: {items} item(s) in {sent} message(s).")
