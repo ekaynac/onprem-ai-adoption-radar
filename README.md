@@ -58,7 +58,8 @@ Most "AI radar" tools summarize news. This one makes a *decision*: given a tool,
 
 ### Radar — shipping
 
-- **77 curated sources** currently ship in `config/seed-sources.yaml`, spanning
+- **A curated source list** ships in `config/seed-sources.yaml` (the source
+  autopilot grows it weekly), spanning
   GitHub repositories, RSS feeds, registries, and manual authoritative sources.
 - Deterministic `adopt` / `pilot` / `watch` / `avoid` rings, project evidence,
   comparisons, history, model and research catalogs, the platform matrix,
@@ -133,7 +134,7 @@ Everything new degrades gracefully and stays off the critical path: enrichment (
 
 `coding_agents` · `general_agents` · `mcp_tooling` · `sandbox_governance` · `agent_frameworks` · `model_serving` · `ai_infrastructure` · `physical_ai_infrastructure` · `fun_experimental`
 
-77 curated sources ship by default; add your own from the CLI.
+A curated source list ships by default (grown weekly by the source autopilot); add your own from the CLI.
 
 ---
 

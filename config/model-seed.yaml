@@ -474,7 +474,10 @@ models:
     family: gpt-oss
     hf_repo: openai/gpt-oss-120b
     backer: {name: "openai", type: community}
-    params_total: 120412337472
+    # HF safetensors element count; matches the card's "117B" headline.
+    # The 2026-06-29 autopilot value (120412337472) drifted 3.1% and kept
+    # spec-verify red from 2026-08-24 (fixed 2026-09-30).
+    params_total: 116829156672
     num_layers: 36
     hidden_size: 2880
     context_length: 131072

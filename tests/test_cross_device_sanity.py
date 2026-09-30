@@ -46,9 +46,10 @@ def test_advisor_runs_cleanly_on_target_devices(profiles: dict) -> None:
 
 
 def test_gb300_coding_surfaces_gptoss_fast(profiles: dict) -> None:
-    # Memory-bandwidth-bound box with room for a 120B MoE: the discovered
-    # gpt-oss-120b must appear with a fast decode estimate (proves the
-    # discovery bridge + throughput dimension both fire end to end).
+    # Memory-bandwidth-bound box with room for a 120B MoE: gpt-oss-120b must
+    # appear with a fast decode estimate. It was promoted from discovery into
+    # config/model-seed.yaml on 2026-06-29, so provenance is only required
+    # while it still arrives through the discovery bridge.
     if "hf-gpt-oss-120b" not in profiles:
         pytest.skip("intelligence database not present in this environment")
     answer = build_answers(profiles, "dgx-station-gb300", "coding")
@@ -57,7 +58,8 @@ def test_gb300_coding_surfaces_gptoss_fast(profiles: dict) -> None:
     assert gpt_oss is not None, "gpt-oss-120b must rank on DGX Station GB300"
     assert gpt_oss["estimated_tok_s"] is not None
     assert gpt_oss["estimated_tok_s"] >= 50, "gpt-oss-120b decode must be fast"
-    assert gpt_oss.get("discovery_reason"), "gpt-oss-120b must carry provenance"
+    if gpt_oss.get("discovered"):
+        assert gpt_oss.get("discovery_reason"), "discovered gpt-oss-120b must carry provenance"
 
 
 def test_perf_weight_ranks_faster_model_higher_when_otherwise_equal() -> None:

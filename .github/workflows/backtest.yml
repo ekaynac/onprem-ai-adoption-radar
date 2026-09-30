@@ -4,9 +4,11 @@ name: Ring backtest
 # and surface how rings would differ. Read-only — this reports, it does not
 # gate (the calibrate-report gate inside publish.yml remains the hard check).
 
+# FROZEN 2026-09-30 (radar rescue plan, Faz 0/5): ring backtesting is outside
+# the Pulse scope and failed weekly since 2026-08-31 (data/config.yaml is not
+# in the checkout). Schedule removed; manual dispatch kept until the Faz 5
+# delete decision.
 on:
-  schedule:
-    - cron: "0 9 * * 1" # Mondays 09:00 UTC, after catalog autopilot
   workflow_dispatch: {}
 
 permissions:

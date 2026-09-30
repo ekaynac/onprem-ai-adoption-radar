@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import yaml
@@ -5,16 +6,17 @@ import yaml
 from test_intelligence_workflows import all_run_commands, load_yaml
 
 
-def test_readme_matches_shipping_cadence_and_current_source_count() -> None:
+def test_readme_matches_shipping_cadence_without_a_frozen_source_count() -> None:
+    # The source autopilot commits new seeds weekly with [skip ci]; a count
+    # baked into the README silently went stale and kept main red for weeks.
     readme = Path("README.md").read_text(encoding="utf-8")
     seed = yaml.safe_load(
         Path("config/seed-sources.yaml").read_text(encoding="utf-8")
     )
-    source_count = len(seed["sources"])
 
+    assert seed["sources"], "seed-sources.yaml must ship at least one source"
     assert "every two hours" in readme.casefold()
-    assert f"{source_count} curated sources" in readme
-    assert "51 curated sources" not in readme
+    assert re.search(r"\b\d+ curated sources\b", readme) is None
     assert "a daily github action scans" not in readme.casefold()
 
 

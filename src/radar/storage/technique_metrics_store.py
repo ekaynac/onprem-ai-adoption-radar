@@ -62,12 +62,16 @@ class TechniqueMetricsStore:
 
     def latest(
         self, technique_id: str, exclude_run: str | None = None,
+        source: str | None = None,
     ) -> TechniqueMetrics | None:
         query = f"SELECT {_COLUMNS} FROM technique_metrics WHERE technique_id = ?"
         params: list[str] = [technique_id]
         if exclude_run is not None:
             query += " AND run_id != ?"
             params.append(exclude_run)
+        if source is not None:
+            query += " AND citation_source = ? AND citation_count IS NOT NULL"
+            params.append(source)
         query += " ORDER BY observed_at DESC, id DESC LIMIT 1"
         with sqlite3.connect(self.path) as conn:
             row = conn.execute(query, params).fetchone()

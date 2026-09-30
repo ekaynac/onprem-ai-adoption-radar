@@ -113,6 +113,96 @@ def test_assemble_falls_back_to_last_known_citations(tmp_path):
     assert any("last-known" in w for w in qlora.warnings)
 
 
+def _openalex_fallback() -> dict[str, CitationRecord]:
+    # OpenAlex counts far fewer citations than Semantic Scholar for the same
+    # arXiv id (observed 2026-09-30: MoE 4899 on s2 vs 362 on OpenAlex).
+    return {"2211.17192": CitationRecord(
+        arxiv_id="2211.17192", citation_count=120, venue="ICML",
+        peer_reviewed=True, source="openalex",
+    )}
+
+
+def _record_s2(store, runs: list[tuple[str, int]]) -> None:
+    from datetime import timedelta
+
+    from radar.storage.technique_metrics_store import TechniqueMetrics
+
+    store.record([
+        TechniqueMetrics(
+            technique_id="speculative-decoding", run_id=run_id,
+            observed_at=NOW + timedelta(hours=i), citation_count=count,
+            citation_source="s2", resolved_impls=2,
+        )
+        for i, (run_id, count) in enumerate(runs)
+    ])
+
+
+def test_openalex_fallback_keeps_last_known_s2_count(tmp_path):
+    # Regression: the S2 -> OpenAlex fallback flipped four technique rings
+    # adopt <-> pilot 16 times a week because the two sources count differently.
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    _record_s2(store, [("run-0", 1697)])
+
+    entries = assemble_entries(_seeds(), _context(), _openalex_fallback(), store)
+
+    spec = next(e for e in entries if e.id == "speculative-decoding")
+    assert spec.citation_count == 1697
+    assert spec.citation_source == "s2"
+    assert any("OpenAlex" in w for w in spec.warnings)
+
+
+def test_openalex_fallback_survives_consecutive_fallback_runs(tmp_path):
+    # Two S2 outages in a row: the second run must still anchor on the S2
+    # value, not on the OpenAlex row the first fallback run recorded.
+    from datetime import timedelta
+
+    from radar.storage.technique_metrics_store import TechniqueMetrics
+
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    _record_s2(store, [("run-0", 1697)])
+    store.record([TechniqueMetrics(
+        technique_id="speculative-decoding", run_id="run-1",
+        observed_at=NOW + timedelta(hours=5), citation_count=120,
+        citation_source="openalex", resolved_impls=2,
+    )])
+
+    entries = assemble_entries(_seeds(), _context(), _openalex_fallback(), store)
+
+    spec = next(e for e in entries if e.id == "speculative-decoding")
+    assert spec.citation_count == 1697
+    assert spec.citation_source == "s2"
+
+
+def test_openalex_is_used_when_no_s2_history_exists(tmp_path):
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+
+    entries = assemble_entries(_seeds(), _context(), _openalex_fallback(), store)
+
+    spec = next(e for e in entries if e.id == "speculative-decoding")
+    assert spec.citation_count == 120
+    assert spec.citation_source == "openalex"
+
+
+def test_ring_is_stable_across_alternating_citation_sources(tmp_path):
+    # End-to-end guard on the observed symptom: alternating s2 / OpenAlex runs
+    # must score to one ring, not oscillate.
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    _record_s2(store, [("run-0", 1697)])
+
+    verdicts = set()
+    for citations in (_citations(), _openalex_fallback(), _citations(), _openalex_fallback()):
+        entries = assemble_entries(_seeds(), _context(), citations, store)
+        scored = score_technique_entries(entries, store)
+        spec = next(e for e in scored if e.id == "speculative-decoding")
+        verdicts.add((spec.score, spec.ring))
+
+    assert len(verdicts) == 1
+
+
 def test_score_and_ring_closed_loop(tmp_path):
     store = TechniqueMetricsStore(tmp_path / "radar.db")
     store.initialize()

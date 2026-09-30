@@ -30,6 +30,8 @@ from radar.storage.technique_metrics_store import TechniqueMetrics, TechniqueMet
 
 logger = logging.getLogger(__name__)
 
+_PRIMARY_CITATION_SOURCE = "s2"
+
 
 def assemble_entries(
     seeds: list[TechniqueSeed],
@@ -175,12 +177,24 @@ def _citation_fields(
     citations: dict[str, CitationRecord],
     store: TechniqueMetricsStore,
 ) -> tuple[int | None, str | None, bool | None, list[str]]:
-    """(count, source, peer_reviewed, warnings): fresh max-over-papers, else last-known."""
+    """(count, source, peer_reviewed, warnings): fresh max-over-papers, else last-known.
+
+    Semantic Scholar is the primary source; OpenAlex is only the outage
+    fallback and counts far fewer citations for the same paper. When a fresh
+    OpenAlex figure arrives for a technique that already has an S2 history,
+    the last-known S2 figure wins, otherwise every S2 outage flips the ring.
+    """
     fresh = [citations[p.arxiv_id] for p in seed.papers if p.arxiv_id in citations]
     if fresh:
         best = max(fresh, key=lambda r: r.citation_count)
-        return (best.citation_count, best.source,
-                any(r.peer_reviewed for r in fresh), [])
+        peer_reviewed = any(r.peer_reviewed for r in fresh)
+        if best.source != _PRIMARY_CITATION_SOURCE:
+            anchored = store.latest(seed.id, source=_PRIMARY_CITATION_SOURCE)
+            if anchored is not None and anchored.citation_count is not None:
+                return (anchored.citation_count, anchored.citation_source, peer_reviewed,
+                        [f"citations: kept last-known Semantic Scholar count; "
+                         f"OpenAlex fallback reported {best.citation_count}"])
+        return (best.citation_count, best.source, peer_reviewed, [])
     last = store.latest(seed.id)
     if last is not None and last.citation_count is not None:
         return (last.citation_count, last.citation_source, None,
