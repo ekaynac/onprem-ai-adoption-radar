@@ -64,3 +64,4 @@ crawl-tmp.cjs
 # Local secrets (HF_TOKEN, TYPESAFE_API_KEY, ...) read by radar.huggingface_auth._load_dotenv
 .env
 .env.*
+!.env.example
