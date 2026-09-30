@@ -10,6 +10,12 @@ const PERIODS: Record<string, { label: string; hours: number | null }> = {
 };
 /** First screen per lane; "Show all" reveals every item (the owner wants all). */
 const INITIAL_PER_LANE = 15;
+const ENGINE_TITLES: Record<string, string> = {
+  jev: "Classified by Jev",
+  lineage: "Origin settled from Hugging Face base_model tags",
+  rules: "Ranked by fallback rules",
+  untriaged: "Not classified yet",
+};
 const FEEDS: Record<string, string> = {
   model: "pulse-models.xml",
   paper: "pulse-papers.xml",
@@ -174,8 +180,12 @@ function PulseItem({ row }: { row: PulseRow }) {
           </a>
         </strong>
         <span
-          className={`verdict-pill ${row.engine === "jev" ? "impact-improvement" : "impact-unclassified"}`}
-          title={row.engine === "jev" ? "Triaged by Jev" : "Ranked by fallback rules"}
+          className={`verdict-pill ${
+            row.engine === "jev" || row.engine === "lineage"
+              ? "impact-improvement"
+              : "impact-unclassified"
+          }`}
+          title={ENGINE_TITLES[row.engine ?? "untriaged"] ?? row.engine ?? ""}
         >
           {row.engine ?? "untriaged"}
         </span>
