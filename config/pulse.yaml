@@ -49,3 +49,9 @@ papers:
 triage:
   # Classifier input-token ceiling per run (Jev: $0.042 per million).
   token_budget_per_run: 300000
+
+# Dead-man checks run by the homelab worker (public endpoints only).
+watchdog:
+  site_url: https://ekaynac.github.io/onprem-ai-adoption-radar/
+  repo: ekaynac/onprem-ai-adoption-radar
+  publish_workflow: publish.yml
