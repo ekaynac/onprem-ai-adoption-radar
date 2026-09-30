@@ -41,11 +41,16 @@ if start < 0:
 # sit around every wrapped line, so strip them before reading the token run.
 BORDER = "".join(chr(c) for c in range(0x2500, 0x2580)) + "|"
 lines = raw[start:].replace("\r", "").split("\n")
-segments = []
-for line in lines:
+TOKEN_RUN = re.compile(r"[A-Za-z0-9_-]+")
+# First line: the token starts it; prose may follow on the same line after a
+# space (seen on the owner's Mac, 2026-09-30), which means the token ended there.
+first = TOKEN_RUN.match(lines[0])
+segments = [first.group(0)] if first else []
+rest_of_first = lines[0][first.end():].strip().strip(BORDER).strip() if first else ""
+# Only a line that ends with the token can continue on the next (wrapped) line.
+for line in ([] if rest_of_first else lines[1:]):
     core = line.strip().strip(BORDER).strip()
-    match = re.fullmatch(r"[A-Za-z0-9_-]+", core)
-    if not match:  # blank line or prose: the token ended on an earlier line
+    if not TOKEN_RUN.fullmatch(core):  # blank line or prose: the token ended
         break
     segments.append(core)
 joined = ["".join(segments[:n]) for n in range(len(segments), 0, -1)]
