@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the radar worker every 30 minutes
+
+[Timer]
+OnCalendar=*:05/30
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

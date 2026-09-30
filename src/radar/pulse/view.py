@@ -99,3 +99,27 @@ def _latest_pulse_sources(root: Path) -> list[dict[str, Any]]:
                     "observed_at": record.observed_at.isoformat(),
                 }
     return sorted(latest.values(), key=lambda s: s["source"])
+
+
+def validate_view(payload: Any) -> dict[str, Any]:
+    """Boundary check for a view fetched over HTTPS (the homelab worker reads
+    the live site instead of pulling code); fail fast on anything unexpected."""
+    if not isinstance(payload, dict) or payload.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError("not a pulse-v1 view")
+    datetime.fromisoformat(str(payload.get("generated_at")))
+    lanes = payload.get("lanes")
+    health = payload.get("health")
+    if not isinstance(lanes, list) or not isinstance(health, dict):
+        raise ValueError("pulse view lacks lanes/health")
+    required = {"id", "lane", "title", "url", "source", "first_seen", "reasons"}
+    for section in lanes:
+        if not isinstance(section, dict) or not isinstance(section.get("items"), list):
+            raise ValueError("pulse lane without an items list")
+        if section.get("lane") not in {lane.value for lane in Lane}:
+            raise ValueError(f"unknown pulse lane {section.get('lane')!r}")
+        for row in section["items"]:
+            if not isinstance(row, dict) or not required <= row.keys():
+                raise ValueError("pulse item missing required fields")
+            if not str(row["url"]).startswith(("https://", "http://")):
+                raise ValueError("pulse item url is not http(s)")
+    return payload

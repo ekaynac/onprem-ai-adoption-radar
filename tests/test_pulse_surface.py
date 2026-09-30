@@ -182,3 +182,23 @@ def test_telegram_errors_never_leak_the_token(handler, caplog) -> None:
     assert error.__cause__ is None
     assert error.__context__ is None or error.__suppress_context__
     assert TOKEN not in caplog.text
+
+
+def test_remote_view_validation_accepts_our_view_and_rejects_tampering(view: dict) -> None:
+    import copy
+    import json
+
+    from radar.pulse.view import validate_view
+
+    assert validate_view(json.loads(json.dumps(view))) == json.loads(json.dumps(view))
+
+    bad_scheme = copy.deepcopy(view)
+    bad_scheme["lanes"][3]["items"][0]["url"] = "javascript:alert(1)"
+    for broken in (
+        {"schema_version": "other"},
+        {**view, "lanes": "nope"},
+        {**view, "lanes": [{"lane": "weather", "items": []}]},
+        bad_scheme,
+    ):
+        with pytest.raises(ValueError):
+            validate_view(broken)

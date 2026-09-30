@@ -84,8 +84,16 @@ def _rank_one(item: PulseItem, label: Label | None) -> RankedItem:
         Lane.NEWS: _news,
     }[item.lane]
     score, bucket, reasons = scorer(item, label)
-    return RankedItem(item, round(score, 2), bucket, tuple(reasons),
-                      label.engine if label else None)
+    return RankedItem(item, round(score, 2), bucket, tuple(reasons), _engine(item, label))
+
+
+def _engine(item: PulseItem, label: Label | None) -> str | None:
+    """Who decided: a classifier label, deterministic lineage, or nobody yet."""
+    if label is not None:
+        return label.engine
+    if item.lane is Lane.MODEL and item.kind != "unknown":
+        return "lineage"  # settled from HF base_model tags; never needed a classifier
+    return None
 
 
 def _log(value: float) -> float:

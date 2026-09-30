@@ -1,0 +1,17 @@
+[Unit]
+Description=Radar Pulse worker (Telegram digest + dead-man checks)
+Wants=network-online.target
+After=network-online.target
+OnFailure=radar-worker-failed.service
+
+[Service]
+Type=oneshot
+User=radar
+Group=radar
+EnvironmentFile=/etc/radar/env
+Environment=RADAR_STATE_DIR=/var/lib/radar
+ExecStart=/opt/radar/repo/deploy/homelab/radar-worker.sh
+TimeoutStartSec=15min
+# The unprivileged LXC is the isolation boundary. ProtectSystem/PrivateTmp need
+# mount namespaces, which an LXC without nesting refuses (226/NAMESPACE).
+NoNewPrivileges=true

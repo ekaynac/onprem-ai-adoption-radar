@@ -109,3 +109,13 @@ def test_papers_reward_upvotes_practical_topics_and_releases() -> None:
 
     assert ranked[0].item.key == usable.key
     assert "releases code/weights" in ranked[0].reasons
+
+
+def test_engine_reports_lineage_for_deterministic_models_and_none_when_untriaged() -> None:
+    release = _item(Lane.MODEL, "Qwen/Qwen3.8-27B", kind="original")
+    unknown = _item(Lane.MODEL, "newlab/Aurora-7B", kind="unknown")
+    news = _item(Lane.NEWS, "fresh", source="openai-news")
+
+    engines = {r.item.key: r.engine for r in rank([release, unknown, news], {})}
+
+    assert engines == {"Qwen/Qwen3.8-27B": "lineage", "newlab/Aurora-7B": None, "fresh": None}

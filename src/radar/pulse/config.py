@@ -29,6 +29,14 @@ class TriageConfig(BaseModel):
     token_budget_per_run: int = Field(default=300_000, ge=0)
 
 
+class WatchdogConfig(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    site_url: str = Field(min_length=1)
+    repo: str = Field(pattern=r"^[\w.-]+/[\w.-]+$")
+    publish_workflow: str = "publish.yml"
+
+
 class PulseConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -36,6 +44,7 @@ class PulseConfig(BaseModel):
     models: ModelsConfig
     papers: PapersConfig = PapersConfig()
     triage: TriageConfig = TriageConfig()
+    watchdog: WatchdogConfig | None = None
 
     @property
     def lab_org_set(self) -> frozenset[str]:

@@ -246,6 +246,10 @@ def pulse_telegram(
     skip_without_credentials: bool = typer.Option(
         False, help="Exit 0 with a visible notice when the bot secrets are absent (CI).",
     ),
+    view_url: str = typer.Option(
+        "", help="Read the published pulse.v1.json from this URL instead of local data "
+                 "(homelab worker: data over HTTPS, code never auto-updated).",
+    ),
 ) -> None:
     """Send today's Pulse digest via the radar bot (TELEGRAM_BOT_TOKEN/CHAT_ID)."""
     import asyncio
@@ -265,6 +269,7 @@ def pulse_telegram(
         save_state,
         select_new,
         send_message,
+        state_file,
         telegram_credentials,
     )
     from radar.pulse.view import build_pulse_view
@@ -278,12 +283,12 @@ def pulse_telegram(
         console.print("[yellow]Telegram digest skipped: TELEGRAM_BOT_TOKEN / "
                       "TELEGRAM_CHAT_ID are not configured.[/yellow]")
         return
-    state_path = root / STATE_PATH
+    state_path = state_file(root, STATE_PATH)
     state = load_state(state_path)
     if state.get("last_sent_date") == today.isoformat() and not force and not dry_run:
         console.print(f"Telegram digest already sent for {today}; skipping.")
         return
-    view = build_pulse_view(root, now)
+    view = _remote_view(view_url) if view_url else build_pulse_view(root, now)
     picks = select_new(view, set(state["delivered"]))
     messages = render_digest(picks, view, site_url, today)
     if not messages:
@@ -319,3 +324,111 @@ def pulse_telegram(
     save_state(state_path, mark_sent(state, today))
     items = sum(len(m.item_ids) for m in messages)
     console.print(f"Sent Telegram digest: {items} item(s) in {sent} message(s).")
+
+
+@pulse_app.command("watchdog")
+def pulse_watchdog(
+    root: Path = typer.Option(Path("."), help="Project root."),
+    dry_run: bool = typer.Option(False, help="Print findings; send and record nothing."),
+) -> None:
+    """Dead-man checks (live site, publish runs, lanes, digest); alerts via Çakır once."""
+    import asyncio
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from radar.pulse import watchdog as wd
+    from radar.pulse.config import load_pulse_config
+    from radar.pulse.telegram import STATE_PATH as DIGEST_STATE_PATH
+    from radar.pulse.telegram import TelegramError, load_state, state_file, telegram_credentials
+
+    config = load_pulse_config(_pulse_config_path(root))
+    if config.watchdog is None:
+        raise typer.BadParameter("config/pulse.yaml has no watchdog section")
+    watch = config.watchdog
+    now = datetime.now(UTC)
+
+    async def _fetch():
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            view, view_error = None, None
+            try:
+                response = await client.get(watch.site_url.rstrip("/") + "/data/pulse.v1.json")
+                response.raise_for_status()
+                view = response.json()
+            except Exception as exc:
+                view_error = f"{type(exc).__name__}: {str(exc).splitlines()[0]}"
+            runs, runs_error = None, None
+            try:
+                response = await client.get(
+                    f"https://api.github.com/repos/{watch.repo}/actions/workflows/"
+                    f"{watch.publish_workflow}/runs",
+                    params={"per_page": 10, "branch": "main"},
+                    headers={"Accept": "application/vnd.github+json"},
+                )
+                response.raise_for_status()
+                runs = response.json().get("workflow_runs", [])
+            except Exception as exc:
+                runs_error = f"{type(exc).__name__}: {str(exc).splitlines()[0]}"
+            return view, view_error, runs, runs_error
+
+    view, view_error, runs, runs_error = asyncio.run(_fetch())
+    digest_state = load_state(state_file(root, DIGEST_STATE_PATH))
+    findings = [
+        *wd.check_site(view, now, view_error),
+        *wd.check_publish(runs, runs_error),
+        *wd.check_digest(digest_state.get("last_sent_date"), now),
+    ]
+    state_path = state_file(root, wd.STATE_PATH)
+    previous = wd.load_state(state_path)
+    raised, cleared, active = wd.diff_alerts(previous, findings)
+    for finding in findings:
+        console.print(f"[yellow]{finding.key}: {finding.message}[/yellow]")
+    if not findings:
+        console.print("[green]All radar checks healthy.[/green]")
+    message = wd.render_alert(raised, cleared, previous)
+    if dry_run or message is None:
+        if message and dry_run:
+            console.print(message, markup=False, highlight=False)
+        return
+
+    import os
+
+    # Alerts speak through Çakır; the digest bot (Memati) is the fallback so a
+    # missing sentinel token never silences an alarm.
+    credentials = telegram_credentials(root)
+    alert_token = os.environ.get("TELEGRAM_ALERT_BOT_TOKEN", "").strip()
+    if credentials is None:
+        console.print("[red]No Telegram credentials: alert not delivered.[/red]")
+        raise typer.Exit(code=1)
+    token, chat_id = credentials
+    try:
+        asyncio.run(_send_alert(alert_token or token, chat_id, message))
+    except TelegramError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from None
+    wd.save_state(state_path, active, now)
+    console.print(f"Alert sent: {len(raised)} raised, {len(cleared)} resolved.")
+
+
+async def _send_alert(token: str, chat_id: str, text: str) -> None:
+    import httpx
+
+    from radar.pulse.telegram import send_message
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        await send_message(client, token, chat_id, text)
+
+
+def _remote_view(url: str) -> dict:
+    import httpx
+
+    from radar.pulse.view import validate_view
+
+    try:
+        response = httpx.get(url, timeout=30.0, follow_redirects=True)
+        response.raise_for_status()
+        return validate_view(response.json())
+    except (httpx.HTTPError, ValueError) as exc:
+        console.print(f"[red]Published Pulse view unusable ({url}): "
+                      f"{type(exc).__name__}: {str(exc).splitlines()[0]}[/red]")
+        raise typer.Exit(code=1) from None

@@ -28,6 +28,7 @@ from radar.huggingface_auth import _load_dotenv
 TOKEN_ENV = "TELEGRAM_BOT_TOKEN"
 CHAT_ENV = "TELEGRAM_CHAT_ID"
 STATE_PATH = Path("data") / "pulse" / "telegram-state.json"
+STATE_DIR_ENV = "RADAR_STATE_DIR"  # homelab worker keeps delivery state outside the clone
 LOCAL_TZ = ZoneInfo("Europe/Istanbul")
 MAX_REMEMBERED = 3000
 TELEGRAM_LIMIT = 4096
@@ -48,6 +49,17 @@ def telegram_credentials(root: Path | None = None) -> tuple[str, str] | None:
     token = os.environ.get(TOKEN_ENV, "").strip()
     chat = os.environ.get(CHAT_ENV, "").strip()
     return (token, chat) if token and chat else None
+
+
+def state_file(root: Path, default: Path) -> Path:
+    """``$RADAR_STATE_DIR/<name>`` when set, else ``root/default``.
+
+    The homelab worker's repo clone is disposable (``git pull`` only); its
+    delivery and alert state must survive re-clones and never collide with a
+    tracked file, so it lives in /var/lib/radar there.
+    """
+    state_dir = os.environ.get(STATE_DIR_ENV, "").strip()
+    return Path(state_dir) / default.name if state_dir else root / default
 
 
 def load_state(path: Path) -> dict[str, Any]:
