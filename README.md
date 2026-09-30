@@ -1,100 +1,70 @@
-# On-Prem Intelligence Desk
+# AI Radar
 
-**Ask the question every architect starts with — *"What should I run?"* — and
-get a ranked, fully cited answer: capacity fit, triangulated benchmarks,
-license gate, adoption ring, and cost. Then keep it current with a weekly
-analyst brief whose calls are scored in public, and alerts that stay silent
-unless a change touches *your* stack.**
+**New models, papers, repositories and news for an AI developer: collected,
+triaged and ranked every two hours, fully unattended.** Open the site, read
+the RSS, or get one Telegram message a morning with the top items and a
+one-sentence Turkish explanation each.
 
-The Desk discovers, evaluates, and republishes on-prem signals every two
-hours, re-evaluates persisted trusted claims weekly, and explains what each
-change means for an on-prem deployment. Releases move through
-`Detected → Verified → Qualified → Recommended`; unresolved identity,
-provenance, or compatibility conflicts are routed to the review queue.
+Built by Enes Kaynakcı (Software Engineer, Mega Bilgisayar) to stay current
+while building with AI. The live site is
+**<https://ekaynac.github.io/onprem-ai-adoption-radar/>**.
 
-**The four surfaces:**
+## Radar Pulse (the front door)
 
-- 🎯 **Answer Machine** — the homepage is the question: task + hardware
-  (from bare GPUs to vendor systems like the NVIDIA DGX Spark or a Dell
-  XE9680) in, a cited recommendation out in three interactions.
-- 📰 **The Desk** — a weekly brief with Act / Evaluate / Ignore verdicts
-  produced by documented deterministic rules, every verdict recorded in a
-  public calls ledger and **scored by the same rules** after its
-  observation window (being seen keeping score is the point).
-- 🔔 **Stack profiles & alerts** — describe your estate + running stack;
-  classified news and ring moves are diffed against it. Silence unless it
-  touches you.
-- 🛰️ **Newsroom** — vendor/engine feeds pass an LLM classification with a
-  strict schema (breaking / improvement / informational, affected
-  components); anything failing validation stays raw, never presented as
-  intelligence.
+| | |
+|---|---|
+| 🧠 **New models** | The newest uploads of 30 lab orgs on Hugging Face, with quants, GGUF packs, merges and re-uploads told apart from real releases by `base_model` tags, no model needed ([docs/pulse.md](docs/pulse.md#model-origin-without-a-model)) |
+| 📄 **Papers** | Hugging Face daily papers, ranked by upvotes, topic and whether they ship code or weights |
+| 🧰 **Repositories** | New GitHub repos by star velocity; lists, courses and demos filtered out, with the reason shown |
+| 📰 **News** | Lab blogs (OpenAI, Google DeepMind, Mistral, NVIDIA, Microsoft Research…), practitioners and Hacker News, ranked by what happened × source authority |
 
-There is no login or multi-role setup. One unrestricted local architect persona
-can keep multiple browser-local workspace profiles, while the exported public
-edition remains strictly read-only and contains no workspace data.
+- **Triage by [Jev](docs/jev.md).** TypeSafe's classifier answers *facts*
+  per item (what kind of event, what kind of repo, paper topic, does it ship
+  code). Readable rules turn those facts into a ranking, and every position
+  shows its reasons. It costs well under $1 a month. When Jev is down, rules
+  take over visibly and upgrade later.
+- **Nothing hidden.** The site and `pulse.v1.json` carry every item in the
+  14-day window, including uncertain and filtered-out ones with their
+  reasons. Ranking only orders items.
+- **Delivered.** The homepage shows four lanes. RSS comes as `pulse.xml` plus
+  one feed per lane. The Telegram digest runs daily from a homelab worker via
+  the owner's bot, and its Turkish explanations come from Claude on the
+  owner's subscription, with every tool disabled.
+- **Watched.** A dead-man watchdog alerts once when the site goes stale,
+  publish fails twice, a lane empties, triage degrades or the digest is
+  missing, and once more when the problem clears.
 
-**How this differs from trending trackers:**
-- 🧭 **Computed, not sponsored** — rings come from a deterministic rubric and an append-only, auditable timeline. Placement cannot be bought.
-- 🧾 **Every number cited** — model specs carry per-number provenance (source,
-  date, human-verified flag); a weekly job re-evaluates persisted claims and
-  evidence against current policy.
-- 🤖 **Agent-queryable** — a built-in MCP server lets Claude/Codex/any MCP client ask the radar questions mid-task.
+How it works, operations and the homelab worker: **[docs/pulse.md](docs/pulse.md)**.
+How the classifier is used, what it costs and how to change it:
+**[docs/jev.md](docs/jev.md)**. The rescue plan and measurements behind all of
+this (Turkish): [docs/reports/2026-09-29-radar-rescue-research-and-plan.md](docs/reports/2026-09-29-radar-rescue-research-and-plan.md).
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)
-![Core](https://img.shields.io/badge/core-deterministic%20·%20no%20LLM%20required-blueviolet)
+![Classifier](https://img.shields.io/badge/triage-Jev%20%2B%20rules%20fallback-blueviolet)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-This is **not** a generic AI news digest. It collects real signals (GitHub releases, registries, vendor/engineering blogs), scores them against an on-prem adoption rubric, and produces **decision cards** with rings — plus a cumulative timeline of how each project moves over time. It runs on a laptop, needs no cloud service, and the entire scoring pipeline is **deterministic** (an LLM is optional and off by default).
+## Also in this repository
 
----
+The project began as an on-prem **adoption radar**, and those parts still run
+alongside Pulse:
 
-## Why
+- **Adoption radar**: deterministic `adopt` / `pilot` / `watch` / `avoid`
+  rings for tracked projects, per-project evidence, comparisons and history.
+  A curated source list ships in `config/seed-sources.yaml`, and the source
+  autopilot grows it weekly.
+- **Intelligence catalog**: canonical releases with cited claims, benchmark
+  triangulation (self-reported vs. independent leaderboards), the release
+  stream and the Answer Machine (`/ask`, task + hardware → a cited
+  recommendation). The pipeline re-evaluates persisted trusted claims weekly.
+- **MCP server**: ask the radar from Claude, Codex or any MCP client.
 
-Most "AI radar" tools summarize news. This one makes a *decision*: given a tool, should you adopt it now, pilot it, keep watching, or avoid it — specifically through an **on-prem / enterprise** lens (local runnability, data exposure, sandbox posture, deployment complexity, license risk, enterprise integration). Decisions are reproducible because they come from deterministic scoring, not a prompt.
+**Frozen since 2026-09-30** (no longer refreshed; reachable under
+"Frozen · retiring" until the delete decision on 2026-10-28): the weekly brief
+and calls ledger, the Newsroom, stack-profile alerts, the deployment planner,
+the hardware catalog, and lineage backfill.
 
-## Highlights
-
-### Radar — shipping
-
-- **A curated source list** ships in `config/seed-sources.yaml` (the source
-  autopilot grows it weekly), spanning
-  GitHub repositories, RSS feeds, registries, and manual authoritative sources.
-- Deterministic `adopt` / `pilot` / `watch` / `avoid` rings, project evidence,
-  comparisons, history, model and research catalogs, the platform matrix,
-  hardware references, trending views, and weekly digests are available now.
-- The React command center links to every deep classic-radar page while those
-  views are elevated into the new shell. Public history downloads and Atom,
-  RSS, and JSON feeds are exported with the site.
-
-### Intelligence — shipping
-
-- Canonical release identity, lifecycle transitions, cited claims, source
-  health, freshness classes, public snapshots, and the REST contract ship.
-- **Benchmark triangulation** — public leaderboards (Open LLM Leaderboard,
-  Aider polyglot, LiveBench) aggregated per model next to self-reported
-  model-card numbers; gaps beyond threshold are flagged, never averaged away.
-- **Model lineage** — registry/author-declared parents (Tier 1),
-  artifact-declared parents from `adapter_config.json`/`config.json`
-  (Tier 2), and name-fingerprint *suggestions* (Tier 3) that never set
-  ancestry until an operator confirms them with one click.
-- **Hardware platform catalog** — vendor systems (DGX Spark, DGX Station,
-  Dell XE9680, Framework Desktop…) classified by the chips inside them,
-  selectable in the Answer Machine; new platform launches surface through
-  the newsroom's `hardware-launch` lane for human curation.
-
-### Planner — CLI and MCP
-
-- Deterministic capacity planning ships through `radar capacity plan`,
-  `radar capacity max`, and the MCP tools `plan_capacity`, `max_workload`, and
-  `compare_devices`.
-- Every answer exposes assumptions, memory/throughput constraints, and
-  electricity-only cost boundaries. The web planner ships at `/planner`
-  (a precomputed fit grid in the static edition, live recomputation
-  locally), and the Answer Machine reuses the same engines.
-
-### Detailed radar capabilities
+### Adoption radar capabilities
 
 - 🧭 **Decision rings** — `adopt` / `pilot` / `watch` / `avoid`, from a deterministic 7-dimension score + on-prem rubric.
 - ⚖️ **Hybrid ring calibration** — absolute gates (security/excellence) plus a quartile-aware, size-capped promotion so rings actually discriminate and "Try This Week" stays a short, high-conviction list.
@@ -165,6 +135,12 @@ uv run radar serve                 # dashboard at http://127.0.0.1:8765
 
 | Command | What it does |
 | --- | --- |
+| `radar pulse collect` | Newest lab-org models and HF daily papers, plus the repo and news logs, into `data/pulse/items.jsonl` (14-day window). |
+| `radar pulse triage` | Label new items with Jev (`TYPESAFE_API_KEY`), falling back to rules; prints tokens and cost. |
+| `radar pulse top --lane <model\|paper\|repo\|news>` | A lane's ranking with the reasons behind every position (`--show-hidden` includes filtered items). |
+| `radar pulse telegram` | The daily digest (`--dry-run` to preview, `--summaries claude-cli` for Turkish explanations, `--view-url` to read the published view). |
+| `radar pulse watchdog` | Dead-man checks with once-only alerts (`--dry-run` to only print). |
+| `radar pulse gold-sample` / `radar pulse eval` | Owner-labelled gold set and Jev-vs-rules scoring against it. |
 | `radar intelligence-migrate` | Idempotently import legacy catalogs into canonical SQLite/Postgres storage. |
 | `radar intelligence-replay-events` | Restore the committed intelligence event mirror into the canonical projection. |
 | `radar intelligence-run discovery` | Sweep Hugging Face, official GitHub releases, and configured feeds for the current two-hour window. |
@@ -314,6 +290,12 @@ GitHub Actions and the built-in scheduler enforce one platform-wide policy:
 - weekly: re-evaluate every persisted trusted claim and its evidence against
   current policy.
 
+Pulse runs inside the same two-hourly `publish` job (`radar pulse collect`,
+`radar pulse triage`). A homelab worker (`ct-radar`, every 30 minutes) sends
+the daily Telegram digest and runs the dead-man watchdog. It never pulls code
+on its own and holds no GitHub credentials. See [docs/pulse.md](docs/pulse.md)
+and [deploy/homelab/README.md](deploy/homelab/README.md).
+
 See [Intelligence operations](docs/intelligence-operations.md) for scheduler
 modes, credentials, storage, backups, and incident recovery.
 
@@ -394,6 +376,8 @@ GitHub Actions**. `ci.yml` runs the test suite on every push/PR.
 
 ```
 src/radar/
+  pulse/        Radar Pulse: items, sources, lineage triage, Jev client, triage,
+                rank, view, feeds, telegram, summaries, watchdog
   intelligence/ canonical lifecycle, evidence, claims, freshness, jobs
   api/          FastAPI routes and OpenAPI contract
   capacity/     deterministic memory, throughput, fleet, and TCO planning
@@ -408,8 +392,10 @@ src/radar/
   reports/      markdown, try_this_week, history, comparison, sandbox, movers, feeds
   mcp_server/   queries, server
   web/          app, templates, static_site
-frontend/       React command center and static public shell
-docs/           architecture.md, persistence.md, sandbox-playbook.md, seed-research.md
+frontend/       React site (Pulse homepage) and static public shell
+deploy/homelab/ ct-radar worker: systemd units, update-radar, set-claude-token
+config/         pulse.yaml, pulse-questions.yaml (Jev questions), news-sources.yaml, seeds
+docs/           pulse.md, jev.md, architecture.md, persistence.md, reports/
 ```
 
 ## Development
@@ -420,7 +406,7 @@ uv run ruff check src tests
 uv run mypy
 ```
 
-Conventions: deterministic core (no LLM in the default path), immutable data flow, many small focused modules, test-driven. Each feature lands via TDD with the timeline/decisions verified against real scans. CI runs lint (ruff), type checks (mypy), and the test suite with coverage on Python 3.12 and 3.13. See [docs/architecture.md](docs/architecture.md), [CONTRIBUTING.md](CONTRIBUTING.md), and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Conventions: deterministic scoring (classifiers answer facts; rules rank), immutable data flow, many small focused modules, test-driven. Each feature lands via TDD with the timeline/decisions verified against real scans. CI runs lint (ruff), type checks (mypy), and the test suite with coverage on Python 3.12 and 3.13. See [docs/architecture.md](docs/architecture.md), [CONTRIBUTING.md](CONTRIBUTING.md), and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Author
 
