@@ -41,6 +41,7 @@ from radar.cli import (
     models_cli,
     news_cli,
     project_cli,
+    pulse_cli,
     reports_cli,
     research_cli,
     seed_cli,
@@ -96,6 +97,7 @@ app.add_typer(news_cli.news_app, name="news")
 app.add_typer(alerts_cli.alerts_app, name="alerts")
 app.add_typer(capacity_cli.capacity_app, name="capacity")
 app.add_typer(history_cli.history_app, name="history")
+app.add_typer(pulse_cli.pulse_app, name="pulse")
 
 
 def main() -> None:

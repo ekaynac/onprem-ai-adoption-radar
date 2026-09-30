@@ -1,0 +1,47 @@
+# Radar Pulse — what counts as "new" for an AI developer.
+# See docs/reports/2026-09-29-radar-rescue-research-and-plan.md.
+
+# Items older than this (by publish/creation date) drop out of the store.
+window_days: 14
+
+models:
+  # Hub orgs whose own uploads are releases, not copies. A repo here with no
+  # base_model tag and no format marker is classified ORIGINAL without a model.
+  # Everything else still enters the lane; it just needs the classifier.
+  lab_orgs:
+    - Qwen
+    - deepseek-ai
+    - meta-llama
+    - google
+    - mistralai
+    - zai-org
+    - openai
+    - nvidia
+    - microsoft
+    - moonshotai
+    - MiniMaxAI
+    - baidu
+    - tencent
+    - ibm-granite
+    - allenai
+    - HuggingFaceTB
+    - stepfun-ai
+    - XiaomiMiMo
+    - LiquidAI
+    - inclusionAI
+    - ByteDance-Seed
+    - openbmb
+    - CohereLabs
+    - apple
+    - ServiceNow-AI
+    - swiss-ai
+    - black-forest-labs
+    - stabilityai
+    - Lightricks
+    - ai21labs
+  # Newest uploads fetched per lab org per run.
+  per_org_limit: 20
+
+papers:
+  # Hugging Face daily papers (community-curated, carries upvotes + code links).
+  daily_papers_limit: 100

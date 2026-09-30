@@ -1,0 +1,199 @@
+[
+ {
+  "id": "Qwen/Qwen-Image-2.1-PE-I2I",
+  "modelId": "Qwen/Qwen-Image-2.1-PE-I2I",
+  "createdAt": "2026-09-20T08:46:47.000Z",
+  "downloads": 9859,
+  "likes": 53,
+  "tags": [
+   "safetensors",
+   "qwen3_5",
+   "qwen",
+   "prompt-rewriting",
+   "image-editing",
+   "license:other",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "Qwen/Qwen-Image-2.1-PE-T2I",
+  "modelId": "Qwen/Qwen-Image-2.1-PE-T2I",
+  "createdAt": "2026-09-20T08:45:29.000Z",
+  "pipeline_tag": "text-to-image",
+  "downloads": 5800,
+  "likes": 57,
+  "tags": [
+   "safetensors",
+   "qwen3_5",
+   "qwen",
+   "prompt-rewriting",
+   "text-to-image",
+   "license:other",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "Qwen/Qwen-Image-2.1",
+  "modelId": "Qwen/Qwen-Image-2.1",
+  "createdAt": "2026-09-14T03:47:26.000Z",
+  "pipeline_tag": "text-to-image",
+  "downloads": 64362,
+  "likes": 2679,
+  "tags": [
+   "diffusers",
+   "safetensors",
+   "qwen",
+   "image-generation",
+   "image-editing",
+   "rgba",
+   "text-to-image",
+   "license:other",
+   "diffusers:QwenImage21Pipeline",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "Qwen/Qwen-Drive-1.0-4B",
+  "modelId": "Qwen/Qwen-Drive-1.0-4B",
+  "createdAt": "2026-08-27T08:14:27.000Z",
+  "pipeline_tag": "image-text-to-text",
+  "downloads": 6902,
+  "likes": 232,
+  "tags": [
+   "transformers",
+   "safetensors",
+   "qwen_drive",
+   "autonomous-driving",
+   "motion-planning",
+   "3d-perception",
+   "visual-question-answering",
+   "qwen",
+   "image-text-to-text",
+   "conversational",
+   "arxiv:2609.00111",
+   "base_model:Qwen/Qwen3.5-4B",
+   "base_model:finetune:Qwen/Qwen3.5-4B",
+   "license:apache-2.0",
+   "endpoints_compatible",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "Qwen/Qwen3.8-Flash-Next-FP8",
+  "modelId": "Qwen/Qwen3.8-Flash-Next-FP8",
+  "createdAt": "2026-08-24T08:25:23.000Z",
+  "pipeline_tag": "image-text-to-text",
+  "downloads": 495073,
+  "likes": 239,
+  "tags": [
+   "transformers",
+   "safetensors",
+   "qwen4_exp",
+   "image-text-to-text",
+   "conversational",
+   "base_model:Qwen/Qwen3.8-Flash-Next",
+   "base_model:quantized:Qwen/Qwen3.8-Flash-Next",
+   "license:other",
+   "endpoints_compatible",
+   "fp8",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "unsloth/Qwen-Image-2.1",
+  "modelId": "unsloth/Qwen-Image-2.1",
+  "createdAt": "2026-09-23T14:32:27.000Z",
+  "pipeline_tag": "text-to-image",
+  "downloads": 10890,
+  "likes": 8,
+  "tags": [
+   "diffusers",
+   "safetensors",
+   "qwen",
+   "image-generation",
+   "image-editing",
+   "rgba",
+   "text-to-image",
+   "license:other",
+   "diffusers:QwenImage21Pipeline",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "unsloth/Qwen-Image-2.1-GGUF",
+  "modelId": "unsloth/Qwen-Image-2.1-GGUF",
+  "createdAt": "2026-09-21T13:04:48.000Z",
+  "pipeline_tag": "text-to-image",
+  "downloads": 251937,
+  "likes": 301,
+  "tags": [
+   "gguf",
+   "quantized",
+   "unsloth",
+   "qwen",
+   "image-generation",
+   "text-to-image",
+   "en",
+   "zh",
+   "base_model:Qwen/Qwen-Image-2.1",
+   "base_model:quantized:Qwen/Qwen-Image-2.1",
+   "license:other",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "unsloth/Qwen-Image-2.1-FP8",
+  "modelId": "unsloth/Qwen-Image-2.1-FP8",
+  "createdAt": "2026-09-21T11:28:03.000Z",
+  "pipeline_tag": "text-to-image",
+  "downloads": 57738,
+  "likes": 32,
+  "tags": [
+   "diffusers",
+   "fp8",
+   "int8",
+   "unsloth",
+   "quantized",
+   "qwen",
+   "image-generation",
+   "image-editing",
+   "rgba",
+   "text-to-image",
+   "en",
+   "zh",
+   "base_model:Qwen/Qwen-Image-2.1",
+   "base_model:finetune:Qwen/Qwen-Image-2.1",
+   "license:other",
+   "region:us"
+  ],
+  "private": false
+ },
+ {
+  "id": "unsloth/DeepSeek-V4-Flash-Vision-Exp-GGUF",
+  "modelId": "unsloth/DeepSeek-V4-Flash-Vision-Exp-GGUF",
+  "createdAt": "2026-08-31T10:44:53.000Z",
+  "downloads": 37051,
+  "likes": 89,
+  "tags": [
+   "transformers",
+   "gguf",
+   "unsloth",
+   "deepseek",
+   "base_model:deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
+   "base_model:quantized:deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
+   "license:mit",
+   "endpoints_compatible",
+   "region:us",
+   "imatrix",
+   "conversational"
+  ],
+  "private": false
+ }
+]
