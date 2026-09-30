@@ -301,9 +301,18 @@ kalabalığın arasında kalıyor. **Bu, Faz 2'nin (Jev triyajı) tam olarak ç�
       müşteri hikâyeleri, listeler ve repack'ler gizlenir.
 - [x] Publish hattında: `radar pulse triage`, `TYPESAFE_API_KEY` secret'ı ile her 2 saatte bir
       çalışır. Hata olursa run'da uyarı çıkar ve öğeler etiketsiz kalır ("emin değil").
-- [ ] **Kapı: sahibin altın seti.** `eval/pulse-gold-2026-09-30.md`: şerit bazında tabakalı 120 öğe
-      (Jev'den bağımsız örneklem) ve donmuş snapshot. Sahip işaretler; `radar pulse eval` Jev ile
-      kural motorunun TOP kovasını precision/recall/F1 olarak karşılaştırır.
+- [x] **Kapı kararı (2026-09-30): altın set bir engel olmaktan çıkarıldı.** Sahip 120 öğeye
+      bakınca "karar veremedim, bilmiyorum" dedi. Bunun anlamı şu: "görmek ister miydim?"
+      sorusunun cevabı önceden, soyut bir listede verilemiyor; ancak kullanırken ortaya çıkıyor.
+      Kararlar:
+      - **Jev varsayılan motor olarak kalıyor.** Canlıda çalışıyor, gümüş sonuç (F1 0.83) eşiğin
+        hemen altında, ve gösterilen her öğe motor rozetini taşıyor.
+      - **Geri bildirim döngüsü kullanım üzerinden kuruluyor.** Sahip bir öğeyi kaçırdığını
+        ("X neden yok?") ya da gereksiz bulduğunu ("Y gürültü") söyler. Her örnek bir regresyon
+        testine dönüşür (K1 testi gibi) ve sıralama kuralı buna göre ayarlanır.
+      - `radar pulse gold-sample` ve `radar pulse eval` araçları duruyor; ileride bir karşılaştırma
+        gerekirse kullanılabilir. `eval/pulse-gold-2026-09-30.md` dosyasındaki yarım işaretler
+        sahibindir ve dokunulmadı.
 
 **Gümüş karşılaştırma (Claude opus'un 266 tabakalı newsroom etiketi, 2026-09-30, maliyet
 0,0073$).** Ön kayıtlı kapı "F1 ≥ 0.85 ve uyum ≥ %80" idi; Jev **az farkla geçemedi**:
@@ -424,9 +433,24 @@ kurulunca başlayacak. Buna bağlı iki tasarım kararı:
 
       Not: `tmp`, `run-lock` ve `mqueue` mount hataları (systemd "degraded") ct-cv ve ct-mcweb'de de
       var. Bu, nesting'siz Debian 13'ün platform genelindeki normal hali; worker'ı etkilemiyor.
-- [ ] Mac'teki launchd ajanlarını (`com.megabilisim.onpremradar.news-classify`,
-      `ai.openclaw.radar-scan`) emekliye ayırmak ve Memati HEARTBEAT Adım B'yi kapatmak.
-      ct-radar'ın ilk özeti geldikten sonra, sahibin onayıyla yapılacak.
+- [x] **Mac'teki eski düzen kapatıldı (2026-09-30, sahibin onayıyla).**
+      - `com.megabilisim.onpremradar.news-classify` ve `ai.openclaw.radar-scan` durduruldu. Plist'leri
+        `~/Library/LaunchAgents/disabled-2026-09-30-radar-pulse/` klasörüne taşındı, geri alınabilir.
+      - Memati HEARTBEAT Adım B'den **yalnızca radar bölümü** kaldırıldı. Gündem (web araması) ve
+        Board (Workboard) bölümleri kaldı, çünkü radarla ilgisi olmayan bu parçalar sahibin günlük
+        iş akışının parçası. Yedek: `HEARTBEAT.md.bak-pre-pulse-20260930`.
+      - Yan etki: eski Newsroom sayfasının Claude sınıflandırması artık güncellenmiyor. Pulse'un
+        haber şeridini Jev yapıyor; o sayfa Faz 5'te dondurulacak.
+- [x] **Telegram okunabilirliği (sahip geri bildirimi: "çok yoğun, çok fazla link").** İlk özet
+      630 öğeyi 22 mesajda göndermişti. Yeni tasarım:
+      - tek mesaj
+      - şerit başına en iyi 6/5/5/8 öğe, numaralı satırlar
+      - her satırda kısa bağlantılı başlık, sahibi ve tek bir sinyal (♥ beğeni, ▲ upvote + kod,
+        ★ yıldız/gün ya da kaynak adı)
+      - "+N daha sitede" ve en altta tek bir "Tümü: site · RSS" satırı
+
+      Taşan öğeler "görüldü" sayılıyor, ertesi güne birikmiyor. "Hepsi" isteği site ve RSS'te
+      karşılanmaya devam ediyor.
 
 **Bilinen kör nokta:** host tamamen kapanırsa içeriden alarm veren kimse kalmaz. Bu durum için
 host'un mevcut e-posta alarmına ve README'de bekleyen BIOS "Restore AC Power Loss → Power On"

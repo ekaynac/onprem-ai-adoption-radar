@@ -104,32 +104,57 @@ def test_feeds_are_valid_rss_and_escape_content(view: dict, tmp_path: Path) -> N
     assert all(el.text == "news" for el in news_only.iter("category"))
 
 
-def test_digest_lists_all_undelivered_items_html_escaped(view: dict) -> None:
+def test_digest_is_numbered_compact_and_skips_delivered(view: dict) -> None:
     picks = select_new(view, delivered={"news:n1"})
     [message] = render_digest(picks, view, "https://example.github.io/radar/", date(2026, 9, 30))
 
     assert "GPT-6.1 Sol" not in message.text  # already delivered
-    assert "MiMo-V2.6-Pro-RL" in message.text and "603 likes" in message.text
+    assert "30 Eylül 2026" in message.text
+    # Short link text + owner + one signal; the raw repo id is not repeated.
+    assert ('1. <a href="https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL">MiMo-V2.6-Pro-RL</a>'
+            " · XiaomiMiMo · ♥ 603") in message.text
+    assert "(1 yeni)" in message.text
+    assert 'href="https://example.github.io/radar/pulse.xml">RSS</a>' in message.text
     assert message.item_ids == ("model:XiaomiMiMo/MiMo-V2.6-Pro-RL",)
     everything = {"news:n1", "model:XiaomiMiMo/MiMo-V2.6-Pro-RL"}
     assert render_digest(select_new(view, everything), view, "", date(2026, 9, 30)) == []
 
 
-def test_long_digests_split_under_the_telegram_limit_without_losing_items() -> None:
-    rows = [
+def _news_rows(count: int) -> list[dict]:
+    return [
         {"id": f"news:{i}", "lane": "news", "title": f"Headline number {i} " + "x" * 120,
-         "url": f"https://example.com/{i}", "source": "openai-news", "reasons": []}
-        for i in range(120)
+         "url": f"https://example.com/{i}", "source": "openai-news", "reasons": [], "signals": {}}
+        for i in range(count)
     ]
+
+
+def test_digest_caps_each_lane_and_records_the_overflow_as_seen() -> None:
+    # Regression: the first live digest sent 630 items in 22 messages (unreadable).
+    rows = _news_rows(120)
     view = {"lanes": [{"lane": "news", "items": rows}], "health": {"degraded": True}}
 
-    messages = render_digest(select_new(view, set()), view, "https://site/", date(2026, 9, 30))
+    [message] = render_digest(select_new(view, set()), view, "https://site/", date(2026, 9, 30))
+
+    assert message.text.count("\n8. ") == 1 and "\n9. " not in message.text
+    assert "+112 daha sitede" in message.text
+    assert "OpenAI" in message.text and "openai-news" not in message.text
+    assert "Headline number 0 " + "x" * 40 in message.text and "…" in message.text  # shortened
+    assert "Jev" in message.text  # degraded warning
+    assert list(message.item_ids) == [r["id"] for r in rows]  # overflow never re-sent
+
+
+def test_digest_still_splits_safely_when_caps_are_raised() -> None:
+    rows = _news_rows(120)
+    view = {"lanes": [{"lane": "news", "items": rows}], "health": {"degraded": False}}
+
+    messages = render_digest(select_new(view, set()), view, "https://site/", date(2026, 9, 30),
+                             per_lane={"news": 120})
 
     assert len(messages) > 1
     assert all(len(m.text) <= TELEGRAM_LIMIT for m in messages)
     assert [i for m in messages for i in m.item_ids] == [r["id"] for r in rows]
     assert messages[1].text.startswith(f"(2/{len(messages)})")
-    assert "(continued)" in messages[1].text
+    assert "(devam)" in messages[1].text
 
 
 def test_delivery_state_records_ids_and_date_separately() -> None:
