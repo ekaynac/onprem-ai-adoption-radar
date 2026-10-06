@@ -15,9 +15,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -32,6 +33,7 @@ STATE_DIR_ENV = "RADAR_STATE_DIR"  # homelab worker keeps delivery state outside
 LOCAL_TZ = ZoneInfo("Europe/Istanbul")
 MAX_REMEMBERED = 3000
 TELEGRAM_LIMIT = 4096
+_TAG = re.compile(r"<[^>]+>")
 LANE_HEADINGS = {
     "model": "🧠 Yeni modeller",
     "paper": "📄 Paper'lar",
@@ -159,7 +161,7 @@ def render_digest(
             note = (explanations or {}).get(row["id"])
             if note:
                 line += f"\n    <i>{escape(note)}</i>"
-            if len("\n".join([*lines, line])) > TELEGRAM_LIMIT - 16:  # room for "(n/N)"
+            if visible_length("\n".join([*lines, line])) > TELEGRAM_LIMIT - 16:  # room for "(n/N)"
                 chunks.append((lines, ids))
                 lines, ids = [f"{heading} (devam)"], []
             lines.append(line)
@@ -171,7 +173,7 @@ def render_digest(
         site = escape(site_url, quote=True)
         rss = escape(site_url.rstrip("/") + "/pulse.xml", quote=True)
         footer = f'Tümü ({total_new} yeni öğe): <a href="{site}">site</a> · <a href="{rss}">RSS</a>'
-        if len("\n".join([*lines, "", footer])) <= TELEGRAM_LIMIT - 16:
+        if visible_length("\n".join([*lines, "", footer])) <= TELEGRAM_LIMIT - 16:
             lines += ["", footer]
     chunks.append((lines, ids))
     total = len(chunks)
@@ -182,6 +184,13 @@ def render_digest(
         )
         for i, (chunk, chunk_ids) in enumerate(chunks, start=1)
     ]
+
+
+def visible_length(text: str) -> int:
+    """Characters Telegram counts: its 4096 limit applies after entity parsing,
+    so tags and href URLs are free. Counting them split the 2026-10-06 digest
+    into two messages for nothing."""
+    return len(unescape(_TAG.sub("", text)))
 
 
 def _item_line(number: int, row: dict[str, Any]) -> str:

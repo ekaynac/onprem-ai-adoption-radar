@@ -24,6 +24,7 @@ from radar.pulse.telegram import (
     render_digest,
     select_new,
     send_message,
+    visible_length,
 )
 from radar.pulse.triage import LABELS_PATH, append_labels
 from radar.pulse.view import build_pulse_view
@@ -151,7 +152,7 @@ def test_digest_still_splits_safely_when_caps_are_raised() -> None:
                              per_lane={"news": 120})
 
     assert len(messages) > 1
-    assert all(len(m.text) <= TELEGRAM_LIMIT for m in messages)
+    assert all(visible_length(m.text) <= TELEGRAM_LIMIT for m in messages)
     assert [i for m in messages for i in m.item_ids] == [r["id"] for r in rows]
     assert messages[1].text.startswith(f"(2/{len(messages)})")
     assert "(devam)" in messages[1].text
@@ -227,3 +228,23 @@ def test_remote_view_validation_accepts_our_view_and_rejects_tampering(view: dic
     ):
         with pytest.raises(ValueError):
             validate_view(broken)
+
+
+def test_telegram_limit_counts_visible_text_not_markup() -> None:
+    # Regression (2026-10-06): long href URLs counted against the 4096 limit
+    # and split a digest that Telegram would have accepted as one message.
+    long_url = "https://example.com/" + "a" * 700
+    rows = [
+        {"id": f"news:{i}", "lane": "news", "title": f"Headline {i}", "url": long_url + str(i),
+         "source": "openai-news", "reasons": [], "signals": {}}
+        for i in range(8)
+    ]
+    view = {"lanes": [{"lane": "news", "items": rows}], "health": {"degraded": False}}
+
+    messages = render_digest(select_new(view, set()), view, "https://site/", date(2026, 10, 6),
+                             explanations={r["id"]: "Kısa bir Türkçe açıklama cümlesi." for r in rows})
+
+    assert len(messages) == 1
+    assert len(messages[0].text) > TELEGRAM_LIMIT  # raw markup is long…
+    assert visible_length(messages[0].text) < TELEGRAM_LIMIT  # …what Telegram counts is not
+    assert visible_length("<a href=\"https://x\">A &amp; B</a>") == len("A & B")
