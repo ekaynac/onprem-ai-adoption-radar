@@ -88,8 +88,13 @@ def persist_technique_scan(
     db_path: Path,
     history_path: Path,
     metrics_log_path: Path | None = None,
+    computed_rings: dict[str, Ring | None] | None = None,
 ) -> list[TechniqueHistoryEvent]:
-    """Diff rings vs the log, append new events, record + dual-write per-scan metrics."""
+    """Diff rings vs the log, append new events, record + dual-write per-scan metrics.
+
+    ``computed_rings`` are the rings this scan computed before stabilization;
+    they are what the metrics rows store, so the next scan can confirm them.
+    """
     previous = _latest_rings(history_path)
     events = diff_technique_rings(entries, previous, run_id, observed_at)
     append_technique_events(history_path, events)
@@ -99,7 +104,8 @@ def persist_technique_scan(
         technique_id=entry.id, run_id=run_id, observed_at=observed_at,
         citation_count=entry.citation_count, citation_source=entry.citation_source,
         resolved_impls=len(entry.resolved_implementations),
-        ring=(entry.ring.value if entry.ring else None),
+        ring=_computed_ring(entry, computed_rings),
+        peer_reviewed=entry.peer_reviewed,
     ) for entry in entries]
     store.record(rows)
     if metrics_log_path is not None:
@@ -156,13 +162,51 @@ async def run_research_scan(
             )
     entries = assemble_entries(seeds, context, citations, store)
     entries = score_technique_entries(entries, store)
+    computed = {entry.id: entry.ring for entry in entries}
+    entries = stabilize_rings(entries, _latest_rings(history_path), store)
     observed_at = datetime.now(UTC)
     resolved_run_id = run_id or observed_at.strftime("research-%Y%m%d-%H%M%S")
     events = persist_technique_scan(
         entries, resolved_run_id, observed_at, db_path, history_path,
-        metrics_log_path=metrics_log_path,
+        metrics_log_path=metrics_log_path, computed_rings=computed,
     )
     return entries, events
+
+
+def stabilize_rings(
+    entries: list[TechniqueEntry],
+    published: dict[str, Ring],
+    store: TechniqueMetricsStore,
+) -> list[TechniqueEntry]:
+    """A ring change takes effect only when two consecutive scans compute it.
+
+    Any single-scan input blip (a citation API outage, a partial tool scan)
+    used to publish a ring change and its reversal two hours later: 91 such
+    changes in the week of 2026-09-23. A computed ring that differs from the
+    published one is held back, with a visible warning, until the previous
+    scan computed the same ring. New techniques publish immediately.
+    """
+    stable: list[TechniqueEntry] = []
+    for entry in entries:
+        current = published.get(entry.id)
+        if entry.ring is None or current is None or entry.ring == current:
+            stable.append(entry)
+            continue
+        previous = store.latest(entry.id)
+        if previous is not None and previous.ring == entry.ring.value:
+            stable.append(entry)  # second consecutive scan agrees: publish it
+            continue
+        stable.append(entry.model_copy(update={
+            "ring": current,
+            "warnings": [*entry.warnings,
+                         f"ring change to {entry.ring.value} pending confirmation by the next scan"],
+        }))
+    return stable
+
+
+def _computed_ring(entry: TechniqueEntry, computed: dict[str, Ring | None] | None) -> str | None:
+    ring = computed.get(entry.id, entry.ring) if computed is not None else entry.ring
+    return ring.value if ring else None
 
 
 def _latest_rings(history_path: Path) -> dict[str, Ring]:
@@ -197,7 +241,10 @@ def _citation_fields(
         return (best.citation_count, best.source, peer_reviewed, [])
     last = store.latest(seed.id)
     if last is not None and last.citation_count is not None:
-        return (last.citation_count, last.citation_source, None,
+        # peer_reviewed travels with the count: dropping it to None cost one
+        # validation point and flipped rings at the 4.0 threshold whenever the
+        # citation APIs were unreachable (2026-10-01..05).
+        return (last.citation_count, last.citation_source, last.peer_reviewed,
                 ["citations: using last-known value (APIs unavailable)"])
     if seed.papers:
         return None, None, None, ["citations unknown (never fetched)"]
