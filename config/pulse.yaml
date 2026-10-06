@@ -41,6 +41,8 @@ models:
     - ai21labs
   # Newest uploads fetched per lab org per run.
   per_org_limit: 20
+  # Model cards read per run for a one-paragraph summary (each repo once).
+  card_limit: 40
 
 papers:
   # Hugging Face daily papers (community-curated, carries upvotes + code links).

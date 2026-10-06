@@ -65,7 +65,7 @@ def pulse_collect(root: Path = typer.Option(Path("."), help="Project root.")) ->
     lanes = ", ".join(f"{lane}={n}" for lane, n in sorted(report.lane_counts.items()))
     origins = ", ".join(f"{k}={n}" for k, n in sorted(report.model_origin_counts.items()))
     console.print(f"Pulse store {root / ITEMS_PATH}: {lanes}")
-    console.print(f"Model origins: {origins}")
+    console.print(f"Model origins: {origins}; model-card summaries added: {report.cards_added}")
     if report.all_network_sources_failed:
         console.print("[red]Every Pulse network source failed this run.[/red]")
         raise typer.Exit(code=1)
