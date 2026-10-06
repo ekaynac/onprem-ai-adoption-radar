@@ -391,3 +391,94 @@ async def test_warm_store_is_never_rehydrated(tmp_path):
 
     runs = {r.run_id for r in TechniqueMetricsStore(db_path).history_for("qlora")}
     assert "log-only-run" not in runs  # warm store untouched by the log
+
+
+def test_last_known_citations_keep_peer_reviewed(tmp_path):
+    # Regression (2026-10-01..05): the last-known fallback dropped peer_reviewed
+    # to None, cost one validation point, and flipped rings at the 4.0 gate.
+    from radar.storage.technique_metrics_store import TechniqueMetrics
+
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    store.record([TechniqueMetrics(
+        technique_id="speculative-decoding", run_id="run-0", observed_at=NOW,
+        citation_count=1697, citation_source="s2", resolved_impls=2, peer_reviewed=True,
+    )])
+
+    entries = assemble_entries(_seeds(), _context(), {}, store)  # every citation API down
+
+    spec = next(e for e in entries if e.id == "speculative-decoding")
+    assert spec.citation_count == 1697 and spec.peer_reviewed is True
+    fresh = assemble_entries(_seeds(), _context(), _citations(), store)
+    scored_down = score_technique_entries(entries, store)
+    scored_fresh = score_technique_entries(fresh, store)
+    pick = lambda xs: next(e for e in xs if e.id == "speculative-decoding")  # noqa: E731
+    assert pick(scored_down).score == pick(scored_fresh).score
+
+
+def test_metrics_store_upgrades_a_database_without_peer_reviewed(tmp_path):
+    import sqlite3
+
+    from radar.storage.technique_metrics_store import TechniqueMetrics
+
+    db = tmp_path / "radar.db"
+    with sqlite3.connect(db) as conn:  # the schema shipped before 2026-10-06
+        conn.execute(
+            "CREATE TABLE technique_metrics (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "technique_id TEXT NOT NULL, run_id TEXT NOT NULL, observed_at TEXT NOT NULL, "
+            "citation_count INTEGER, citation_source TEXT, resolved_impls INTEGER, ring TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO technique_metrics(technique_id, run_id, observed_at, citation_count, "
+            "citation_source, resolved_impls, ring) VALUES ('qlora','old',?,900,'s2',1,'pilot')",
+            (NOW.isoformat(),),
+        )
+    store = TechniqueMetricsStore(db)
+    store.initialize()
+    store.record([TechniqueMetrics(technique_id="qlora", run_id="new", observed_at=NOW,
+                                   citation_count=901, citation_source="s2", peer_reviewed=True)])
+
+    rows = store.history_for("qlora")
+    assert [(r.run_id, r.peer_reviewed) for r in rows] == [("old", None), ("new", True)]
+
+
+def test_a_one_scan_ring_blip_is_never_published(tmp_path):
+    # Regression: one scan computing a different ring published a change and,
+    # two hours later, its reversal (91 such changes in a week).
+    from radar.research_radar.pipeline import stabilize_rings
+    from radar.storage.technique_metrics_store import TechniqueMetrics
+
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    entry = assemble_entries(_seeds(), _context(), _citations(), store)[1]
+    published = {entry.id: Ring.ADOPT}
+
+    def scan(run: str, computed: Ring) -> Ring | None:
+        candidate = entry.model_copy(update={"ring": computed})
+        [stable] = stabilize_rings([candidate], published, store)
+        store.record([TechniqueMetrics(technique_id=entry.id, run_id=run, observed_at=NOW,
+                                       ring=computed.value)])
+        if stable.ring is not None:
+            published[entry.id] = stable.ring
+        return stable.ring
+
+    assert scan("r1", Ring.ADOPT) is Ring.ADOPT
+    assert scan("r2", Ring.PILOT) is Ring.ADOPT  # blip held back…
+    assert scan("r3", Ring.ADOPT) is Ring.ADOPT  # …and gone: nothing was published
+    assert scan("r4", Ring.PILOT) is Ring.ADOPT  # a real change waits one scan…
+    assert scan("r5", Ring.PILOT) is Ring.PILOT  # …then publishes once
+
+
+def test_held_back_change_carries_a_visible_warning(tmp_path):
+    from radar.research_radar.pipeline import stabilize_rings
+
+    store = TechniqueMetricsStore(tmp_path / "radar.db")
+    store.initialize()
+    entry = assemble_entries(_seeds(), _context(), _citations(), store)[1]
+    [stable] = stabilize_rings([entry.model_copy(update={"ring": Ring.PILOT})],
+                               {entry.id: Ring.ADOPT}, store)
+
+    assert stable.ring is Ring.ADOPT
+    assert any("pending confirmation" in w for w in stable.warnings)
+    [new] = stabilize_rings([entry.model_copy(update={"ring": Ring.PILOT})], {}, store)
+    assert new.ring is Ring.PILOT  # new techniques publish immediately

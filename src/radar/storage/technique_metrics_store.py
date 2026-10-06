@@ -16,12 +16,17 @@ class TechniqueMetrics(BaseModel):
     citation_count: int | None = None
     citation_source: str | None = None  # "s2" | "openalex" — velocity is same-source only
     resolved_impls: int | None = None
+    # The ring this scan *computed* (before the two-run confirmation applied in
+    # research_radar.pipeline.stabilize_rings), so the next scan can confirm it.
     ring: str | None = None
+    # Kept so a "last-known citations" fallback scores validation exactly like
+    # the fresh fetch did; losing it flipped rings at the 4.0 adopt threshold.
+    peer_reviewed: bool | None = None
 
 
 _COLUMNS = (
     "technique_id, run_id, observed_at, citation_count, citation_source, "
-    "resolved_impls, ring"
+    "resolved_impls, ring, peer_reviewed"
 )
 
 
@@ -42,10 +47,14 @@ class TechniqueMetricsStore:
                     citation_count INTEGER,
                     citation_source TEXT,
                     resolved_impls INTEGER,
-                    ring TEXT
+                    ring TEXT,
+                    peer_reviewed INTEGER
                 )
                 """
             )
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(technique_metrics)")}
+            if "peer_reviewed" not in columns:  # databases created before 2026-10-06
+                conn.execute("ALTER TABLE technique_metrics ADD COLUMN peer_reviewed INTEGER")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_technique_metrics_technique "
                 "ON technique_metrics(technique_id, observed_at)"
@@ -56,7 +65,7 @@ class TechniqueMetricsStore:
             return
         with sqlite3.connect(self.path) as conn:
             conn.executemany(
-                f"INSERT INTO technique_metrics({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                f"INSERT INTO technique_metrics({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 [self._row(m) for m in metrics],
             )
 
@@ -95,7 +104,8 @@ class TechniqueMetricsStore:
     @staticmethod
     def _row(m: TechniqueMetrics) -> tuple:
         return (m.technique_id, m.run_id, m.observed_at.isoformat(), m.citation_count,
-                m.citation_source, m.resolved_impls, m.ring)
+                m.citation_source, m.resolved_impls, m.ring,
+                None if m.peer_reviewed is None else int(m.peer_reviewed))
 
     @staticmethod
     def _to_metrics(row: tuple) -> TechniqueMetrics:
@@ -104,4 +114,5 @@ class TechniqueMetricsStore:
             observed_at=datetime.fromisoformat(row[2]),
             citation_count=row[3], citation_source=row[4],
             resolved_impls=row[5], ring=row[6],
+            peer_reviewed=None if row[7] is None else bool(row[7]),
         )
