@@ -519,10 +519,65 @@ API anahtarı yok; özetler sahibin Claude aboneliğiyle, ct-radar'da `claude -p
 - [x] Canlı deneme (Mac, gerçek abonelik): 6 öğe 25 saniyede özetlendi. Örnek: "OpenAI, farklı
       performans ve maliyet dengesiyle GPT-6 Sol ve Luna sunuyor." Model özetleri yalnızca repo
       adına dayandığı için genel kalıyor; ileride HF kartıyla zenginleştirilebilir.
-- [ ] ct-radar'a `claude-code` kurulumu: Anthropic'in imzalı apt deposundan, parmak izi
-      `31DD DE24 DDFA B679 F42D 7BD2 BAA9 29FF 1A7E CACE` doğrulanarak (homelab runbook).
-- [ ] **Sahibin adımı:** Mac'te `claude setup-token` (1 yıl geçerli) ve token'ı
-      `/etc/radar/env` dosyasına `CLAUDE_CODE_OAUTH_TOKEN` olarak eklemek.
+- [x] ct-radar'a `claude-code` kuruldu: Anthropic'in imzalı apt deposundan, parmak izi
+      `31DD DE24 DDFA B679 F42D 7BD2 BAA9 29FF 1A7E CACE` doğrulanarak (homelab#10).
+- [x] Token canlıda (2026-09-30), `deploy/homelab/set-claude-token.sh` ile yazıldı; yıllık yenileme
+      aynı komutla yapılıyor.
+- [x] Model kartı zenginleştirmesi (2026-10-06, PR #87): yeni modellerin HF kartındaki ilk düzyazı
+      paragrafı bir kez okunuyor. Site, RSS, Jev ve Türkçe açıklama aynı özetten besleniyor.
+
+### Faz 7 — 28 Ekim: dondurulan ve kullanılmayan katmanların silinmesi
+
+**Sahibin kararı (2026-10-06):** "Hayır, kullanmıyorum. 28 Ekim'de hepsini sil." Bu karar kapasite
+planlayıcısını, hardware kataloğunu, Answer Machine'i ve katalogu da kapsıyor; Mega danışmanlık
+işinde kullanılmıyorlar.
+
+**Kapsam A (kararlaştırıldı):**
+
+| Silinecek | Kod (satır) | Site / iş akışı |
+|---|---|---|
+| intelligence katmanı (katalog, release stream, Answer Machine verisi, lineage, review kuyruğu) | `intelligence/` ~10.200 | publish'teki ~10 adım ve `radar-state` release yedeği |
+| Kapasite planlayıcısı | `capacity/` ~1.360 | `/planner` |
+| Model radarı ve hardware/platform kataloğu | `models_radar/` ~3.200 | `/hardware`, `/catalog`, `catalog-autopilot.yml`, `spec-verify.yml` |
+| Desk, calls ledger, newsroom, stack profile | `reports/`, `discovery/news_classify*`, `intelligence/alerts` | `/desk`, `/newsroom`, `/workspaces`, `/ask`, `/advisor`, `/compare` |
+| Ölü iş akışları | — | `backtest.yml` |
+| İlgili API rotaları ve MCP araçları | `api/`, `mcp_server/` | — |
+
+**Pulse'un dayandıkları (dokunulmayacak):** `pulse/`; trending ve haber taramaları
+(`discovery/github_trending`, `trending_sweep`, `news_sweep`, ilgili `storage/` günlükleri);
+`enrichment/retry`, `huggingface_auth`, `storage/source_health_log`; frontend'de Pulse sayfası ve
+kabuğu; `deploy/homelab/`; `config/pulse*.yaml`, `config/news-sources.yaml`.
+
+**Kapsam B (sahibin cevabı bekleniyor):** Silme listesinde olmayan ama Pulse'un kullanmadığı kalan
+ekler:
+- proje halkaları (`radar scan`, `/projects`, `/overview`, klasik sayfalar, `digest.yml`,
+  `source-autopilot.yml`)
+- teknik radarı (`research_radar/`, `/research`)
+- `/trending` sayfası
+- platform matrisi
+- MCP sunucusu (Memati'nin `.mcp.json`'u hâlâ ona işaret ediyor)
+
+Önerim: bunlar da silinsin, ürün yalnızca Pulse olsun.
+
+**Yürütme sırası (28 Ekim):**
+1. Geri dönüş noktası: `pre-slim-2026-10-28` git etiketi. `radar-state` release yedeği silinmez,
+   arşivde kalır.
+2. **Önce yeni yayın yolu:** yalnızca Pulse'u yayınlayan bir `radar export` (frontend derleme +
+   `pulse.v1.json` + RSS). Kenar çubuğu artık `public-snapshot` okumayacak; kaynak sağlığı
+   `pulse.v1.json`'daki health alanından gelecek. Bu adım eski katman dururken yayına alınıp canlıda
+   doğrulanır.
+3. publish.yml sadeleşir: intelligence adımları, state restore/pack, lineage ve katalog adımları
+   kalkar. Hedef: publish ~12 dk'dan ~3–4 dk'ya.
+4. Kod, testler ve frontend özellikleri silinir. Ölü kod `vulture` ile taranır.
+5. Dokümanlar güncellenir: README, `docs/pulse.md`, `docs/architecture.md`.
+
+**Doğrulama kapıları:**
+- Pulse sitesi dört şeritle açılıyor ve RSS feed'leri geçerli.
+- **ct-radar'ın okuduğu `pulse.v1.json` şeması değişmiyor**: `validate_view` testi bunu sabitliyor,
+  bu yüzden homelab'da güncelleme gerekmeden çalışmaya devam ediyor.
+- Bekçi "healthy" diyor ve ertesi sabah Telegram özeti normal geliyor.
+- Silmeden sonraki ilk iki publish yeşil.
+- Geri alma tek adımda yapılabiliyor: merge commit'inin `git revert`'ü.
 
 **Toplam tahmin:** yaklaşık 2–3 hafta, parça parça. Her faz tek başına değer üretir. Faz 0 ile
 Faz 1'in sonunda bile "yeni modeller ve paper'lar görünüyor" hedefine ulaşılır.
