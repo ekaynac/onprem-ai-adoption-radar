@@ -548,8 +548,8 @@ işinde kullanılmıyorlar.
 `enrichment/retry`, `huggingface_auth`, `storage/source_health_log`; frontend'de Pulse sayfası ve
 kabuğu; `deploy/homelab/`; `config/pulse*.yaml`, `config/news-sources.yaml`.
 
-**Kapsam B (sahibin cevabı bekleniyor):** Silme listesinde olmayan ama Pulse'un kullanmadığı kalan
-ekler:
+**Kapsam B (kararlaştırıldı, 2026-10-06: "evet, onları da 28 Ekim'de sil"):** Pulse'un kullanmadığı
+kalan ekler de siliniyor. Ürün yalnızca Pulse olacak:
 - proje halkaları (`radar scan`, `/projects`, `/overview`, klasik sayfalar, `digest.yml`,
   `source-autopilot.yml`)
 - teknik radarı (`research_radar/`, `/research`)
@@ -557,7 +557,8 @@ ekler:
 - platform matrisi
 - MCP sunucusu (Memati'nin `.mcp.json`'u hâlâ ona işaret ediyor)
 
-Önerim: bunlar da silinsin, ürün yalnızca Pulse olsun.
+Ek adım: Memati'nin `~/.openclaw/workspace/.mcp.json` dosyasındaki `onprem-radar` girdisi kaldırılacak
+(sunucu artık var olmayacak). Önce yedek alınacak.
 
 **Yürütme sırası (28 Ekim):**
 1. Geri dönüş noktası: `pre-slim-2026-10-28` git etiketi. `radar-state` release yedeği silinmez,
