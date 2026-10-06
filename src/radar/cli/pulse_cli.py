@@ -367,7 +367,7 @@ def pulse_watchdog(
                 response = await client.get(
                     f"https://api.github.com/repos/{watch.repo}/actions/workflows/"
                     f"{watch.publish_workflow}/runs",
-                    params={"per_page": 10, "branch": "main"},
+                    params={"per_page": 20},  # no branch filter: it broke ordering
                     headers={"Accept": "application/vnd.github+json"},
                 )
                 response.raise_for_status()
@@ -380,7 +380,7 @@ def pulse_watchdog(
     digest_state = load_state(state_file(root, DIGEST_STATE_PATH))
     findings = [
         *wd.check_site(view, now, view_error),
-        *wd.check_publish(runs, runs_error),
+        *wd.check_publish(runs, runs_error, now),
         *wd.check_digest(digest_state.get("last_sent_date"), now),
     ]
     state_path = state_file(root, wd.STATE_PATH)

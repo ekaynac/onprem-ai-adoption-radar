@@ -111,3 +111,31 @@ def test_state_dir_env_moves_worker_state_out_of_the_clone(tmp_path: Path, monke
     assert state_file(tmp_path, STATE_PATH) == tmp_path / "data" / "pulse" / "telegram-state.json"
     monkeypatch.setenv("RADAR_STATE_DIR", "/var/lib/radar")
     assert state_file(tmp_path, STATE_PATH) == Path("/var/lib/radar/telegram-state.json")
+
+
+def test_publish_check_ignores_old_failures_listed_out_of_order() -> None:
+    # Regression (2026-09-30..10-03): the API served 2026-08-23 failures first
+    # and the watchdog raised three false "publish failing" alarms.
+    runs = [
+        {"conclusion": "failure", "created_at": "2026-08-23T08:28:01Z", "head_branch": "main",
+         "html_url": "https://gh/run/old1"},
+        {"conclusion": "failure", "created_at": "2026-08-23T04:29:33Z", "head_branch": "main",
+         "html_url": "https://gh/run/old2"},
+        {"conclusion": "success", "created_at": "2026-09-30T10:30:00Z", "head_branch": "main"},
+        {"conclusion": "success", "created_at": "2026-09-30T08:37:00Z", "head_branch": "main"},
+    ]
+
+    assert check_publish(runs, None, NOW) == []
+
+
+def test_publish_check_sorts_itself_and_skips_other_branches() -> None:
+    runs = [
+        {"conclusion": "success", "created_at": "2026-09-30T02:00:00Z", "head_branch": "main"},
+        {"conclusion": "failure", "created_at": "2026-09-30T10:00:00Z", "head_branch": "main",
+         "html_url": "https://gh/run/newest"},
+        {"conclusion": "success", "created_at": "2026-09-30T09:00:00Z", "head_branch": "feature/x"},
+        {"conclusion": "failure", "created_at": "2026-09-30T08:00:00Z", "head_branch": "main"},
+    ]
+
+    [finding] = check_publish(runs, None, NOW)
+    assert finding.key == "publish-failing" and "newest" in finding.message

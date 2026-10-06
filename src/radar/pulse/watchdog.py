@@ -25,6 +25,7 @@ STATE_PATH = Path("data") / "pulse" / "watchdog-state.json"
 SITE_STALE_AFTER = timedelta(hours=6)  # publish runs every 2 h: three misses
 DIGEST_DUE_HOUR = 10  # local; the digest goes out after 08:00
 FAILED_RUNS_TO_ALARM = 2
+RUN_LOOKBACK = timedelta(days=1)
 
 
 @dataclass(frozen=True)
@@ -58,10 +59,28 @@ def check_site(view: dict[str, Any] | None, now: datetime, error: str | None) ->
     return findings
 
 
-def check_publish(runs: list[dict[str, Any]] | None, error: str | None) -> list[Finding]:
+def check_publish(
+    runs: list[dict[str, Any]] | None,
+    error: str | None,
+    now: datetime | None = None,
+) -> list[Finding]:
+    """Alarm on the two newest completed main-branch runs, both failed.
+
+    The GitHub listing is not trusted for order: with `branch=main` it served
+    2026-08-23 failures as the newest runs and raised three false alarms
+    (2026-09-30..10-03). Runs are filtered to main, sorted by creation time
+    here, and anything older than a day is ignored.
+    """
     if runs is None:
         return [Finding("publish-unknown", f"Could not read publish runs: {error}")]
-    completed = [r for r in runs if r.get("conclusion") not in (None, "cancelled", "skipped")]
+    cutoff = (now - RUN_LOOKBACK).isoformat() if now is not None else ""
+    main_runs = sorted(
+        (r for r in runs
+         if r.get("head_branch", "main") == "main" and str(r.get("created_at", "")) >= cutoff),
+        key=lambda r: str(r.get("created_at", "")),
+        reverse=True,
+    )
+    completed = [r for r in main_runs if r.get("conclusion") not in (None, "cancelled", "skipped")]
     recent = completed[:FAILED_RUNS_TO_ALARM]
     if len(recent) == FAILED_RUNS_TO_ALARM and all(r["conclusion"] == "failure" for r in recent):
         url = recent[0].get("html_url", "")
