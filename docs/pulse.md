@@ -38,7 +38,7 @@ homelab ct-radar (every 30 min)
 
 | Lane | Source | Notes |
 |---|---|---|
-| Models | `huggingface.co/api/models?author=<org>&sort=createdAt`: the 20 newest uploads of each of 30 lab orgs (`config/pulse.yaml`) | Independent of the catalog seed, so a release never drops out once seeded. |
+| Models | `huggingface.co/api/models?author=<org>&sort=createdAt`: the 20 newest uploads of each of 30 lab orgs (`config/pulse.yaml`) | Independent of the catalog seed, so a release never drops out once seeded. Each new original/unknown model gets the first prose paragraph of its **model card** (`src/radar/pulse/cards.py`, read once, up to `card_limit: 40` per run). That paragraph feeds the site row, RSS, Jev and the Turkish sentence. |
 | Papers | `huggingface.co/api/daily_papers` (100/day) | Carries upvotes and code links. No keyword gate, no human approval. |
 | Repos | `data/trending-observations.jsonl` (GitHub search sweep) | Only repos created inside the window; velocity is stars/day since creation. |
 | News | `data/news-observations.jsonl`: `config/news-sources.yaml` | Lab blogs (OpenAI, Google DeepMind, Google, Mistral, NVIDIA, MSR, GitHub), practitioners (Simon Willison, Latent Space), serving stacks (vLLM, Ollama, Hugging Face), Hacker News. Excluded feeds (Anthropic and Meta publish no RSS, the Qwen blog is stale) are listed with reasons in the config. |

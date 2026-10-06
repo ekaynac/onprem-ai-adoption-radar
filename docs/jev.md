@@ -76,7 +76,8 @@ Title: Introducing GPT-6.1 Sol
 Source: openai-news
 URL: https://openai.com/index/introducing-gpt-6-1-sol
 Tags: …            (repos: GitHub topics; models: pipeline tag)
-Summary: …         (feed summary / paper abstract / repo description, ≤400 chars)
+Summary: …         (feed summary / paper abstract / repo description /
+                    model-card paragraph, ≤400 chars)
 ```
 
 Volatile numbers (likes, stars) are deliberately left out, so the text only
