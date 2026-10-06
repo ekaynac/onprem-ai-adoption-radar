@@ -13,6 +13,8 @@ class ModelsConfig(BaseModel):
 
     lab_orgs: tuple[str, ...] = Field(min_length=1)
     per_org_limit: int = Field(default=20, ge=1, le=100)
+    # Model-card summaries fetched per run (each repo once; the store keeps them).
+    card_limit: int = Field(default=40, ge=0, le=200)
 
 
 class PapersConfig(BaseModel):

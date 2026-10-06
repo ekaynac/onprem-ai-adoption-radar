@@ -33,6 +33,9 @@ def merge_items(
         if previous is not None:
             item = item.model_copy(update={
                 "first_seen": min(previous.first_seen, item.first_seen),
+                # A model-card summary is fetched once; re-observations of the
+                # repo carry none, so keep the one already stored.
+                "summary": item.summary or previous.summary,
             })
         merged[item.id] = item
     cutoff = now - timedelta(days=window_days)
