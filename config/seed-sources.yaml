@@ -734,6 +734,14 @@ sources:
     url: https://github.com/incoai/splash
     tags: [apple-silicon, coding-agents, llm-inference, macos, auto-added]
     backer: {name: incoai, type: community}
+  - id: github-backburner
+    type: github_repo
+    enabled: true
+    project: backburner
+    category: model_serving
+    url: https://github.com/StayLameBro/backburner
+    tags: [apple-silicon, ios, iphone, llama-cpp, auto-added]
+    backer: {name: StayLameBro, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
