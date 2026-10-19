@@ -13,3 +13,5 @@
 {"repo": "bojieli/ai-infra-book", "source_id": "github-ai-infra-book", "category": "ai_infrastructure", "stars": 4787, "avg_velocity": 446.7, "added_at": "2026-09-21T07:47:06.652631Z"}
 {"repo": "incoai/splash", "source_id": "github-splash", "category": "coding_agents", "stars": 924, "avg_velocity": 96.4, "added_at": "2026-09-28T07:56:16.171423Z"}
 {"repo": "StayLameBro/backburner", "source_id": "github-backburner", "category": "model_serving", "stars": 963, "avg_velocity": 96.2, "added_at": "2026-10-12T08:05:41.188359Z"}
+{"repo": "zhuyansen/new-term-radar", "source_id": "github-new-term-radar", "category": "mcp_tooling", "stars": 1117, "avg_velocity": 61.0, "added_at": "2026-10-19T07:54:14.634546Z"}
+{"repo": "mw00/project-maya", "source_id": "github-project-maya", "category": "model_serving", "stars": 1049, "avg_velocity": 60.4, "added_at": "2026-10-19T07:54:14.634546Z"}

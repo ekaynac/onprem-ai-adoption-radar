@@ -742,6 +742,22 @@ sources:
     url: https://github.com/StayLameBro/backburner
     tags: [apple-silicon, ios, iphone, llama-cpp, auto-added]
     backer: {name: StayLameBro, type: community}
+  - id: github-new-term-radar
+    type: github_repo
+    enabled: true
+    project: new-term-radar
+    category: mcp_tooling
+    url: https://github.com/zhuyansen/new-term-radar
+    tags: [agent-skills, ai, aisa, claude-code, auto-added]
+    backer: {name: zhuyansen, type: community}
+  - id: github-project-maya
+    type: github_repo
+    enabled: true
+    project: project-maya
+    category: model_serving
+    url: https://github.com/mw00/project-maya
+    tags: [cuda, glm, glm-5, llm, auto-added]
+    backer: {name: mw00, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
