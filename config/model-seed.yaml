@@ -852,3 +852,14 @@ models:
     license: apache-2.0
     openness: open-permissive
     release_date: 2026-09
+
+  - id: hf-humanizer
+    name: humanizer
+    family: jialinyyzz
+    hf_repo: jialinyyzz/humanizer
+    backer: {name: "jialinyyzz", type: community}
+    params_total: 11959730224
+    modality: text
+    license: apache-2.0
+    openness: open-permissive
+    release_date: 2026-10
