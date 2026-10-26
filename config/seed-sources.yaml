@@ -758,6 +758,14 @@ sources:
     url: https://github.com/mw00/project-maya
     tags: [cuda, glm, glm-5, llm, auto-added]
     backer: {name: mw00, type: community}
+  - id: github-mcd-saver-strategist
+    type: github_repo
+    enabled: true
+    project: mcd-saver-strategist
+    category: general_agents
+    url: https://github.com/hujjun/mcd-saver-strategist
+    tags: [agent-skill, ai-agent, coupon-optimizer, coupons, auto-added]
+    backer: {name: hujjun, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
