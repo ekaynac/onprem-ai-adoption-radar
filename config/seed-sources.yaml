@@ -766,6 +766,14 @@ sources:
     url: https://github.com/hujjun/mcd-saver-strategist
     tags: [agent-skill, ai-agent, coupon-optimizer, coupons, auto-added]
     backer: {name: hujjun, type: community}
+  - id: github-bla
+    type: github_repo
+    enabled: true
+    project: bla
+    category: mcp_tooling
+    url: https://github.com/qybaihe/bla
+    tags: [adversarial-ai, claude-code, cursor, electron-security, auto-added]
+    backer: {name: qybaihe, type: community}
 quotas:
   coding_agents: 10
   general_agents: 10
