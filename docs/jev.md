@@ -158,9 +158,8 @@ The key is never logged or placed in error messages (tested).
   impossible to label in the abstract, so quality is steered by usage
   instead: each "why is X missing?" or "Y is noise" becomes a regression test
   and, if needed, a rule or question change.
-- Tooling for a formal comparison remains: `radar pulse gold-sample` writes a
-  checklist plus a frozen snapshot, and `radar pulse eval` re-triages that
-  snapshot with Jev and with rules and scores each against the owner's ticks.
+- The gold-set tooling (`gold-sample`, `eval`) was removed on 2026-11-04 with
+  the gold set itself; it is recoverable from the tag `pre-slim-2026-11-04`.
 
 ## Changing the questions safely
 
@@ -178,7 +177,7 @@ The key is never logged or placed in error messages (tested).
 ## Useful commands
 
 ```bash
-uv run radar pulse collect   # fetch lab models + daily papers, fold in repo/news logs
+uv run radar pulse collect   # fetch every source: HF models + papers, GitHub, news
 uv run radar pulse triage    # label new items with Jev (rules fallback), print tokens and cost
 uv run radar pulse top --lane news --limit 20             # ranking with reasons
 uv run radar pulse top --lane repo --limit 50 --show-hidden

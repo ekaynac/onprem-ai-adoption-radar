@@ -48,6 +48,14 @@ def test_stale_empty_failing_and_degraded_site_each_raise() -> None:
                     "triage-degraded"}
 
 
+def test_a_partly_failing_source_is_shown_on_the_site_but_does_not_alarm() -> None:
+    view = _view(NOW - timedelta(hours=1), sources=[
+        {"source": "news:feeds", "status": "partial", "count": 2400},
+    ])
+
+    assert check_site(view, NOW, None) == []
+
+
 def test_unreachable_site_is_a_finding_not_a_crash() -> None:
     [finding] = check_site(None, NOW, "HTTPStatusError: 404")
 

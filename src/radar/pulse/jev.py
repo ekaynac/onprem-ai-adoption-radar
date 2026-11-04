@@ -11,14 +11,13 @@ never logged.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from radar.enrichment.retry import post_with_retry
-from radar.huggingface_auth import _load_dotenv
+from radar.pulse.env import secret
+from radar.pulse.http import post_with_retry
 
 
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
@@ -56,9 +55,7 @@ class JevResult(BaseModel):
 
 
 def jev_api_key(root: Path | None = None) -> str | None:
-    _load_dotenv(root)
-    key = os.environ.get(API_KEY_ENV, "").strip()
-    return key or None
+    return secret(API_KEY_ENV, root)
 
 
 async def ask_jev(

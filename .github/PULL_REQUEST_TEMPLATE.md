@@ -13,12 +13,12 @@
 
 ## Checklist
 
-- [ ] Tests added/updated and `uv run pytest` is green
-- [ ] Keeps the deterministic default path (no LLM/network added to core)
+- [ ] Tests added/updated; `uv run pytest` and `npm test --prefix frontend` are green
+- [ ] `pulse.v1.json` schema unchanged, or a new schema version with readers updated
+- [ ] Failures stay visible (no swallowed errors; source health reports them)
 - [ ] No mutation of inputs; new objects returned
-- [ ] No silent truncation (drops/caps are counted/logged)
-- [ ] Docs/README updated if behavior or CLI changed
+- [ ] Docs updated if behavior, config or CLI changed
 
 ## Test plan
 
-<!-- How did you verify this? Commands, output, scans. -->
+<!-- How did you verify this? Commands, output, the exported site. -->

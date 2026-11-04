@@ -1,4 +1,4 @@
-"""One Pulse collection pass: fetch, adapt, merge, persist, report."""
+"""One Pulse collection pass: fetch every source, merge, enrich, persist, report."""
 
 from __future__ import annotations
 
@@ -9,17 +9,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from radar.pulse.adapters import news_items, repo_items
-from radar.pulse.cards import fetch_card_summary
 from radar.pulse.config import PulseConfig
+from radar.pulse.health import HEALTH_PATH, record_runs
 from radar.pulse.items import Lane, PulseItem
-from radar.pulse.sources import SourceRun, fetch_daily_papers, fetch_lab_models
+from radar.pulse.sources import SourceRun
+from radar.pulse.sources.cards import fetch_card_summary
+from radar.pulse.sources.github import fetch_new_repos
+from radar.pulse.sources.huggingface import fetch_daily_papers, fetch_lab_models
+from radar.pulse.sources.news import fetch_news
 from radar.pulse.store import load_items, merge_items, save_items
 
 
 ITEMS_PATH = Path("data") / "pulse" / "items.jsonl"
-TRENDING_PATH = Path("data") / "trending-observations.jsonl"
-NEWS_PATH = Path("data") / "news-observations.jsonl"
+CARD_CONCURRENCY = 6
 
 
 @dataclass(frozen=True)
@@ -34,10 +36,10 @@ class CollectReport:
 
     @property
     def model_origin_counts(self) -> dict[str, int]:
-        return dict(Counter(i.kind or "?" for i in self.items if i.lane.value == "model"))
+        return dict(Counter(i.kind or "?" for i in self.items if i.lane is Lane.MODEL))
 
     @property
-    def all_network_sources_failed(self) -> bool:
+    def all_sources_failed(self) -> bool:
         return bool(self.runs) and all(run.status == "error" for run in self.runs)
 
 
@@ -47,28 +49,25 @@ async def collect(
     client: Any,
     now: datetime,
     hf_headers: dict[str, str] | None = None,
+    github_headers: dict[str, str] | None = None,
 ) -> CollectReport:
-    models = await fetch_lab_models(
-        client, config.models.lab_orgs, config.models.per_org_limit,
-        config.lab_org_set, now, headers=hf_headers,
+    runs = (
+        await fetch_lab_models(client, config.models.lab_orgs, config.models.per_org_limit,
+                               config.lab_org_set, now, headers=hf_headers),
+        await fetch_daily_papers(client, config.papers.daily_papers_limit, now),
+        await fetch_new_repos(client, config.repos.topics, config.repos.min_stars,
+                              config.window_days, now, headers=github_headers),
+        await fetch_news(client, list(config.news.sources), now),
     )
-    papers = await fetch_daily_papers(client, config.papers.daily_papers_limit, now)
-    incoming = [
-        *models.items,
-        *papers.items,
-        *repo_items(root / TRENDING_PATH, now, config.window_days),
-        *news_items(root / NEWS_PATH, now, config.window_days),
-    ]
     store_path = root / ITEMS_PATH
+    incoming = [item for run in runs for item in run.items]
     merged = merge_items(load_items(store_path), incoming, now, config.window_days)
     merged, cards_added = await add_card_summaries(
         merged, client, config.models.card_limit, hf_headers,
     )
     save_items(store_path, merged)
-    return CollectReport(runs=(models, papers), items=tuple(merged), cards_added=cards_added)
-
-
-CARD_CONCURRENCY = 6
+    record_runs(root / HEALTH_PATH, runs, now)
+    return CollectReport(runs=runs, items=tuple(merged), cards_added=cards_added)
 
 
 async def add_card_summaries(

@@ -1,57 +1,46 @@
 # Contributing
 
-Thanks for your interest in the On-Prem AI Adoption Radar. This project is
-licensed under the [MIT License](LICENSE) — contributions are welcome and are
-accepted under the same license.
+Thanks for your interest in AI Radar Pulse. This project is licensed under the
+[MIT License](LICENSE); contributions are accepted under the same license.
 
 ## Development setup
 
-Requires Python 3.12+ and [uv](https://github.com/astral-sh/uv).
+Requires Python 3.12+, [uv](https://github.com/astral-sh/uv) and Node 20.
 
 ```bash
-uv venv && uv pip install -e ".[dev]"
-uv run pytest          # run the suite
-uv run radar --help    # explore the CLI
+uv sync                          # package + dev tools
+uv run pytest --cov              # Python suite (offline: every network call is mocked)
+npm ci --prefix frontend && npm test --prefix frontend
+uv run radar pulse --help        # the CLI
 ```
 
 ## Principles
 
-These are load-bearing — please keep them when contributing:
-
-- **Deterministic core.** The default scan path has no LLM and no network beyond
-  fetching sources. Anything LLM-based is opt-in, off by default, and degrades to
-  the deterministic result on failure.
+- **Pulse is self-contained.** Nothing under `src/radar/pulse/` imports from
+  outside it. Dependencies point one way: sources → pipeline → triage/rank →
+  view → export/telegram.
+- **`data/pulse.v1.json` is the contract.** The site, RSS and the homelab
+  worker read it; `view.validate_view` pins the schema. Change it only with a
+  new schema version.
+- **Failures are visible.** A source error is recorded per request in
+  `data/pulse/health.json` and shown on the site; a Jev outage falls back to
+  rules and says so. Never swallow an error silently.
 - **Immutable data flow.** Functions return new objects; they don't mutate inputs.
-- **Small, focused modules.** One concern per file; prefer many small files over
-  large ones.
-- **Test-driven.** Write a failing test first, then the implementation. Keep the
-  suite green and meaningful.
-- **No silent truncation.** If something is dropped, capped, or sampled, surface
-  the count (logs, run meta, or output).
-
-## Tests
-
-- All behavior changes need tests. Run `uv run pytest` before opening a PR.
-- Unit-test pure logic directly; integration-test the orchestrator with a
-  temporary project root (`initialize_project(tmp_path)`).
-- Network and LLM calls are kept behind injectable seams so tests stay offline.
+- **Secrets never leave the environment.** Read them through `radar.pulse.env`;
+  never log or print them (the Telegram token is scrubbed from errors, tested).
 
 ## Adding a source
 
-Most "add a project" requests don't need code — add it to
-`config/seed-sources.yaml`, or use `radar seed add …` / the dashboard's
-`/sources` form. See the README for the source schema (`github_repo`, `rss`,
-`manual`, plus `firehose` and `aliases` for feeds).
+Most additions need no code: add a feed to `news.sources`, a topic to
+`repos.topics` or a lab org to `models.lab_orgs` in `config/pulse.yaml`.
+A new kind of source is a module in `src/radar/pulse/sources/` that returns a
+`SourceRun`, plus one line in `pipeline.collect`.
 
 ## Commits & branches
 
-- Branch from `main`: `feature/<scope>/<desc>`, `fix/<scope>/<desc>`, or
-  `chore/<desc>`. Don't commit directly to `main`.
+- Branch from `main`: `feature/<scope>/<desc>`, `fix/<scope>/<desc>`,
+  `refactor/<desc>` or `chore/<desc>`. Don't commit directly to `main`.
 - [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
   `refactor:`, `docs:`, `test:`, `chore:`, `perf:`, `ci:`.
-- Open a PR with a clear summary and a test plan. CI runs the suite on every PR.
-
-## Reporting bugs / ideas
-
-Use the issue templates. For a bug, include the command you ran, what you
-expected, and what happened (with any `data/runs/<id>/meta.json` warning).
+- Open a PR with a summary and a test plan. CI runs both suites and the
+  browser checks on every PR.

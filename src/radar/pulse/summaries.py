@@ -23,8 +23,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from radar.discovery.news_claude_cli import _strip_fences
-
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +65,17 @@ def save_cache(path: Path, cache: dict[str, dict[str, str]]) -> None:
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(trimmed, ensure_ascii=False, indent=1), encoding="utf-8")
     tmp.replace(path)
+
+
+def _strip_fences(text: str) -> str:
+    """Drop a ```json … ``` wrapper the model sometimes adds despite instructions."""
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        newline = stripped.find("\n")
+        stripped = stripped[newline + 1:] if newline != -1 else ""
+        if stripped.rstrip().endswith("```"):
+            stripped = stripped.rstrip()[:-3]
+    return stripped.strip()
 
 
 def build_prompt(rows: list[dict[str, Any]]) -> str:

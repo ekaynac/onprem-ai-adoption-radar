@@ -1,23 +1,28 @@
 name: Publish radar to Pages
 
+# Radar Pulse, every two hours: collect (Hugging Face, GitHub, news feeds),
+# triage with Jev, build the site, deploy, persist the item store. The
+# homelab worker (deploy/homelab) reads the published pulse.v1.json for the
+# Telegram digest; nothing else depends on this run.
+
 on:
   schedule:
-    - cron: "17 */2 * * *" # platform-wide freshness: discovery + publish every two hours
-    - cron: "43 5 * * 0" # weekly trusted-claim reverification
+    - cron: "17 */2 * * *"
   workflow_dispatch: {}
   push:
     branches: [main]
     paths:
       - "config/**"
       - "src/**"
+      - "frontend/**"
       - ".github/workflows/publish.yml"
 
 permissions:
-  contents: write # update the state release asset and small publication logs
+  contents: write # persist data/pulse/*.jsonl
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, don't cancel an in-progress run.
+# One deployment at a time; never cancel one in progress.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -25,11 +30,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 30
     steps:
-      # Shallow on purpose (radar rescue Faz 5): no step reads git history, and
-      # persist_publication.sh only rebases its one commit onto origin/main.
-      # Full history of the 2-hourly data files cost ~1 min per run.
+      # Shallow: persist_publication.sh only rebases its one commit onto origin/main.
       - uses: actions/checkout@v6
         with:
           fetch-depth: 20
@@ -41,7 +44,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Install package
-        run: uv sync --all-extras
+        run: uv sync --locked
 
       - uses: actions/setup-node@v6
         with:
@@ -49,200 +52,47 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend
-        run: npm ci --prefix frontend
-
-      - name: Restore canonical intelligence state
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Build frontend
         run: |
-          mkdir -p build
-          release_status="$(curl --silent --show-error \
-            --output build/radar-state-release.json \
-            --write-out '%{http_code}' \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/radar-state")"
-          case "$release_status" in
-            200)
-              if jq -e '.assets[]? | select(.name == "intelligence-state.tar.gz")' \
-                build/radar-state-release.json >/dev/null; then
-                gh release download radar-state \
-                  --pattern intelligence-state.tar.gz \
-                  --dir build \
-                  --clobber
-                uv run radar intelligence-state-restore --root . \
-                  --archive build/intelligence-state.tar.gz
-              else
-                echo "radar-state exists without an asset; bootstrapping canonical state."
-              fi
-              ;;
-            404)
-              echo "No radar-state release found; bootstrapping canonical state."
-              ;;
-            *)
-              echo "Unexpected GitHub API status while restoring state: ${release_status}" >&2
-              exit 1
-              ;;
-          esac
+          npm ci --prefix frontend
+          npm run build --prefix frontend
 
-      - name: Rebuild canonical intelligence
-        run: |
-          uv run radar intelligence-migrate --root .
-          uv run radar intelligence-replay-events --root .
-
-      - name: Discover intelligence
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: uv run radar intelligence-run discovery --root .
-
-      # FROZEN 2026-09-30 (radar rescue Faz 5, owner-approved): lineage
-      # backfill/triage (~2.4 min per run) no longer runs. Catalog pages keep
-      # the last lineage state; deletion is decided on 2026-10-28.
-
-      - name: Checkpoint discovered intelligence
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          uv run radar intelligence-state-pack --root . \
-            --out build/intelligence-state.tar.gz
-          gh release view radar-state >/dev/null 2>&1 || \
-            gh release create radar-state \
-              --target "$GITHUB_SHA" \
-              --title "Radar canonical state" \
-              --notes "Replaceable canonical intelligence checkpoint."
-          gh release upload radar-state \
-            build/intelligence-state.tar.gz \
-            --clobber
-
-      - name: Verify new intelligence
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          started_at="$(date +%s)"
-          verify_output="$(uv run radar intelligence-run verify-new --root .)"
-          echo "$verify_output"
-          processed="$(jq -r '.result.processed // 0' <<<"$verify_output")"
-          remaining="$(jq -r '.result.remaining // 0' <<<"$verify_output")"
-          elapsed="$(( $(date +%s) - started_at ))"
-          {
-            echo "### Verify new intelligence"
-            echo "- Processed: ${processed}"
-            echo "- Remaining: ${remaining}"
-            echo "- Elapsed seconds: ${elapsed}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Reverify trusted claims
-        if: github.event.schedule == '43 5 * * 0' || github.event_name == 'workflow_dispatch'
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: uv run radar intelligence-run verification --root .
-
-      - name: Scan
+      # A total outage of every source, or a failed triage, is surfaced as a
+      # run annotation but never blocks the publish: the site then shows the
+      # last good items, with the failing sources named in its health panel.
+      - name: Collect and triage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: |
-          uv run radar init --root .
-          uv run radar scan --root . --days 7 --publish-history
-          uv run radar models scan --root .
-          uv run radar models candidates scan --root .
-          uv run radar models benchmarks scan --root .
-          uv run radar models platforms-verify --root .
-          uv run radar research scan --root .
-          uv run radar research candidates scan --root .
-          uv run radar trending scan --root .
-          uv run radar news scan --root .
-          # Pulse reads the trending/news logs written just above. A total
-          # Pulse outage is surfaced as a run annotation but never blocks the
-          # site publish.
           uv run radar pulse collect --root . \
-            || echo "::warning title=Pulse::every Pulse network source failed this run"
+            || echo "::warning title=Pulse::every Pulse source failed this run"
           uv run radar pulse triage --root . \
             || echo "::warning title=Pulse::triage failed; items stay untriaged this run"
-          # The Telegram digest is sent by the homelab worker (ct-radar), which
-          # holds the bot token; see deploy/homelab/README.md.
-          # FROZEN 2026-09-30 (Faz 5): news classify (no API key in CI; the
-          # Mac bot is retired: Jev triages Pulse news), the desk brief and
-          # calls ledger, and stack-profile webhook alerts.
-          enrichment_output="$(uv run radar intelligence-run enrichment --root .)"
-          echo "$enrichment_output"
-          {
-            echo "### Intelligence enrichment"
-            echo "- Processed: $(jq -r '.result.processed // 0' <<<"$enrichment_output")"
-            echo "- Remaining: $(jq -r '.result.remaining // 0' <<<"$enrichment_output")"
-          } >> "$GITHUB_STEP_SUMMARY"
-          uv run radar intelligence-run qualification --root .
-          uv run radar intelligence-run recommendations --root .
 
-      # Publish gate keyed on the RUN (not the DB union): refuse to export a
-      # degraded or near-empty scan (see 2026-07-27 hardening spec).
-      - name: Scan health gate
-        run: uv run radar scan-health --root . --check
-
-      # Quality gate: fail the run if scoring collapsed (rings stopped
-      # discriminating). Runs on the persisted scan, before publishing.
-      - name: Scoring quality gate
-        run: uv run radar calibrate-report --root . --check
-
-      - name: Checkpoint verified intelligence
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          uv run radar intelligence-state-pack --root . \
-            --out build/intelligence-state.tar.gz
-          gh release upload radar-state \
-            build/intelligence-state.tar.gz \
-            --clobber
-
-      # `radar export` copies data/history.jsonl into the site for download.
-      # --base-url makes the Atom/RSS feed self/link URLs absolute. Derived from
-      # the repo context via env vars (never interpolated into the shell line
-      # directly). Assumes the default github.io Pages domain — adjust if a
-      # custom CNAME is ever configured. `github.repository`/`repository_owner`
-      # are always populated, including on scheduled runs.
+      # --base-url makes RSS links absolute. Derived from the repo context via
+      # env vars (never interpolated into the shell line directly); assumes the
+      # default github.io Pages domain.
       - name: Export static site
         env:
           OWNER: ${{ github.repository_owner }}
           REPO_FULL: ${{ github.repository }}
         run: |
           repo_name="${REPO_FULL#*/}"
-          uv run radar export --root . --out _site \
+          uv run radar pulse export --root . --out _site \
             --base-url "https://${OWNER}.github.io/${repo_name}"
-          mkdir -p data/intelligence
-          cp _site/data/public-snapshot.v1.json \
-            data/intelligence/public-snapshot.v1.json
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
-      # Persist only diff-friendly public logs and derived delivery data. This
-      # is intentionally after artifact upload and non-blocking: an unrelated
-      # bot commit must not prevent a verified site from deploying.
-      - name: Persist history log + keepalive
+      # After the artifact upload and non-blocking: an unrelated bot commit
+      # must never prevent a verified site from deploying.
+      - name: Persist Pulse item store
         continue-on-error: true
-        run: |
-          scripts/persist_publication.sh \
-            data/history.jsonl \
-            data/source-health.jsonl \
-            data/model-history.jsonl \
-            data/model-metrics.jsonl \
-            data/model-candidate-observations.jsonl \
-            data/benchmark-observations.jsonl \
-            data/technique-candidate-observations.jsonl \
-            data/technique-history.jsonl \
-            data/technique-metrics.jsonl \
-            data/trending-observations.jsonl \
-            data/news-observations.jsonl \
-            data/pulse/items.jsonl \
-            data/pulse/labels.jsonl \
-            data/intelligence/public-snapshot.v1.json
+        run: scripts/persist_publication.sh data/pulse/items.jsonl data/pulse/labels.jsonl
 
   deploy:
     needs: build

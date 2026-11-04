@@ -570,7 +570,8 @@ Ek adım: Memati'nin `~/.openclaw/workspace/.mcp.json` dosyasındaki `onprem-rad
 3. publish.yml sadeleşir: intelligence adımları, state restore/pack, lineage ve katalog adımları
    kalkar. Hedef: publish ~12 dk'dan ~3–4 dk'ya.
 4. Kod, testler ve frontend özellikleri silinir. Ölü kod `vulture` ile taranır.
-5. Dokümanlar güncellenir: README, `docs/pulse.md`, `docs/architecture.md`.
+5. Dokümanlar güncellenir: README, `docs/pulse.md` (`docs/architecture.md` silinen katmanları
+   anlattığı için kaldırıldı; kod haritası `docs/pulse.md`'de).
 
 **Doğrulama kapıları:**
 - Pulse sitesi dört şeritle açılıyor ve RSS feed'leri geçerli.
@@ -579,6 +580,25 @@ Ek adım: Memati'nin `~/.openclaw/workspace/.mcp.json` dosyasındaki `onprem-rad
 - Bekçi "healthy" diyor ve ertesi sabah Telegram özeti normal geliyor.
 - Silmeden sonraki ilk iki publish yeşil.
 - Geri alma tek adımda yapılabiliyor: merge commit'inin `git revert`'ü.
+
+**Uygulama kaydı (2026-11-04, planlanan tarihten bir hafta geç):**
+- Geri dönüş etiketi `pre-slim-2026-11-04` (28 Ekim'de yapılmadığı için tarih değişti). `radar-state`
+  release'i arşivde duruyor, silinmedi.
+- **Plandan sapma 1:** trending/haber taramaları korunmadı; Pulse kendi kaynaklarına kavuştu
+  (`pulse/sources/github.py`: konu başına GitHub araması; `pulse/sources/news.py`: feed'ler artık
+  `config/pulse.yaml`'da). Öğe kimlikleri aynı kaldı (`owner/repo`, `news:<sha256[:16]>`), bu yüzden
+  Telegram teslim durumu ve Jev etiket önbelleği aynen geçerli. Canlı denemede haber şeridi 526 → 527
+  (çift kayıt yok), repo şeridi 49 → 106.
+- **Plandan sapma 2:** "önce yeni yayın yolu canlıya, sonra silme" iki PR yerine tek PR'da yapıldı.
+  Telafisi: tek adımda `git revert`, gerçek veriyle yerel export + Playwright (dört şerit, beş RSS,
+  erişilebilirlik), ve şema sabitleyen `validate_view` testi. Canlı doğrulama merge sonrası yapılır.
+- `src/radar/pulse/` artık dışarıdan hiçbir şey import etmiyor; `pulse.v1.json` belgelenmiş entegrasyon
+  sözleşmesi (InfraMedic'in bilgi katmanı ileride bunu okuyabilir). Kaynak sağlığı
+  `data/pulse/health.json`'da; bekçi yalnızca tamamen düşen (`error`) kaynakta alarm veriyor.
+- Python kodu ~42.100 → ~2.900 satır; çalışma zamanı bağımlılıkları 16 → 7; `vulture` temiz.
+- Memati: `.mcp.json`'daki `onprem-radar` girdisi ve `TOOLS.md`'deki eski radar notları kaldırıldı
+  (yedekler `*.bak-pre-faz7-20261104`).
+- `eval/` (altın set) sahibin dosyası olduğu için dokunulmadı; silinmesi önerildi.
 
 **Toplam tahmin:** yaklaşık 2–3 hafta, parça parça. Her faz tek başına değer üretir. Faz 0 ile
 Faz 1'in sonunda bile "yeni modeller ve paper'lar görünüyor" hedefine ulaşılır.

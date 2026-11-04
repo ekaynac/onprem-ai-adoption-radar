@@ -19,5 +19,5 @@ labels: enhancement
 
 ## Scope notes
 
-<!-- Does this touch the deterministic core? Need a new source/category?
-     Would it fit as config (a new seed/firehose) rather than code? -->
+<!-- A new source or lane? Would it fit as config (config/pulse.yaml) rather
+     than code? Does it change pulse.v1.json? -->

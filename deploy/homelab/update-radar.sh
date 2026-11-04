@@ -20,7 +20,7 @@ echo "Pending commits:"
 echo "$pending"
 echo
 echo "Worker-relevant changes:"
-as_radar git -C "$REPO_DIR" diff --stat HEAD origin/main -- src/radar/pulse src/radar/cli/pulse_cli.py deploy/homelab pyproject.toml uv.lock
+as_radar git -C "$REPO_DIR" diff --stat HEAD origin/main -- src/radar config deploy/homelab pyproject.toml uv.lock
 if [ "${1:-}" != "--yes" ]; then
   read -r -p "Apply? [y/N] " answer
   [ "$answer" = "y" ] || { echo "Nothing changed."; exit 0; }

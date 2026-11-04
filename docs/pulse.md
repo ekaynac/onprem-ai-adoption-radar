@@ -1,8 +1,7 @@
 # Radar Pulse
 
-Radar Pulse is the part of this repository its owner actually reads every day:
-**new models, papers, repositories and news for an AI developer, triaged and
-ranked, fully unattended.** This page covers how it works end to end and how to
+Radar Pulse is what this repository does: **new models, papers, repositories
+and news for an AI developer, triaged and ranked, fully unattended.** This page covers how it works end to end and how to
 operate it. The classifier has its own page: [jev.md](jev.md).
 
 ## The daily experience
@@ -13,35 +12,42 @@ operate it. The classifier has its own page: [jev.md](jev.md).
 | **RSS** | `pulse.xml` (all lanes) plus `pulse-models.xml`, `pulse-papers.xml`, `pulse-repos.xml` and `pulse-news.xml`. TOP items only, newest first. |
 | **Telegram** (Memati) | One message a day after 08:00 Istanbul: the top 6 models, 5 papers, 5 repos and 8 news items as numbered one-liners. Each line has a linked short title, owner, one signal (♥ likes, ▲ upvotes + "kod", ★ stars/day, or the source name) and a one-sentence Turkish explanation. "+N daha sitede" per lane, then a site · RSS footer. |
 | **Alarms** (Çakır) | Only when something is wrong, once when it starts and once when it clears. |
-| **JSON** | `data/pulse.v1.json` on the site, and `GET /api/v1/pulse` from the local API. |
+| **JSON** | `data/pulse.v1.json` on the site: the public contract (below). |
 
 ## Pipeline
 
 ```
-GitHub Actions publish.yml (every 2 h, ~12 min)
-  radar trending scan / radar news scan      existing collectors → data/*-observations.jsonl
-  radar pulse collect                        + newest uploads of 30 lab orgs (HF API)
-                                             + HF daily papers
-                                             → data/pulse/items.jsonl (14-day window)
-  radar pulse triage                         Jev labels (rules fallback) → data/pulse/labels.jsonl
-  radar export                               → pulse.v1.json + RSS + site (GitHub Pages)
+GitHub Actions publish.yml (every 2 h, a few minutes)
+  radar pulse collect     newest uploads of 30 lab orgs + HF daily papers
+                          + new GitHub repos (14 GitHub topics) + 16 news feeds
+                          → data/pulse/items.jsonl (14-day window)
+                          → data/pulse/health.json (latest outcome per source)
+  radar pulse triage      Jev labels (rules fallback) → data/pulse/labels.jsonl
+  radar pulse export      built frontend + data/pulse.v1.json + RSS → GitHub Pages
 
 homelab ct-radar (every 30 min)
   radar pulse telegram --view-url … --summaries claude-cli
-                                             reads the published pulse.v1.json,
-                                             one Turkish sentence per shown item (Claude),
-                                             sends the daily digest once
-  radar pulse watchdog                       dead-man checks → Çakır
+                          reads the published pulse.v1.json,
+                          one Turkish sentence per shown item (Claude),
+                          sends the daily digest once
+  radar pulse watchdog    dead-man checks → Çakır
 ```
+
+Everything is configured in `config/pulse.yaml` (sources, window, budgets,
+watchdog) and `config/pulse-questions.yaml` (what Jev is asked).
 
 ### Lanes and sources
 
 | Lane | Source | Notes |
 |---|---|---|
-| Models | `huggingface.co/api/models?author=<org>&sort=createdAt`: the 20 newest uploads of each of 30 lab orgs (`config/pulse.yaml`) | Independent of the catalog seed, so a release never drops out once seeded. Each new original/unknown model gets the first prose paragraph of its **model card** (`src/radar/pulse/cards.py`, read once, up to `card_limit: 40` per run). That paragraph feeds the site row, RSS, Jev and the Turkish sentence. |
+| Models | `huggingface.co/api/models?author=<org>&sort=createdAt`: the 20 newest uploads of each lab org | Asking each lab for its newest uploads cannot miss a release. Each new original/unknown model gets the first prose paragraph of its **model card** (`sources/cards.py`, read once, up to `card_limit: 40` per run). That paragraph feeds the site row, RSS, Jev and the Turkish sentence. |
 | Papers | `huggingface.co/api/daily_papers` (100/day) | Carries upvotes and code links. No keyword gate, no human approval. |
-| Repos | `data/trending-observations.jsonl` (GitHub search sweep) | Only repos created inside the window; velocity is stars/day since creation. |
-| News | `data/news-observations.jsonl`: `config/news-sources.yaml` | Lab blogs (OpenAI, Google DeepMind, Google, Mistral, NVIDIA, MSR, GitHub), practitioners (Simon Willison, Latent Space), serving stacks (vLLM, Ollama, Hugging Face), Hacker News. Excluded feeds (Anthropic and Meta publish no RSS, the Qwen blog is stale) are listed with reasons in the config. |
+| Repos | GitHub search, one query per topic: created inside the window, at least 50 stars | Velocity is stars/day since creation, so one observation is enough. |
+| News | 16 news feeds | Lab blogs (OpenAI, Google DeepMind, Google, Mistral, NVIDIA, MSR, GitHub), practitioners (Simon Willison, Latent Space), serving stacks (vLLM, Ollama, Hugging Face), Hacker News. Excluded feeds (Anthropic and Meta publish no RSS, the Qwen blog is stale) are listed with reasons in the config. |
+
+A failing source never hides: each fetcher reports its errors per request,
+`data/pulse/health.json` keeps the latest outcome of every source, the site
+names failing sources, and the watchdog alerts on them.
 
 ### Model origin, without a model
 
@@ -124,7 +130,7 @@ once per problem, then once when it clears:
 |---|---|
 | `site-stale` / `site-unreachable` | live `pulse.v1.json` older than 6 h (three missed publishes) or unreachable |
 | `publish-failing` | two consecutive failed `publish` runs on `main` (cancelled runs ignored) |
-| `lane-empty:*`, `source:*` | a lane with no items, a Pulse source not `ok` |
+| `lane-empty:*`, `source:*` | a lane with no items, a Pulse source fully down (`error`); a `partial` source is shown on the site, not alarmed |
 | `triage-degraded` | most shown items ranked without Jev |
 | `digest-missing` | no Telegram digest by 10:00 Istanbul |
 | (systemd `OnFailure`) | the worker unit itself failed → `notify-failure.py` |
@@ -141,6 +147,10 @@ uv run radar pulse top --lane news --limit 30 --show-hidden
 # rebuild locally (data/ is bot-owned: do not commit local changes to it)
 uv run radar pulse collect && uv run radar pulse triage
 
+# build and serve the site locally
+npm run build --prefix frontend
+uv run radar pulse export --out _site && python3 -m http.server -d _site 4173
+
 # preview the digest without sending
 uv run radar pulse telegram --dry-run --site-url https://ekaynac.github.io/onprem-ai-adoption-radar/
 
@@ -156,14 +166,41 @@ noise ("Y is useless"), that example becomes a regression test, the way the
 K1 release test pins real releases, and the rule or question is adjusted.
 This replaced an up-front gold set that could not be labeled in the abstract.
 
-## Frozen parts of this repository
+## Code map and the public contract
 
-Since 2026-09-30 these no longer refresh in `publish`. They stay reachable
-under "Frozen · retiring" until the delete decision on **2026-10-28**: the
-weekly brief and calls ledger, the Newsroom (its Claude classifier ran on a
-retired Mac bot), stack-profile alerts, the deployment planner, the hardware
-catalog, and lineage backfill. The catalog, release stream and Answer Machine
-keep refreshing and are reviewed at the same date.
+```
+src/radar/
+  cli.py                 radar pulse <collect|triage|top|export|telegram|watchdog>
+  pulse/
+    items.py             PulseItem, Lane: the one item model
+    sources/             huggingface.py, cards.py, github.py, news.py (+ SourceRun)
+    pipeline.py          collect = fetch all → merge → card summaries → persist
+    store.py, health.py  data/pulse/items.jsonl, data/pulse/health.json
+    lineage.py           model origin from Hub tags (no model needed)
+    questions.py, jev.py, classify.py, triage.py   Jev labels, rules fallback
+    rank.py              deterministic ranking with reasons
+    view.py, feeds.py, export.py                   pulse.v1.json, RSS, site
+    telegram.py, summaries.py, watchdog.py         homelab delivery and alarms
+    env.py, http.py, text.py                       secrets, retries, text helpers
+```
+
+Dependencies point one way: sources → pipeline → triage/rank → view →
+export/telegram. Nothing in `pulse/` imports outside it.
+
+**`data/pulse.v1.json` is the integration point.** The site, RSS and the
+homelab worker all read it, and `view.validate_view` pins its schema
+(`pulse-v1`). A future consumer, for example InfraMedic's knowledge layer,
+should read this file over HTTPS the same way rather than import Pulse code or
+read `data/pulse/`; a schema change means a new version (`pulse-v2`) published
+next to the old one until every reader moved.
+
+## History
+
+Until 2026-11-04 this repository also carried an on-prem "intelligence"
+platform (catalog, technique radar, capacity planner, hardware catalog,
+weekly brief, MCP server and API). Pulse replaced it; it was frozen on
+2026-09-30 and deleted in Faz 7. Everything is recoverable from the git tag
+`pre-slim-2026-11-04`.
 
 The rescue plan with every measurement and decision behind Pulse:
 [`reports/2026-09-29-radar-rescue-research-and-plan.md`](reports/2026-09-29-radar-rescue-research-and-plan.md)

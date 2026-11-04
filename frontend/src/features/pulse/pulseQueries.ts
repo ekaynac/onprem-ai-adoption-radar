@@ -40,11 +40,9 @@ export type PulseView = {
 };
 
 
-/** Static site ships data/pulse.v1.json; the dev API serves the same JSON. */
+/** The published site ships data/pulse.v1.json next to index.html. */
 export async function fetchPulse(signal?: AbortSignal): Promise<PulseView> {
-  const url = import.meta.env.MODE === "static"
-    ? new URL("./data/pulse.v1.json", document.baseURI).toString()
-    : "/api/v1/pulse";
+  const url = new URL("./data/pulse.v1.json", document.baseURI).toString();
   const response = await fetch(url, { signal, headers: { Accept: "application/json" } });
   if (!response.ok) {
     throw new Error(`Pulse unavailable: ${response.status}`);

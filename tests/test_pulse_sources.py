@@ -10,7 +10,12 @@ from pathlib import Path
 import httpx
 
 from radar.pulse.items import Lane
-from radar.pulse.sources import fetch_daily_papers, fetch_lab_models, model_item, paper_item
+from radar.pulse.sources.huggingface import (
+    fetch_daily_papers,
+    fetch_lab_models,
+    model_item,
+    paper_item,
+)
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "pulse"

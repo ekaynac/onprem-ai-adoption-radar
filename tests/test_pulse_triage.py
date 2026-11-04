@@ -10,7 +10,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from radar.enrichment import retry
+from radar.pulse import http as retry
 from radar.pulse.classify import Answer, JevEngine, RulesEngine, content_hash
 from radar.pulse.items import Lane, PulseItem
 from radar.pulse.jev import JevError, ask_jev

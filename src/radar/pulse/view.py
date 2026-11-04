@@ -7,12 +7,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from radar.pulse.health import HEALTH_PATH, load_health
 from radar.pulse.items import Lane
 from radar.pulse.pipeline import ITEMS_PATH
 from radar.pulse.rank import Bucket, RankedItem, rank
 from radar.pulse.store import load_items
 from radar.pulse.triage import LABELS_PATH, load_labels
-from radar.storage.source_health_log import load_source_health
 
 
 SCHEMA_VERSION = "pulse-v1"
@@ -22,7 +22,6 @@ LANE_TITLES = {
     Lane.REPO: "Repositories",
     Lane.NEWS: "News",
 }
-_PULSE_SOURCE_PREFIX = "huggingface:"
 _RULES_SHARE_DEGRADED = 0.5  # more than half the shown items triaged by rules
 
 
@@ -39,7 +38,7 @@ def build_pulse_view(root: Path, now: datetime) -> dict[str, Any]:
         "generated_at": now.isoformat(),
         "lanes": lanes,
         "health": {
-            "sources": _latest_pulse_sources(root),
+            "sources": _pulse_sources(root),
             "engines": dict(engines),
             "degraded": rules_share > _RULES_SHARE_DEGRADED,
         },
@@ -85,21 +84,13 @@ def _row(entry: RankedItem) -> dict[str, Any]:
     }
 
 
-def _latest_pulse_sources(root: Path) -> list[dict[str, Any]]:
-    """Latest outcome of each Pulse network source, from the shared health log."""
-    latest: dict[str, dict[str, Any]] = {}
-    for record in load_source_health(root / "data" / "source-health.jsonl"):
-        if not record.run_id.startswith("pulse-"):
-            continue
-        for name, outcome in record.sources.items():
-            if name.startswith(_PULSE_SOURCE_PREFIX):
-                latest[name] = {
-                    "source": name,
-                    "status": outcome.status,
-                    "count": outcome.count,
-                    "observed_at": record.observed_at.isoformat(),
-                }
-    return sorted(latest.values(), key=lambda s: s["source"])
+def _pulse_sources(root: Path) -> list[dict[str, Any]]:
+    """Latest outcome of each Pulse source (same shape the site has always shown)."""
+    return [
+        {"source": name, "status": entry.get("status", "unknown"),
+         "count": entry.get("count", 0), "observed_at": entry.get("observed_at", "")}
+        for name, entry in sorted(load_health(root / HEALTH_PATH).items())
+    ]
 
 
 def validate_view(payload: Any) -> dict[str, Any]:

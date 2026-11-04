@@ -9,9 +9,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from radar.pulse.cards import SUMMARY_LIMIT, card_summary
 from radar.pulse.items import Lane, PulseItem
 from radar.pulse.pipeline import add_card_summaries
+from radar.pulse.sources.cards import SUMMARY_LIMIT, card_summary
 from radar.pulse.store import merge_items
 
 

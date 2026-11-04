@@ -1,269 +1,65 @@
+"""The publish workflow's contract: Pulse only, never blocked by a source outage."""
+
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
+from typing import Any
 
 import yaml
 
-from test_intelligence_workflows import all_run_commands, load_yaml
+
+def _workflow() -> dict[str, Any]:
+    return yaml.safe_load(Path(".github/workflows/publish.yml").read_text(encoding="utf-8"))
 
 
-def _publish_workflow() -> str:
-    return Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
+def _steps() -> list[dict[str, Any]]:
+    return _workflow()["jobs"]["build"]["steps"]
 
 
-def test_publish_restores_canonical_state_before_migration():
-    text = _publish_workflow()
-
-    restore_idx = text.index("radar intelligence-state-restore")
-    migrate_idx = text.index("radar intelligence-migrate")
-
-    assert "gh release download radar-state" in text
-    assert "intelligence-state.tar.gz" in text
-    assert restore_idx < migrate_idx
+def _commands() -> str:
+    return "\n".join(step.get("run", "") for step in _steps())
 
 
-def test_publish_bootstraps_only_for_confirmed_missing_state():
-    text = _publish_workflow()
-
-    assert 'case "$release_status" in' in text
-    assert "200)" in text
-    assert "404)" in text
-    assert "Unexpected GitHub API status" in text
-    assert "if gh release download" not in text
-
-
-def test_publish_checkpoints_discovery_and_verified_state_before_export():
-    text = _publish_workflow()
-
-    discovery_idx = text.index("radar intelligence-run discovery")
-    discovery_checkpoint_idx = text.index("Checkpoint discovered intelligence")
-    verify_new_idx = text.index("radar intelligence-run verify-new")
-    verified_checkpoint_idx = text.index("Checkpoint verified intelligence")
-    export_idx = text.index("radar export")
-
-    assert discovery_idx < discovery_checkpoint_idx < verify_new_idx
-    assert verify_new_idx < verified_checkpoint_idx < export_idx
-    assert text.count("gh release upload radar-state") >= 2
-    assert text.count("--clobber") >= 2
+def test_publish_runs_collect_triage_build_export_in_order() -> None:
+    commands = _commands()
+    order = [
+        commands.index("npm run build --prefix frontend"),
+        commands.index("radar pulse collect"),
+        commands.index("radar pulse triage"),
+        commands.index("radar pulse export"),
+    ]
+    assert order == sorted(order)
 
 
-def test_publish_does_not_commit_raw_canonical_state():
-    workflow = yaml.safe_load(_publish_workflow())
-    persist = next(
-        step
-        for step in workflow["jobs"]["build"]["steps"]
-        if step.get("name") == "Persist history log + keepalive"
-    )
-    command = persist["run"]
-
-    assert "data/intelligence.db" not in command
-    assert "data/intelligence/events.jsonl" not in command
-    assert "data/intelligence/snapshots" not in command
-    assert "data/intelligence/public-snapshot.v1.json" in command
+def test_source_or_triage_outages_never_block_the_publish() -> None:
+    flat = " ".join(_commands().replace("\\\n", " ").split())
+    assert 'radar pulse collect --root . || echo "::warning' in flat
+    assert 'radar pulse triage --root . || echo "::warning' in flat
 
 
-def test_raw_canonical_state_is_not_tracked_by_git():
-    tracked = subprocess.check_output(
-        [
-            "git",
-            "ls-files",
-            "data/intelligence.db",
-            "data/intelligence/events.jsonl",
-            "data/intelligence/snapshots/**",
-        ],
-        text=True,
-    ).splitlines()
-
-    assert tracked == []
-
-
-def test_publish_has_bounded_runtime_and_optional_hugging_face_auth():
-    text = _publish_workflow()
-
-    assert "timeout-minutes: 180" in text
-    assert "HF_TOKEN: ${{ secrets.HF_TOKEN }}" in text
-
-
-def test_publish_runs_model_scan_before_export_and_commits_model_history():
-    yml = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-    assert "radar models scan" in yml
-    i_models = yml.index("radar models scan")
-    i_export = yml.index("radar export")
-    assert i_models < i_export, "model scan must run before export"
-    assert "data/model-history.jsonl" in yml
-
-
-def test_publish_runs_research_scan_before_export_and_commits_technique_history():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-
-    research_idx = text.index("radar research scan")
-    export_idx = text.index("radar export")
-    models_idx = text.index("radar models scan")
-
-    assert models_idx < research_idx < export_idx
-    assert "data/technique-history.jsonl" in text
-
-
-def test_publish_commits_technique_metrics_log():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-
-    assert "data/technique-metrics.jsonl" in text
-
-
-def test_publish_runs_trending_scan_and_commits_observations():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-
-    research_idx = text.index("radar research scan")
-    trending_idx = text.index("radar trending scan")
-    export_idx = text.index("radar export")
-
-    assert research_idx < trending_idx < export_idx
-    assert "data/trending-observations.jsonl" in text
-
-
-def test_publish_commits_model_metrics_log():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-    assert "data/model-metrics.jsonl" in text
-
-
-def test_publish_runs_candidate_scan_and_commits_store():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-    models_idx = text.index("radar models scan")
-    cand_idx = text.index("radar models candidates scan")
-    export_idx = text.index("radar export")
-    assert models_idx < cand_idx < export_idx
-    assert "data/model-candidate-observations.jsonl" in text
-
-
-def test_publish_runs_benchmark_scan_and_commits_store():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-    cand_idx = text.index("radar models candidates scan")
-    bench_idx = text.index("radar models benchmarks scan")
-    export_idx = text.index("radar export")
-    assert cand_idx < bench_idx < export_idx
-    assert "data/benchmark-observations.jsonl" in text
-
-
-def test_publish_runs_paper_candidate_scan_and_commits_store():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-    research_idx = text.index("radar research scan")
-    cand_idx = text.index("radar research candidates scan")
-    export_idx = text.index("radar export")
-    assert research_idx < cand_idx < export_idx
-    assert "data/technique-candidate-observations.jsonl" in text
-
-
-def test_publish_scan_health_gate_before_scoring_quality_gate():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-
-    scan_health_idx = text.index("Scan health gate")
-    scoring_idx = text.index("Scoring quality gate")
-
-    assert scan_health_idx < scoring_idx
-    assert "radar scan-health --root . --check" in text
-
-
-def test_publish_scan_step_uses_publish_history_flag():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-
-    # Pinned: without --publish-history the scan would write to the
-    # gitignored local lane (D5) and the committed timeline would never
-    # advance, even though the persist step below force-adds it every run.
-    assert "radar scan --root . --days 7 --publish-history" in text
-
-
-def test_publish_persist_step_force_adds_source_health_log():
-    workflow = yaml.safe_load(_publish_workflow())
-    persist = next(
-        step
-        for step in workflow["jobs"]["build"]["steps"]
-        if step.get("name") == "Persist history log + keepalive"
-    )
-
-    assert "data/source-health.jsonl" in persist["run"]
-
-
-def test_spec_verify_workflow_runs_check():
-    text = Path(".github/workflows/spec-verify.yml").read_text(encoding="utf-8")
-    assert "radar models verify --root . --check" in text
-    assert "schedule:" in text
-
-
-def test_publish_deploy_retries_on_transient_pages_failure():
-    text = Path(".github/workflows/publish.yml").read_text(encoding="utf-8")
-
-    # The Pages deploy is retried (>=2 attempts), with continue-on-error guarding
-    # the earlier ones, so a transient "try again later" self-heals without a
-    # manual re-run. The final attempt is unguarded (a persistent failure still
-    # fails the job).
-    assert text.count("uses: actions/deploy-pages@v5") >= 2
-    assert "continue-on-error: true" in text
-
-
-def test_pages_artifact_upload_is_not_blocked_by_history_persistence():
-    workflow = yaml.safe_load(_publish_workflow())
-    steps = workflow["jobs"]["build"]["steps"]
-    names = [step.get("name") for step in steps]
-    upload_index = names.index("Upload Pages artifact")
-    persist_index = names.index("Persist history log + keepalive")
-    persist = steps[persist_index]
-
-    assert upload_index < persist_index
-    assert "if" not in persist
+def test_only_the_pulse_store_is_persisted_and_never_blocks_deploy() -> None:
+    persist = next(s for s in _steps() if s.get("name") == "Persist Pulse item store")
     assert persist["continue-on-error"] is True
-    assert "scripts/persist_publication.sh" in persist["run"]
+    assert persist["run"].split()[1:] == ["data/pulse/items.jsonl", "data/pulse/labels.jsonl"]
+    names = [s.get("name") for s in _steps()]
+    assert names.index("Upload Pages artifact") < names.index("Persist Pulse item store")
 
 
-def test_bounded_pipeline_results_are_written_to_the_job_summary():
-    workflow = yaml.safe_load(_publish_workflow())
-    steps = workflow["jobs"]["build"]["steps"]
-    verify = next(step for step in steps if step.get("name") == "Verify new intelligence")
-    scan = next(step for step in steps if step.get("name") == "Scan")
-
-    assert "GITHUB_STEP_SUMMARY" in verify["run"]
-    assert "processed" in verify["run"]
-    assert "remaining" in verify["run"]
-    assert "GITHUB_STEP_SUMMARY" in scan["run"]
-    assert "enrichment" in scan["run"]
+def test_secrets_reach_only_the_step_that_needs_them() -> None:
+    with_secrets = [s["name"] for s in _steps() if "secrets." in str(s.get("env", {}))]
+    assert with_secrets == ["Collect and triage"]
 
 
-def test_publish_feeds_pulse_from_fresh_trending_and_news_before_export():
-    text = _publish_workflow()
-    trending_idx = text.index("radar trending scan")
-    news_idx = text.index("radar news scan")
-    collect_idx = text.index("radar pulse collect")
-    triage_idx = text.index("radar pulse triage")
-    export_idx = text.index("radar export")
-    assert trending_idx < news_idx < collect_idx < triage_idx < export_idx
-    assert "TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}" in text
-    for store in ("data/news-observations.jsonl", "data/pulse/items.jsonl",
-                  "data/pulse/labels.jsonl"):
-        assert store in text
+def test_the_retired_intelligence_pipeline_is_gone() -> None:
+    commands = _commands()
+    for retired in ("intelligence-", "radar scan", "radar export ", "radar-state", "calibrate"):
+        assert retired not in commands, retired
 
 
-def test_frozen_features_no_longer_run_in_publish():
-    # Radar rescue Faz 5 (2026-09-30, owner-approved freeze; deletion decided
-    # 2026-10-28). The commands stay in the CLI; publish must not spend on them.
-    commands = all_run_commands(load_yaml(".github/workflows/publish.yml"))
-    for frozen in (
-        "intelligence-lineage-backfill",
-        "intelligence-lineage-triage",
-        "radar news classify",
-        "radar desk brief",
-        "radar desk auto-resolve",
-        "radar alerts notify",
-        "radar pulse telegram",  # owned by the homelab worker
-    ):
-        assert frozen not in commands, frozen
-
-
-def test_publish_checkout_is_shallow():
-    # Full history of the 2-hourly data files cost ~1 min per run; no step
-    # reads git history and persist_publication.sh only rebases one commit.
-    workflow = load_yaml(".github/workflows/publish.yml")
-    checkout = next(
-        step for step in workflow["jobs"]["build"]["steps"]
-        if str(step.get("uses", "")).startswith("actions/checkout")
-    )
-    assert 0 < checkout["with"]["fetch-depth"] <= 50
+def test_watchdogs_still_find_the_workflow_by_name_and_file() -> None:
+    # publish-watchdog.yml matches the name; the homelab watchdog the file name.
+    assert _workflow()["name"] == "Publish radar to Pages"
+    watchdog = Path(".github/workflows/publish-watchdog.yml").read_text(encoding="utf-8")
+    assert '"Publish radar to Pages"' in watchdog
+    config = yaml.safe_load(Path("config/pulse.yaml").read_text(encoding="utf-8"))
+    assert config["watchdog"]["publish_workflow"] == "publish.yml"
