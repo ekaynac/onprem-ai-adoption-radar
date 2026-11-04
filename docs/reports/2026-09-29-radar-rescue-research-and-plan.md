@@ -310,9 +310,8 @@ kalabalığın arasında kalıyor. **Bu, Faz 2'nin (Jev triyajı) tam olarak ç�
       - **Geri bildirim döngüsü kullanım üzerinden kuruluyor.** Sahip bir öğeyi kaçırdığını
         ("X neden yok?") ya da gereksiz bulduğunu ("Y gürültü") söyler. Her örnek bir regresyon
         testine dönüşür (K1 testi gibi) ve sıralama kuralı buna göre ayarlanır.
-      - `radar pulse gold-sample` ve `radar pulse eval` araçları duruyor; ileride bir karşılaştırma
-        gerekirse kullanılabilir. `eval/pulse-gold-2026-09-30.md` dosyasındaki yarım işaretler
-        sahibindir ve dokunulmadı.
+      - `radar pulse gold-sample` / `radar pulse eval` araçları ve `eval/` altın seti Faz 7'de
+        (2026-11-04) silindi; gerekirse `pre-slim-2026-11-04` etiketinden geri alınabilir.
 
 **Gümüş karşılaştırma (Claude opus'un 266 tabakalı newsroom etiketi, 2026-09-30, maliyet
 0,0073$).** Ön kayıtlı kapı "F1 ≥ 0.85 ve uyum ≥ %80" idi; Jev **az farkla geçemedi**:
@@ -598,7 +597,7 @@ Ek adım: Memati'nin `~/.openclaw/workspace/.mcp.json` dosyasındaki `onprem-rad
 - Python kodu ~42.100 → ~2.900 satır; çalışma zamanı bağımlılıkları 16 → 7; `vulture` temiz.
 - Memati: `.mcp.json`'daki `onprem-radar` girdisi ve `TOOLS.md`'deki eski radar notları kaldırıldı
   (yedekler `*.bak-pre-faz7-20261104`).
-- `eval/` (altın set) sahibin dosyası olduğu için dokunulmadı; silinmesi önerildi.
+- `eval/` (altın set) sahibin onayıyla 2026-11-04'te silindi (tag `pre-slim-2026-11-04`'te duruyor).
 
 **Toplam tahmin:** yaklaşık 2–3 hafta, parça parça. Her faz tek başına değer üretir. Faz 0 ile
 Faz 1'in sonunda bile "yeni modeller ve paper'lar görünüyor" hedefine ulaşılır.
