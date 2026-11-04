@@ -11,44 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
+  python:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.2.0
-
-      - name: Set up Python
-        run: uv python install 3.12
-
-      - name: Install package + dev deps
-        run: uv sync --all-extras
-
-      - name: Ruff
-        run: uv run ruff check src tests
-
-      - name: Mypy
-        run: uv run mypy src/radar
-
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: radar
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d radar"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/radar
     strategy:
       matrix:
         python-version: ["3.12", "3.13"]
@@ -62,9 +26,15 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install package + dev deps
-        run: uv sync --all-extras --python ${{ matrix.python-version }}
+        run: uv sync --locked --python ${{ matrix.python-version }}
 
-      - name: Run tests with coverage
+      - name: Ruff
+        run: uv run ruff check src tests
+
+      - name: Mypy
+        run: uv run mypy src/radar
+
+      - name: Tests with coverage
         run: uv run pytest --cov -q
 
   frontend:
@@ -87,14 +57,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --all-extras
+          uv sync --locked
           npm ci --prefix frontend
-
-      - name: Verify generated API types
-        run: |
-          uv run radar-export-openapi --root . --out build/openapi.json
-          npm run generate:api --prefix frontend
-          git diff --exit-code -- frontend/src/api/generated
 
       - name: Frontend unit, type, lint, and build
         run: |
@@ -103,11 +67,12 @@ jobs:
           npm run lint --prefix frontend
           npm run build --prefix frontend
 
-      - name: Export static site for browser workflows
-        run: uv run radar export --root . --out _site
+      # Offline: renders the tracked data/pulse store, no network sources.
+      - name: Export static site
+        run: uv run radar pulse export --root . --out _site
 
       - name: Install Playwright browser
         run: npx --prefix frontend playwright install --with-deps chromium
 
-      - name: Browser workflows
+      - name: Browser checks
         run: cd frontend && npx playwright test

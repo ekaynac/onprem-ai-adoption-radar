@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from radar.pulse.config import load_pulse_config
-from radar.pulse.sources import model_item
+from radar.pulse.sources.huggingface import model_item
 
 
 ROOT = Path(__file__).resolve().parents[1]

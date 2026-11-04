@@ -13,8 +13,10 @@ import pytest
 
 from radar.pulse.classify import Answer, Label
 from radar.pulse.feeds import FEED_FILES, render_feed, write_feeds
+from radar.pulse.health import HEALTH_PATH, record_runs
 from radar.pulse.items import Lane, PulseItem
 from radar.pulse.pipeline import ITEMS_PATH
+from radar.pulse.sources import SourceRun
 from radar.pulse.store import save_items
 from radar.pulse.telegram import (
     TELEGRAM_LIMIT,
@@ -28,11 +30,6 @@ from radar.pulse.telegram import (
 )
 from radar.pulse.triage import LABELS_PATH, append_labels
 from radar.pulse.view import build_pulse_view
-from radar.storage.source_health_log import (
-    SourceHealthRecord,
-    SourceOutcome,
-    append_source_health,
-)
 
 
 NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
@@ -59,10 +56,9 @@ def _seed_root(root: Path) -> None:
         Label(item_id="news:n2", content_hash="h", question_version=1, engine="jev",
               answers={"event": Answer(value="customer-story", confidence=0.9)}, labeled_at=NOW),
     ])
-    append_source_health(root / "data" / "source-health.jsonl", SourceHealthRecord(
-        run_id=f"pulse-{NOW.isoformat()}", observed_at=NOW,
-        sources={"huggingface:lab-models": SourceOutcome(count=586, status="ok")},
-    ))
+    record_runs(root / HEALTH_PATH, [
+        SourceRun("huggingface:lab-models", tuple(items[2:]) * 586, requests=30),
+    ], NOW)
 
 
 @pytest.fixture

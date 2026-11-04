@@ -48,8 +48,11 @@ def check_site(view: dict[str, Any] | None, now: datetime, error: str | None) ->
             findings.append(Finding(f"lane-empty:{section['lane']}",
                                     f"Pulse lane '{section['lane']}' is empty"))
     health = view.get("health", {})
+    # Only a source that is fully down alarms. A partial one (one feed of 16,
+    # one GitHub topic) is named on the site and in data/pulse/health.json;
+    # alarming on it would raise and clear Çakır alerts for every flaky feed.
     for source in health.get("sources", []):
-        if source.get("status") != "ok":
+        if source.get("status") == "error":
             findings.append(Finding(f"source:{source['source']}",
                                     f"Source {source['source']} is {source['status']} "
                                     f"({source.get('count', 0)} items)"))

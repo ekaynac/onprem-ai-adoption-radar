@@ -7,6 +7,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
+from radar.pulse.sources.news import NewsSource
+
 
 class ModelsConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -21,6 +23,19 @@ class PapersConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     daily_papers_limit: int = Field(default=100, ge=1, le=500)
+
+
+class ReposConfig(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    topics: tuple[str, ...] = Field(min_length=1)
+    min_stars: int = Field(default=50, ge=0)
+
+
+class NewsConfig(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    sources: tuple[NewsSource, ...] = Field(min_length=1)
 
 
 class TriageConfig(BaseModel):
@@ -45,6 +60,8 @@ class PulseConfig(BaseModel):
     window_days: int = Field(default=14, ge=1, le=90)
     models: ModelsConfig
     papers: PapersConfig = PapersConfig()
+    repos: ReposConfig
+    news: NewsConfig
     triage: TriageConfig = TriageConfig()
     watchdog: WatchdogConfig | None = None
 

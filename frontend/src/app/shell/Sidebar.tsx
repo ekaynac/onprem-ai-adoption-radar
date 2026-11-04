@@ -1,136 +1,60 @@
-import { NavLink } from "react-router-dom";
-
-import { usePublicSnapshot } from "../../features/catalog/catalogQueries";
-import { isSourceHealthy } from "../../features/operations/sourceHealth";
-
-
-const navigation = [
-  {
-    label: "Pulse",
-    items: [{ to: "/", label: "What's new", mark: "PU" }],
-  },
-  {
-    label: "Explore",
-    items: [
-      { to: "/ask", label: "Answer Machine", mark: "AM" },
-      { to: "/advisor", label: "Advisor", mark: "AD" },
-      { to: "/compare", label: "Compare", mark: "CO" },
-    ],
-  },
-  {
-    label: "Evidence appendix",
-    items: [
-      { to: "/catalog", label: "Catalog", mark: "CA" },
-      { to: "/releases", label: "Release stream", mark: "RS" },
-      { to: "/projects", label: "GitHub projects", mark: "GH" },
-      { to: "/trending", label: "Trending repos", mark: "TR" },
-      { to: "/platforms", label: "Platforms", mark: "PL" },
-      { to: "/research", label: "Research", mark: "RE" },
-      { to: "/overview", label: "Rings overview", mark: "OV" },
-    ],
-  },
-  {
-    // Radar rescue Faz 5 (2026-09-30): frozen, no longer refreshed by
-    // publish (the newsroom's Claude classifier ran on the retired Mac bot;
-    // Pulse news is triaged by Jev); reachable until the 2026-10-28 decision.
-    label: "Frozen · retiring",
-    items: [
-      { to: "/desk", label: "Weekly brief", mark: "WB" },
-      { to: "/newsroom", label: "Newsroom", mark: "NW" },
-      { to: "/workspaces", label: "Stack profile", mark: "WS" },
-      { to: "/planner", label: "Deployment planner", mark: "DP" },
-      { to: "/hardware", label: "Hardware", mark: "HW" },
-    ],
-  },
-  {
-    label: "Monitor",
-    items: [
-      { to: "/operations", label: "Operations", mark: "OP" },
-      { to: "/operations/reviews", label: "Review queue", mark: "RQ", liveOnly: true },
-    ],
-  },
-  {
-    label: "Integrate",
-    items: [{ to: "/integrations", label: "MCP & API", mark: "IF" }],
-  },
-] as const;
-
-const classicRadar = [
-  { href: "models.html", label: "Classic models", mark: "MO" },
-  { href: "platforms.html", label: "Classic platforms", mark: "PF" },
-  { href: "techniques.html", label: "Classic techniques", mark: "TE" },
-  { href: "trending.html", label: "Classic trending", mark: "TR" },
-  { href: "history.html", label: "Classic history", mark: "HI" },
-  { href: "compare.html", label: "Classic compare", mark: "CP" },
-] as const;
+import megaLogoWhite from "../../assets/brand/mega-logo-white.svg";
+import { FEEDS, LANE_LABELS, LANES } from "../../features/pulse/lanes";
+import { usePulse } from "../../features/pulse/pulseQueries";
 
 
-export function Sidebar({ staticMode }: { staticMode: boolean }) {
-  const snapshot = usePublicSnapshot();
-  const sources = snapshot.data?.source_health.source_health ?? [];
-  const latestDigest = snapshot.data?.latest_digest;
-  const failures = sources.filter((source) => !isSourceHealthy(source)).length;
+export function Sidebar() {
+  const pulse = usePulse();
+  const sources = pulse.data?.health.sources ?? [];
+  const failing = sources.filter((source) => source.status !== "ok").length;
+  const counts = new Map(pulse.data?.lanes.map((lane) => [lane.lane, lane.items.length]) ?? []);
   return (
     <aside className="sidebar">
       <div className="brand-lockup">
-        <span className="brand-glyph" aria-hidden="true">M</span>
+        <img src={megaLogoWhite} alt="Mega" className="brand-logo" />
         <div>
-          <strong>On-Prem</strong>
-          <span>Intelligence</span>
+          <strong>AI Radar</strong>
+          <span>Pulse</span>
         </div>
       </div>
-      <nav aria-label="Primary" className="primary-nav">
-        {navigation.map((group) => (
-          <div className="nav-group" key={group.label}>
-            <p>{group.label}</p>
-            {group.items
-              .filter((item) => !("liveOnly" in item && item.liveOnly && staticMode))
-              .map((item) => (
-              <NavLink
-                to={item.to}
-                key={item.to}
-                end={item.to === "/"}
-                className={({ isActive }) =>
-                  `nav-link${isActive ? " nav-link-active" : ""}`
-                }
-              >
-                <span className="nav-mark" aria-hidden="true">{item.mark}</span>
-                <span>{item.label}</span>
-              </NavLink>
-              ))}
-          </div>
-        ))}
-        <div className="nav-group classic-nav">
-          <p>Classic radar</p>
-          <span className="classic-nav-note">Deep legacy views during restoration</span>
-          {classicRadar.map((item) => (
-            <a className="nav-link" href={item.href} key={item.href}>
-              <span className="nav-mark" aria-hidden="true">{item.mark}</span>
-              <span>{item.label}</span>
+      <nav aria-label="Lanes" className="primary-nav">
+        <div className="nav-group">
+          <p>What's new</p>
+          {LANES.map((lane) => (
+            <a className="nav-link" href={`#pulse-lane-${lane}`} key={lane}>
+              <span>{LANE_LABELS[lane]}</span>
+              {counts.has(lane) && <span className="nav-count">{counts.get(lane)}</span>}
             </a>
           ))}
-          {latestDigest && (
-            <a className="nav-link" href={latestDigest.html_url}>
-              <span className="nav-mark" aria-hidden="true">WD</span>
-              <span>Latest weekly digest</span>
+        </div>
+        <div className="nav-group">
+          <p>Feeds</p>
+          <a className="nav-link" href="pulse.xml">All lanes (RSS)</a>
+          {LANES.map((lane) => (
+            <a className="nav-link" href={FEEDS[lane]} key={lane}>
+              {LANE_LABELS[lane]} (RSS)
             </a>
-          )}
+          ))}
         </div>
       </nav>
       <div className="sidebar-foot">
         <span
-          className={`health-dot${failures ? " health-dot-warning" : ""}`}
+          className={`health-dot${
+            failing || sources.length === 0 || pulse.data?.health.degraded ? " health-dot-warning" : ""
+          }`}
           aria-hidden="true"
         />
         <div>
           <strong>
-            {snapshot.isLoading
-              ? "Checking source mesh"
-              : failures
-                ? `${failures} sources need attention`
-                : `${sources.length} sources monitored`}
+            {pulse.isLoading
+              ? "Checking sources"
+              : sources.length === 0
+                ? "No source report yet"
+                : failing
+                  ? `${failing} of ${sources.length} sources need attention`
+                  : `${sources.length} sources healthy`}
           </strong>
-          <span>Two-hour discovery policy</span>
+          <span>{pulse.data?.health.degraded ? "Triage on fallback rules" : "Triage by Jev"}</span>
         </div>
       </div>
     </aside>

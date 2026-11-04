@@ -1,68 +1,15 @@
-"""Repo/news adapters over the existing observation logs, and the item store."""
+"""The item store: immutable merge inside the window, crash-safe persistence."""
 
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from radar.pulse.adapters import news_items, repo_items
 from radar.pulse.items import Lane, PulseItem
 from radar.pulse.store import load_items, merge_items, save_items
 
 
 NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-
-
-def _write_jsonl(path: Path, rows: list[dict]) -> Path:
-    path.write_text("".join(json.dumps(r) + "\n" for r in rows) + "not json\n", encoding="utf-8")
-    return path
-
-
-def test_repo_items_keep_latest_observation_and_compute_velocity(tmp_path: Path) -> None:
-    path = _write_jsonl(tmp_path / "trending.jsonl", [
-        {"repo": "incoai/splash", "lane": "onprem", "stars": 400,
-         "observed_at": "2026-09-28T08:00:00Z", "repo_created_at": "2026-09-20T12:00:00Z",
-         "description": "A local inference engine for Apple silicon.", "topics": ["mlx"]},
-        {"repo": "incoai/splash", "lane": "onprem", "stars": 924,
-         "observed_at": "2026-09-30T08:00:00Z", "repo_created_at": "2026-09-20T12:00:00Z",
-         "description": "A local inference engine for Apple silicon.", "topics": ["mlx"]},
-        {"repo": "old/classic", "lane": "broader", "stars": 90000,
-         "observed_at": "2026-09-30T08:00:00Z", "repo_created_at": "2019-01-01T00:00:00Z"},
-    ])
-
-    items = repo_items(path, NOW, window_days=14)
-
-    assert [i.key for i in items] == ["incoai/splash"]  # created long ago → not new
-    splash = items[0]
-    assert splash.lane is Lane.REPO
-    assert splash.signals["stars"] == 924
-    assert splash.signals["stars_per_day"] == 92.4
-    assert splash.first_seen == datetime(2026, 9, 28, 8, tzinfo=UTC)
-    assert splash.tags == ("mlx",)
-
-
-def test_news_items_dedupe_and_respect_window(tmp_path: Path) -> None:
-    path = _write_jsonl(tmp_path / "news.jsonl", [
-        {"id": "news:1", "source_id": "hf-blog", "title": "Fresh  post",
-         "url": "https://huggingface.co/blog/x", "published_at": "2026-09-29T10:00:00Z",
-         "observed_at": "2026-09-29T11:00:00Z"},
-        {"id": "news:1", "source_id": "hf-blog", "title": "Fresh post",
-         "url": "https://huggingface.co/blog/x", "published_at": "2026-09-29T10:00:00Z",
-         "observed_at": "2026-09-29T13:00:00Z"},
-        {"id": "news:2", "source_id": "hn-vllm", "title": "Ancient",
-         "url": "https://example.com/a", "published_at": "2026-01-01T00:00:00Z",
-         "observed_at": "2026-01-01T00:00:00Z"},
-    ])
-
-    items = news_items(path, NOW, window_days=14)
-
-    assert [(i.key, i.title) for i in items] == [("news:1", "Fresh post")]
-
-
-def test_missing_inputs_yield_no_items(tmp_path: Path) -> None:
-    assert repo_items(tmp_path / "absent.jsonl", NOW, 14) == []
-    assert news_items(tmp_path / "absent.jsonl", NOW, 14) == []
 
 
 def _item(key: str, first_seen: datetime, likes: float, published: datetime | None = None):

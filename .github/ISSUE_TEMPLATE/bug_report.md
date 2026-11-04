@@ -13,7 +13,7 @@ labels: bug
 
 ```bash
 # The exact command(s) you ran, e.g.
-radar scan --days 30
+uv run radar pulse collect
 ```
 
 ## Expected vs actual

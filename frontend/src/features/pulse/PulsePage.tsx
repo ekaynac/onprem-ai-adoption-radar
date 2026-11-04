@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { FEEDS } from "./lanes";
 import { type PulseLane, type PulseRow, usePulse } from "./pulseQueries";
 
 
@@ -15,12 +16,6 @@ const ENGINE_TITLES: Record<string, string> = {
   lineage: "Origin settled from Hugging Face base_model tags",
   rules: "Ranked by fallback rules",
   untriaged: "Not classified yet",
-};
-const FEEDS: Record<string, string> = {
-  model: "pulse-models.xml",
-  paper: "pulse-papers.xml",
-  repo: "pulse-repos.xml",
-  news: "pulse-news.xml",
 };
 
 
@@ -51,7 +46,7 @@ export function PulsePage() {
     return (
       <div className="empty-state" role="alert">
         <strong>Pulse is unavailable right now</strong>
-        <span>The latest publish did not ship Pulse data. The source health page has details.</span>
+        <span>The latest publish did not ship Pulse data. Try again in a few minutes.</span>
       </div>
     );
   }
@@ -120,11 +115,11 @@ function LaneSection({ lane, hours, now }: { lane: PulseLane; hours: number | nu
   const headingId = `pulse-lane-${lane.lane}`;
   return (
     <section aria-labelledby={headingId} className="page-stack">
-      <div className="brief-item-head">
+      <div className="item-head">
         <h2 id={headingId}>
-          {lane.title} <span className="claim-meta">({inPeriod.length})</span>
+          {lane.title} <span className="meta">({inPeriod.length})</span>
         </h2>
-        <span className="claim-meta">
+        <span className="meta">
           {lane.total} seen · {lane.hidden_count} filtered out ·{" "}
           <a href={FEEDS[lane.lane]}>RSS</a>
         </span>
@@ -134,7 +129,7 @@ function LaneSection({ lane, hours, now }: { lane: PulseLane; hours: number | nu
           <strong>Nothing new in this period</strong>
         </div>
       ) : (
-        <ol className="brief-list">
+        <ol className="pulse-list">
           {rows.map((row) => (
             <PulseItem key={row.id} row={row} />
           ))}
@@ -148,7 +143,7 @@ function LaneSection({ lane, hours, now }: { lane: PulseLane; hours: number | nu
       {uncertain.length > 0 && (
         <details>
           <summary>{uncertain.length} item(s) the classifier was unsure about</summary>
-          <ul className="brief-list">
+          <ul className="pulse-list">
             {uncertain.map((row) => (
               <PulseItem key={row.id} row={row} />
             ))}
@@ -158,7 +153,7 @@ function LaneSection({ lane, hours, now }: { lane: PulseLane; hours: number | nu
       {hidden.length > 0 && (
         <details>
           <summary>{hidden.length} item(s) filtered out, with the reason for each</summary>
-          <ul className="brief-list">
+          <ul className="pulse-list">
             {hidden.map((row) => (
               <PulseItem key={row.id} row={row} />
             ))}
@@ -173,17 +168,17 @@ function LaneSection({ lane, hours, now }: { lane: PulseLane; hours: number | nu
 function PulseItem({ row }: { row: PulseRow }) {
   return (
     <li>
-      <div className="brief-item-head">
+      <div className="item-head">
         <strong>
           <a href={row.url} rel="noreferrer" target="_blank">
             {row.title}
           </a>
         </strong>
         <span
-          className={`verdict-pill ${
+          className={`engine-pill ${
             row.engine === "jev" || row.engine === "lineage"
-              ? "impact-improvement"
-              : "impact-unclassified"
+              ? "engine-trusted"
+              : "engine-fallback"
           }`}
           title={ENGINE_TITLES[row.engine ?? "untriaged"] ?? row.engine ?? ""}
         >
@@ -191,8 +186,8 @@ function PulseItem({ row }: { row: PulseRow }) {
         </span>
       </div>
       {row.summary && <p>{row.summary}</p>}
-      <p className="claim-meta">
-        <span className="lineage-chip">{row.source}</span>{" "}
+      <p className="meta">
+        <span className="chip">{row.source}</span>{" "}
         {row.reasons.join(" · ")}
       </p>
     </li>

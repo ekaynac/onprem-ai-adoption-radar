@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Pulse-only (Faz 7, 2026-11-04)
+
+- The repository is now Radar Pulse only. Deleted the frozen intelligence
+  platform: catalog and release stream, adoption and technique radars,
+  capacity planner, hardware catalog, weekly brief and calls ledger,
+  newsroom, workspaces, FastAPI, MCP server, legacy static site, their
+  workflows (catalog/source autopilots, backtest, digest, spec-verify),
+  configs, data logs and tests. Recoverable from tag `pre-slim-2026-11-04`.
+- Pulse collects its own repos (GitHub search per topic) and news (feeds from
+  `config/pulse.yaml`), records per-source health in
+  `data/pulse/health.json`, and exports the site with `radar pulse export`.
+  Item ids are unchanged, so delivery state and Jev labels carry over.
+- `src/radar/pulse/` imports nothing outside itself; `pulse.v1.json` is the
+  documented integration contract.
+- The frontend is a single Pulse page with lane navigation, feed links,
+  source health from `pulse.v1.json`, and the Mega footer.
+- Runtime dependencies down from 16 to 7; publish no longer restores or
+  checkpoints intelligence state.
+
+
 ### Unified on-prem intelligence platform
 
 - Replaced the legacy landing experience with a React/TypeScript infrastructure

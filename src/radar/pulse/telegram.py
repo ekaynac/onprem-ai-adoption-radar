@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from radar.huggingface_auth import _load_dotenv
+from radar.pulse.env import secret
 
 
 TOKEN_ENV = "TELEGRAM_BOT_TOKEN"
@@ -72,9 +72,7 @@ class TelegramError(RuntimeError):
 
 
 def telegram_credentials(root: Path | None = None) -> tuple[str, str] | None:
-    _load_dotenv(root)
-    token = os.environ.get(TOKEN_ENV, "").strip()
-    chat = os.environ.get(CHAT_ENV, "").strip()
+    token, chat = secret(TOKEN_ENV, root), secret(CHAT_ENV, root)
     return (token, chat) if token and chat else None
 
 

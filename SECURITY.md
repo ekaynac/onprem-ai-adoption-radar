@@ -2,46 +2,26 @@
 
 ## Supported versions
 
-The project is pre-1.0; only the latest `main` branch receives security fixes.
-Pin a commit hash if you deploy it.
+Only the latest `main` branch receives security fixes.
 
 ## Reporting a vulnerability
 
 Please open a private GitHub security advisory
 (**Security → Report a vulnerability** on the repository) rather than a public
-issue. You can also reach the maintainer via the contact listed on the GitHub
-profile. Expect an initial response within 7 days.
+issue. Expect an initial response within 7 days.
 
 ## Security model
 
-This project is designed to run **locally or on a trusted internal network**.
-Its network posture:
-
-- **Reads are public by design.** The radar publishes a static site and an API
-  whose GET endpoints are always readable — that is the product.
-- **Writes are opt-in protected.** Set `RADAR_API_TOKEN` to require a
-  `Authorization: Bearer <token>` header (compared with a constant-time
-  function) for:
-  - all mutating API endpoints (`POST/PUT/DELETE /api/v1/...`),
-  - the dashboard seed form (`POST /sources`).
-- **CSRF:** cross-origin submissions to `POST /sources` are rejected by Origin
-  checking regardless of token state.
-- The API is **open when `RADAR_API_TOKEN` is unset** — appropriate for local
-  development, *not* for exposure beyond localhost without a reverse proxy,
-  network ACLs, or the token set.
-
-If you expose either app beyond localhost, set `RADAR_API_TOKEN` and front it
-with TLS.
-
-## Data handling
-
-- The pipeline fetches operator-configured feeds (RSS/GitHub/HuggingFace) and
-  sends selected text to Anthropic's API for news classification only when
-  configured with `ANTHROPIC_API_KEY`. Nothing user-supplied is fetched.
-- Webhooks sign payloads with HMAC-SHA256 (`RADAR_WEBHOOK_SECRET`).
-
-## Known limitations
-
-- No rate limiting or brute-force lockout on token-protected endpoints;
-  rely on your reverse proxy for this.
-- GET endpoints cannot be locked down per-token today.
+- **The site is static and public by design.** GitHub Pages serves the built
+  frontend, `data/pulse.v1.json` and RSS. There is no server, API or write path.
+- **Secrets** (`TYPESAFE_API_KEY`, `HF_TOKEN`, `GITHUB_TOKEN`) live in GitHub
+  Actions secrets or a git-ignored `.env`, and reach only the step that
+  collects and triages. The Telegram and Claude tokens exist only on the
+  homelab worker (`/etc/radar/env`, root:radar 0640).
+- **Untrusted input.** Item titles and summaries come from the open internet.
+  They are validated at the boundary (pydantic), escaped wherever rendered
+  (HTML, RSS, Telegram), and framed as data in the one LLM prompt, which runs
+  with every tool disabled and a filtered environment.
+- **The homelab worker never pulls code on its own**; updates are deliberate
+  (`update-radar`), and data arrives as the published, schema-checked
+  `pulse.v1.json`.

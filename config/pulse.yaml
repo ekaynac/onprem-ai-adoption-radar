@@ -48,6 +48,49 @@ papers:
   # Hugging Face daily papers (community-curated, carries upvotes + code links).
   daily_papers_limit: 100
 
+repos:
+  # New GitHub repos: one search per topic, created inside the window, sorted by stars.
+  min_stars: 50
+  topics:
+    - llm
+    - large-language-models
+    - generative-ai
+    - ai
+    - ai-agents
+    - agent-framework
+    - llm-inference
+    - model-serving
+    - local-llm
+    - self-hosted-ai
+    - mcp-server
+    - model-context-protocol
+    - llmops
+    - ai-sandbox
+
+news:
+  # Lab and practitioner feeds plus Hacker News. Verified 2026-09-30.
+  # Excluded with reasons: anthropic.com and ai.meta.com publish no RSS (404);
+  # qwenlm.github.io/blog stopped at 2025-09 (Qwen releases arrive via the model
+  # lane); the DeepSeek API news feed is empty; Reddit (r/LocalLLaMA) blocks
+  # honest non-browser clients.
+  sources:
+    - {id: vllm-blog, kind: rss, url: "https://vllm.ai/blog/rss.xml"}
+    - {id: hf-blog, kind: rss, url: "https://huggingface.co/blog/feed.xml"}
+    - {id: ollama-blog, kind: rss, url: "https://ollama.com/blog/rss.xml"}
+    - {id: hn-vllm, kind: hn-algolia, url: "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=vllm&hitsPerPage=30"}
+    - {id: hn-ollama, kind: hn-algolia, url: "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=ollama&hitsPerPage=30"}
+    - {id: hn-llamacpp, kind: hn-algolia, url: "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=llama.cpp&hitsPerPage=30"}
+    - {id: openai-news, kind: rss, url: "https://openai.com/news/rss.xml"}
+    - {id: deepmind-blog, kind: rss, url: "https://deepmind.google/blog/rss.xml"}
+    - {id: google-ai-blog, kind: rss, url: "https://blog.google/technology/ai/rss/"}
+    - {id: mistral-news, kind: rss, url: "https://mistral.ai/rss.xml"}
+    - {id: nvidia-dev-blog, kind: rss, url: "https://developer.nvidia.com/blog/feed"}
+    - {id: msr-blog, kind: rss, url: "https://www.microsoft.com/en-us/research/feed/"}
+    - {id: github-blog-ai, kind: rss, url: "https://github.blog/ai-and-ml/feed/"}
+    - {id: simonwillison, kind: rss, url: "https://simonwillison.net/atom/everything/"}
+    - {id: latent-space, kind: rss, url: "https://www.latent.space/feed"}
+    - {id: hn-llm-top, kind: hn-algolia, url: "https://hn.algolia.com/api/v1/search_by_date?tags=story&query=LLM&numericFilters=points%3E100&hitsPerPage=30"}
+
 triage:
   # Classifier input-token ceiling per run (Jev: $0.042 per million).
   token_budget_per_run: 300000
