@@ -25,7 +25,7 @@ state live in `/var/lib/radar` (rootfs, covered by the nightly PBS backup).
 |---|---|
 | `radar-worker.sh` | run from the clone at `/opt/radar/repo/deploy/homelab/` |
 | `update-radar.sh` | `/usr/local/bin/update-radar` (root; deliberate code updates) |
-| `radar-worker.service`, `radar-worker.timer`, `radar-worker-failed.service` | `/etc/systemd/system/` |
+| `radar-worker.service`, `radar-worker.timer`, `radar-worker-failed.service` | `/etc/systemd/system/`, copied by root **only from the root-owned deploy mirror** `/usr/local/share/radar-deploy` (a clone of origin at the worker's commit), never from the `radar`-owned clone |
 | `notify-failure.py` | run from the clone (stdlib only) |
 | `env.example` | template for `/etc/radar/env` (root:radar, 0640) |
 
